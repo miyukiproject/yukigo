@@ -1,0 +1,24 @@
+{
+  "name": "@yukigo/docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.1.16",
+    "prismjs": "^1.30.0",
+    "tailwindcss": "^4.1.16",
+    "typedoc-vitepress-theme": "^1.1.2",
+    "yukigo": "^0.1.0",
+    "yukigo-haskell-parser": "^0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.9.2",
+    "@types/prismjs": "^1.26.5",
+    "typescript": "^5.9.3",
+    "vitepress": "^1.6.4"
+  }
+}

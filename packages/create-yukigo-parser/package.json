@@ -1,0 +1,32 @@
+{
+  "name": "create-yukigo-parser",
+  "description": "A CLI to quickly set up a new Yukigo parser project.",
+  "version": "0.1.0",
+  "main": "dist/index.js",
+  "type": "module",
+  "bin": {
+    "create-yukigo-parser": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "keywords": [
+    "cli",
+    "typescript",
+    "parser"
+  ],
+  "author": "noiseArch",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^7.9.0",
+    "@types/fs-extra": "^11.0.4",
+    "chalk": "^5.6.2",
+    "commander": "^14.0.2",
+    "fs-extra": "^11.3.2"
+  }
+}

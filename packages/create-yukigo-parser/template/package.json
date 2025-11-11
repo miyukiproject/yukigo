@@ -1,0 +1,35 @@
+{
+  "name": "yukigo-parser",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "grammar": "nearleyc ./src/grammar.ne -o ./src/grammar.ts",
+    "build": "npm run grammar && tsc",
+    "test": "npm run build && mocha --import=tsx"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/chai": "^5.2.2",
+    "@types/mocha": "^10.0.10",
+    "@types/moo": "^0.5.10",
+    "@types/node": "^24.2.0",
+    "chai": "^5.2.1",
+    "mocha": "^11.7.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "moo": "^0.5.2",
+    "nearley": "^2.20.1",
+    "@yukigo/ast": "latest"
+  }
+}

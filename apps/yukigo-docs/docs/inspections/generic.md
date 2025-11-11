@@ -1,0 +1,4 @@
+# Generic Inspections
+
+
+## Code Smells

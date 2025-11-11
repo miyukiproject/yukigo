@@ -1,0 +1,4 @@
+# Functional Inspections
+
+
+## Code Smells

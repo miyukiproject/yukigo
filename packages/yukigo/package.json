@@ -1,0 +1,31 @@
+{
+  "name": "yukigo",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@yukigo/ast": "^0.1.0",
+    "typescript": "^5.9.2",
+    "yaml": "^2.8.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && mocha"
+  },
+  "devDependencies": {
+    "@types/chai": "^5.2.2",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^24.2.0",
+    "chai": "^6.2.0",
+    "mocha": "^11.7.1",
+    "ts-node": "^10.9.2",
+    "typescript-eslint": "^8.33.1",
+    "yukigo-haskell-parser": "^0.1.0",
+    "yukigo-prolog-parser": "^0.1.0"
+  }
+}

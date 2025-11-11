@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "outDir": "./dist",
+    "declaration": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
+  },
+  "typedocOptions": {
+    "entryPoints": [
+      "src/*.ts"
+    ],
+    "out": "docs/typedoc"
+  },
+  "include": ["src"],
+  "exclude": ["dist/**/*"]
+}

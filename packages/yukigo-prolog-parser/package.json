@@ -1,0 +1,30 @@
+{
+  "name": "yukigo-prolog-parser",
+  "version": "0.1.0",
+  "description": "",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "nearleyc ./src/parser/grammar.ne -o ./src/parser/grammar.ts && tsc",
+    "test": "npm run build && mocha --import=tsx"
+  },
+  "keywords": [],
+  "author": "noiseArch",
+  "license": "ISC",
+  "dependencies": {
+    "moo": "^0.5.2",
+    "moo-ignore": "^2.5.3",
+    "nearley": "^2.20.1"
+  },
+  "devDependencies": {
+    "@types/chai": "^5.2.2",
+    "@types/mocha": "^10.0.10",
+    "@types/moo": "^0.5.10",
+    "@types/node": "^24.10.0",
+    "chai": "^6.2.0",
+    "mocha": "^11.7.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.2"
+  }
+}

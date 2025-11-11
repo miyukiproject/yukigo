@@ -1,0 +1,5 @@
+{
+  "plugin": ["typedoc-plugin-markdown", "typedoc-vitepress-theme"],
+  "entryPoints": ["src/index.ts"],
+  "out": "./docs/ast"
+}

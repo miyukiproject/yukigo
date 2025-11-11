@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "bundler",
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "preserve",
+    "types": ["vitepress"],
+
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"],
+      "@theme/*": ["./.vitepress/theme/*"]
+    }
+  },
+  "vueCompilerOptions": {
+    "vitePressExtensions": [".md"] // <-- this line
+  },
+  "include": [
+    "docs/.vitepress/**/*.ts",
+    "docs/.vitepress/**/*.d.ts",
+    "docs/.vitepress/**/*.vue",
+    "docs/**/*.md"
+  ],
+  "exclude": ["node_modules", "dist"]
+}

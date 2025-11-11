@@ -1,0 +1,56 @@
+import { YukigoPrimitive } from "@yukigo/ast";
+
+export const keywords = [
+  "type",
+  "where",
+  "in",
+  "if",
+  "else",
+  "then",
+  "data",
+  "case",
+  "class",
+  "do",
+  "default",
+  "deriving",
+  "import",
+  "infix",
+  "infixl",
+  "infixr",
+  "instance",
+  "let",
+  "module",
+  "newtype",
+  "of",
+  "qualified",
+  "hiding",
+  "foreign",
+];
+
+export const typeMappings: { [key: string]: YukigoPrimitive } = {
+  Float: "YuNumber",
+  Double: "YuNumber",
+  Int: "YuNumber",
+  Integer: "YuNumber",
+  String: "YuString",
+  Char: "YuChar",
+  Boolean: "YuBoolean",
+  Bool: "YuBoolean",
+};
+
+export const typeClasses: Map<string, string[]> = new Map([
+  ["Bounded", ["YuChar", "YuNumber"]],
+  ["Enum", ["YuChar", "YuNumber"]],
+  ["Ord", ["YuNumber", "YuString", "YuChar"]],
+  ["Eq", ["YuNumber", "YuString", "YuChar", "YuBoolean"]],
+  ["Floating", ["YuNumber"]],
+  ["Fractional", ["YuNumber"]],
+  ["Integral", ["YuNumber"]],
+  ["Num", ["YuNumber"]],
+  ["Random", ["YuBoolean", "YuChar", "YuNumber"]],
+  ["Read", ["YuList", "YuChar", "YuNumber"]],
+  ["Real", ["YuNumber"]],
+  ["RealFloat", ["YuNumber"]],
+  ["RealFrac", ["YuNumber"]],
+  ["Show", ["YuNumber", "YuString", "YuChar", "YuList"]],
+]);

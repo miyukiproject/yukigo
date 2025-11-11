@@ -1,0 +1,622 @@
+[
+    {
+        "text": "index",
+        "link": "/ast/index/",
+        "collapsed": true,
+        "items": [
+            {
+                "text": "Classes",
+                "collapsed": true,
+                "items": [
+                    {
+                        "text": "Application",
+                        "link": "/ast/index/classes/Application.md"
+                    },
+                    {
+                        "text": "ApplicationPattern",
+                        "link": "/ast/index/classes/ApplicationPattern.md"
+                    },
+                    {
+                        "text": "ArithmeticBinaryOperation",
+                        "link": "/ast/index/classes/ArithmeticBinaryOperation.md"
+                    },
+                    {
+                        "text": "ArithmeticUnaryOperation",
+                        "link": "/ast/index/classes/ArithmeticUnaryOperation.md"
+                    },
+                    {
+                        "text": "AsPattern",
+                        "link": "/ast/index/classes/AsPattern.md"
+                    },
+                    {
+                        "text": "Assignment",
+                        "link": "/ast/index/classes/Assignment.md"
+                    },
+                    {
+                        "text": "AssignOperation",
+                        "link": "/ast/index/classes/AssignOperation.md"
+                    },
+                    {
+                        "text": "ASTNode",
+                        "link": "/ast/index/classes/ASTNode.md"
+                    },
+                    {
+                        "text": "Attribute",
+                        "link": "/ast/index/classes/Attribute.md"
+                    },
+                    {
+                        "text": "BitwiseBinaryOperation",
+                        "link": "/ast/index/classes/BitwiseBinaryOperation.md"
+                    },
+                    {
+                        "text": "BitwiseUnaryOperation",
+                        "link": "/ast/index/classes/BitwiseUnaryOperation.md"
+                    },
+                    {
+                        "text": "BooleanPrimitive",
+                        "link": "/ast/index/classes/BooleanPrimitive.md"
+                    },
+                    {
+                        "text": "Break",
+                        "link": "/ast/index/classes/Break.md"
+                    },
+                    {
+                        "text": "Call",
+                        "link": "/ast/index/classes/Call.md"
+                    },
+                    {
+                        "text": "Case",
+                        "link": "/ast/index/classes/Case.md"
+                    },
+                    {
+                        "text": "Catch",
+                        "link": "/ast/index/classes/Catch.md"
+                    },
+                    {
+                        "text": "CharPrimitive",
+                        "link": "/ast/index/classes/CharPrimitive.md"
+                    },
+                    {
+                        "text": "Class",
+                        "link": "/ast/index/classes/Class.md"
+                    },
+                    {
+                        "text": "ComparisonOperation",
+                        "link": "/ast/index/classes/ComparisonOperation.md"
+                    },
+                    {
+                        "text": "CompositionExpression",
+                        "link": "/ast/index/classes/CompositionExpression.md"
+                    },
+                    {
+                        "text": "ConsExpression",
+                        "link": "/ast/index/classes/ConsExpression.md"
+                    },
+                    {
+                        "text": "ConsPattern",
+                        "link": "/ast/index/classes/ConsPattern.md"
+                    },
+                    {
+                        "text": "ConstrainedType",
+                        "link": "/ast/index/classes/ConstrainedType.md"
+                    },
+                    {
+                        "text": "Constraint",
+                        "link": "/ast/index/classes/Constraint.md"
+                    },
+                    {
+                        "text": "Constructor",
+                        "link": "/ast/index/classes/Constructor.md"
+                    },
+                    {
+                        "text": "ConstructorPattern",
+                        "link": "/ast/index/classes/ConstructorPattern.md"
+                    },
+                    {
+                        "text": "Continue",
+                        "link": "/ast/index/classes/Continue.md"
+                    },
+                    {
+                        "text": "DataExpression",
+                        "link": "/ast/index/classes/DataExpression.md"
+                    },
+                    {
+                        "text": "EntryPoint",
+                        "link": "/ast/index/classes/EntryPoint.md"
+                    },
+                    {
+                        "text": "Enumeration",
+                        "link": "/ast/index/classes/Enumeration.md"
+                    },
+                    {
+                        "text": "Equation",
+                        "link": "/ast/index/classes/Equation.md"
+                    },
+                    {
+                        "text": "Exist",
+                        "link": "/ast/index/classes/Exist.md"
+                    },
+                    {
+                        "text": "Fact",
+                        "link": "/ast/index/classes/Fact.md"
+                    },
+                    {
+                        "text": "Field",
+                        "link": "/ast/index/classes/Field.md"
+                    },
+                    {
+                        "text": "FieldExpression",
+                        "link": "/ast/index/classes/FieldExpression.md"
+                    },
+                    {
+                        "text": "Findall",
+                        "link": "/ast/index/classes/Findall.md"
+                    },
+                    {
+                        "text": "For",
+                        "link": "/ast/index/classes/For.md"
+                    },
+                    {
+                        "text": "Forall",
+                        "link": "/ast/index/classes/Forall.md"
+                    },
+                    {
+                        "text": "ForLoop",
+                        "link": "/ast/index/classes/ForLoop.md"
+                    },
+                    {
+                        "text": "Function",
+                        "link": "/ast/index/classes/Function.md"
+                    },
+                    {
+                        "text": "FunctorPattern",
+                        "link": "/ast/index/classes/FunctorPattern.md"
+                    },
+                    {
+                        "text": "Generator",
+                        "link": "/ast/index/classes/Generator.md"
+                    },
+                    {
+                        "text": "Goal",
+                        "link": "/ast/index/classes/Goal.md"
+                    },
+                    {
+                        "text": "GuardedBody",
+                        "link": "/ast/index/classes/GuardedBody.md"
+                    },
+                    {
+                        "text": "If",
+                        "link": "/ast/index/classes/If.md"
+                    },
+                    {
+                        "text": "Implement",
+                        "link": "/ast/index/classes/Implement.md"
+                    },
+                    {
+                        "text": "Include",
+                        "link": "/ast/index/classes/Include.md"
+                    },
+                    {
+                        "text": "Interface",
+                        "link": "/ast/index/classes/Interface.md"
+                    },
+                    {
+                        "text": "Lambda",
+                        "link": "/ast/index/classes/Lambda.md"
+                    },
+                    {
+                        "text": "LetInExpression",
+                        "link": "/ast/index/classes/LetInExpression.md"
+                    },
+                    {
+                        "text": "ListBinaryOperation",
+                        "link": "/ast/index/classes/ListBinaryOperation.md"
+                    },
+                    {
+                        "text": "ListComprehension",
+                        "link": "/ast/index/classes/ListComprehension.md"
+                    },
+                    {
+                        "text": "ListPattern",
+                        "link": "/ast/index/classes/ListPattern.md"
+                    },
+                    {
+                        "text": "ListPrimitive",
+                        "link": "/ast/index/classes/ListPrimitive.md"
+                    },
+                    {
+                        "text": "ListType",
+                        "link": "/ast/index/classes/ListType.md"
+                    },
+                    {
+                        "text": "ListUnaryOperation",
+                        "link": "/ast/index/classes/ListUnaryOperation.md"
+                    },
+                    {
+                        "text": "LiteralPattern",
+                        "link": "/ast/index/classes/LiteralPattern.md"
+                    },
+                    {
+                        "text": "LogicalBinaryOperation",
+                        "link": "/ast/index/classes/LogicalBinaryOperation.md"
+                    },
+                    {
+                        "text": "LogicalUnaryOperation",
+                        "link": "/ast/index/classes/LogicalUnaryOperation.md"
+                    },
+                    {
+                        "text": "Method",
+                        "link": "/ast/index/classes/Method.md"
+                    },
+                    {
+                        "text": "New",
+                        "link": "/ast/index/classes/New.md"
+                    },
+                    {
+                        "text": "NilPrimitive",
+                        "link": "/ast/index/classes/NilPrimitive.md"
+                    },
+                    {
+                        "text": "Not",
+                        "link": "/ast/index/classes/Not.md"
+                    },
+                    {
+                        "text": "NumberPrimitive",
+                        "link": "/ast/index/classes/NumberPrimitive.md"
+                    },
+                    {
+                        "text": "Object",
+                        "link": "/ast/index/classes/Object.md"
+                    },
+                    {
+                        "text": "Otherwise",
+                        "link": "/ast/index/classes/Otherwise.md"
+                    },
+                    {
+                        "text": "ParameterizedType",
+                        "link": "/ast/index/classes/ParameterizedType.md"
+                    },
+                    {
+                        "text": "Print",
+                        "link": "/ast/index/classes/Print.md"
+                    },
+                    {
+                        "text": "Procedure",
+                        "link": "/ast/index/classes/Procedure.md"
+                    },
+                    {
+                        "text": "Query",
+                        "link": "/ast/index/classes/Query.md"
+                    },
+                    {
+                        "text": "Raise",
+                        "link": "/ast/index/classes/Raise.md"
+                    },
+                    {
+                        "text": "RangeExpression",
+                        "link": "/ast/index/classes/RangeExpression.md"
+                    },
+                    {
+                        "text": "Record",
+                        "link": "/ast/index/classes/Record.md"
+                    },
+                    {
+                        "text": "Repeat",
+                        "link": "/ast/index/classes/Repeat.md"
+                    },
+                    {
+                        "text": "Return",
+                        "link": "/ast/index/classes/Return.md"
+                    },
+                    {
+                        "text": "Rule",
+                        "link": "/ast/index/classes/Rule.md"
+                    },
+                    {
+                        "text": "Self",
+                        "link": "/ast/index/classes/Self.md"
+                    },
+                    {
+                        "text": "Send",
+                        "link": "/ast/index/classes/Send.md"
+                    },
+                    {
+                        "text": "Sequence",
+                        "link": "/ast/index/classes/Sequence.md"
+                    },
+                    {
+                        "text": "SimpleType",
+                        "link": "/ast/index/classes/SimpleType.md"
+                    },
+                    {
+                        "text": "SourceLocation",
+                        "link": "/ast/index/classes/SourceLocation.md"
+                    },
+                    {
+                        "text": "StringOperation",
+                        "link": "/ast/index/classes/StringOperation.md"
+                    },
+                    {
+                        "text": "StringPrimitive",
+                        "link": "/ast/index/classes/StringPrimitive.md"
+                    },
+                    {
+                        "text": "Switch",
+                        "link": "/ast/index/classes/Switch.md"
+                    },
+                    {
+                        "text": "SymbolPrimitive",
+                        "link": "/ast/index/classes/SymbolPrimitive.md"
+                    },
+                    {
+                        "text": "Try",
+                        "link": "/ast/index/classes/Try.md"
+                    },
+                    {
+                        "text": "TupleExpression",
+                        "link": "/ast/index/classes/TupleExpression.md"
+                    },
+                    {
+                        "text": "TuplePattern",
+                        "link": "/ast/index/classes/TuplePattern.md"
+                    },
+                    {
+                        "text": "TupleType",
+                        "link": "/ast/index/classes/TupleType.md"
+                    },
+                    {
+                        "text": "TypeAlias",
+                        "link": "/ast/index/classes/TypeAlias.md"
+                    },
+                    {
+                        "text": "TypeApplication",
+                        "link": "/ast/index/classes/TypeApplication.md"
+                    },
+                    {
+                        "text": "TypeCast",
+                        "link": "/ast/index/classes/TypeCast.md"
+                    },
+                    {
+                        "text": "TypeSignature",
+                        "link": "/ast/index/classes/TypeSignature.md"
+                    },
+                    {
+                        "text": "TypeVar",
+                        "link": "/ast/index/classes/TypeVar.md"
+                    },
+                    {
+                        "text": "UnguardedBody",
+                        "link": "/ast/index/classes/UnguardedBody.md"
+                    },
+                    {
+                        "text": "UnifyOperation",
+                        "link": "/ast/index/classes/UnifyOperation.md"
+                    },
+                    {
+                        "text": "UnionPattern",
+                        "link": "/ast/index/classes/UnionPattern.md"
+                    },
+                    {
+                        "text": "Variable",
+                        "link": "/ast/index/classes/Variable.md"
+                    },
+                    {
+                        "text": "VariablePattern",
+                        "link": "/ast/index/classes/VariablePattern.md"
+                    },
+                    {
+                        "text": "While",
+                        "link": "/ast/index/classes/While.md"
+                    },
+                    {
+                        "text": "WildcardPattern",
+                        "link": "/ast/index/classes/WildcardPattern.md"
+                    },
+                    {
+                        "text": "Yield",
+                        "link": "/ast/index/classes/Yield.md"
+                    }
+                ]
+            },
+            {
+                "text": "Interfaces",
+                "collapsed": true,
+                "items": [
+                    {
+                        "text": "EquationRuntime",
+                        "link": "/ast/index/interfaces/EquationRuntime.md"
+                    },
+                    {
+                        "text": "LazyList",
+                        "link": "/ast/index/interfaces/LazyList.md"
+                    },
+                    {
+                        "text": "RuntimeFunction",
+                        "link": "/ast/index/interfaces/RuntimeFunction.md"
+                    },
+                    {
+                        "text": "YukigoParser",
+                        "link": "/ast/index/interfaces/YukigoParser.md"
+                    }
+                ]
+            },
+            {
+                "text": "Type Aliases",
+                "collapsed": true,
+                "items": [
+                    {
+                        "text": "ArithmeticBinaryOperator",
+                        "link": "/ast/index/type-aliases/ArithmeticBinaryOperator.md"
+                    },
+                    {
+                        "text": "ArithmeticUnaryOperator",
+                        "link": "/ast/index/type-aliases/ArithmeticUnaryOperator.md"
+                    },
+                    {
+                        "text": "AssignOperator",
+                        "link": "/ast/index/type-aliases/AssignOperator.md"
+                    },
+                    {
+                        "text": "AST",
+                        "link": "/ast/index/type-aliases/AST.md"
+                    },
+                    {
+                        "text": "BinaryOperation",
+                        "link": "/ast/index/type-aliases/BinaryOperation.md"
+                    },
+                    {
+                        "text": "BinaryOperator",
+                        "link": "/ast/index/type-aliases/BinaryOperator.md"
+                    },
+                    {
+                        "text": "BitwiseBinaryOperator",
+                        "link": "/ast/index/type-aliases/BitwiseBinaryOperator.md"
+                    },
+                    {
+                        "text": "BitwiseUnaryOperator",
+                        "link": "/ast/index/type-aliases/BitwiseUnaryOperator.md"
+                    },
+                    {
+                        "text": "Clause",
+                        "link": "/ast/index/type-aliases/Clause.md"
+                    },
+                    {
+                        "text": "ComparisonOperatorType",
+                        "link": "/ast/index/type-aliases/ComparisonOperatorType.md"
+                    },
+                    {
+                        "text": "Expression",
+                        "link": "/ast/index/type-aliases/Expression.md"
+                    },
+                    {
+                        "text": "ListBinaryOperator",
+                        "link": "/ast/index/type-aliases/ListBinaryOperator.md"
+                    },
+                    {
+                        "text": "ListUnaryOperator",
+                        "link": "/ast/index/type-aliases/ListUnaryOperator.md"
+                    },
+                    {
+                        "text": "LogicalBinaryOperator",
+                        "link": "/ast/index/type-aliases/LogicalBinaryOperator.md"
+                    },
+                    {
+                        "text": "LogicalUnaryOperator",
+                        "link": "/ast/index/type-aliases/LogicalUnaryOperator.md"
+                    },
+                    {
+                        "text": "Modify",
+                        "link": "/ast/index/type-aliases/Modify.md"
+                    },
+                    {
+                        "text": "Operation",
+                        "link": "/ast/index/type-aliases/Operation.md"
+                    },
+                    {
+                        "text": "Operator",
+                        "link": "/ast/index/type-aliases/Operator.md"
+                    },
+                    {
+                        "text": "Pattern",
+                        "link": "/ast/index/type-aliases/Pattern.md"
+                    },
+                    {
+                        "text": "Primitive",
+                        "link": "/ast/index/type-aliases/Primitive.md"
+                    },
+                    {
+                        "text": "PrimitiveThunk",
+                        "link": "/ast/index/type-aliases/PrimitiveThunk.md"
+                    },
+                    {
+                        "text": "PrimitiveValue",
+                        "link": "/ast/index/type-aliases/PrimitiveValue.md"
+                    },
+                    {
+                        "text": "Statement",
+                        "link": "/ast/index/type-aliases/Statement.md"
+                    },
+                    {
+                        "text": "StringBinaryOperator",
+                        "link": "/ast/index/type-aliases/StringBinaryOperator.md"
+                    },
+                    {
+                        "text": "Type",
+                        "link": "/ast/index/type-aliases/Type.md"
+                    },
+                    {
+                        "text": "UnaryOperation",
+                        "link": "/ast/index/type-aliases/UnaryOperation.md"
+                    },
+                    {
+                        "text": "UnaryOperator",
+                        "link": "/ast/index/type-aliases/UnaryOperator.md"
+                    },
+                    {
+                        "text": "UnifyOperator",
+                        "link": "/ast/index/type-aliases/UnifyOperator.md"
+                    },
+                    {
+                        "text": "YukigoPrimitive",
+                        "link": "/ast/index/type-aliases/YukigoPrimitive.md"
+                    }
+                ]
+            },
+            {
+                "text": "Functions",
+                "collapsed": true,
+                "items": [
+                    {
+                        "text": "isLazyList",
+                        "link": "/ast/index/functions/isLazyList.md"
+                    },
+                    {
+                        "text": "isYukigoPrimitive",
+                        "link": "/ast/index/functions/isYukigoPrimitive.md"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "text": "visitor",
+        "link": "/ast/visitor/",
+        "collapsed": true,
+        "items": [
+            {
+                "text": "Classes",
+                "collapsed": true,
+                "items": [
+                    {
+                        "text": "StopTraversalException",
+                        "link": "/ast/visitor/classes/StopTraversalException.md"
+                    },
+                    {
+                        "text": "TraverseVisitor",
+                        "link": "/ast/visitor/classes/TraverseVisitor.md"
+                    }
+                ]
+            },
+            {
+                "text": "Interfaces",
+                "collapsed": true,
+                "items": [
+                    {
+                        "text": "StrictVisitor",
+                        "link": "/ast/visitor/interfaces/StrictVisitor.md"
+                    }
+                ]
+            },
+            {
+                "text": "Type Aliases",
+                "collapsed": true,
+                "items": [
+                    {
+                        "text": "Visitor",
+                        "link": "/ast/visitor/type-aliases/Visitor.md"
+                    }
+                ]
+            }
+        ]
+    }
+]

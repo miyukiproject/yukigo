@@ -1,0 +1,13 @@
+{
+  "name": "yukigo-monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm build --workspaces --if-present",
+    "test": "npm test --workspaces --if-present",
+    "docs:dev": "npm run docs:dev --workspace=@yukigo/docs"
+  }
+}

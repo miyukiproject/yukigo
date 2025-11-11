@@ -1,0 +1,5 @@
+node_modules
+dist/
+
+apps/yukigo-docs/docs/.vitepress/cache/
+.vscode
