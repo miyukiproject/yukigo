@@ -54,8 +54,8 @@ const expectations = [
 const parser = new YukigoHaskellParser();
 const ast = parser.parse(code);
 
-const analyser = new ASTAnalyzer(ast);
-const result = analyser.analyse(expectations);
+const analyzer = new ASTAnalyzer(ast);
+const result = analyzer.analyse(expectations);
 
 console.log(results);
 // [
@@ -125,8 +125,8 @@ const expectations = translateMulangToInspectionRules(mulangInspections);
 const parser = new YukigoHaskellParser();
 const ast = parser.parse(code);
 
-const analyser = new ASTAnalyzer(ast);
-const result = analyser.analyse(expectations);
+const analyzer = new Analyzer(ast);
+const result = analyzer.analyse(expectations);
 
 console.log(results);
 // [
