@@ -20,11 +20,16 @@ const commandHistory = ref([
 ])
 const currentCommand = ref('')
 const inputRef = ref(null)
+const historyIndex = ref(-1)
 
 const code = ref('doble x = x * 2')
 
 const parser = new YukigoHaskellParser()
 const repl = new YukigoHaskellParser("")
+
+function getCommandText(historyItem) {
+  return historyItem.text.replace(/^\$ /, '')
+}
 
 function executeCommand() {
   const ast = parser.parse(code.value)
@@ -50,11 +55,40 @@ function executeCommand() {
 
   commandHistory.value.push({ type: 'output', text: output })
   currentCommand.value = ''
+  historyIndex.value = -1
 
   setTimeout(() => {
     const body = document.querySelector('.terminal-body')
     if (body) body.scrollTop = body.scrollHeight
   }, 10)
+}
+
+function navigateHistory(event) {
+  const inputCommands = commandHistory.value.filter(line => line.type === 'input')
+  
+  if (event.key === 'ArrowUp') {
+    event.preventDefault()
+    if (inputCommands.length === 0) return
+    
+    if (historyIndex.value === -1) {
+      historyIndex.value = inputCommands.length - 1
+    } else if (historyIndex.value > 0) {
+      historyIndex.value--
+    }
+    
+    currentCommand.value = getCommandText(inputCommands[historyIndex.value])
+  } else if (event.key === 'ArrowDown') {
+    event.preventDefault()
+    if (historyIndex.value === -1) return
+    
+    if (historyIndex.value < inputCommands.length - 1) {
+      historyIndex.value++
+      currentCommand.value = getCommandText(inputCommands[historyIndex.value])
+    } else {
+      historyIndex.value = -1
+      currentCommand.value = ''
+    }
+  }
 }
 
 onMounted(() => {
@@ -160,6 +194,7 @@ onMounted(() => {
               ref="inputRef"
               v-model="currentCommand"
               @keyup.enter="executeCommand"
+              @keydown="navigateHistory"
               placeholder="doble 4"
               spellcheck="false"
             />
