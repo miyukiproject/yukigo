@@ -25,7 +25,6 @@ import {
   FieldExpression,
   DataExpression,
   ConsExpression,
-  isLazyList,
   LetInExpression,
   Call,
   Otherwise,
@@ -54,16 +53,14 @@ import {
   Generator as YuGenerator,
   BinaryOperation,
   UnaryOperation,
-  SourceLocation,
   ASTNode,
   Raise,
+  Query,
 } from "@yukigo/ast";
-import { Bindings, EnvStack, InterpreterConfig } from "../index.js";
-import { PatternMatcher } from "./PatternMatcher.js";
+import { EnvStack, InterpreterConfig } from "../index.js";
 import {
   ArithmeticBinaryTable,
   ArithmeticUnaryTable,
-  BinaryOp,
   BitwiseBinaryTable,
   BitwiseUnaryTable,
   ComparisonOperationTable,
@@ -71,53 +68,17 @@ import {
   ListUnaryTable,
   LogicalBinaryTable,
   LogicalUnaryTable,
-  OperatorTable,
   StringOperationTable,
-  UnaryOp,
 } from "./Operations.js";
-import { lookup } from "../utils.js";
+import { ExpressionEvaluator, lookup } from "../utils.js";
+import { LogicEngine } from "./LogicEngine.js";
+import { ErrorFrame, InterpreterError, UnexpectedValue } from "../errors.js";
+import { LazyRuntime } from "./LazyRuntime.js";
+import { FunctionRuntime } from "./FunctionRuntime.js";
 
-export interface ErrorFrame {
-  nodeType: string;
-  loc?: SourceLocation;
-}
-
-export class InterpreterError extends Error {
-  context: string;
-  frames: ErrorFrame[];
-
-  constructor(context: string, message: string, frames: ErrorFrame[] = []) {
-    super(`[${context}] ${message}`);
-    this.context = context;
-    this.frames = frames;
-  }
-
-  pushFrame(frame: ErrorFrame) {
-    this.frames.push(frame);
-  }
-
-  formatStack(): string {
-    if (!this.frames.length) return "";
-    const formatted = this.frames
-      .map((f) => {
-        const loc = f.loc ? ` (line ${f.loc.line}, col ${f.loc.column})` : "";
-        return `  • ${f.nodeType}${loc}`;
-      })
-      .join("\n");
-    return `\nTrace:\n${formatted}`;
-  }
-
-  override toString(): string {
-    return `${this.message}${this.formatStack()}`;
-  }
-}
-class UnexpectedValue extends InterpreterError {
-  constructor(ctx: string, expected: string, got: string) {
-    super(ctx, `Expected ${expected} but got ${got}`);
-  }
-}
-
-export class InterpreterVisitor implements Visitor<PrimitiveValue> {
+export class InterpreterVisitor
+  implements Visitor<PrimitiveValue>, ExpressionEvaluator
+{
   private frames: ErrorFrame[];
 
   constructor(
@@ -126,6 +87,14 @@ export class InterpreterVisitor implements Visitor<PrimitiveValue> {
     frames: ErrorFrame[] = []
   ) {
     this.frames = frames;
+  }
+
+  evaluate(node: Expression): PrimitiveValue {
+    return node.accept(this);
+  }
+
+  private getLogicEngine(): LogicEngine {
+    return new LogicEngine(this.env, this.config, this);
   }
 
   visitNumberPrimitive(node: NumberPrimitive): PrimitiveValue {
@@ -162,23 +131,21 @@ export class InterpreterVisitor implements Visitor<PrimitiveValue> {
   visitArithmeticUnaryOperation(
     node: ArithmeticUnaryOperation
   ): PrimitiveValue {
-    const typeCheck = (a: number) => !Number.isNaN(a);
-    return this.evaluateUnary(
+    return this.processUnary(
       node,
       ArithmeticUnaryTable,
-      "ArithmeticUnaryOperation",
-      typeCheck
+      (a: number) => !Number.isNaN(a),
+      "ArithmeticUnaryOperation"
     );
   }
   visitArithmeticBinaryOperation(
     node: ArithmeticBinaryOperation
   ): PrimitiveValue {
-    const typeCheck = (a, b) => typeof a === "number" && typeof b === "number";
-    return this.evaluateBinary(
+    return this.processBinary(
       node,
       ArithmeticBinaryTable,
-      "ArithmeticBinaryOperation",
-      typeCheck
+      (a, b) => typeof a === "number" && typeof b === "number",
+      "ArithmeticBinaryOperation"
     );
   }
   visitListUnaryOperation(node: ListUnaryOperation): PrimitiveValue {
@@ -196,18 +163,18 @@ export class InterpreterVisitor implements Visitor<PrimitiveValue> {
     return fn(arr);
   }
   visitListBinaryOperation(node: ListBinaryOperation): PrimitiveValue {
-    const typeCheck = (a, b) => Array.isArray(a) && Array.isArray(b);
-    return this.evaluateBinary(
+    return this.processBinary(
       node,
       ListBinaryTable,
-      "ListBinaryOperation",
-      typeCheck
+      (a, b) => Array.isArray(a) && Array.isArray(b),
+      "ListBinaryOperation"
     );
   }
   visitComparisonOperation(node: ComparisonOperation): PrimitiveValue {
-    return this.evaluateBinary(
+    return this.processBinary(
       node,
       ComparisonOperationTable,
+      () => true,
       "ComparisonOperation"
     );
   }
@@ -244,41 +211,35 @@ export class InterpreterVisitor implements Visitor<PrimitiveValue> {
     return fn(left, rightThunk);
   }
   visitLogicalUnaryOperation(node: LogicalUnaryOperation): PrimitiveValue {
-    const typeCheck = (a) => typeof a === "boolean";
-    return this.evaluateUnary(
+    return this.processUnary(
       node,
       LogicalUnaryTable,
-      "LogicalUnaryOperation",
-      typeCheck
+      (a) => typeof a === "boolean",
+      "LogicalUnaryOperation"
     );
   }
   visitBitwiseBinaryOperation(node: BitwiseBinaryOperation): PrimitiveValue {
-    const typeCheck = (a: PrimitiveValue, b: PrimitiveValue) =>
-      !Number.isNaN(a) && !Number.isNaN(b);
-    return this.evaluateBinary(
+    return this.processBinary(
       node,
       BitwiseBinaryTable,
-      "BitwiseBinaryOperation",
-      typeCheck
+      (a, b) => !Number.isNaN(a) && !Number.isNaN(b),
+      "BitwiseBinaryOperation"
     );
   }
   visitBitwiseUnaryOperation(node: BitwiseUnaryOperation): PrimitiveValue {
-    const typeCheck = (a: PrimitiveValue) => !Number.isNaN(a);
-    return this.evaluateUnary(
+    return this.processUnary(
       node,
       BitwiseUnaryTable,
-      "BitwiseUnaryOperation",
-      typeCheck
+      (a) => !Number.isNaN(a),
+      "BitwiseUnaryOperation"
     );
   }
   visitStringOperation(node: StringOperation): PrimitiveValue {
-    const typeCheck = (a: PrimitiveValue, b: PrimitiveValue) =>
-      typeof a === "string" || typeof b === "string";
-    return this.evaluateBinary(
+    return this.processBinary(
       node,
       StringOperationTable,
-      "StringOperation",
-      typeCheck
+      (a, b) => typeof a === "string" || typeof b === "string",
+      "StringOperation"
     );
   }
   visitUnifyOperation(node: UnifyOperation): PrimitiveValue {
@@ -297,37 +258,11 @@ export class InterpreterVisitor implements Visitor<PrimitiveValue> {
     throw new Error("Method not implemented.");
   }
   visitConsExpr(node: ConsExpression): PrimitiveValue {
-    const head = node.head.accept(this);
-
-    if (this.config.lazyLoading) {
-      const tail = node.tail.accept(this);
-
-      // tail is already a realized list so we return a realized list
-      if (Array.isArray(tail)) {
-        return [head, ...tail];
-      }
-
-      // tail is a LazyList so we extend lazily
-      if (isLazyList(tail)) {
-        const generator = function* (): Generator<
-          PrimitiveValue,
-          void,
-          unknown
-        > {
-          yield head;
-          yield* tail.generator();
-        };
-        return { type: "LazyList", generator };
-      }
-      throw new UnexpectedValue("ConsExpr", "Array or LazyList", typeof tail);
+    try {
+      return LazyRuntime.evaluateCons(node, this, this.config.lazyLoading);
+    } catch (e) {
+      throw new InterpreterError("Cons", e.message, this.frames);
     }
-
-    const tail = node.tail.accept(this);
-
-    if (isLazyList(tail) || !Array.isArray(tail))
-      throw new UnexpectedValue("ConsExpr", "Array", typeof tail);
-
-    return [head, ...tail];
   }
   visitLetInExpr(node: LetInExpression): PrimitiveValue {
     throw new Error("Method not implemented.");
@@ -376,13 +311,11 @@ export class InterpreterVisitor implements Visitor<PrimitiveValue> {
     return lambda.accept(this);
   }
   visitLambda(node: Lambda): PrimitiveValue {
-    const patterns = node.parameters; // accept any Pattern node directly
-
+    const patterns = node.parameters;
     const equation: EquationRuntime = {
       patterns,
       body: new UnguardedBody(new Sequence([new Return(node.body)])),
     };
-
     return {
       arity: patterns.length,
       equations: [equation],
@@ -402,41 +335,47 @@ export class InterpreterVisitor implements Visitor<PrimitiveValue> {
       ? [...func.pendingArgs, argThunk]
       : [argThunk];
 
-    // fully applied
+    // partially applied
+    if (pending.length < func.arity) {
+      return {
+        ...func,
+        pendingArgs: pending,
+      };
+    }
+
+    //  fully applied
     if (pending.length === func.arity) {
       const evaluatedArgs = pending.map((arg) =>
         typeof arg === "function" ? arg() : arg
       );
-
-      const result = this.matchFunction(
+      return FunctionRuntime.apply(
         func.identifier ?? "<anonymous>",
         func.equations,
-        evaluatedArgs
+        evaluatedArgs,
+        this.env,
+        (newEnv) => new InterpreterVisitor(newEnv, this.config, this.frames)
       );
-      return result;
     }
 
-    // partial application → carry args forward
-    return {
-      ...func,
-      pendingArgs: pending,
-    };
+    throw new InterpreterError("Application", "Too many arguments provided");
   }
-
+  visitQuery(node: Query): PrimitiveValue {
+    return this.getLogicEngine().solveQuery(node);
+  }
   visitExist(node: Exist): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    return this.getLogicEngine().solveExist(node);
   }
   visitNot(node: Not): PrimitiveValue {
     throw new Error("Method not implemented.");
   }
   visitFindall(node: Findall): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    return this.getLogicEngine().solveFindall(node);
   }
   visitForall(node: Forall): PrimitiveValue {
     throw new Error("Method not implemented.");
   }
   visitGoal(node: Goal): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    return this.getLogicEngine().solveGoal(node);
   }
   visitSend(node: Send): PrimitiveValue {
     throw new Error("Method not implemented.");
@@ -466,98 +405,11 @@ export class InterpreterVisitor implements Visitor<PrimitiveValue> {
     throw new InterpreterError("Raise", msg);
   }
   visitRangeExpression(node: RangeExpression): PrimitiveValue {
-    const startVal = node.start.accept(this);
-    if (typeof startVal !== "number")
-      throw new InterpreterError(
-        "RangeExpression",
-        "Range start must be a number"
-      );
-
-    const hasEnd = node.end != null;
-
-    if (!hasEnd) {
-      // Infinite range: [start..] or [start,second..]
-      if (!this.config.lazyLoading) {
-        throw new InterpreterError(
-          "RangeExpression",
-          "Infinite range not allowed when 'config.lazyLoading' is disabled"
-        );
-      }
-
-      let step: number;
-      if (node.step) {
-        const secondVal = node.step.accept(this);
-        if (typeof secondVal !== "number")
-          throw new InterpreterError(
-            "RangeExpression",
-            "Range second element must be a number"
-          );
-
-        step = secondVal - startVal;
-        if (step === 0)
-          throw new InterpreterError(
-            "RangeExpression",
-            "Range step cannot be zero"
-          );
-      } else {
-        step = 1;
-      }
-
-      // Create infinite lazy list
-      const generator = function* (): Generator<number, never, unknown> {
-        let current = startVal;
-        while (true) {
-          yield current;
-          current += step;
-        }
-      };
-      return { type: "LazyList", generator };
+    try {
+      return LazyRuntime.evaluateRange(node, this, this.config);
+    } catch (e) {
+      throw new InterpreterError("Range", e.message, this.frames);
     }
-
-    // eager eval
-    const endVal = node.end.accept(this);
-    if (typeof endVal !== "number") {
-      throw new InterpreterError(
-        "RangeExpression",
-        "Range end must be a number"
-      );
-    }
-
-    let step: number;
-    if (node.step) {
-      const secondVal = node.step.accept(this);
-      if (typeof secondVal !== "number")
-        throw new InterpreterError(
-          "RangeExpression",
-          "Range second element must be a number"
-        );
-
-      step = secondVal - startVal;
-      if (step === 0)
-        throw new InterpreterError(
-          "RangeExpression",
-          "Range step cannot be zero"
-        );
-    } else {
-      step = 1;
-    }
-
-    const result: number[] = [];
-    let current = startVal;
-
-    if (step > 0) {
-      while (current <= endVal) {
-        result.push(current);
-        current += step;
-      }
-    } else {
-      while (current >= endVal) {
-        result.push(current);
-        current += step;
-      }
-    }
-
-    return result;
   }
   visit(node: Expression): PrimitiveValue {
     return this.safelyVisit(node, () => node.accept(this));
@@ -580,68 +432,6 @@ export class InterpreterVisitor implements Visitor<PrimitiveValue> {
       }
     }
   }
-  private matchFunction(
-    funcName: string,
-    equations: EquationRuntime[],
-    args: PrimitiveValue[]
-  ): PrimitiveValue {
-    for (const eq of equations) {
-      if (eq.patterns.length !== args.length) continue;
-
-      const bindings: Bindings = [];
-      let matched = true;
-
-      for (let i = 0; i < args.length; i++) {
-        const matcher = new PatternMatcher(args[i], bindings);
-        if (!eq.patterns[i].accept(matcher)) {
-          matched = false;
-          break;
-        }
-      }
-
-      if (!matched) continue;
-
-      // Push local bindings
-      const localEnv = new Map<string, PrimitiveValue>(bindings);
-      const newStack = [localEnv, ...this.env];
-
-      const visitor = new InterpreterVisitor(newStack, this.config);
-
-      if (eq.body instanceof UnguardedBody) {
-        return visitor.evaluateSequence(eq.body.sequence, newStack);
-      }
-
-      // Guarded case
-      for (const guard of eq.body) {
-        const cond = guard.condition.accept(visitor);
-        if (cond === true) {
-          return guard.body.accept(visitor);
-        }
-      }
-    }
-
-    throw new InterpreterError(
-      "PatternMatch",
-      `Non-exhaustive patterns in '${funcName}'`
-    );
-  }
-
-  private evaluateSequence(seq: Sequence, env: EnvStack): PrimitiveValue {
-    let result: PrimitiveValue = undefined;
-    for (const stmt of seq.statements) {
-      if (stmt instanceof Return) {
-        return stmt.body.accept(
-          new InterpreterVisitor(env, this.config, this.frames)
-        );
-      } else if ((stmt as any).accept) {
-        result = (stmt as Expression).accept(
-          new InterpreterVisitor(env, this.config, this.frames)
-        );
-      }
-    }
-    return result;
-  }
-
   private isRuntimeFunction(val: any): val is RuntimeFunction {
     return (
       typeof val === "object" &&
@@ -651,76 +441,49 @@ export class InterpreterVisitor implements Visitor<PrimitiveValue> {
     );
   }
   public realizeList(val: PrimitiveValue): PrimitiveValue[] {
-    if (Array.isArray(val)) {
-      return val;
-    }
-
-    if (isLazyList(val)) {
-      const result: PrimitiveValue[] = [];
-      const iter = val.generator();
-      let next = iter.next();
-      // Add safety limit for infinite lists in non-lazy contexts
-      let count = 0;
-      while (!next.done) {
-        if (!next.value)
-          throw new InterpreterError("LazyList", "Value yielded undefined");
-
-        result.push(next.value);
-        next = iter.next();
-        count++;
-      }
-      return result;
-    }
-
-    throw new UnexpectedValue("RealizeList", "List or LazyList", typeof val);
+    return LazyRuntime.realizeList(val);
   }
-  private evaluateBinary(
+  private processBinary(
     node: BinaryOperation,
-    table: OperatorTable<BinaryOp<PrimitiveValue>>,
-    errorCtx: string,
-    typeCheck?: (x: any, y: any) => boolean
+    table: any,
+    typeGuard: (a: any, b: any) => boolean,
+    contextName: string
   ): PrimitiveValue {
     const left = node.left.accept(this);
     const right = node.right.accept(this);
-    if (typeCheck && !typeCheck(left, right))
+
+    if (!typeGuard(left, right)) {
       throw new InterpreterError(
-        errorCtx,
-        `Type mismatch. Left: ${left}. Right ${right}`
+        contextName,
+        `Type mismatch: ${left}, ${right}`,
+        this.frames
       );
+    }
 
     const fn = table[node.operator];
     if (!fn)
-      throw new InterpreterError(
-        errorCtx,
-        `Unknown operator '${node.operator}'`
-      );
-
+      throw new InterpreterError(contextName, `Unknown op: ${node.operator}`);
     return fn(left, right);
   }
-  private evaluateUnary(
+
+  private processUnary(
     node: UnaryOperation,
-    table: OperatorTable<UnaryOp<PrimitiveValue>>,
-    errorCtx: string,
-    typeCheck?: (x: any) => boolean
+    table: any,
+    typeGuard: (a: any) => boolean,
+    contextName: string
   ): PrimitiveValue {
     const operand = node.operand.accept(this);
-    if (typeCheck && !typeCheck(operand))
+    if (!typeGuard(operand)) {
       throw new InterpreterError(
-        errorCtx,
-        `Type mismatch. Operand: ${operand}`
+        contextName,
+        `Type mismatch: ${operand}`,
+        this.frames
       );
-
+    }
     const fn = table[node.operator];
     if (!fn)
-      throw new InterpreterError(
-        errorCtx,
-        `Unknown operator '${node.operator}'`
-      );
-
+      throw new InterpreterError(contextName, `Unknown op: ${node.operator}`);
     return fn(operand);
-  }
-  private debug(msg: string, data?: any) {
-    if (this.config.debug) console.log(`[Interpreter] ${msg}`, data ?? "");
   }
   static evaluateLiteral(node: ASTNode): PrimitiveValue {
     return node.accept(

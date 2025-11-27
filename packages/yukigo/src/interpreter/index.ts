@@ -1,6 +1,7 @@
 import { PrimitiveValue, Expression, AST } from "@yukigo/ast";
-import { InterpreterError, InterpreterVisitor } from "./components/Visitor.js";
+import { InterpreterVisitor } from "./components/Visitor.js";
 import { EnvBuilderVisitor } from "./components/EnvBuilder.js";
+import { InterpreterError } from "./errors.js";
 
 export type Bindings = [string, PrimitiveValue][];
 
@@ -8,7 +9,7 @@ export type LogicSearchMode = "first" | "all" | "stream";
 export type InterpreterConfig = {
   lazyLoading?: boolean;
   debug?: boolean;
-  queryMode?: LogicSearchMode;
+  outputMode?: LogicSearchMode;
 };
 
 export type Environment = Map<string, PrimitiveValue>;
@@ -17,7 +18,7 @@ export type EnvStack = Environment[];
 const DefaultConfiguration: Required<InterpreterConfig> = {
   lazyLoading: false,
   debug: false,
-  queryMode: "first",
+  outputMode: "first",
 };
 
 /**
@@ -36,7 +37,6 @@ export class Interpreter {
    */
   constructor(ast: AST, config?: InterpreterConfig) {
     this.globalEnv = new EnvBuilderVisitor().build(ast);
-    console.log(this.globalEnv);
     this.config = config ?? DefaultConfiguration;
   }
 
@@ -49,7 +49,7 @@ export class Interpreter {
   public evaluate(expr: Expression): PrimitiveValue {
     try {
       const visitor = new InterpreterVisitor(this.globalEnv, this.config);
-      const evaluatedExpr = visitor.visit(expr);
+      const evaluatedExpr = expr.accept(visitor);
       return evaluatedExpr;
     } catch (error) {
       if (error instanceof InterpreterError) console.log(error.formatStack());

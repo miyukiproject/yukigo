@@ -8,8 +8,10 @@ import {
   isLazyList,
   LazyList,
   ListPattern,
+  ListPrimitive,
   LiteralPattern,
   PrimitiveValue,
+  SymbolPrimitive,
   TuplePattern,
   UnionPattern,
   VariablePattern,
@@ -19,6 +21,69 @@ import {
 import { Bindings } from "../index.js";
 import { InterpreterVisitor } from "./Visitor.js";
 
+export class PatternResolver implements Visitor<string> {
+  visitVariablePattern(node: VariablePattern): string {
+    return node.name.value;
+  }
+
+  visitWildcardPattern(node: WildcardPattern): string {
+    return "_";
+  }
+
+  visitLiteralPattern(node: LiteralPattern): string {
+    const { name } = node;
+    if (name instanceof ListPrimitive)
+      return String(name.elements.map((elem) => elem.accept(this)));
+    return String(name.value);
+  }
+
+  visitTuplePattern(node: TuplePattern): string {
+    return String(node.elements.map((elem) => elem.accept(this)));
+  }
+
+  visitListPattern(node: ListPattern): string {
+    const { elements } = node;
+    return elements.length === 0
+      ? "[]"
+      : String(elements.map((elem) => elem.accept(this)));
+  }
+
+  visitConsPattern(node: ConsPattern): string {
+    const head = node.head.accept(this);
+    const tail = node.tail.accept(this);
+    return `(${head}:${tail})`;
+  }
+
+  visitConstructorPattern(node: ConstructorPattern): string {
+    const constr = node.constr;
+    const args = node.patterns.map((pat) => pat.accept(this)).join(" ");
+    return `${constr} ${args}`;
+  }
+
+  visitFunctorPattern(node: FunctorPattern): string {
+    // Same as ConstructorPattern (alias)
+    return this.visitConstructorPattern(
+      new ConstructorPattern(node.identifier.value, node.args)
+    );
+  }
+
+  visitApplicationPattern(node: ApplicationPattern): string {
+    // Same as FunctorPattern
+    return this.visitConstructorPattern(
+      new ConstructorPattern(node.symbol.value, node.args)
+    );
+  }
+
+  visitAsPattern(node: AsPattern): string {
+    const pattern = node.pattern.accept(this);
+    const alias = node.alias.accept(this);
+    return `${alias}@${pattern}`;
+  }
+
+  visit(node: ASTNode): string {
+    return node.accept(this);
+  }
+}
 /**
  * Recursively matches a value against a pattern node.
  * Updates `bindings` when variables are bound successfully.

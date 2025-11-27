@@ -4,6 +4,7 @@ import {
   Expression,
   SourceLocation,
   SymbolPrimitive,
+  Variable,
 } from "../globals/generics.js";
 import { Visitor } from "../visitor.js";
 
@@ -43,6 +44,26 @@ export class Procedure extends ASTNode {
       type: "Procedure",
       identifier: this.identifier.toJSON(),
       equations: this.equations.map((eq) => eq.toJSON()),
+    };
+  }
+}
+
+export class Structure extends ASTNode {
+  constructor(
+    public identifier: SymbolPrimitive,
+    public elements: (Variable | Structure)[],
+    public loc?: SourceLocation
+  ) {
+    super();
+  }
+  public accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitStructure?.(this);
+  }
+  public toJSON() {
+    return {
+      type: "Structure",
+      identifier: this.identifier.toJSON(),
+      expressions: this.elements.map((elem) => elem.toJSON()),
     };
   }
 }

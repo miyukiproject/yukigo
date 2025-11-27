@@ -725,16 +725,6 @@ describe("Parser Test", () => {
     ]);
   });
   it("rule/1 with if-then-else construct", () => {
-    console.log(
-      inspect(
-        parser.parse(
-          `classify_number(X, Classification) :- ( X > 0 -> Classification = positive ; ( X < 0 -> Classification = negative ; Classification = zero )).`
-        ),
-        false,
-        null,
-        true
-      )
-    );
     assert.deepEqual(
       parser.parse(
         `classify_number(X, Classification) :- ( X > 0 -> Classification = positive ; ( X < 0 -> Classification = negative ; Classification = zero )).`

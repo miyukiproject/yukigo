@@ -203,4 +203,5 @@ export type Pattern =
   | AsPattern
   | WildcardPattern
   | ConstructorPattern
+  | UnionPattern
   | ConsPattern;

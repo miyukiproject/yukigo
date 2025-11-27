@@ -5,11 +5,14 @@ import {
   BitwiseBinaryOperation,
   BitwiseUnaryOperation,
   BooleanPrimitive,
+  Call,
   ComparisonOperation,
   CompositionExpression,
   Equation,
   Fact,
   Function,
+  FunctorPattern,
+  Goal,
   isLazyList,
   Lambda,
   ListPrimitive,
@@ -17,18 +20,33 @@ import {
   LiteralPattern,
   LogicalBinaryOperation,
   LogicalUnaryOperation,
+  LogicResult,
   NumberPrimitive,
+  Pattern,
+  Query,
   RangeExpression,
   Return,
+  RuntimePredicate,
   Sequence,
   StringOperation,
   StringPrimitive,
   SymbolPrimitive,
   UnguardedBody,
   VariablePattern,
+  WildcardPattern,
 } from "@yukigo/ast";
-import { Interpreter } from "../src/interpreter/index.js";
+import { Interpreter } from "../../src/interpreter/index.js";
+import {
+  solveGoal,
+  unify,
+} from "../../src/interpreter/components/LogicResolver.js";
 import { assert } from "chai";
+import {
+  createEnv,
+  createGlobalEnv,
+  pushEnv,
+} from "../../src/interpreter/utils.js";
+import { YukigoPrologParser } from "yukigo-prolog-parser";
 
 describe("Interpreter Spec", () => {
   let interpreter: Interpreter;
@@ -914,15 +932,6 @@ describe("Interpreter Spec", () => {
       const iter = evaluatedList.generator();
       assert.equal(iter.next().value, 1);
       assert.equal(iter.next().value, 2);
-    });
-  });
-  describe("Mini test", () => {
-    it("Prints env", () => {
-      interpreter = new Interpreter([
-        new Fact(new SymbolPrimitive("parent"), [
-          new LiteralPattern(new SymbolPrimitive("tom")),
-        ]),
-      ]);
     });
   });
 });

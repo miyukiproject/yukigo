@@ -1,6 +1,6 @@
 import { YukigoParser } from "@yukigo/ast";
 import { YukigoPrologParser } from "yukigo-prolog-parser";
-import { Analyzer } from "../src/analyzer/index.js";
+import { Analyzer } from "../../src/analyzer/index.js";
 import { assert } from "chai";
 
 describe("Logic Spec", () => {

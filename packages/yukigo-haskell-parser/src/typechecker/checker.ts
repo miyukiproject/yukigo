@@ -80,7 +80,6 @@ export class FunctionRegistrarVisitor implements Visitor<void> {
     private coreHM: CoreHM
   ) {}
   visitFunction(node: Function): void {
-    //console.log(node);
     const functionName = node.identifier.value;
     let funcScheme = this.signatureMap.get(functionName);
     if (!funcScheme) {
@@ -115,7 +114,6 @@ export class FunctionCheckerVisitor implements Visitor<void> {
   visitFunction(node: Function): void {
     const functionName = node.identifier.value;
     let funcScheme = this.signatureMap.get(functionName);
-    // console.log(inspect(node, false, null, true))
     // Handle function without signature
     if (!funcScheme) {
       const firstEq = node.equations[0];

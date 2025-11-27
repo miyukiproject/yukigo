@@ -35,7 +35,7 @@ export class Rule extends ASTNode {
 export class Call extends ASTNode {
   constructor(
     public callee: SymbolPrimitive,
-    public patterns: Pattern[],
+    public args: Expression[],
     loc?: SourceLocation
   ) {
     super(loc);
@@ -47,7 +47,7 @@ export class Call extends ASTNode {
     return {
       type: "Call",
       callee: this.callee.toJSON(),
-      patterns: this.patterns.map((p) => p.toJSON()),
+      patterns: this.args.map((p) => p.toJSON()),
     };
   }
 }
@@ -73,7 +73,7 @@ export class Fact extends ASTNode {
 }
 
 export class Query extends ASTNode {
-  constructor(public expressions: Expression[], loc?: SourceLocation) {
+  constructor(public expression: Expression, loc?: SourceLocation) {
     super(loc);
   }
   public accept<R>(visitor: Visitor<R>): R {
@@ -82,7 +82,7 @@ export class Query extends ASTNode {
   public toJSON() {
     return {
       type: "Query",
-      expressions: this.expressions.map((expr) => expr.toJSON()),
+      expression: this.expression.toJSON(),
     };
   }
 }
@@ -184,8 +184,23 @@ export class Goal extends ASTNode {
 
 // Runtime Types
 
-export interface RuntimeClause {
-  kind: "Clause";
+export type RuntimePredicate = RuntimeFact | RuntimeRule;
+
+export const isRuntimePredicate = (prim: PrimitiveValue): prim is RuntimePredicate => {
+  return (
+    typeof prim === "object" &&
+    "kind" in prim &&
+    (prim.kind === "Fact" || prim.kind === "Rule")
+  );
+};
+
+export interface RuntimeFact {
+  kind: "Fact";
   identifier: string;
-  equations: (Fact | Rule)[];
+  equations: Fact[];
+}
+export interface RuntimeRule {
+  kind: "Rule";
+  identifier: string;
+  equations: Rule[];
 }

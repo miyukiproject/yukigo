@@ -148,7 +148,7 @@ export class New extends ASTNode {
   }
   public toJSON() {
     return {
-      type: "Send",
+      type: "New",
       identifier: this.identifier.toJSON(),
       arguments: this.args.map((arg) => arg.toJSON()),
     };

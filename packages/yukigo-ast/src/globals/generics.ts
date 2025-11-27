@@ -10,9 +10,18 @@ import {
   ForLoop,
   Procedure,
   Repeat,
+  Structure,
   While,
 } from "../paradigms/imperative.js";
-import { Clause, Exist, Findall, Forall, Not, RuntimeClause } from "../paradigms/logic.js";
+import {
+  Call,
+  Clause,
+  Exist,
+  Findall,
+  Forall,
+  Not,
+  RuntimePredicate,
+} from "../paradigms/logic.js";
 import {
   Attribute,
   Class,
@@ -57,6 +66,10 @@ export class NumberPrimitive extends ASTNode {
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitNumberPrimitive?.(this);
   }
+  public equals(other: Primitive): boolean {
+    if (!(other instanceof NumberPrimitive)) return false;
+    return this.value === other.value;
+  }
   public toJSON() {
     return {
       type: "YuNumber",
@@ -74,6 +87,10 @@ export class BooleanPrimitive extends ASTNode {
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitBooleanPrimitive?.(this);
+  }
+  public equals(other: Primitive): boolean {
+    if (!(other instanceof BooleanPrimitive)) return false;
+    return this.value === other.value;
   }
   public toJSON() {
     return {
@@ -93,6 +110,10 @@ export class ListPrimitive extends ASTNode {
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitListPrimitive?.(this);
   }
+  public equals(other: Primitive): boolean {
+    if (!(other instanceof ListPrimitive)) return false;
+    return this.elements.every((elem, i) => elem === other.elements[i]);
+  }
   public toJSON() {
     return {
       type: "YuList",
@@ -110,6 +131,10 @@ export class CharPrimitive extends ASTNode {
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitCharPrimitive?.(this);
+  }
+  public equals(other: Primitive): boolean {
+    if (!(other instanceof CharPrimitive)) return false;
+    return this.value === other.value;
   }
   public toJSON() {
     return {
@@ -129,6 +154,10 @@ export class StringPrimitive extends ASTNode {
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitStringPrimitive?.(this);
   }
+  public equals(other: Primitive): boolean {
+    if (!(other instanceof StringPrimitive)) return false;
+    return this.value === other.value;
+  }
   public toJSON() {
     return {
       type: "YuString",
@@ -147,6 +176,10 @@ export class NilPrimitive extends ASTNode {
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitNilPrimitive?.(this);
   }
+  public equals(other: Primitive): boolean {
+    if (!(other instanceof NilPrimitive)) return false;
+    return this.value === other.value;
+  }
   public toJSON() {
     return {
       type: "YuNil",
@@ -164,6 +197,10 @@ export class SymbolPrimitive extends ASTNode {
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitSymbolPrimitive?.(this);
+  }
+  public equals(other: Primitive): boolean {
+    if (!(other instanceof SymbolPrimitive)) return false;
+    return this.value === other.value;
   }
   public toJSON() {
     return {
@@ -185,12 +222,18 @@ export type YukigoPrimitive =
   | "YuObject"
   | "YuSymbol";
 
+export type LogicResult = {
+  success: boolean;
+  solutions: Map<string, string>;
+};
+
 export type PrimitiveValue =
   | number
   | boolean
   | string
   | RuntimeFunction
-  | RuntimeClause
+  | RuntimePredicate
+  | LogicResult
   | LazyList
   | null
   | void
@@ -511,7 +554,10 @@ export class If extends ASTNode {
  * }
  */
 export class Return extends ASTNode {
-  constructor(public body: Expression, loc?: SourceLocation) {
+  constructor(
+    public body: Expression = new NilPrimitive(null),
+    loc?: SourceLocation
+  ) {
     super(loc);
   }
   public accept<R>(visitor: Visitor<R>): R {
@@ -668,7 +714,7 @@ export class Equation extends ASTNode {
     public patterns: Pattern[],
     public body: UnguardedBody | GuardedBody[],
     public returnExpr?: Return,
-    loc?: SourceLocation,
+    loc?: SourceLocation
   ) {
     super(loc);
   }
@@ -721,7 +767,7 @@ export class Function extends ASTNode {
 
 export class Case extends ASTNode {
   constructor(
-    public condition: Pattern,
+    public condition: Expression,
     public body: Expression,
     loc?: SourceLocation
   ) {
@@ -743,7 +789,7 @@ export class Switch extends ASTNode {
     public value: Expression,
     public cases: Case[],
     public defaultExpr?: Expression,
-    loc?: SourceLocation,
+    loc?: SourceLocation
   ) {
     super(loc);
   }
@@ -836,6 +882,25 @@ export class Print extends ASTNode {
     };
   }
 }
+export class Input extends ASTNode {
+  constructor(
+    public message: Expression,
+    public variable: SymbolPrimitive,
+    loc?: SourceLocation
+  ) {
+    super(loc);
+  }
+  public accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitInput?.(this);
+  }
+  public toJSON() {
+    return {
+      type: "Input",
+      message: this.message.toJSON(),
+      variable: this.variable.toJSON(),
+    };
+  }
+}
 
 export class For extends ASTNode {
   constructor(
@@ -857,7 +922,10 @@ export class For extends ASTNode {
   }
 }
 export class Break extends ASTNode {
-  constructor(public body: Expression, loc?: SourceLocation) {
+  constructor(
+    public body: Expression = new NilPrimitive(null),
+    loc?: SourceLocation
+  ) {
     super(loc);
   }
   public accept<R>(visitor: Visitor<R>): R {
@@ -871,7 +939,10 @@ export class Break extends ASTNode {
   }
 }
 export class Continue extends ASTNode {
-  constructor(public body: Expression, loc?: SourceLocation) {
+  constructor(
+    public body: Expression = new NilPrimitive(null),
+    loc?: SourceLocation
+  ) {
     super(loc);
   }
   public accept<R>(visitor: Visitor<R>): R {
@@ -890,7 +961,7 @@ export class Variable extends ASTNode {
     public identifier: SymbolPrimitive,
     public expression: Expression,
     public variableType?: Type,
-    loc?: SourceLocation,
+    loc?: SourceLocation
   ) {
     super(loc);
   }
@@ -958,7 +1029,12 @@ export type Statement =
   | Try
   | Return
   | Print
+  | Input
   | Raise
+  | Structure
+  | Break
+  | Continue
+  | Call
   | Enumeration
   | Variable
   | Assignment

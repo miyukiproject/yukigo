@@ -1,10 +1,20 @@
-import { PrimitiveValue } from "@yukigo/ast";
+import { Expression, PrimitiveValue } from "@yukigo/ast";
 import { Environment, EnvStack } from "./index.js";
+import { UnboundVariable } from "./errors.js";
 
-export class UnboundVariable extends Error {
-  constructor(name: string) {
-    super(`Unbound variable: ${name}`);
-  }
+export interface ExpressionEvaluator {
+  evaluate(node: Expression): PrimitiveValue;
+}
+
+export function createStream(
+  generator: Generator<any, void, unknown>
+): PrimitiveValue {
+  return {
+    type: "LazyList",
+    generator: function* () {
+      yield* generator;
+    },
+  };
 }
 
 export function isArrayOfNumbers(arr: PrimitiveValue[]): arr is number[] {

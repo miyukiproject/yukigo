@@ -1,4 +1,4 @@
-import { MulangAdapter } from "../src/index.js";
+import { MulangAdapter } from "../../src/index.js";
 import { isYukigoPrimitive, NumberPrimitive, Otherwise } from "@yukigo/ast";
 import { assert } from "chai";
 

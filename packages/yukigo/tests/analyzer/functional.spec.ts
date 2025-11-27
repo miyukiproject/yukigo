@@ -1,6 +1,6 @@
 import { YukigoParser } from "@yukigo/ast";
 import { YukigoHaskellParser } from "yukigo-haskell-parser";
-import { Analyzer } from "../src/analyzer/index.js";
+import { Analyzer } from "../../src/analyzer/index.js";
 import { assert } from "chai";
 import { inspect } from "util";
 

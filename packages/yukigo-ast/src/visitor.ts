@@ -37,6 +37,7 @@ import {
   Record,
   Case,
   Catch,
+  Input,
 } from "./globals/generics.js";
 import {
   ArithmeticUnaryOperation,
@@ -91,6 +92,7 @@ import {
   While,
   Repeat,
   ForLoop,
+  Structure,
 } from "./paradigms/imperative.js";
 import {
   Call,
@@ -180,11 +182,13 @@ export interface StrictVisitor<TReturn> {
   visitCatch(node: Catch): TReturn;
   visitRaise(node: Raise): TReturn;
   visitPrint(node: Print): TReturn;
+  visitInput(node: Input): TReturn;
   visitFor(node: For): TReturn;
   visitBreak(node: Break): TReturn;
   visitContinue(node: Continue): TReturn;
   visitVariable(node: Variable): TReturn;
   visitAssignment(node: Assignment): TReturn;
+  visitStructure(node: Structure): TReturn;
   visitEntryPoint(node: EntryPoint): TReturn;
   visitProcedure(node: Procedure): TReturn;
   visitEnumeration(node: Enumeration): TReturn;
@@ -247,6 +251,9 @@ export class TraverseVisitor implements StrictVisitor<void> {
 
   visitSequence(node: Sequence): void {
     this.traverseCollection(node.statements);
+  }
+  visitStructure(node: Structure): void {
+    this.traverseCollection(node.elements);
   }
   visitNumberPrimitive(node: NumberPrimitive): void {}
   visitBooleanPrimitive(node: BooleanPrimitive): void {}
@@ -322,7 +329,7 @@ export class TraverseVisitor implements StrictVisitor<void> {
   }
   visitCall(node: Call): void {
     node.callee.accept(this);
-    this.traverseCollection(node.patterns);
+    this.traverseCollection(node.args);
   }
   visitOtherwise(node: Otherwise): void {}
   visitCompositionExpression(node: CompositionExpression): void {
@@ -453,6 +460,9 @@ export class TraverseVisitor implements StrictVisitor<void> {
   visitPrint(node: Print): void {
     node.expression.accept(this);
   }
+  visitInput(node: Input): void {
+    node.message.accept(this);
+  }
   visitFor(node: For): void {
     node.body.accept(this);
     this.traverseCollection(node.statements);
@@ -508,7 +518,7 @@ export class TraverseVisitor implements StrictVisitor<void> {
     this.traverseCollection(node.patterns);
   }
   visitQuery(node: Query): void {
-    this.traverseCollection(node.expressions);
+    node.expression.accept(this);
   }
   visitMethod(node: Method): void {
     node.identifier.accept(this);

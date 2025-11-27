@@ -16,12 +16,10 @@ export const runCommand = (
   cwd: string,
   loadingMessage: string
 ) => {
-  console.log(loadingMessage);
   try {
     execSync(command, { stdio: "inherit", cwd });
   } catch (error) {
     console.error(`\nFailed to execute command: ${command}`);
-    // Exit process immediately on critical failure
     process.exit(1);
   }
 };
@@ -31,12 +29,10 @@ export function isEmpty(path: string) {
 }
 
 const toPascalCase = (str: string): string => {
-  // First, replace non-alphanumeric separators (like hyphens, underscores) with a capitalized letter.
   let pascal = str
     .toLowerCase()
     .replace(/[^a-zA-Z0-9]+(.)/g, (match, chr) => chr.toUpperCase());
 
-  // Then, ensure the very first letter is also capitalized.
   return pascal.charAt(0).toUpperCase() + pascal.slice(1);
 };
 

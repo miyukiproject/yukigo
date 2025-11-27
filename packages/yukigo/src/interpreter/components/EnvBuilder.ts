@@ -54,7 +54,6 @@ export class EnvBuilderVisitor extends TraverseVisitor {
       arity,
       equations,
     };
-    console.log(`Registered ${name} as`, runtimeFunc);
     define(this.env, name, runtimeFunc);
   }
   visitFact(node: Fact): void {
@@ -64,7 +63,8 @@ export class EnvBuilderVisitor extends TraverseVisitor {
     if (
       runtimeValue &&
       typeof runtimeValue === "object" &&
-      "kind" in runtimeValue
+      "kind" in runtimeValue &&
+      runtimeValue.kind === "Fact"
     ) {
       this.env[0].set(identifier, {
         ...runtimeValue,
@@ -72,7 +72,7 @@ export class EnvBuilderVisitor extends TraverseVisitor {
       });
     } else {
       this.env[0].set(identifier, {
-        kind: "Clause",
+        kind: "Fact",
         identifier,
         equations: [node],
       });
@@ -86,7 +86,8 @@ export class EnvBuilderVisitor extends TraverseVisitor {
     if (
       runtimeValue &&
       typeof runtimeValue === "object" &&
-      "kind" in runtimeValue
+      "kind" in runtimeValue &&
+      runtimeValue.kind === "Rule"
     ) {
       this.env[0].set(identifier, {
         ...runtimeValue,
@@ -94,7 +95,7 @@ export class EnvBuilderVisitor extends TraverseVisitor {
       });
     } else {
       this.env[0].set(identifier, {
-        kind: "Clause",
+        kind: "Rule",
         identifier,
         equations: [node],
       });

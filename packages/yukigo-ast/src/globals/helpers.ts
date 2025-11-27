@@ -10,6 +10,20 @@ import {
   SymbolPrimitive,
   Primitive,
 } from "./generics.js";
+import {
+  ApplicationPattern,
+  AsPattern,
+  ConsPattern,
+  ConstructorPattern,
+  FunctorPattern,
+  ListPattern,
+  LiteralPattern,
+  Pattern,
+  TuplePattern,
+  UnionPattern,
+  VariablePattern,
+  WildcardPattern,
+} from "./patterns.js";
 
 /* type Visitor = {
   [key: string]: (node: ASTNode, parent?: ASTNode) => boolean | void;
@@ -74,5 +88,20 @@ export function isYukigoPrimitive(node: ASTNode): node is Primitive {
     node instanceof StringPrimitive ||
     node instanceof NilPrimitive ||
     node instanceof SymbolPrimitive
+  );
+}
+export function isPattern(node: ASTNode): node is Pattern {
+  return (
+    node instanceof VariablePattern ||
+    node instanceof LiteralPattern ||
+    node instanceof ApplicationPattern ||
+    node instanceof TuplePattern ||
+    node instanceof ListPattern ||
+    node instanceof FunctorPattern ||
+    node instanceof AsPattern ||
+    node instanceof WildcardPattern ||
+    node instanceof ConstructorPattern ||
+    node instanceof ConsPattern ||
+    node instanceof UnionPattern
   );
 }
