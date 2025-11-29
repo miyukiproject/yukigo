@@ -11,6 +11,7 @@ import {
   Package,
   Parameter,
   Reference,
+  Return,
   Send,
   Singleton,
 } from "wollok-ts";
@@ -34,6 +35,7 @@ describe("WollokToYukigoTransformer", () => {
   const unguardedBody = (sentences) => new Body({ sentences });
   const singleton = (name, members) => new Singleton({ name, members });
   const wollokClass = (name, members) => new Class({ name, members });
+  const ret = (value) => new Return({ value });
 
   const transformNode = (node: Node) => {
     const pkg = p([node]);
@@ -181,6 +183,43 @@ describe("WollokToYukigoTransformer", () => {
       expect(result).to.have.lengthOf(2);
       expect(result[0]).to.be.instanceOf(Yu.Class);
       expect(result[1]).to.be.instanceOf(Yu.Object);
+    });
+  });
+  describe("Return Methods", () => {
+    it("should transform method with parameters, explicit return and binary operations", () => {
+      const input = met(
+        "calculation",
+        [param("a")],
+        unguardedBody([ret(send(ref("a"), "+", [lit(2)]))])
+      );
+
+      const result = transformNode(input) as Yu.Method;
+
+      expect(result.identifier.value).to.equal("calculation");
+
+      const equation = result.equations[0];
+      expect(equation.patterns).to.have.lengthOf(1);
+      expect(equation.patterns[0]).to.be.instanceOf(Yu.VariablePattern);
+      expect((equation.patterns[0] as Yu.VariablePattern).name.value).to.equal(
+        "a"
+      );
+
+      const bodySeq = (equation.body as Yu.UnguardedBody).sequence;
+      expect(bodySeq.statements).to.have.lengthOf(1);
+
+      const returnStmt = bodySeq.statements[0] as Yu.Return;
+      expect(returnStmt).to.be.instanceOf(Yu.Return);
+
+      const binaryOp = returnStmt.body as Yu.ArithmeticBinaryOperation;
+      expect(binaryOp).to.be.instanceOf(Yu.ArithmeticBinaryOperation);
+
+      expect(binaryOp.operator).to.equal("Plus");
+
+      expect(binaryOp.left).to.be.instanceOf(Yu.SymbolPrimitive);
+      expect((binaryOp.left as Yu.SymbolPrimitive).value).to.equal("a");
+
+      expect(binaryOp.right).to.be.instanceOf(Yu.NumberPrimitive);
+      expect((binaryOp.right as Yu.NumberPrimitive).value).to.equal(2);
     });
   });
 });
