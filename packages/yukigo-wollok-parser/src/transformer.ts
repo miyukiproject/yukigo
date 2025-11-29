@@ -309,78 +309,21 @@ export class WollokToYukigoTransformer {
     return new Yu.Sequence(statements, mapLocation(node));
   }
 
-  private visitSend(node: any): Yu.Expression {
+  private visitSend(node: Send): Yu.Expression {
     const receiver = this.visit(node.receiver);
     const args = (node.args || []).map((arg: any) => this.visit(arg));
     const op = node.message;
     const loc = mapLocation(node);
 
     if (args.length === 1) {
-      const right = args[0];
-
-      if (op === "..") {
-        return new Yu.RangeExpression(
-          receiver,
-          right,
-          undefined,
-          loc
-        );
-      }
-
-      if (op in ARITHMETIC_BINARY_OPS) {
-        return new Yu.ArithmeticBinaryOperation(
-          ARITHMETIC_BINARY_OPS[op],
-          receiver,
-          right,
-          loc
-        );
-      }
-
-      if (op in COMPARISON_OPS) {
-        return new Yu.ComparisonOperation(
-          COMPARISON_OPS[op],
-          receiver,
-          right,
-          loc
-        );
-      }
-
-      if (op in LOGICAL_BINARY_OPS) {
-        return new Yu.LogicalBinaryOperation(
-          LOGICAL_BINARY_OPS[op],
-          receiver,
-          right,
-          loc
-        );
-      }
-
-      if (op in BITWISE_BINARY_OPS) {
-        return new Yu.BitwiseBinaryOperation(
-          BITWISE_BINARY_OPS[op],
-          receiver,
-          right,
-          loc
-        );
-      }
-
-      if (op === "++" || op === "concat") {
-        return new Yu.StringOperation("Concat", receiver, right, loc);
-      }
+      const binaryExpr = transformBinary(op, receiver, args[0], loc);
+      if (binaryExpr) return binaryExpr;
     }
 
     if (args.length === 0) {
-      if (op === "!" || op === "not" || op === "negate") {
-        if (op === "!" || op === "not") {
-          return new Yu.LogicalUnaryOperation("Negation", receiver, loc);
-        }
-      }
-
-      if (op === "invert" || op === "-") {
-        return new Yu.ArithmeticUnaryOperation("Negation", receiver, loc);
-      }
-      if (op === "~" || op === "bitwiseNot") {
-        return new Yu.BitwiseUnaryOperation("BitwiseNot", receiver, loc);
-      }
+      const unaryExpr = transformUnary(op, receiver, loc);
+      // note that binaryExpr and unaryExpr can be null if it transform functions cant match any operation to the selector
+      if (unaryExpr) return unaryExpr;
     }
 
     const selector = new Yu.SymbolPrimitive(op, loc);
@@ -388,9 +331,7 @@ export class WollokToYukigoTransformer {
   }
 
   private visitReference(node: Reference<any>): Yu.SymbolPrimitive | Yu.Self {
-    if (node.name === "self") {
-      return new Yu.Self(mapLocation(node));
-    }
+    if (node.name === "self") return new Yu.Self(mapLocation(node));
     return new Yu.SymbolPrimitive(node.name, mapLocation(node));
   }
 
@@ -417,3 +358,70 @@ export class WollokToYukigoTransformer {
 }
 
 const WollokListTypes = ["wollok.lang.List", "wollok.lang.Set"];
+
+function transformBinary(
+  op: string,
+  left: Yu.Expression,
+  right: Yu.Expression,
+  loc: Yu.SourceLocation | undefined
+): Yu.Expression | null {
+  // RangeExpression
+  if (op === "..") return new Yu.RangeExpression(left, right, undefined, loc);
+
+  // Arithmetic
+  if (op in ARITHMETIC_BINARY_OPS)
+    return new Yu.ArithmeticBinaryOperation(
+      ARITHMETIC_BINARY_OPS[op],
+      left,
+      right,
+      loc
+    );
+
+  // Comparison
+  if (op in COMPARISON_OPS)
+    return new Yu.ComparisonOperation(COMPARISON_OPS[op], left, right, loc);
+
+  // Logical
+  if (op in LOGICAL_BINARY_OPS)
+    return new Yu.LogicalBinaryOperation(
+      LOGICAL_BINARY_OPS[op],
+      left,
+      right,
+      loc
+    );
+
+  // Bitwise
+  if (op in BITWISE_BINARY_OPS)
+    return new Yu.BitwiseBinaryOperation(
+      BITWISE_BINARY_OPS[op],
+      left,
+      right,
+      loc
+    );
+
+  // String Concatenation
+  if (op === "++" || op === "concat")
+    return new Yu.StringOperation("Concat", left, right, loc);
+
+  return null;
+}
+
+function transformUnary(
+  op: string,
+  receiver: Yu.Expression,
+  loc: Yu.SourceLocation | undefined
+): Yu.Expression | null {
+  // Logical Negation
+  if (["!", "negate"].includes(op))
+    return new Yu.LogicalUnaryOperation("Negation", receiver, loc);
+
+  // Arithmetic Negation
+  if (["invert", "-"].includes(op))
+    return new Yu.ArithmeticUnaryOperation("Negation", receiver, loc);
+
+  // Bitwise Negation
+  if (["~", "bitwiseNot"].includes(op))
+    return new Yu.BitwiseUnaryOperation("BitwiseNot", receiver, loc);
+
+  return null;
+}
