@@ -24,6 +24,45 @@ import {
   Variable,
 } from "wollok-ts";
 
+const ARITHMETIC_BINARY_OPS: Record<string, Yu.ArithmeticBinaryOperator> = {
+  "+": "Plus",
+  "-": "Minus",
+  "*": "Multiply",
+  "/": "Divide",
+  "%": "Modulo",
+  "**": "Power",
+  max: "Max",
+  min: "Min",
+};
+
+const COMPARISON_OPS: Record<string, Yu.ComparisonOperatorType> = {
+  "==": "Equal",
+  "!=": "NotEqual",
+  "===": "Same",
+  "!==": "NotSame",
+  ">=": "GreaterOrEqualThan",
+  ">": "GreaterThan",
+  "<=": "LessOrEqualThan",
+  "<": "LessThan",
+  like: "Similar",
+};
+
+const LOGICAL_BINARY_OPS: Record<string, Yu.LogicalBinaryOperator> = {
+  "&&": "And",
+  and: "And",
+  "||": "Or",
+  or: "Or",
+};
+
+const BITWISE_BINARY_OPS: Record<string, Yu.BitwiseBinaryOperator> = {
+  "|": "BitwiseOr",
+  "&": "BitwiseAnd",
+  "^": "BitwiseXor",
+  "<<": "BitwiseLeftShift",
+  ">>": "BitwiseRightShift",
+  ">>>": "BitwiseUnsignedRightShift",
+};
+
 function mapLocation(wollokNode: Node): Yu.SourceLocation | undefined {
   if (wollokNode.sourceMap && wollokNode.sourceMap.start) {
     return new Yu.SourceLocation(
@@ -270,41 +309,73 @@ export class WollokToYukigoTransformer {
     return new Yu.Sequence(statements, mapLocation(node));
   }
 
-  private visitSend(node: Send): Yu.Send | Yu.ArithmeticBinaryOperation {
+  private visitSend(node: any): Yu.Expression {
     const receiver = this.visit(node.receiver);
-    const args = node.args.map((arg: any) => this.visit(arg));
+    const args = (node.args || []).map((arg: any) => this.visit(arg));
+    const op = node.message;
+    const loc = mapLocation(node);
 
-    if (this.isArithmeticOperator(node.message) && args.length === 1) {
-      return new Yu.ArithmeticBinaryOperation(
-        this.mapOperator(node.message),
-        receiver,
-        args[0],
-        mapLocation(node)
-      );
+    if (args.length === 1) {
+      const right = args[0];
+
+      if (op in ARITHMETIC_BINARY_OPS) {
+        return new Yu.ArithmeticBinaryOperation(
+          ARITHMETIC_BINARY_OPS[op],
+          receiver,
+          right,
+          loc
+        );
+      }
+
+      if (op in COMPARISON_OPS) {
+        return new Yu.ComparisonOperation(
+          COMPARISON_OPS[op],
+          receiver,
+          right,
+          loc
+        );
+      }
+
+      if (op in LOGICAL_BINARY_OPS) {
+        return new Yu.LogicalBinaryOperation(
+          LOGICAL_BINARY_OPS[op],
+          receiver,
+          right,
+          loc
+        );
+      }
+
+      if (op in BITWISE_BINARY_OPS) {
+        return new Yu.BitwiseBinaryOperation(
+          BITWISE_BINARY_OPS[op],
+          receiver,
+          right,
+          loc
+        );
+      }
+
+      if (op === "++" || op === "concat") {
+        return new Yu.StringOperation("Concat", receiver, right, loc);
+      }
     }
-    const selector = new Yu.SymbolPrimitive(node.message, mapLocation(node));
 
-    return new Yu.Send(receiver, selector, args, mapLocation(node));
-  }
+    if (args.length === 0) {
+      if (op === "!" || op === "not" || op === "negate") {
+        if (op === "!" || op === "not") {
+          return new Yu.LogicalUnaryOperation("Negation", receiver, loc);
+        }
+      }
 
-  private isArithmeticOperator(op: string): boolean {
-    return ["+", "-", "*", "/", "%"].includes(op);
-  }
-  private mapOperator(op: string): Yu.ArithmeticBinaryOperator {
-    switch (op) {
-      case "+":
-        return "Plus";
-      case "-":
-        return "Minus";
-      case "*":
-        return "Multiply";
-      case "/":
-        return "Divide";
-      case "%":
-        return "Modulo";
-      default:
-        throw new Error(`Operator ${op} not mapped`);
+      if (op === "invert" || op === "-") {
+        return new Yu.ArithmeticUnaryOperation("Negation", receiver, loc);
+      }
+      if (op === "~" || op === "bitwiseNot") {
+        return new Yu.BitwiseUnaryOperation("BitwiseNot", receiver, loc);
+      }
     }
+
+    const selector = new Yu.SymbolPrimitive(op, loc);
+    return new Yu.Send(receiver, selector, args, loc);
   }
 
   private visitReference(node: Reference<any>): Yu.SymbolPrimitive | Yu.Self {
