@@ -2,11 +2,17 @@ import { expect } from "chai";
 import * as Yu from "@yukigo/ast";
 import { WollokToYukigoTransformer } from "../src/transformer";
 import {
+  Assignment,
   Body,
+  Catch,
   Class,
-  List,
+  Field,
+  If,
+  Import,
   Literal,
   Method,
+  Mixin,
+  New,
   Node,
   Package,
   Parameter,
@@ -14,6 +20,10 @@ import {
   Return,
   Send,
   Singleton,
+  Super,
+  Throw,
+  Try,
+  Variable,
 } from "wollok-ts";
 
 describe("WollokToYukigoTransformer", () => {
@@ -23,10 +33,10 @@ describe("WollokToYukigoTransformer", () => {
     transformer = new WollokToYukigoTransformer();
   });
 
-  const p = (members, sourceMap?) =>
-    new Package({ name: "example", members, sourceMap });
+  const p = (members, imports?, sourceMap?) =>
+    new Package({ name: "example", imports, members, sourceMap });
   const lit = (value, sourceMap?) => new Literal({ value, sourceMap });
-  const ref = (name) => new Reference({ name });
+  const ref = (name) => new Reference<any>({ name });
   const send = (receiver, message, args) =>
     new Send({ receiver, message, args });
   const met = (name, parameters: Parameter[], body) =>
@@ -36,6 +46,22 @@ describe("WollokToYukigoTransformer", () => {
   const singleton = (name, members) => new Singleton({ name, members });
   const wollokClass = (name, members) => new Class({ name, members });
   const ret = (value) => new Return({ value });
+  const imp = (name) => new Import({ entity: ref(name) });
+  const mixin = (name, members) => new Mixin({ name, members });
+  const field = (name, isConstant: boolean, value?) =>
+    new Field({ name, value, isConstant });
+  const variable = (name, isConstant: boolean, value) =>
+    new Variable({ name, value, isConstant });
+  const assign = (variable, value) => new Assignment({ variable, value });
+  const newExpr = (className, args) =>
+    new New({ instantiated: ref(className), args });
+  const ifStmt = (condition, thenBody, elseBody?) =>
+    new If({ condition, thenBody, elseBody });
+  const throwStmt = (exception) => new Throw({ exception });
+  const catchClause = (parameter, body) => new Catch({ parameter, body });
+  const tryStmt = (body, catches, always?) =>
+    new Try({ body, catches, always });
+  const superInv = (args) => new Super({ args });
 
   const transformNode = (node: Node) => {
     const pkg = p([node]);
@@ -185,6 +211,7 @@ describe("WollokToYukigoTransformer", () => {
       expect(result[1]).to.be.instanceOf(Yu.Object);
     });
   });
+
   describe("Return Methods", () => {
     it("should transform method with parameters, explicit return and binary operations", () => {
       const input = met(
@@ -220,6 +247,138 @@ describe("WollokToYukigoTransformer", () => {
 
       expect(binaryOp.right).to.be.instanceOf(Yu.NumberPrimitive);
       expect((binaryOp.right as Yu.NumberPrimitive).value).to.equal(2);
+    });
+  });
+
+  describe("Structural Extensions (Import, Mixin, Field)", () => {
+    it("should transform Import -> Include", () => {
+      const input = p([], [imp("wollok.game")]);
+      const result = transformNode(input) as Yu.Include;
+      const importStmt = result[0];
+      expect(importStmt).to.be.instanceOf(Yu.Include);
+      expect(importStmt.identifier.value).to.equal("wollok.game");
+    });
+
+    it("should transform Mixin -> Class", () => {
+      const input = mixin("FlyingAbility", []);
+      const result = transformNode(input) as Yu.Class;
+
+      expect(result).to.be.instanceOf(Yu.Class);
+      expect(result.identifier.value).to.equal("FlyingAbility");
+    });
+
+    it("should transform Field -> Attribute (with value)", () => {
+      const input = field("energy", false, lit(100));
+      const result = transformNode(input) as Yu.Attribute;
+
+      expect(result).to.be.instanceOf(Yu.Attribute);
+      expect(result.identifier.value).to.equal("energy");
+      expect((result.expression as Yu.NumberPrimitive).value).to.equal(100);
+    });
+
+    it("should transform Field -> Attribute (without value defaults to Nil)", () => {
+      const input = field("target", false);
+      const result = transformNode(input) as Yu.Attribute;
+
+      expect(result).to.be.instanceOf(Yu.Attribute);
+      expect(result.expression).to.be.instanceOf(Yu.NilPrimitive);
+    });
+  });
+
+  describe("State & Flow (Vars, Assignments, If)", () => {
+    it("should transform Variable Declaration", () => {
+      const input = variable("count", false, lit(0));
+      const result = transformNode(input) as Yu.Variable;
+
+      expect(result).to.be.instanceOf(Yu.Variable);
+      expect(result.identifier.value).to.equal("count");
+      expect((result.expression as Yu.NumberPrimitive).value).to.equal(0);
+    });
+
+    it("should transform Assignment", () => {
+      const input = assign(ref("count"), lit(5));
+      const result = transformNode(input) as Yu.Assignment;
+
+      expect(result).to.be.instanceOf(Yu.Assignment);
+      expect(result.identifier.value).to.equal("count");
+      expect((result.expression as Yu.NumberPrimitive).value).to.equal(5);
+    });
+
+    it("should transform If/Else", () => {
+      const input = ifStmt(lit(true), unguardedBody([]), unguardedBody([]));
+      const result = transformNode(input) as Yu.If;
+
+      expect(result).to.be.instanceOf(Yu.If);
+      expect(result.condition).to.be.instanceOf(Yu.BooleanPrimitive);
+      expect(result.then).to.be.instanceOf(Yu.Sequence);
+      expect(result.elseExpr).to.be.instanceOf(Yu.Sequence);
+    });
+
+    it("should transform If (without Else injects empty Sequence)", () => {
+      const input = ifStmt(lit(false), unguardedBody([]));
+      const result = transformNode(input) as Yu.If;
+
+      expect(result).to.be.instanceOf(Yu.If);
+      expect(result.elseExpr).to.be.instanceOf(Yu.Sequence);
+      expect((result.elseExpr as Yu.Sequence).statements).to.be.empty;
+    });
+  });
+
+  describe("Object Oriented Features (Self, Super, New)", () => {
+    it("should transform Reference('self') -> Self", () => {
+      const input = ref("self");
+      const result = transformNode(input) as Yu.Self;
+
+      expect(result).to.be.instanceOf(Yu.Self);
+      expect(result).to.not.have.property("value");
+    });
+
+    it("should transform New -> Yu.New", () => {
+      const input = newExpr("Bird", [lit("Tweety")]);
+      const result = transformNode(input) as Yu.New;
+
+      expect(result).to.be.instanceOf(Yu.New);
+      expect(result.identifier.value).to.equal("Bird");
+      expect(result.args).to.have.lengthOf(1);
+    });
+
+    it("should transform SuperInvocation -> Send(receiver='super')", () => {
+      const input = superInv([]);
+      const result = transformNode(input) as Yu.Super;
+
+      expect(result).to.be.instanceOf(Yu.Super);
+    });
+  });
+
+  describe("Exception Handling (Throw, Try/Catch)", () => {
+    it("should transform Throw -> Raise", () => {
+      const input = throwStmt(newExpr("Error", []));
+      const result = transformNode(input) as Yu.Raise;
+
+      expect(result).to.be.instanceOf(Yu.Raise);
+      expect(result.body).to.be.instanceOf(Yu.New);
+    });
+
+    it("should transform Try/Catch/Always", () => {
+      const input = tryStmt(
+        unguardedBody([]),
+        [catchClause(param("e"), unguardedBody([]))],
+        unguardedBody([])
+      );
+
+      const result = transformNode(input) as Yu.Try;
+
+      expect(result).to.be.instanceOf(Yu.Try);
+      expect(result.body).to.be.instanceOf(Yu.Sequence);
+
+      expect(result.catchExpr).to.have.lengthOf(1);
+      const catchBlock = result.catchExpr[0];
+      expect(catchBlock.patterns).to.have.lengthOf(1);
+      expect(
+        (catchBlock.patterns[0] as Yu.VariablePattern).name.value
+      ).to.equal("e");
+
+      expect(result.finallyExpr).to.be.instanceOf(Yu.Sequence);
     });
   });
 });

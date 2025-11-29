@@ -194,3 +194,13 @@ export class Self extends ASTNode {
     };
   }
 }
+export class Super extends ASTNode {
+  public accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitSuper?.(this);
+  }
+  public toJSON() {
+    return {
+      type: "Super",
+    };
+  }
+}

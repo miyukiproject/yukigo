@@ -33,6 +33,7 @@ import {
   Object,
   Self,
   Send,
+  Super,
 } from "../paradigms/object.js";
 import { Visitor } from "../visitor.js";
 import { Operation } from "./operators.js";
@@ -1022,6 +1023,7 @@ export type Statement =
   | Class
   | Object
   | Method
+  | Super
   | Attribute
   | Interface
   | Switch

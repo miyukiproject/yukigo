@@ -1,9 +1,16 @@
 import * as Yu from "@yukigo/ast";
 import {
+  Assignment,
   Body,
+  Catch,
   Class,
+  Field,
+  If,
+  Import,
   Literal,
   Method,
+  Mixin,
+  New,
   Node,
   Package,
   Parameter,
@@ -11,6 +18,10 @@ import {
   Return,
   Send,
   Singleton,
+  Super,
+  Throw,
+  Try,
+  Variable,
 } from "wollok-ts";
 
 function mapLocation(wollokNode: Node): Yu.SourceLocation | undefined {
@@ -36,8 +47,9 @@ export class WollokToYukigoTransformer {
         return this.visitPackage(node as Package);
       case "Singleton":
         return this.visitSingleton(node as Singleton);
+      case "Mixin":
       case "Class":
-        return this.visitClass(node as Class);
+        return this.visitClass(node as Class | Mixin);
       case "Method":
         return this.visitMethod(node as Method);
       case "Body":
@@ -52,26 +64,147 @@ export class WollokToYukigoTransformer {
         return this.visitParameter(node as Parameter);
       case "Return":
         return this.visitReturn(node as Return);
-      // Import
-      // Mixin
-      // Field
-      // Sentence
-      // Variable
-      // Assignment
-      // Self
-      // Super
-      // New
-      // If
-      // Throw
-      // Try
-      // Catch
+      case "Variable":
+        return this.visitVariable(node as Variable);
+      case "New":
+        return this.visitNew(node as New);
+      case "If":
+        return this.visitIf(node as If);
+      case "Field":
+        return this.visitField(node as Field);
+      case "Assignment":
+        return this.visitAssignment(node as Assignment);
+      case "Throw":
+        return this.visitThrow(node as Throw);
+      case "Try":
+        return this.visitTry(node as Try);
+      case "Catch":
+        return this.visitCatch(node as Catch);
+      case "Super":
+        return this.visitSuper(node as Super);
       default:
         throw new Error(`Nodo Wollok desconocido o no soportado: ${nodeType}`);
     }
   }
 
   private visitPackage(node: Package): Yu.Statement[] {
-    return node.members.map((member: Node) => this.visit(member));
+    return [
+      ...node.imports.map((imp) => this.visitImport(imp)),
+      ...node.members.map((member: Node) => this.visit(member)),
+    ];
+  }
+
+  private visitImport(node: Import): Yu.Include {
+    const identifier = new Yu.SymbolPrimitive(
+      node.entity.name,
+      mapLocation(node)
+    );
+    return new Yu.Include(identifier, mapLocation(node));
+  }
+
+  private visitField(node: Field): Yu.Attribute {
+    const identifier = new Yu.SymbolPrimitive(node.name, mapLocation(node));
+
+    let value: Yu.Expression;
+    if (node.value) {
+      value = this.visit(node.value);
+    } else {
+      // default to Nil if no initial value provided
+      value = new Yu.NilPrimitive(null, mapLocation(node));
+    }
+
+    return new Yu.Attribute(identifier, value, mapLocation(node));
+  }
+
+  private visitVariable(node: Variable): Yu.Variable {
+    const identifier = new Yu.SymbolPrimitive(node.name, mapLocation(node));
+
+    let expression: Yu.Expression;
+    if (node.value) {
+      expression = this.visit(node.value);
+    } else {
+      expression = new Yu.NilPrimitive(null, mapLocation(node));
+    }
+
+    return new Yu.Variable(
+      identifier,
+      expression,
+      undefined,
+      mapLocation(node)
+    );
+  }
+
+  private visitAssignment(node: Assignment): Yu.Assignment {
+    const refName = node.variable.name || node.variable;
+    const identifier = new Yu.SymbolPrimitive(
+      refName.toString(),
+      mapLocation(node)
+    );
+
+    const expression = this.visit(node.value);
+
+    return new Yu.Assignment(identifier, expression, mapLocation(node));
+  }
+
+  private visitNew(node: New): Yu.New {
+    const className = new Yu.SymbolPrimitive(
+      node.instantiated.name,
+      mapLocation(node)
+    );
+    const args = (node.args || []).map((arg: any) => this.visit(arg));
+
+    return new Yu.New(className, args, mapLocation(node));
+  }
+
+  private visitIf(node: If): Yu.If {
+    const condition = this.visit(node.condition);
+    const thenExpr = this.visit(node.thenBody);
+
+    let elseExpr: Yu.Expression;
+    if (node.elseBody) {
+      elseExpr = this.visit(node.elseBody);
+    } else {
+      elseExpr = new Yu.Sequence([], mapLocation(node));
+    }
+
+    return new Yu.If(condition, thenExpr, elseExpr, mapLocation(node));
+  }
+
+  private visitThrow(node: Throw): Yu.Raise {
+    const exception = this.visit(node.exception);
+    return new Yu.Raise(exception, mapLocation(node));
+  }
+
+  private visitTry(node: Try): Yu.Try {
+    const body = this.visit(node.body);
+
+    const catchExprs: Yu.Catch[] = (node.catches || []).map((c: any) =>
+      this.visitCatch(c)
+    );
+
+    let finallyExpr: Yu.Expression;
+    if (node.always) {
+      finallyExpr = this.visit(node.always);
+    } else {
+      finallyExpr = new Yu.Sequence([], mapLocation(node));
+    }
+
+    return new Yu.Try(body, catchExprs, finallyExpr, mapLocation(node));
+  }
+
+  private visitCatch(node: Catch): Yu.Catch {
+    const paramName = node.parameter.name;
+    const pattern = new Yu.VariablePattern(
+      new Yu.SymbolPrimitive(paramName, mapLocation(node.parameter)),
+      mapLocation(node.parameter)
+    );
+
+    const body = this.visit(node.body);
+
+    return new Yu.Catch([pattern], body, mapLocation(node));
+  }
+  private visitSuper(node: Super): Yu.Super {
+    return new Yu.Super(mapLocation(node));
   }
 
   private visitSingleton(node: Singleton): Yu.Object {
@@ -83,7 +216,7 @@ export class WollokToYukigoTransformer {
     return new Yu.Object(identifier, bodyExpression, mapLocation(node));
   }
 
-  private visitClass(node: Class): Yu.Class {
+  private visitClass(node: Class | Mixin): Yu.Class {
     const identifier = new Yu.SymbolPrimitive(node.name, mapLocation(node));
 
     const members = node.members.map((m: any) => this.visit(m));
@@ -174,7 +307,10 @@ export class WollokToYukigoTransformer {
     }
   }
 
-  private visitReference(node: Reference<any>): Yu.SymbolPrimitive {
+  private visitReference(node: Reference<any>): Yu.SymbolPrimitive | Yu.Self {
+    if (node.name === "self") {
+      return new Yu.Self(mapLocation(node));
+    }
     return new Yu.SymbolPrimitive(node.name, mapLocation(node));
   }
 

@@ -116,6 +116,7 @@ import {
   Class,
   Interface,
   Object,
+  Super,
 } from "./paradigms/object.js";
 
 export interface StrictVisitor<TReturn> {
@@ -161,11 +162,12 @@ export interface StrictVisitor<TReturn> {
   visitNew(node: New): TReturn;
   visitImplement(node: Implement): TReturn;
   visitInclude(node: Include): TReturn;
-  visitSelf(node: Self): TReturn;
   visitListComprehension(node: ListComprehension): TReturn;
   visitGenerator(node: Generator): TReturn;
   visitRangeExpression(node: RangeExpression): TReturn;
   // Statements
+  visitSelf(node: Self): TReturn;
+  visitSuper(node: Super): TReturn;
   visitYield(node: Yield): TReturn;
   visitIf(node: If): TReturn;
   visitReturn(node: Return): TReturn;
@@ -380,6 +382,7 @@ export class TraverseVisitor implements StrictVisitor<void> {
     node.identifier.accept(this);
   }
   visitSelf(node: Self): void {}
+  visitSuper(node: Super): void {}
   visitListComprehension(node: ListComprehension): void {
     node.projection.accept(this);
     this.traverseCollection(node.generators);
