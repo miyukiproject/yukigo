@@ -318,6 +318,15 @@ export class WollokToYukigoTransformer {
     if (args.length === 1) {
       const right = args[0];
 
+      if (op === "..") {
+        return new Yu.RangeExpression(
+          receiver,
+          right,
+          undefined,
+          loc
+        );
+      }
+
       if (op in ARITHMETIC_BINARY_OPS) {
         return new Yu.ArithmeticBinaryOperation(
           ARITHMETIC_BINARY_OPS[op],
@@ -389,6 +398,16 @@ export class WollokToYukigoTransformer {
     const val = node.value;
     const loc = mapLocation(node);
 
+    const isCollection =
+      Array.isArray(val) &&
+      "name" in val[0] &&
+      WollokListTypes.includes(val[0].name);
+
+    if (isCollection)
+      return new Yu.ListPrimitive(
+        val[1].map((element) => this.visit(element)),
+        loc
+      );
     if (typeof val === "number") return new Yu.NumberPrimitive(val, loc);
     if (typeof val === "boolean") return new Yu.BooleanPrimitive(val, loc);
     if (val === null) return new Yu.NilPrimitive(null, loc);
@@ -396,3 +415,5 @@ export class WollokToYukigoTransformer {
     return new Yu.StringPrimitive(String(val), loc);
   }
 }
+
+const WollokListTypes = ["wollok.lang.List", "wollok.lang.Set"];
