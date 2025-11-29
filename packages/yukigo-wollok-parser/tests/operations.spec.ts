@@ -120,8 +120,8 @@ describe("WollokToYukigoTransformer - Native Operations", () => {
       expect(result.operator).to.equal("Or");
     });
 
-    it("should transform unary 'not' to LogicalNegation", () => {
-      const input = send(ref("found"), "not", []);
+    it("should transform unary 'negate' to LogicalNegation", () => {
+      const input = send(ref("found"), "negate", []);
       const result = transformExpression(input) as Yu.LogicalUnaryOperation;
 
       expect(result).to.be.instanceOf(Yu.LogicalUnaryOperation);

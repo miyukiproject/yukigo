@@ -1,7 +1,6 @@
 import { AST, YukigoParser } from "@yukigo/ast";
 import { parse } from "wollok-ts";
 import { WollokToYukigoTransformer } from "./transformer.js";
-import { inspect } from "util";
 
 export class YukigoWollokParser implements YukigoParser {
   public errors: string[] = [];
@@ -11,7 +10,6 @@ export class YukigoWollokParser implements YukigoParser {
 
   public parse(code: string): AST {
     const parserResult = parse.File("example").parse(code);
-    console.log(inspect(parserResult, false, null, true));
     if (parserResult.status === false) {
       const { index, expected } = parserResult;
       const expectation = expected.join(" or ");
