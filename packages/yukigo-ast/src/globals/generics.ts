@@ -493,7 +493,6 @@ export type Expression =
   | New
   | Include
   | Implement
-  | Send
   | DataExpression
   | CompositionExpression
   | Lambda
@@ -1026,6 +1025,7 @@ export type Statement =
   | Attribute
   | Interface
   | Switch
+  | Send
   | Try
   | Return
   | Print
