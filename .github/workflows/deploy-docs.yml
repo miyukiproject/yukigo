@@ -30,6 +30,11 @@ jobs:
 
       - name: Install Dependencies
         run: npm ci
+      - name: Build Packages
+        run: npm run build --workspaces --if-present
+
+      - name: Generate AST Docs
+        run: npm run docs:gen --workspace=@yukigo/docs
 
       - name: Build Docs
         run: |
