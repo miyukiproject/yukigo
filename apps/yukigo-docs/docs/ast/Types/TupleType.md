@@ -12,9 +12,9 @@ Represents a tuple type (e.g., (Int, Bool)).
 
 | Parameter | Type |
 | ------ | ------ |
-| `values` | [`Type`](../Other/index.Type.md)[] |
-| `constraints` | [`Constraint`](index.Constraint.md)[] |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `values` | [`Type`](../Other/Type.md)[] |
+| `constraints` | [`Constraint`](Constraint.md)[] |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

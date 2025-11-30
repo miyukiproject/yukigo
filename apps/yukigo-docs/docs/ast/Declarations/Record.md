@@ -19,10 +19,10 @@ data PositionalRecord = Constructor String String
 
 | Parameter | Type |
 | ------ | ------ |
-| `name` | [`SymbolPrimitive`](../Literals/index.SymbolPrimitive.md) |
-| `contents` | [`Constructor`](index.Constructor.md)[] |
-| `deriving?` | [`SymbolPrimitive`](../Literals/index.SymbolPrimitive.md)[] |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `name` | [`SymbolPrimitive`](../Literals/SymbolPrimitive.md) |
+| `contents` | [`Constructor`](Constructor.md)[] |
+| `deriving?` | [`SymbolPrimitive`](../Literals/SymbolPrimitive.md)[] |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

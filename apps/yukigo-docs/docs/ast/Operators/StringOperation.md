@@ -13,9 +13,9 @@ Represents an operation specific to string manipulation.
 | Parameter | Type |
 | ------ | ------ |
 | `operator` | `"Concat"` |
-| `left` | [`Expression`](../Other/index.Expression.md) |
-| `right` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `left` | [`Expression`](../Other/Expression.md) |
+| `right` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

@@ -12,10 +12,10 @@ Represents a binary operation on lists, such as concatenation.
 
 | Parameter | Type |
 | ------ | ------ |
-| `operator` | [`ListBinaryOperator`](../Other/index.ListBinaryOperator.md) |
-| `left` | [`Expression`](../Other/index.Expression.md) |
-| `right` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `operator` | [`ListBinaryOperator`](../Other/ListBinaryOperator.md) |
+| `left` | [`Expression`](../Other/Expression.md) |
+| `right` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

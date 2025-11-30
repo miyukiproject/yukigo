@@ -12,9 +12,9 @@ Represents a call to a predicate or goal.
 
 | Parameter | Type |
 | ------ | ------ |
-| `callee` | [`SymbolPrimitive`](../Literals/index.SymbolPrimitive.md) |
-| `args` | [`Expression`](../Other/index.Expression.md)[] |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `callee` | [`SymbolPrimitive`](../Literals/SymbolPrimitive.md) |
+| `args` | [`Expression`](../Other/Expression.md)[] |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

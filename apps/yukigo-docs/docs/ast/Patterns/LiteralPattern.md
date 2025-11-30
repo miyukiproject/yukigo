@@ -12,8 +12,8 @@ Represents a pattern that matches an exact literal value.
 
 | Parameter | Type |
 | ------ | ------ |
-| `name` | [`Primitive`](../Other/index.Primitive.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `name` | [`Primitive`](../Other/Primitive.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

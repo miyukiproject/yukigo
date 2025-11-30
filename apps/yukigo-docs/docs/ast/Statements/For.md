@@ -12,9 +12,9 @@ Represents a for-loop control structure for iterating over a sequence or range.
 
 | Parameter | Type |
 | ------ | ------ |
-| `body` | [`Expression`](../Other/index.Expression.md) |
-| `statements` | [`Statement`](../Other/index.Statement.md)[] |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `body` | [`Expression`](../Other/Expression.md) |
+| `statements` | [`Statement`](../Other/Statement.md)[] |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

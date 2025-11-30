@@ -18,8 +18,8 @@ sum (x:xs) = x + sum xs
 
 | Parameter | Type |
 | ------ | ------ |
-| `elements` | [`Pattern`](../Other/index.Pattern.md)[] |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `elements` | [`Pattern`](../Other/Pattern.md)[] |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

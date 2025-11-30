@@ -12,8 +12,8 @@ Represents a sequence of statements executed in order.
 
 | Parameter | Type |
 | ------ | ------ |
-| `statements` | [`Statement`](../Other/index.Statement.md)[] |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `statements` | [`Statement`](../Other/Statement.md)[] |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

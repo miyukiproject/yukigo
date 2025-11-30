@@ -18,10 +18,10 @@ type String = [Char]
 
 | Parameter | Type |
 | ------ | ------ |
-| `identifier` | [`SymbolPrimitive`](../Literals/index.SymbolPrimitive.md) |
+| `identifier` | [`SymbolPrimitive`](../Literals/SymbolPrimitive.md) |
 | `variables` | `string`[] |
-| `value` | [`Type`](../Other/index.Type.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `value` | [`Type`](../Other/Type.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

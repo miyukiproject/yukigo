@@ -19,9 +19,9 @@ The name can be undefined to support positional-only Records
 
 | Parameter | Type |
 | ------ | ------ |
-| `name` | [`SymbolPrimitive`](../Literals/index.SymbolPrimitive.md) |
-| `value` | [`Type`](../Other/index.Type.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `name` | [`SymbolPrimitive`](../Literals/SymbolPrimitive.md) |
+| `value` | [`Type`](../Other/Type.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

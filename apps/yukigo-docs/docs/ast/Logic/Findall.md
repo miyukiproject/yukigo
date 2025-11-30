@@ -12,10 +12,10 @@ Represents a higher-order predicate finding all solutions (e.g., findall/3).
 
 | Parameter | Type |
 | ------ | ------ |
-| `template` | [`Expression`](../Other/index.Expression.md) |
-| `goal` | [`Expression`](../Other/index.Expression.md) |
-| `bag` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `template` | [`Expression`](../Other/Expression.md) |
+| `goal` | [`Expression`](../Other/Expression.md) |
+| `bag` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

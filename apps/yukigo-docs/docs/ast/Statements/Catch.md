@@ -12,9 +12,9 @@ Represents a catch block for handling exceptions thrown in a try block.
 
 | Parameter | Type |
 | ------ | ------ |
-| `patterns` | [`Pattern`](../Other/index.Pattern.md)[] |
-| `body` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `patterns` | [`Pattern`](../Other/Pattern.md)[] |
+| `body` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

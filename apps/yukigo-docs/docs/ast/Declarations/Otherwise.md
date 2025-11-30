@@ -20,7 +20,7 @@ f x
 
 | Parameter | Type |
 | ------ | ------ |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

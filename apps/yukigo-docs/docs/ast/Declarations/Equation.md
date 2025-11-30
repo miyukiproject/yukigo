@@ -20,10 +20,10 @@ add x y = x + y
 
 | Parameter | Type |
 | ------ | ------ |
-| `patterns` | [`Pattern`](../Other/index.Pattern.md)[] |
-| `body` | [`UnguardedBody`](index.UnguardedBody.md) \| [`GuardedBody`](index.GuardedBody.md)[] |
-| `returnExpr?` | [`Return`](../Statements/index.Return.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `patterns` | [`Pattern`](../Other/Pattern.md)[] |
+| `body` | [`UnguardedBody`](UnguardedBody.md) \| [`GuardedBody`](GuardedBody.md)[] |
+| `returnExpr?` | [`Return`](../Statements/Return.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

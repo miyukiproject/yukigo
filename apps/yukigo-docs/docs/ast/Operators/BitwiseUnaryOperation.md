@@ -13,8 +13,8 @@ Represents a unary bitwise operation like NOT (complement).
 | Parameter | Type |
 | ------ | ------ |
 | `operator` | `"BitwiseNot"` |
-| `operand` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `operand` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

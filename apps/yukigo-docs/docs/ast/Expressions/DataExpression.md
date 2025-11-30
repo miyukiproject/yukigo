@@ -18,9 +18,9 @@ f = DataName { fieldName = 2 }
 
 | Parameter | Type |
 | ------ | ------ |
-| `name` | [`SymbolPrimitive`](../Literals/index.SymbolPrimitive.md) |
-| `contents` | [`FieldExpression`](index.FieldExpression.md)[] |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `name` | [`SymbolPrimitive`](../Literals/SymbolPrimitive.md) |
+| `contents` | [`FieldExpression`](FieldExpression.md)[] |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

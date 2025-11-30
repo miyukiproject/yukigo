@@ -12,8 +12,8 @@ Represent lists - generic uniform variable-size collection of elements. Lists ty
 
 | Parameter | Type |
 | ------ | ------ |
-| `elements` | [`Expression`](../Other/index.Expression.md)[] |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `elements` | [`Expression`](../Other/Expression.md)[] |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 
@@ -35,7 +35,7 @@ Compares the primitive to other Primitive passed by argument
 
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
-| `other` | [`Primitive`](../Other/index.Primitive.md) | Another Primitive to compare to. |
+| `other` | [`Primitive`](../Other/Primitive.md) | Another Primitive to compare to. |
 
 #### Returns
 

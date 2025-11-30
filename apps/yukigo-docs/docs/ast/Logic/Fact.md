@@ -18,9 +18,9 @@ human(socrates).
 
 | Parameter | Type |
 | ------ | ------ |
-| `identifier` | [`SymbolPrimitive`](../Literals/index.SymbolPrimitive.md) |
-| `patterns` | [`Pattern`](../Other/index.Pattern.md)[] |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `identifier` | [`SymbolPrimitive`](../Literals/SymbolPrimitive.md) |
+| `patterns` | [`Pattern`](../Other/Pattern.md)[] |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

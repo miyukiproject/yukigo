@@ -18,8 +18,8 @@ map (\x -> x + 1)
 
 | Parameter | Type |
 | ------ | ------ |
-| `name` | [`SymbolPrimitive`](../Literals/index.SymbolPrimitive.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `name` | [`SymbolPrimitive`](../Literals/SymbolPrimitive.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

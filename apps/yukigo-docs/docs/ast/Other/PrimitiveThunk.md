@@ -1,7 +1,7 @@
 # Type Alias: PrimitiveThunk()
 
-> **PrimitiveThunk** = () => [`PrimitiveValue`](index.PrimitiveValue.md)
+> **PrimitiveThunk** = () => [`PrimitiveValue`](PrimitiveValue.md)
 
 ## Returns
 
-[`PrimitiveValue`](index.PrimitiveValue.md)
+[`PrimitiveValue`](PrimitiveValue.md)

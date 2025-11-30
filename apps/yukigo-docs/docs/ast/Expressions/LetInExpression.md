@@ -18,9 +18,9 @@ f = let x = 2 in x * 4
 
 | Parameter | Type |
 | ------ | ------ |
-| `declarations` | [`Sequence`](../Statements/index.Sequence.md) |
-| `expression` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `declarations` | [`Sequence`](../Statements/Sequence.md) |
+| `expression` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

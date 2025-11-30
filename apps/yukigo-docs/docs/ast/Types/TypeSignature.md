@@ -18,9 +18,9 @@ add :: Int -> Int -> Int
 
 | Parameter | Type |
 | ------ | ------ |
-| `identifier` | [`SymbolPrimitive`](../Literals/index.SymbolPrimitive.md) |
-| `body` | [`Type`](../Other/index.Type.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `identifier` | [`SymbolPrimitive`](../Literals/SymbolPrimitive.md) |
+| `body` | [`Type`](../Other/Type.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

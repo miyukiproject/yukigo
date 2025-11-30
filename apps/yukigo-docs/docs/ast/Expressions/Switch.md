@@ -12,10 +12,10 @@ Represents a switch statement, selecting execution paths based on value equality
 
 | Parameter | Type |
 | ------ | ------ |
-| `value` | [`Expression`](../Other/index.Expression.md) |
-| `cases` | [`Case`](index.Case.md)[] |
-| `defaultExpr?` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `value` | [`Expression`](../Other/Expression.md) |
+| `cases` | [`Case`](Case.md)[] |
+| `defaultExpr?` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

@@ -1,3 +1,3 @@
 # Type Alias: UnaryOperator
 
-> **UnaryOperator** = [`ArithmeticUnaryOperator`](index.ArithmeticUnaryOperator.md) \| [`LogicalUnaryOperator`](index.LogicalUnaryOperator.md) \| [`ListUnaryOperator`](index.ListUnaryOperator.md)
+> **UnaryOperator** = [`ArithmeticUnaryOperator`](ArithmeticUnaryOperator.md) \| [`LogicalUnaryOperator`](LogicalUnaryOperator.md) \| [`ListUnaryOperator`](ListUnaryOperator.md)

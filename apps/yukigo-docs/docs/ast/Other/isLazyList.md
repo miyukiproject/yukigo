@@ -6,7 +6,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `prim` | [`PrimitiveValue`](index.PrimitiveValue.md) |
+| `prim` | [`PrimitiveValue`](PrimitiveValue.md) |
 
 ## Returns
 

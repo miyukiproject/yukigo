@@ -12,9 +12,9 @@ Represents a unary operation on a list, such as getting the head or tail.
 
 | Parameter | Type |
 | ------ | ------ |
-| `operator` | [`ListUnaryOperator`](../Other/index.ListUnaryOperator.md) |
-| `operand` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `operator` | [`ListUnaryOperator`](../Other/ListUnaryOperator.md) |
+| `operand` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

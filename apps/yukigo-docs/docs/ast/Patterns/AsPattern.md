@@ -18,9 +18,9 @@ f p@(x, y) = ...
 
 | Parameter | Type |
 | ------ | ------ |
-| `alias` | [`VariablePattern`](index.VariablePattern.md) \| [`WildcardPattern`](index.WildcardPattern.md) |
-| `pattern` | [`Pattern`](../Other/index.Pattern.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `alias` | [`VariablePattern`](VariablePattern.md) \| [`WildcardPattern`](WildcardPattern.md) |
+| `pattern` | [`Pattern`](../Other/Pattern.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

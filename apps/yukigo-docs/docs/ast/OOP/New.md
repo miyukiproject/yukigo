@@ -18,9 +18,9 @@ new Bird()
 
 | Parameter | Type |
 | ------ | ------ |
-| `identifier` | [`SymbolPrimitive`](../Literals/index.SymbolPrimitive.md) |
-| `args` | [`Expression`](../Other/index.Expression.md)[] |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `identifier` | [`SymbolPrimitive`](../Literals/SymbolPrimitive.md) |
+| `args` | [`Expression`](../Other/Expression.md)[] |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

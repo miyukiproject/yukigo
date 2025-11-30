@@ -12,9 +12,9 @@ Represents a definition of a structured data type (struct).
 
 | Parameter | Type |
 | ------ | ------ |
-| `identifier` | [`SymbolPrimitive`](../Literals/index.SymbolPrimitive.md) |
-| `elements` | ([`Variable`](../Expressions/index.Variable.md) \| `Structure`)[] |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `identifier` | [`SymbolPrimitive`](../Literals/SymbolPrimitive.md) |
+| `elements` | ([`Variable`](../Expressions/Variable.md) \| `Structure`)[] |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

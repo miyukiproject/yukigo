@@ -12,10 +12,10 @@ Represents a comparison between two values (e.g., >, <, ==).
 
 | Parameter | Type |
 | ------ | ------ |
-| `operator` | [`ComparisonOperatorType`](../Other/index.ComparisonOperatorType.md) |
-| `left` | [`Expression`](../Other/index.Expression.md) |
-| `right` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `operator` | [`ComparisonOperatorType`](../Other/ComparisonOperatorType.md) |
+| `left` | [`Expression`](../Other/Expression.md) |
+| `right` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

@@ -12,8 +12,8 @@ Represents a union of patterns, matching if any of the sub-patterns match.
 
 | Parameter | Type |
 | ------ | ------ |
-| `patterns` | [`Pattern`](../Other/index.Pattern.md)[] |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `patterns` | [`Pattern`](../Other/Pattern.md)[] |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

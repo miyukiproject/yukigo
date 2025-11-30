@@ -12,11 +12,11 @@ Represents a C-style or range-based for loop.
 
 | Parameter | Type |
 | ------ | ------ |
-| `initialization` | [`Expression`](../Other/index.Expression.md) |
-| `condition` | [`Expression`](../Other/index.Expression.md) |
-| `update` | [`Expression`](../Other/index.Expression.md) |
-| `body` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `initialization` | [`Expression`](../Other/Expression.md) |
+| `condition` | [`Expression`](../Other/Expression.md) |
+| `update` | [`Expression`](../Other/Expression.md) |
+| `body` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

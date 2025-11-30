@@ -18,11 +18,11 @@ class Bird inherits Animal { ... }
 
 | Parameter | Type |
 | ------ | ------ |
-| `identifier` | [`SymbolPrimitive`](../Literals/index.SymbolPrimitive.md) |
-| `extendsSymbol` | [`SymbolPrimitive`](../Literals/index.SymbolPrimitive.md) |
-| `implementsNode` | [`Implement`](index.Implement.md) |
-| `expression` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `identifier` | [`SymbolPrimitive`](../Literals/SymbolPrimitive.md) |
+| `extendsSymbol` | [`SymbolPrimitive`](../Literals/SymbolPrimitive.md) |
+| `implementsNode` | [`Implement`](Implement.md) |
+| `expression` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

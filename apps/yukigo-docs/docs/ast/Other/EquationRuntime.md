@@ -4,5 +4,5 @@
 
 | Property | Type |
 | ------ | ------ |
-| <a id="body"></a> `body` | [`UnguardedBody`](../Declarations/index.UnguardedBody.md) \| [`GuardedBody`](../Declarations/index.GuardedBody.md)[] |
-| <a id="patterns"></a> `patterns` | [`Pattern`](index.Pattern.md)[] |
+| <a id="body"></a> `body` | [`UnguardedBody`](../Declarations/UnguardedBody.md) \| [`GuardedBody`](../Declarations/GuardedBody.md)[] |
+| <a id="patterns"></a> `patterns` | [`Pattern`](Pattern.md)[] |

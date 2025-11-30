@@ -12,8 +12,8 @@ Represents logical negation or failure-as-negation.
 
 | Parameter | Type |
 | ------ | ------ |
-| `expressions` | [`Expression`](../Other/index.Expression.md)[] |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `expressions` | [`Expression`](../Other/Expression.md)[] |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

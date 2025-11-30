@@ -12,9 +12,9 @@ Represents a pattern matching the head and tail of a list (x:xs).
 
 | Parameter | Type |
 | ------ | ------ |
-| `head` | [`Pattern`](../Other/index.Pattern.md) |
-| `tail` | [`Pattern`](../Other/index.Pattern.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `head` | [`Pattern`](../Other/Pattern.md) |
+| `tail` | [`Pattern`](../Other/Pattern.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

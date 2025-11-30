@@ -12,9 +12,9 @@ Fields of a data expression representations
 
 | Parameter | Type |
 | ------ | ------ |
-| `name` | [`SymbolPrimitive`](../Literals/index.SymbolPrimitive.md) |
-| `expression` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `name` | [`SymbolPrimitive`](../Literals/SymbolPrimitive.md) |
+| `expression` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

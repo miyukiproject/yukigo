@@ -19,8 +19,8 @@ safeDiv (Just x) y = x / y
 | Parameter | Type |
 | ------ | ------ |
 | `constr` | `string` |
-| `patterns` | [`Pattern`](../Other/index.Pattern.md)[] |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `patterns` | [`Pattern`](../Other/Pattern.md)[] |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

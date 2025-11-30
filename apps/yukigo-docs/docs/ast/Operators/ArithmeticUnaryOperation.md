@@ -12,9 +12,9 @@ Represents a unary arithmetic operation like negation (-x).
 
 | Parameter | Type |
 | ------ | ------ |
-| `operator` | [`ArithmeticUnaryOperator`](../Other/index.ArithmeticUnaryOperator.md) |
-| `operand` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `operator` | [`ArithmeticUnaryOperator`](../Other/ArithmeticUnaryOperator.md) |
+| `operand` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

@@ -1,3 +1,3 @@
 # Type Alias: Operator
 
-> **Operator** = [`UnaryOperator`](index.UnaryOperator.md) \| [`BinaryOperator`](index.BinaryOperator.md)
+> **Operator** = [`UnaryOperator`](UnaryOperator.md) \| [`BinaryOperator`](BinaryOperator.md)

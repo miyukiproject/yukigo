@@ -18,8 +18,8 @@ Represents a query or goal to be proven.
 
 | Parameter | Type |
 | ------ | ------ |
-| `expression` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `expression` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

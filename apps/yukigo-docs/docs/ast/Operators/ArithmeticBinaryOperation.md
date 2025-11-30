@@ -12,10 +12,10 @@ Represents a binary arithmetic operation like addition or multiplication.
 
 | Parameter | Type |
 | ------ | ------ |
-| `operator` | [`ArithmeticBinaryOperator`](../Other/index.ArithmeticBinaryOperator.md) |
-| `left` | [`Expression`](../Other/index.Expression.md) |
-| `right` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `operator` | [`ArithmeticBinaryOperator`](../Other/ArithmeticBinaryOperator.md) |
+| `left` | [`Expression`](../Other/Expression.md) |
+| `right` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

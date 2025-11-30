@@ -18,10 +18,10 @@ pepita.fly(10)
 
 | Parameter | Type |
 | ------ | ------ |
-| `receiver` | [`Expression`](../Other/index.Expression.md) |
-| `selector` | [`Expression`](../Other/index.Expression.md) |
-| `args` | [`Expression`](../Other/index.Expression.md)[] |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `receiver` | [`Expression`](../Other/Expression.md) |
+| `selector` | [`Expression`](../Other/Expression.md) |
+| `args` | [`Expression`](../Other/Expression.md)[] |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

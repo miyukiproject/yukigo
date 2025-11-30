@@ -12,9 +12,9 @@ Represents a universal quantification or forall predicate.
 
 | Parameter | Type |
 | ------ | ------ |
-| `condition` | [`Expression`](../Other/index.Expression.md) |
-| `action` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `condition` | [`Expression`](../Other/Expression.md) |
+| `action` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

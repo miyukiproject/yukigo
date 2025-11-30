@@ -26,8 +26,8 @@ function f(x) {
 
 | Parameter | Type |
 | ------ | ------ |
-| `sequence` | [`Sequence`](../Statements/index.Sequence.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `sequence` | [`Sequence`](../Statements/Sequence.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

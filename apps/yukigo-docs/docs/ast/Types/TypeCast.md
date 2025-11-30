@@ -12,9 +12,9 @@ Represents an explicit type casting or annotation expression.
 
 | Parameter | Type |
 | ------ | ------ |
-| `expression` | [`Expression`](../Other/index.Expression.md) |
-| `body` | [`Type`](../Other/index.Type.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `expression` | [`Expression`](../Other/Expression.md) |
+| `body` | [`Type`](../Other/Type.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

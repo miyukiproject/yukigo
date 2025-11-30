@@ -1,3 +1,3 @@
 # Type Alias: RuntimePredicate
 
-> **RuntimePredicate** = [`RuntimeFact`](index.RuntimeFact.md) \| [`RuntimeRule`](index.RuntimeRule.md)
+> **RuntimePredicate** = [`RuntimeFact`](RuntimeFact.md) \| [`RuntimeRule`](RuntimeRule.md)

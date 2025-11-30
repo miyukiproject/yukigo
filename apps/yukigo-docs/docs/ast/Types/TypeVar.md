@@ -13,8 +13,8 @@ Represents a type variable (e.g., 'a), used in polymorphic types.
 | Parameter | Type |
 | ------ | ------ |
 | `value` | `string` |
-| `constraints` | [`Constraint`](index.Constraint.md)[] |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `constraints` | [`Constraint`](Constraint.md)[] |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

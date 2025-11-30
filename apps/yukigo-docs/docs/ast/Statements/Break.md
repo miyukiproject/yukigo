@@ -12,8 +12,8 @@ Represents a control flow statement to exit the current loop immediately.
 
 | Parameter | Type |
 | ------ | ------ |
-| `body` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `body` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

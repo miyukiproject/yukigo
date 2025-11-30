@@ -12,8 +12,8 @@ Represents a type qualified by a context of constraints.
 
 | Parameter | Type |
 | ------ | ------ |
-| `constraints` | [`Constraint`](index.Constraint.md)[] |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `constraints` | [`Constraint`](Constraint.md)[] |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

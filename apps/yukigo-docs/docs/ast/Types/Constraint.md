@@ -19,8 +19,8 @@ Represents a type constraint or class constraint (e.g., Eq a).
 | Parameter | Type |
 | ------ | ------ |
 | `name` | `string` |
-| `parameters` | [`Type`](../Other/index.Type.md)[] |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `parameters` | [`Type`](../Other/Type.md)[] |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

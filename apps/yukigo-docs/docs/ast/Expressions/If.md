@@ -19,10 +19,10 @@ if (condition) { ... } else { ... }
 
 | Parameter | Type |
 | ------ | ------ |
-| `condition` | [`Expression`](../Other/index.Expression.md) |
-| `then` | [`Expression`](../Other/index.Expression.md) |
-| `elseExpr` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `condition` | [`Expression`](../Other/Expression.md) |
+| `then` | [`Expression`](../Other/Expression.md) |
+| `elseExpr` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

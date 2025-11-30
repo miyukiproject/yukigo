@@ -12,9 +12,9 @@ Represents a command to read input from the user or standard input.
 
 | Parameter | Type |
 | ------ | ------ |
-| `message` | [`Expression`](../Other/index.Expression.md) |
-| `variable` | [`SymbolPrimitive`](../Literals/index.SymbolPrimitive.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `message` | [`Expression`](../Other/Expression.md) |
+| `variable` | [`SymbolPrimitive`](../Literals/SymbolPrimitive.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

@@ -12,9 +12,9 @@ Represents a repeat-until loop control structure.
 
 | Parameter | Type |
 | ------ | ------ |
-| `count` | [`Expression`](../Other/index.Expression.md) |
-| `body` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `count` | [`Expression`](../Other/Expression.md) |
+| `body` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

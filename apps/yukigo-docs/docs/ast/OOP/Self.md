@@ -12,7 +12,7 @@ Represents a reference to the current object instance (self/this).
 
 | Parameter | Type |
 | ------ | ------ |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

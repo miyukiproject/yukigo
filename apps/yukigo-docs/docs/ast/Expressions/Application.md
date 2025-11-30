@@ -18,9 +18,9 @@ map (*2) [1..5]
 
 | Parameter | Type |
 | ------ | ------ |
-| `functionExpr` | [`Expression`](../Other/index.Expression.md) |
-| `parameter` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `functionExpr` | [`Expression`](../Other/Expression.md) |
+| `parameter` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

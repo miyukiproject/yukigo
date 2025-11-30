@@ -13,8 +13,8 @@ Represents a basic named type (e.g., Int, Bool).
 | Parameter | Type |
 | ------ | ------ |
 | `value` | `string` |
-| `constraints` | [`Constraint`](index.Constraint.md)[] |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `constraints` | [`Constraint`](Constraint.md)[] |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

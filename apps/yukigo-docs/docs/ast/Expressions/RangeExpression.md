@@ -26,10 +26,10 @@ RangeExpression represents when a list is given by comprehension in a defined ra
 
 | Parameter | Type |
 | ------ | ------ |
-| `start` | [`Expression`](../Other/index.Expression.md) |
-| `end?` | [`Expression`](../Other/index.Expression.md) |
-| `step?` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `start` | [`Expression`](../Other/Expression.md) |
+| `end?` | [`Expression`](../Other/Expression.md) |
+| `step?` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

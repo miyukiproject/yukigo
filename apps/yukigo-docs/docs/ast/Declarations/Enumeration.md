@@ -12,9 +12,9 @@ Represents an enumeration type definition.
 
 | Parameter | Type |
 | ------ | ------ |
-| `identifier` | [`SymbolPrimitive`](../Literals/index.SymbolPrimitive.md) |
-| `contents` | [`SymbolPrimitive`](../Literals/index.SymbolPrimitive.md)[] |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `identifier` | [`SymbolPrimitive`](../Literals/SymbolPrimitive.md) |
+| `contents` | [`SymbolPrimitive`](../Literals/SymbolPrimitive.md)[] |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

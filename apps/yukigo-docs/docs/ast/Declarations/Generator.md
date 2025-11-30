@@ -18,9 +18,9 @@ x <- [1, 2, 3, 4]
 
 | Parameter | Type |
 | ------ | ------ |
-| `variable` | [`SymbolPrimitive`](../Literals/index.SymbolPrimitive.md) |
-| `expression` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `variable` | [`SymbolPrimitive`](../Literals/SymbolPrimitive.md) |
+| `expression` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

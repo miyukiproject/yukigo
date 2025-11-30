@@ -18,8 +18,8 @@ Represent tuples - generic non-uniform fixed-size collection of elements
 
 | Parameter | Type |
 | ------ | ------ |
-| `elements` | [`Expression`](../Other/index.Expression.md)[] |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `elements` | [`Expression`](../Other/Expression.md)[] |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

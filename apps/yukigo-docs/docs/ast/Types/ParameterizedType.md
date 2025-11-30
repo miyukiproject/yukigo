@@ -12,10 +12,10 @@ Represents a type that accepts type parameters.
 
 | Parameter | Type |
 | ------ | ------ |
-| `inputs` | [`Type`](../Other/index.Type.md)[] |
-| `returnType` | [`Type`](../Other/index.Type.md) |
-| `constraints` | [`Constraint`](index.Constraint.md)[] |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `inputs` | [`Type`](../Other/Type.md)[] |
+| `returnType` | [`Type`](../Other/Type.md) |
+| `constraints` | [`Constraint`](Constraint.md)[] |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

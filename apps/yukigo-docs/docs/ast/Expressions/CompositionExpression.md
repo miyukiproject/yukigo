@@ -12,9 +12,9 @@ Represents function composition (e.g., f . g).
 
 | Parameter | Type |
 | ------ | ------ |
-| `left` | [`Expression`](../Other/index.Expression.md) |
-| `right` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `left` | [`Expression`](../Other/Expression.md) |
+| `right` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

@@ -12,9 +12,9 @@ Represents the application of a type constructor to arguments (e.g., List Int).
 
 | Parameter | Type |
 | ------ | ------ |
-| `functionType` | [`Type`](../Other/index.Type.md) |
-| `argument` | [`Type`](../Other/index.Type.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `functionType` | [`Type`](../Other/Type.md) |
+| `argument` | [`Type`](../Other/Type.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

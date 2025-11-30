@@ -60,7 +60,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Application`](../Expressions/index.Application.md) |
+| `node` | [`Application`](../Expressions/Application.md) |
 
 #### Returns
 
@@ -80,7 +80,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`ApplicationPattern`](../Patterns/index.ApplicationPattern.md) |
+| `node` | [`ApplicationPattern`](../Patterns/ApplicationPattern.md) |
 
 #### Returns
 
@@ -100,7 +100,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`ArithmeticBinaryOperation`](../Operators/index.ArithmeticBinaryOperation.md) |
+| `node` | [`ArithmeticBinaryOperation`](../Operators/ArithmeticBinaryOperation.md) |
 
 #### Returns
 
@@ -120,7 +120,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`ArithmeticUnaryOperation`](../Operators/index.ArithmeticUnaryOperation.md) |
+| `node` | [`ArithmeticUnaryOperation`](../Operators/ArithmeticUnaryOperation.md) |
 
 #### Returns
 
@@ -140,7 +140,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`AsPattern`](../Patterns/index.AsPattern.md) |
+| `node` | [`AsPattern`](../Patterns/AsPattern.md) |
 
 #### Returns
 
@@ -160,7 +160,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Assignment`](../Statements/index.Assignment.md) |
+| `node` | [`Assignment`](../Statements/Assignment.md) |
 
 #### Returns
 
@@ -180,7 +180,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`AssignOperation`](../Operators/index.AssignOperation.md) |
+| `node` | [`AssignOperation`](../Operators/AssignOperation.md) |
 
 #### Returns
 
@@ -200,7 +200,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Attribute`](../OOP/index.Attribute.md) |
+| `node` | [`Attribute`](../OOP/Attribute.md) |
 
 #### Returns
 
@@ -220,7 +220,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`BitwiseBinaryOperation`](../Operators/index.BitwiseBinaryOperation.md) |
+| `node` | [`BitwiseBinaryOperation`](../Operators/BitwiseBinaryOperation.md) |
 
 #### Returns
 
@@ -240,7 +240,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`BitwiseUnaryOperation`](../Operators/index.BitwiseUnaryOperation.md) |
+| `node` | [`BitwiseUnaryOperation`](../Operators/BitwiseUnaryOperation.md) |
 
 #### Returns
 
@@ -260,7 +260,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`BooleanPrimitive`](../Literals/index.BooleanPrimitive.md) |
+| `node` | [`BooleanPrimitive`](../Literals/BooleanPrimitive.md) |
 
 #### Returns
 
@@ -280,7 +280,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Break`](../Statements/index.Break.md) |
+| `node` | [`Break`](../Statements/Break.md) |
 
 #### Returns
 
@@ -300,7 +300,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Call`](../Logic/index.Call.md) |
+| `node` | [`Call`](../Logic/Call.md) |
 
 #### Returns
 
@@ -320,7 +320,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Case`](../Expressions/index.Case.md) |
+| `node` | [`Case`](../Expressions/Case.md) |
 
 #### Returns
 
@@ -340,7 +340,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Catch`](../Statements/index.Catch.md) |
+| `node` | [`Catch`](../Statements/Catch.md) |
 
 #### Returns
 
@@ -360,7 +360,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`CharPrimitive`](../Literals/index.CharPrimitive.md) |
+| `node` | [`CharPrimitive`](../Literals/CharPrimitive.md) |
 
 #### Returns
 
@@ -380,7 +380,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Class`](../OOP/index.Class.md) |
+| `node` | [`Class`](../OOP/Class.md) |
 
 #### Returns
 
@@ -400,7 +400,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`ComparisonOperation`](../Operators/index.ComparisonOperation.md) |
+| `node` | [`ComparisonOperation`](../Operators/ComparisonOperation.md) |
 
 #### Returns
 
@@ -420,7 +420,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`CompositionExpression`](../Expressions/index.CompositionExpression.md) |
+| `node` | [`CompositionExpression`](../Expressions/CompositionExpression.md) |
 
 #### Returns
 
@@ -440,7 +440,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`ConsExpression`](../Expressions/index.ConsExpression.md) |
+| `node` | [`ConsExpression`](../Expressions/ConsExpression.md) |
 
 #### Returns
 
@@ -460,7 +460,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`ConsPattern`](../Patterns/index.ConsPattern.md) |
+| `node` | [`ConsPattern`](../Patterns/ConsPattern.md) |
 
 #### Returns
 
@@ -480,7 +480,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`ConstrainedType`](../Types/index.ConstrainedType.md) |
+| `node` | [`ConstrainedType`](../Types/ConstrainedType.md) |
 
 #### Returns
 
@@ -500,7 +500,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Constraint`](../Types/index.Constraint.md) |
+| `node` | [`Constraint`](../Types/Constraint.md) |
 
 #### Returns
 
@@ -520,7 +520,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Constructor`](../Declarations/index.Constructor.md) |
+| `node` | [`Constructor`](../Declarations/Constructor.md) |
 
 #### Returns
 
@@ -540,7 +540,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`ConstructorPattern`](../Patterns/index.ConstructorPattern.md) |
+| `node` | [`ConstructorPattern`](../Patterns/ConstructorPattern.md) |
 
 #### Returns
 
@@ -560,7 +560,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Continue`](../Statements/index.Continue.md) |
+| `node` | [`Continue`](../Statements/Continue.md) |
 
 #### Returns
 
@@ -580,7 +580,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`DataExpression`](../Expressions/index.DataExpression.md) |
+| `node` | [`DataExpression`](../Expressions/DataExpression.md) |
 
 #### Returns
 
@@ -600,7 +600,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`EntryPoint`](../Declarations/index.EntryPoint.md) |
+| `node` | [`EntryPoint`](../Declarations/EntryPoint.md) |
 
 #### Returns
 
@@ -620,7 +620,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Enumeration`](../Declarations/index.Enumeration.md) |
+| `node` | [`Enumeration`](../Declarations/Enumeration.md) |
 
 #### Returns
 
@@ -640,7 +640,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Equation`](../Declarations/index.Equation.md) |
+| `node` | [`Equation`](../Declarations/Equation.md) |
 
 #### Returns
 
@@ -660,7 +660,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Exist`](../Logic/index.Exist.md) |
+| `node` | [`Exist`](../Logic/Exist.md) |
 
 #### Returns
 
@@ -680,7 +680,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Fact`](../Logic/index.Fact.md) |
+| `node` | [`Fact`](../Logic/Fact.md) |
 
 #### Returns
 
@@ -700,7 +700,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Field`](../Declarations/index.Field.md) |
+| `node` | [`Field`](../Declarations/Field.md) |
 
 #### Returns
 
@@ -720,7 +720,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`FieldExpression`](../Expressions/index.FieldExpression.md) |
+| `node` | [`FieldExpression`](../Expressions/FieldExpression.md) |
 
 #### Returns
 
@@ -740,7 +740,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Findall`](../Logic/index.Findall.md) |
+| `node` | [`Findall`](../Logic/Findall.md) |
 
 #### Returns
 
@@ -760,7 +760,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`For`](../Statements/index.For.md) |
+| `node` | [`For`](../Statements/For.md) |
 
 #### Returns
 
@@ -780,7 +780,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Forall`](../Logic/index.Forall.md) |
+| `node` | [`Forall`](../Logic/Forall.md) |
 
 #### Returns
 
@@ -800,7 +800,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`ForLoop`](../Statements/index.ForLoop.md) |
+| `node` | [`ForLoop`](../Statements/ForLoop.md) |
 
 #### Returns
 
@@ -820,7 +820,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Function`](../Declarations/index.Function.md) |
+| `node` | [`Function`](../Declarations/Function.md) |
 
 #### Returns
 
@@ -840,7 +840,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`FunctorPattern`](../Patterns/index.FunctorPattern.md) |
+| `node` | [`FunctorPattern`](../Patterns/FunctorPattern.md) |
 
 #### Returns
 
@@ -860,7 +860,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Generator`](../Declarations/index.Generator.md) |
+| `node` | [`Generator`](../Declarations/Generator.md) |
 
 #### Returns
 
@@ -880,7 +880,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Goal`](../Logic/index.Goal.md) |
+| `node` | [`Goal`](../Logic/Goal.md) |
 
 #### Returns
 
@@ -900,7 +900,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`GuardedBody`](../Declarations/index.GuardedBody.md) |
+| `node` | [`GuardedBody`](../Declarations/GuardedBody.md) |
 
 #### Returns
 
@@ -920,7 +920,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`If`](../Expressions/index.If.md) |
+| `node` | [`If`](../Expressions/If.md) |
 
 #### Returns
 
@@ -940,7 +940,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Implement`](../OOP/index.Implement.md) |
+| `node` | [`Implement`](../OOP/Implement.md) |
 
 #### Returns
 
@@ -960,7 +960,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Include`](../OOP/index.Include.md) |
+| `node` | [`Include`](../OOP/Include.md) |
 
 #### Returns
 
@@ -980,7 +980,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Input`](../Statements/index.Input.md) |
+| `node` | [`Input`](../Statements/Input.md) |
 
 #### Returns
 
@@ -1000,7 +1000,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Interface`](../OOP/index.Interface.md) |
+| `node` | [`Interface`](../OOP/Interface.md) |
 
 #### Returns
 
@@ -1020,7 +1020,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Lambda`](../Expressions/index.Lambda.md) |
+| `node` | [`Lambda`](../Expressions/Lambda.md) |
 
 #### Returns
 
@@ -1040,7 +1040,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`LetInExpression`](../Expressions/index.LetInExpression.md) |
+| `node` | [`LetInExpression`](../Expressions/LetInExpression.md) |
 
 #### Returns
 
@@ -1060,7 +1060,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`ListBinaryOperation`](../Operators/index.ListBinaryOperation.md) |
+| `node` | [`ListBinaryOperation`](../Operators/ListBinaryOperation.md) |
 
 #### Returns
 
@@ -1080,7 +1080,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`ListComprehension`](../Expressions/index.ListComprehension.md) |
+| `node` | [`ListComprehension`](../Expressions/ListComprehension.md) |
 
 #### Returns
 
@@ -1100,7 +1100,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`ListPattern`](../Patterns/index.ListPattern.md) |
+| `node` | [`ListPattern`](../Patterns/ListPattern.md) |
 
 #### Returns
 
@@ -1120,7 +1120,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`ListPrimitive`](../Literals/index.ListPrimitive.md) |
+| `node` | [`ListPrimitive`](../Literals/ListPrimitive.md) |
 
 #### Returns
 
@@ -1140,7 +1140,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`ListType`](../Types/index.ListType.md) |
+| `node` | [`ListType`](../Types/ListType.md) |
 
 #### Returns
 
@@ -1160,7 +1160,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`ListUnaryOperation`](../Operators/index.ListUnaryOperation.md) |
+| `node` | [`ListUnaryOperation`](../Operators/ListUnaryOperation.md) |
 
 #### Returns
 
@@ -1180,7 +1180,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`LiteralPattern`](../Patterns/index.LiteralPattern.md) |
+| `node` | [`LiteralPattern`](../Patterns/LiteralPattern.md) |
 
 #### Returns
 
@@ -1200,7 +1200,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`LogicalBinaryOperation`](../Operators/index.LogicalBinaryOperation.md) |
+| `node` | [`LogicalBinaryOperation`](../Operators/LogicalBinaryOperation.md) |
 
 #### Returns
 
@@ -1220,7 +1220,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`LogicalUnaryOperation`](../Operators/index.LogicalUnaryOperation.md) |
+| `node` | [`LogicalUnaryOperation`](../Operators/LogicalUnaryOperation.md) |
 
 #### Returns
 
@@ -1240,7 +1240,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Method`](../OOP/index.Method.md) |
+| `node` | [`Method`](../OOP/Method.md) |
 
 #### Returns
 
@@ -1260,7 +1260,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`New`](../OOP/index.New.md) |
+| `node` | [`New`](../OOP/New.md) |
 
 #### Returns
 
@@ -1280,7 +1280,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`NilPrimitive`](../Literals/index.NilPrimitive.md) |
+| `node` | [`NilPrimitive`](../Literals/NilPrimitive.md) |
 
 #### Returns
 
@@ -1300,7 +1300,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Not`](../Logic/index.Not.md) |
+| `node` | [`Not`](../Logic/Not.md) |
 
 #### Returns
 
@@ -1320,7 +1320,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`NumberPrimitive`](../Literals/index.NumberPrimitive.md) |
+| `node` | [`NumberPrimitive`](../Literals/NumberPrimitive.md) |
 
 #### Returns
 
@@ -1340,7 +1340,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Object`](../OOP/index.Object.md) |
+| `node` | [`Object`](../OOP/Object.md) |
 
 #### Returns
 
@@ -1360,7 +1360,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Otherwise`](../Declarations/index.Otherwise.md) |
+| `node` | [`Otherwise`](../Declarations/Otherwise.md) |
 
 #### Returns
 
@@ -1380,7 +1380,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`ParameterizedType`](../Types/index.ParameterizedType.md) |
+| `node` | [`ParameterizedType`](../Types/ParameterizedType.md) |
 
 #### Returns
 
@@ -1400,7 +1400,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Print`](../Statements/index.Print.md) |
+| `node` | [`Print`](../Statements/Print.md) |
 
 #### Returns
 
@@ -1420,7 +1420,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Procedure`](../Declarations/index.Procedure.md) |
+| `node` | [`Procedure`](../Declarations/Procedure.md) |
 
 #### Returns
 
@@ -1440,7 +1440,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Query`](../Logic/index.Query.md) |
+| `node` | [`Query`](../Logic/Query.md) |
 
 #### Returns
 
@@ -1460,7 +1460,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Raise`](../Statements/index.Raise.md) |
+| `node` | [`Raise`](../Statements/Raise.md) |
 
 #### Returns
 
@@ -1480,7 +1480,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`RangeExpression`](../Expressions/index.RangeExpression.md) |
+| `node` | [`RangeExpression`](../Expressions/RangeExpression.md) |
 
 #### Returns
 
@@ -1500,7 +1500,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Record`](../Declarations/index.Record.md) |
+| `node` | [`Record`](../Declarations/Record.md) |
 
 #### Returns
 
@@ -1520,7 +1520,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Repeat`](../Statements/index.Repeat.md) |
+| `node` | [`Repeat`](../Statements/Repeat.md) |
 
 #### Returns
 
@@ -1540,7 +1540,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Return`](../Statements/index.Return.md) |
+| `node` | [`Return`](../Statements/Return.md) |
 
 #### Returns
 
@@ -1560,7 +1560,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Rule`](../Logic/index.Rule.md) |
+| `node` | [`Rule`](../Logic/Rule.md) |
 
 #### Returns
 
@@ -1580,7 +1580,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Self`](../OOP/index.Self.md) |
+| `node` | [`Self`](../OOP/Self.md) |
 
 #### Returns
 
@@ -1600,7 +1600,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Send`](../OOP/index.Send.md) |
+| `node` | [`Send`](../OOP/Send.md) |
 
 #### Returns
 
@@ -1620,7 +1620,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Sequence`](../Statements/index.Sequence.md) |
+| `node` | [`Sequence`](../Statements/Sequence.md) |
 
 #### Returns
 
@@ -1640,7 +1640,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`SimpleType`](../Types/index.SimpleType.md) |
+| `node` | [`SimpleType`](../Types/SimpleType.md) |
 
 #### Returns
 
@@ -1660,7 +1660,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`StringOperation`](../Operators/index.StringOperation.md) |
+| `node` | [`StringOperation`](../Operators/StringOperation.md) |
 
 #### Returns
 
@@ -1680,7 +1680,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`StringPrimitive`](../Literals/index.StringPrimitive.md) |
+| `node` | [`StringPrimitive`](../Literals/StringPrimitive.md) |
 
 #### Returns
 
@@ -1700,7 +1700,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Structure`](../Declarations/index.Structure.md) |
+| `node` | [`Structure`](../Declarations/Structure.md) |
 
 #### Returns
 
@@ -1720,7 +1720,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Super`](../OOP/index.Super.md) |
+| `node` | [`Super`](../OOP/Super.md) |
 
 #### Returns
 
@@ -1740,7 +1740,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Switch`](../Expressions/index.Switch.md) |
+| `node` | [`Switch`](../Expressions/Switch.md) |
 
 #### Returns
 
@@ -1760,7 +1760,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`SymbolPrimitive`](../Literals/index.SymbolPrimitive.md) |
+| `node` | [`SymbolPrimitive`](../Literals/SymbolPrimitive.md) |
 
 #### Returns
 
@@ -1780,7 +1780,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Try`](../Statements/index.Try.md) |
+| `node` | [`Try`](../Statements/Try.md) |
 
 #### Returns
 
@@ -1800,7 +1800,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`TupleExpression`](../Expressions/index.TupleExpression.md) |
+| `node` | [`TupleExpression`](../Expressions/TupleExpression.md) |
 
 #### Returns
 
@@ -1820,7 +1820,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`TuplePattern`](../Patterns/index.TuplePattern.md) |
+| `node` | [`TuplePattern`](../Patterns/TuplePattern.md) |
 
 #### Returns
 
@@ -1840,7 +1840,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`TupleType`](../Types/index.TupleType.md) |
+| `node` | [`TupleType`](../Types/TupleType.md) |
 
 #### Returns
 
@@ -1860,7 +1860,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`TypeAlias`](../Types/index.TypeAlias.md) |
+| `node` | [`TypeAlias`](../Types/TypeAlias.md) |
 
 #### Returns
 
@@ -1880,7 +1880,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`TypeApplication`](../Types/index.TypeApplication.md) |
+| `node` | [`TypeApplication`](../Types/TypeApplication.md) |
 
 #### Returns
 
@@ -1900,7 +1900,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`TypeCast`](../Types/index.TypeCast.md) |
+| `node` | [`TypeCast`](../Types/TypeCast.md) |
 
 #### Returns
 
@@ -1920,7 +1920,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`TypeSignature`](../Types/index.TypeSignature.md) |
+| `node` | [`TypeSignature`](../Types/TypeSignature.md) |
 
 #### Returns
 
@@ -1940,7 +1940,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`TypeVar`](../Types/index.TypeVar.md) |
+| `node` | [`TypeVar`](../Types/TypeVar.md) |
 
 #### Returns
 
@@ -1960,7 +1960,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`UnguardedBody`](../Declarations/index.UnguardedBody.md) |
+| `node` | [`UnguardedBody`](../Declarations/UnguardedBody.md) |
 
 #### Returns
 
@@ -1980,7 +1980,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`UnifyOperation`](../Logic/index.UnifyOperation.md) |
+| `node` | [`UnifyOperation`](../Logic/UnifyOperation.md) |
 
 #### Returns
 
@@ -2000,7 +2000,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`UnionPattern`](../Patterns/index.UnionPattern.md) |
+| `node` | [`UnionPattern`](../Patterns/UnionPattern.md) |
 
 #### Returns
 
@@ -2020,7 +2020,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Variable`](../Expressions/index.Variable.md) |
+| `node` | [`Variable`](../Expressions/Variable.md) |
 
 #### Returns
 
@@ -2040,7 +2040,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`VariablePattern`](../Patterns/index.VariablePattern.md) |
+| `node` | [`VariablePattern`](../Patterns/VariablePattern.md) |
 
 #### Returns
 
@@ -2060,7 +2060,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`While`](../Statements/index.While.md) |
+| `node` | [`While`](../Statements/While.md) |
 
 #### Returns
 
@@ -2080,7 +2080,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`WildcardPattern`](../Patterns/index.WildcardPattern.md) |
+| `node` | [`WildcardPattern`](../Patterns/WildcardPattern.md) |
 
 #### Returns
 
@@ -2100,7 +2100,7 @@
 
 | Parameter | Type |
 | ------ | ------ |
-| `node` | [`Yield`](../Statements/index.Yield.md) |
+| `node` | [`Yield`](../Statements/Yield.md) |
 
 #### Returns
 

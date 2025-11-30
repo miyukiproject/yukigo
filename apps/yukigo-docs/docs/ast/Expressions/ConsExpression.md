@@ -18,9 +18,9 @@ f = x : xs
 
 | Parameter | Type |
 | ------ | ------ |
-| `head` | [`Expression`](../Other/index.Expression.md) |
-| `tail` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `head` | [`Expression`](../Other/Expression.md) |
+| `tail` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

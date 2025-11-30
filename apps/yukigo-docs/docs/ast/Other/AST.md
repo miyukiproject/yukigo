@@ -1,3 +1,3 @@
 # Type Alias: AST
 
-> **AST** = [`Statement`](index.Statement.md)[]
+> **AST** = [`Statement`](Statement.md)[]

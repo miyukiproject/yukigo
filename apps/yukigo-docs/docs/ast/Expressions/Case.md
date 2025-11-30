@@ -20,9 +20,9 @@ case x of
 
 | Parameter | Type |
 | ------ | ------ |
-| `condition` | [`Expression`](../Other/index.Expression.md) |
-| `body` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `condition` | [`Expression`](../Other/Expression.md) |
+| `body` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

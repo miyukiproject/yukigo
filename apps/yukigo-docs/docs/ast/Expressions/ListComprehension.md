@@ -19,9 +19,9 @@ m = [ f x | x <- [1, 2, 3, 4] ]
 
 | Parameter | Type |
 | ------ | ------ |
-| `projection` | [`Expression`](../Other/index.Expression.md) |
-| `generators` | ([`Generator`](../Declarations/index.Generator.md) \| [`Expression`](../Other/index.Expression.md))[] |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `projection` | [`Expression`](../Other/Expression.md) |
+| `generators` | ([`Generator`](../Declarations/Generator.md) \| [`Expression`](../Other/Expression.md))[] |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

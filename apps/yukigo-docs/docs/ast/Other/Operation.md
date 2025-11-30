@@ -1,3 +1,3 @@
 # Type Alias: Operation
 
-> **Operation** = [`BinaryOperation`](index.BinaryOperation.md) \| [`UnaryOperation`](index.UnaryOperation.md)
+> **Operation** = [`BinaryOperation`](BinaryOperation.md) \| [`UnaryOperation`](UnaryOperation.md)

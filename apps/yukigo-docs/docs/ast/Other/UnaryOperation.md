@@ -1,3 +1,3 @@
 # Type Alias: UnaryOperation
 
-> **UnaryOperation** = [`ArithmeticUnaryOperation`](../Operators/index.ArithmeticUnaryOperation.md) \| [`ListUnaryOperation`](../Operators/index.ListUnaryOperation.md) \| [`LogicalUnaryOperation`](../Operators/index.LogicalUnaryOperation.md) \| [`BitwiseUnaryOperation`](../Operators/index.BitwiseUnaryOperation.md)
+> **UnaryOperation** = [`ArithmeticUnaryOperation`](../Operators/ArithmeticUnaryOperation.md) \| [`ListUnaryOperation`](../Operators/ListUnaryOperation.md) \| [`LogicalUnaryOperation`](../Operators/LogicalUnaryOperation.md) \| [`BitwiseUnaryOperation`](../Operators/BitwiseUnaryOperation.md)

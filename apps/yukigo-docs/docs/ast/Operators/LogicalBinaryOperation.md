@@ -12,10 +12,10 @@ Represents a binary logical operation like AND or OR.
 
 | Parameter | Type |
 | ------ | ------ |
-| `operator` | [`LogicalBinaryOperator`](../Other/index.LogicalBinaryOperator.md) |
-| `left` | [`Expression`](../Other/index.Expression.md) |
-| `right` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `operator` | [`LogicalBinaryOperator`](../Other/LogicalBinaryOperator.md) |
+| `left` | [`Expression`](../Other/Expression.md) |
+| `right` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

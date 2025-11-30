@@ -12,8 +12,8 @@ Represents a yield statement, often used in generators or coroutines.
 
 | Parameter | Type |
 | ------ | ------ |
-| `expression` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `expression` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

@@ -18,9 +18,9 @@ Represents an anonymous function or lambda abstraction.
 
 | Parameter | Type |
 | ------ | ------ |
-| `parameters` | [`Pattern`](../Other/index.Pattern.md)[] |
-| `body` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `parameters` | [`Pattern`](../Other/Pattern.md)[] |
+| `body` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

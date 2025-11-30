@@ -18,10 +18,10 @@ try { ... } catch e : DomainException { ... }
 
 | Parameter | Type |
 | ------ | ------ |
-| `body` | [`Expression`](../Other/index.Expression.md) |
-| `catchExpr` | [`Catch`](index.Catch.md)[] |
-| `finallyExpr` | [`Expression`](../Other/index.Expression.md) |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `body` | [`Expression`](../Other/Expression.md) |
+| `catchExpr` | [`Catch`](Catch.md)[] |
+| `finallyExpr` | [`Expression`](../Other/Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 

@@ -12,9 +12,9 @@ Represents a pattern matching a function application or constructor with argumen
 
 | Parameter | Type |
 | ------ | ------ |
-| `symbol` | [`SymbolPrimitive`](../Literals/index.SymbolPrimitive.md) |
-| `args` | [`Pattern`](../Other/index.Pattern.md)[] |
-| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+| `symbol` | [`SymbolPrimitive`](../Literals/SymbolPrimitive.md) |
+| `args` | [`Pattern`](../Other/Pattern.md)[] |
+| `loc?` | [`SourceLocation`](../Other/SourceLocation.md) |
 
 #### Returns
 
