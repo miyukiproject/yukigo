@@ -17,7 +17,7 @@ For now, Yukigo provides support for:
 
 - Haskell
 - Prolog
-- Wollok (WIP)
+- Wollok
 
 The modular nature of Yukigo allows for everyone to build a parser for their desired language, as long as it produces a Yukigo AST which is easier using `@yukigo/ast`, a package that provides all the available AST nodes as classes that can be instantiated in the parser.
 
@@ -25,7 +25,9 @@ See [Guide: Making a Yukigo Parser](/guides/making-a-parser.html) for more on th
 
 ### What can you do with Yukigo?
 
-#### TODO
+- **Automated Assessment & Grading:** Use the Analyzer to verify if a code submission meets specific structural requirements (like "Did the student use pattern matching?" or "Is the function tail-recursive?") rather than just checking string output.
+
+- **Sandboxed Execution:** Run code snippets safely using the Interpreter. This is ideal for web-based playgrounds or educational platforms where you need to execute user logic without spawning heavy, insecure shell processes.
 
 ## Quickstart
 
