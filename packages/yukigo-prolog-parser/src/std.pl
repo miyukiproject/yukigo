@@ -1,6 +1,3 @@
-not(Goal) :-
-  \+ Goal.
-
 % between(+Low, +High, ?Value)
 % True if Low =< Value =< High (assuming integers)
 between(Low, High, Low) :- Low =< High.

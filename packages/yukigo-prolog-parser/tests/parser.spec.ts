@@ -27,7 +27,6 @@ import {
   WildcardPattern,
   YukigoParser,
 } from "@yukigo/ast";
-
 const _deepEqual = assert.deepEqual;
 assert.deepEqual = function (actual: any, expected: any, ...args: any[]) {
   function stripLoc(obj: any): any {
@@ -275,12 +274,14 @@ describe("Parser Test", () => {
         new SymbolPrimitive("baz"),
         [new VariablePattern(new SymbolPrimitive("X"))],
         [
-          new Exist(new SymbolPrimitive("not"), [
-            new FunctorPattern(new SymbolPrimitive("bar"), [
-              new VariablePattern(new SymbolPrimitive("X")),
-            ]),
-            new FunctorPattern(new SymbolPrimitive("baz"), [
-              new VariablePattern(new SymbolPrimitive("Y")),
+          new Not([
+            new Sequence([
+              new Exist(new SymbolPrimitive("bar"), [
+                new VariablePattern(new SymbolPrimitive("X")),
+              ]),
+              new Exist(new SymbolPrimitive("baz"), [
+                new VariablePattern(new SymbolPrimitive("Y")),
+              ]),
             ]),
           ]),
         ]

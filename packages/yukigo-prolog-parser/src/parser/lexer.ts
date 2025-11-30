@@ -3,7 +3,7 @@ import moo from "moo";
 export const PrologLexerConfig = {
   WS: /[ \t]+/,
   wildcard: "_",
-  notOperator: "\\+",
+  notOperator: { match: ["\\+", "not"] },
   forallRule: "forall",
   findallRule: "findall",
   comment: /%.*|\/\*[\s\S]*?\*\//,
@@ -24,7 +24,8 @@ export const PrologLexerConfig = {
   colonDash: ":-",
   consOp: "|",
   queryOp: "?-",
-  op: /\+|-|\*|\/|\/\/|~|\^|\?|\$|''|\.\.|=:=|=\\=|==|\\==|@<|@=<|@>|@>=|<|=<|>|>=|=@=|\\=@=|\\=|=/,
+  comparisonOp: /@<|@=<|@>=|@>|<|=<|>=|>|=@=|\\=@=|=:=|=\\=|==|\\==|\\=|=/,
+  op: /\+|-|\*|\/|\/\/|~|\^|\?|\$|''|\.\./,
   variable: /[A-Z][a-zA-Z0-9_]*/,
   atom: {
     match: /[a-z!][a-zA-Z0-9_]*/,
