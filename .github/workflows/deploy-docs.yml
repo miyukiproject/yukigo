@@ -33,13 +33,13 @@ jobs:
 
       - name: Build Docs
         run: |
-          cd apps/docs
+          cd apps/yukigo-docs/
           npm run docs:build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: apps/docs/.vitepress/dist
+          path: apps/yukigo-docs/docs/.vitepress/dist
 
   deploy:
     environment:
