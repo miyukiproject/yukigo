@@ -84,13 +84,24 @@ export type BinaryOperator =
 
 export type Operator = UnaryOperator | BinaryOperator;
 
+/**
+ * Represents a unary arithmetic operation like negation (-x).
+ * @category Operators
+ */
 export class ArithmeticUnaryOperation extends ASTNode {
+    /** @hidden */
+    public operand: Expression;
+    /** @hidden */
+    public operator: ArithmeticUnaryOperator;
+
   constructor(
-    public operator: ArithmeticUnaryOperator,
-    public operand: Expression,
+    operator: ArithmeticUnaryOperator,
+    operand: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.operator = operator;
+      this.operand = operand;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitArithmeticUnaryOperation?.(this);
@@ -104,14 +115,28 @@ export class ArithmeticUnaryOperation extends ASTNode {
   }
 }
 
+/**
+ * Represents a binary arithmetic operation like addition or multiplication.
+ * @category Operators
+ */
 export class ArithmeticBinaryOperation extends ASTNode {
+    /** @hidden */
+    public right: Expression;
+    /** @hidden */
+    public left: Expression;
+    /** @hidden */
+    public operator: ArithmeticBinaryOperator;
+
   constructor(
-    public operator: ArithmeticBinaryOperator,
-    public left: Expression,
-    public right: Expression,
+    operator: ArithmeticBinaryOperator,
+    left: Expression,
+    right: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.operator = operator;
+      this.left = left;
+      this.right = right;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitArithmeticBinaryOperation?.(this);
@@ -125,13 +150,24 @@ export class ArithmeticBinaryOperation extends ASTNode {
     };
   }
 }
+/**
+ * Represents a unary operation on a list, such as getting the head or tail.
+ * @category Operators
+ */
 export class ListUnaryOperation extends ASTNode {
+    /** @hidden */
+    public operand: Expression;
+    /** @hidden */
+    public operator: ListUnaryOperator;
+
   constructor(
-    public operator: ListUnaryOperator,
-    public operand: Expression,
+    operator: ListUnaryOperator,
+    operand: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.operator = operator;
+      this.operand = operand;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitListUnaryOperation?.(this);
@@ -145,14 +181,28 @@ export class ListUnaryOperation extends ASTNode {
   }
 }
 
+/**
+ * Represents a binary operation on lists, such as concatenation.
+ * @category Operators
+ */
 export class ListBinaryOperation extends ASTNode {
+    /** @hidden */
+    public right: Expression;
+    /** @hidden */
+    public left: Expression;
+    /** @hidden */
+    public operator: ListBinaryOperator;
+
   constructor(
-    public operator: ListBinaryOperator,
-    public left: Expression,
-    public right: Expression,
+    operator: ListBinaryOperator,
+    left: Expression,
+    right: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.operator = operator;
+      this.left = left;
+      this.right = right;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitListBinaryOperation?.(this);
@@ -167,14 +217,28 @@ export class ListBinaryOperation extends ASTNode {
   }
 }
 
+/**
+ * Represents a comparison between two values (e.g., >, <, ==).
+ * @category Operators
+ */
 export class ComparisonOperation extends ASTNode {
+    /** @hidden */
+    public right: Expression;
+    /** @hidden */
+    public left: Expression;
+    /** @hidden */
+    public operator: ComparisonOperatorType;
+
   constructor(
-    public operator: ComparisonOperatorType,
-    public left: Expression,
-    public right: Expression,
+    operator: ComparisonOperatorType,
+    left: Expression,
+    right: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.operator = operator;
+      this.left = left;
+      this.right = right;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitComparisonOperation?.(this);
@@ -189,14 +253,28 @@ export class ComparisonOperation extends ASTNode {
   }
 }
 
+/**
+ * Represents a binary logical operation like AND or OR.
+ * @category Operators
+ */
 export class LogicalBinaryOperation extends ASTNode {
+    /** @hidden */
+    public right: Expression;
+    /** @hidden */
+    public left: Expression;
+    /** @hidden */
+    public operator: LogicalBinaryOperator;
+
   constructor(
-    public operator: LogicalBinaryOperator,
-    public left: Expression,
-    public right: Expression,
+    operator: LogicalBinaryOperator,
+    left: Expression,
+    right: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.operator = operator;
+      this.left = left;
+      this.right = right;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitLogicalBinaryOperation?.(this);
@@ -210,13 +288,24 @@ export class LogicalBinaryOperation extends ASTNode {
     };
   }
 }
+/**
+ * Represents a unary logical operation like NOT.
+ * @category Operators
+ */
 export class LogicalUnaryOperation extends ASTNode {
+    /** @hidden */
+    public operand: Expression;
+    /** @hidden */
+    public operator: LogicalUnaryOperator;
+
   constructor(
-    public operator: LogicalUnaryOperator,
-    public operand: Expression,
+    operator: LogicalUnaryOperator,
+    operand: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.operator = operator;
+      this.operand = operand;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitLogicalUnaryOperation?.(this);
@@ -230,14 +319,28 @@ export class LogicalUnaryOperation extends ASTNode {
   }
 }
 
+/**
+ * Represents a binary bitwise operation like AND, OR, XOR.
+ * @category Operators
+ */
 export class BitwiseBinaryOperation extends ASTNode {
+    /** @hidden */
+    public right: Expression;
+    /** @hidden */
+    public left: Expression;
+    /** @hidden */
+    public operator: BitwiseBinaryOperator;
+
   constructor(
-    public operator: BitwiseBinaryOperator,
-    public left: Expression,
-    public right: Expression,
+    operator: BitwiseBinaryOperator,
+    left: Expression,
+    right: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.operator = operator;
+      this.left = left;
+      this.right = right;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitBitwiseBinaryOperation?.(this);
@@ -251,13 +354,24 @@ export class BitwiseBinaryOperation extends ASTNode {
     };
   }
 }
+/**
+ * Represents a unary bitwise operation like NOT (complement).
+ * @category Operators
+ */
 export class BitwiseUnaryOperation extends ASTNode {
+    /** @hidden */
+    public operand: Expression;
+    /** @hidden */
+    public operator: BitwiseUnaryOperator;
+
   constructor(
-    public operator: BitwiseUnaryOperator,
-    public operand: Expression,
+    operator: BitwiseUnaryOperator,
+    operand: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.operator = operator;
+      this.operand = operand;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitBitwiseUnaryOperation?.(this);
@@ -271,14 +385,28 @@ export class BitwiseUnaryOperation extends ASTNode {
   }
 }
 
+/**
+ * Represents an operation specific to string manipulation.
+ * @category Operators
+ */
 export class StringOperation extends ASTNode {
+    /** @hidden */
+    public right: Expression;
+    /** @hidden */
+    public left: Expression;
+    /** @hidden */
+    public operator: StringBinaryOperator;
+
   constructor(
-    public operator: StringBinaryOperator,
-    public left: Expression,
-    public right: Expression,
+    operator: StringBinaryOperator,
+    left: Expression,
+    right: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.operator = operator;
+      this.left = left;
+      this.right = right;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitStringOperation?.(this);
@@ -293,14 +421,31 @@ export class StringOperation extends ASTNode {
   }
 }
 
+/**
+ * Represents a unification operation (=), fundamental to logic programming.
+ *
+ * @example
+ * X = 5
+ * @category Logic
+ */
 export class UnifyOperation extends ASTNode {
+    /** @hidden */
+    public right: Expression;
+    /** @hidden */
+    public left: Expression;
+    /** @hidden */
+    public operator: UnifyOperator;
+
   constructor(
-    public operator: UnifyOperator,
-    public left: Expression,
-    public right: Expression,
+    operator: UnifyOperator,
+    left: Expression,
+    right: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.operator = operator;
+      this.left = left;
+      this.right = right;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitUnifyOperation?.(this);
@@ -315,14 +460,28 @@ export class UnifyOperation extends ASTNode {
   }
 }
 
+/**
+ * Represents an in-place assignment operation (e.g., +=, -=).
+ * @category Operators
+ */
 export class AssignOperation extends ASTNode {
+    /** @hidden */
+    public right: Expression;
+    /** @hidden */
+    public left: Expression;
+    /** @hidden */
+    public operator: AssignOperator;
+
   constructor(
-    public operator: AssignOperator,
-    public left: Expression,
-    public right: Expression,
+    operator: AssignOperator,
+    left: Expression,
+    right: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.operator = operator;
+      this.left = left;
+      this.right = right;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitAssignOperation?.(this);

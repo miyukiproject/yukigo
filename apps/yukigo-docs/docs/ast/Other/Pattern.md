@@ -1,0 +1,3 @@
+# Type Alias: Pattern
+
+> **Pattern** = [`VariablePattern`](../Patterns/index.VariablePattern.md) \| [`LiteralPattern`](../Patterns/index.LiteralPattern.md) \| [`ApplicationPattern`](../Patterns/index.ApplicationPattern.md) \| [`TuplePattern`](../Patterns/index.TuplePattern.md) \| [`ListPattern`](../Patterns/index.ListPattern.md) \| [`FunctorPattern`](../Patterns/index.FunctorPattern.md) \| [`AsPattern`](../Patterns/index.AsPattern.md) \| [`WildcardPattern`](../Patterns/index.WildcardPattern.md) \| [`ConstructorPattern`](../Patterns/index.ConstructorPattern.md) \| [`UnionPattern`](../Patterns/index.UnionPattern.md) \| [`ConsPattern`](../Patterns/index.ConsPattern.md)

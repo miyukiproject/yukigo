@@ -1,0 +1,31 @@
+# Class: Lambda
+
+Represents an anonymous function or lambda abstraction.
+
+## Example
+
+```ts
+\x -> x + 1
+```
+
+## Constructors
+
+### Constructor
+
+> **new Lambda**(`parameters`, `body`, `loc?`): `Lambda`
+
+#### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `parameters` | [`Pattern`](../Other/index.Pattern.md)[] |
+| `body` | [`Expression`](../Other/index.Expression.md) |
+| `loc?` | [`SourceLocation`](../Other/index.SourceLocation.md) |
+
+#### Returns
+
+`Lambda`
+
+#### Overrides
+
+`ASTNode.constructor`

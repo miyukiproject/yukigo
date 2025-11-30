@@ -10,19 +10,13 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "tsc",
-    "docs": "typedoc"
+    "build": "tsc"
   },
   "keywords": [],
   "author": "noiseArch",
   "license": "ISC",
   "devDependencies": {
     "tsup": "^8.5.0",
-    "typedoc": "^0.28.14",
-    "typedoc-plugin-markdown": "^4.9.0",
     "typescript": "^5.9.2"
-  },
-  "dependencies": {
-    "typedoc-vitepress-theme": "^1.1.2"
   }
 }

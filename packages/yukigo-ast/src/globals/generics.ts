@@ -48,25 +48,41 @@ export type Modify<T, R> = Omit<T, keyof R> & R;
 /**
  * Base class for all AST nodes
  */
+/**
+ * @hidden
+ */
 export abstract class ASTNode {
+  /** @hidden */
   public loc?: SourceLocation;
   constructor(loc?: SourceLocation) {
     this.loc = loc;
   }
+  /** @hidden */
   abstract accept<R>(visitor: Visitor<R>): R;
+  /** @hidden */
   abstract toJSON(): object;
 }
 
 /**
  * Generic number primitive
+ * @category Literals
  */
 export class NumberPrimitive extends ASTNode {
-  constructor(public value: number, loc?: SourceLocation) {
+  /** @hidden */
+  public value: number;
+
+  constructor(value: number, loc?: SourceLocation) {
     super(loc);
+    this.value = value;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitNumberPrimitive?.(this);
   }
+  /**
+   * Compares the primitive to other Primitive passed by argument
+   * @param other Another Primitive to compare to.
+   * @returns True if both primitive have the same value
+   */
   public equals(other: Primitive): boolean {
     if (!(other instanceof NumberPrimitive)) return false;
     return this.value === other.value;
@@ -81,14 +97,24 @@ export class NumberPrimitive extends ASTNode {
 
 /**
  * Generic boolean primitive
+ * @category Literals
  */
 export class BooleanPrimitive extends ASTNode {
-  constructor(public value: boolean, loc?: SourceLocation) {
+  /** @hidden */
+  public value: boolean;
+
+  constructor(value: boolean, loc?: SourceLocation) {
     super(loc);
+    this.value = value;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitBooleanPrimitive?.(this);
   }
+  /**
+   * Compares the primitive to other Primitive passed by argument
+   * @param other Another Primitive to compare to.
+   * @returns True if both primitive have the same value
+   */
   public equals(other: Primitive): boolean {
     if (!(other instanceof BooleanPrimitive)) return false;
     return this.value === other.value;
@@ -103,14 +129,24 @@ export class BooleanPrimitive extends ASTNode {
 
 /**
  * Represent lists - generic uniform variable-size collection of elements. Lists typically map to arrays, lists or sequence-like structures.
+ * @category Literals
  */
 export class ListPrimitive extends ASTNode {
-  constructor(public elements: Expression[], loc?: SourceLocation) {
+  /** @hidden */
+  public elements: Expression[];
+
+  constructor(elements: Expression[], loc?: SourceLocation) {
     super(loc);
+    this.elements = elements;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitListPrimitive?.(this);
   }
+  /**
+   * Compares the primitive to other Primitive passed by argument
+   * @param other Another Primitive to compare to.
+   * @returns True if both primitive have the same value
+   */
   public equals(other: Primitive): boolean {
     if (!(other instanceof ListPrimitive)) return false;
     return this.elements.every((elem, i) => elem === other.elements[i]);
@@ -125,14 +161,24 @@ export class ListPrimitive extends ASTNode {
 
 /**
  * Generic char primitive
+ * @category Literals
  */
 export class CharPrimitive extends ASTNode {
-  constructor(public value: string, loc?: SourceLocation) {
+  /** @hidden */
+  public value: string;
+
+  constructor(value: string, loc?: SourceLocation) {
     super(loc);
+    this.value = value;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitCharPrimitive?.(this);
   }
+  /**
+   * Compares the primitive to other Primitive passed by argument
+   * @param other Another Primitive to compare to.
+   * @returns True if both primitive have the same value
+   */
   public equals(other: Primitive): boolean {
     if (!(other instanceof CharPrimitive)) return false;
     return this.value === other.value;
@@ -147,14 +193,24 @@ export class CharPrimitive extends ASTNode {
 
 /**
  * Generic string primitive
+ * @category Literals
  */
 export class StringPrimitive extends ASTNode {
-  constructor(public value: string, loc?: SourceLocation) {
+  /** @hidden */
+  public value: string;
+
+  constructor(value: string, loc?: SourceLocation) {
     super(loc);
+    this.value = value;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitStringPrimitive?.(this);
   }
+  /**
+   * Compares the primitive to other Primitive passed by argument
+   * @param other Another Primitive to compare to.
+   * @returns True if both primitive have the same value
+   */
   public equals(other: Primitive): boolean {
     if (!(other instanceof StringPrimitive)) return false;
     return this.value === other.value;
@@ -169,14 +225,24 @@ export class StringPrimitive extends ASTNode {
 
 /**
  * Generic null/undefined primitive
+ * @category Literals
  */
 export class NilPrimitive extends ASTNode {
-  constructor(public value: undefined | null, loc?: SourceLocation) {
+  /** @hidden */
+  public value: undefined | null;
+
+  constructor(value: undefined | null, loc?: SourceLocation) {
     super(loc);
+    this.value = value;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitNilPrimitive?.(this);
   }
+  /**
+   * Compares the primitive to other Primitive passed by argument
+   * @param other Another Primitive to compare to.
+   * @returns True if both primitive have the same value
+   */
   public equals(other: Primitive): boolean {
     if (!(other instanceof NilPrimitive)) return false;
     return this.value === other.value;
@@ -191,14 +257,24 @@ export class NilPrimitive extends ASTNode {
 
 /**
  * Generic symbol primitive
+ * @category Literals
  */
 export class SymbolPrimitive extends ASTNode {
-  constructor(public value: string, loc?: SourceLocation) {
+  /** @hidden */
+  public value: string;
+
+  constructor(value: string, loc?: SourceLocation) {
     super(loc);
+    this.value = value;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitSymbolPrimitive?.(this);
   }
+  /**
+   * Compares the primitive to other Primitive passed by argument
+   * @param other Another Primitive to compare to.
+   * @returns True if both primitive have the same value
+   */
   public equals(other: Primitive): boolean {
     if (!(other instanceof SymbolPrimitive)) return false;
     return this.value === other.value;
@@ -268,10 +344,18 @@ export class SourceLocation {
 
 /**
  * Represent tuples - generic non-uniform fixed-size collection of elements
+ *
+ * @example
+ * (1, "Hello", true)
+ * @category Expressions
  */
 export class TupleExpression extends ASTNode {
-  constructor(public elements: Expression[], loc?: SourceLocation) {
+  /** @hidden */
+  public elements: Expression[];
+
+  constructor(elements: Expression[], loc?: SourceLocation) {
     super(loc);
+    this.elements = elements;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitTupleExpr?.(this);
@@ -286,14 +370,22 @@ export class TupleExpression extends ASTNode {
 
 /**
  * Fields of a data expression representations
+ * @category Expressions
  */
 export class FieldExpression extends ASTNode {
+  /** @hidden */
+  public expression: Expression;
+  /** @hidden */
+  public name: SymbolPrimitive;
+
   constructor(
-    public name: SymbolPrimitive,
-    public expression: Expression,
+    name: SymbolPrimitive,
+    expression: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+    this.name = name;
+    this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitFieldExpr?.(this);
@@ -311,14 +403,22 @@ export class FieldExpression extends ASTNode {
  * Data expression, used to construct Records
  * @example
  * f = DataName { fieldName = 2 }
+ * @category Expressions
  */
 export class DataExpression extends ASTNode {
+  /** @hidden */
+  public contents: FieldExpression[];
+  /** @hidden */
+  public name: SymbolPrimitive;
+
   constructor(
-    public name: SymbolPrimitive,
-    public contents: FieldExpression[],
+    name: SymbolPrimitive,
+    contents: FieldExpression[],
     loc?: SourceLocation
   ) {
     super(loc);
+    this.name = name;
+    this.contents = contents;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitDataExpr?.(this);
@@ -336,14 +436,18 @@ export class DataExpression extends ASTNode {
  * Cons expression, represent a concatenation of a head and a tail
  * @example
  * f = x : xs
+ * @category Expressions
  */
 export class ConsExpression extends ASTNode {
-  constructor(
-    public head: Expression,
-    public tail: Expression,
-    loc?: SourceLocation
-  ) {
+  /** @hidden */
+  public tail: Expression;
+  /** @hidden */
+  public head: Expression;
+
+  constructor(head: Expression, tail: Expression, loc?: SourceLocation) {
     super(loc);
+    this.head = head;
+    this.tail = tail;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitConsExpr?.(this);
@@ -361,14 +465,22 @@ export class ConsExpression extends ASTNode {
  * Represent let...in expressions normally used in Haskell
  * @example
  * f = let x = 2 in x * 4
+ * @category Expressions
  */
 export class LetInExpression extends ASTNode {
+  /** @hidden */
+  public expression: Expression;
+  /** @hidden */
+  public declarations: Sequence;
+
   constructor(
-    public declarations: Sequence,
-    public expression: Expression,
+    declarations: Sequence,
+    expression: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+    this.declarations = declarations;
+    this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitLetInExpr?.(this);
@@ -388,6 +500,7 @@ export class LetInExpression extends ASTNode {
  * f x
  *  | x == 2 = 16
  *  | otherwise = x * 8
+ * @category Declarations
  */
 export class Otherwise extends ASTNode {
   public accept<R>(visitor: Visitor<R>): R {
@@ -405,14 +518,22 @@ export class Otherwise extends ASTNode {
  * Scala's for comprehensions, Erlang's and Haskell's list comprehensions
  * @example
  * m = [ f x | x <- [1, 2, 3, 4] ]
+ * @category Expressions
  */
 export class ListComprehension extends ASTNode {
+  /** @hidden */
+  public generators: (Generator | Expression)[];
+  /** @hidden */
+  public projection: Expression;
+
   constructor(
-    public projection: Expression,
-    public generators: (Generator | Expression)[],
+    projection: Expression,
+    generators: (Generator | Expression)[],
     loc?: SourceLocation
   ) {
     super(loc);
+    this.projection = projection;
+    this.generators = generators;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitListComprehension?.(this);
@@ -430,14 +551,22 @@ export class ListComprehension extends ASTNode {
  * Generator represents patterns like "Just m <- ms" or "x <- [1,2,3]"
  * @example
  * x <- [1, 2, 3, 4]
+ * @category Declarations
  */
 export class Generator extends ASTNode {
+  /** @hidden */
+  public expression: Expression;
+  /** @hidden */
+  public variable: SymbolPrimitive;
+
   constructor(
-    public variable: SymbolPrimitive,
-    public expression: Expression,
+    variable: SymbolPrimitive,
+    expression: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+    this.variable = variable;
+    this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitGenerator?.(this);
@@ -459,15 +588,26 @@ export class Generator extends ASTNode {
  * (1, 2..10)
  * @example
  * (1..)
+ * @category Expressions
  */
 export class RangeExpression extends ASTNode {
+  /** @hidden */
+  public step?: Expression;
+  /** @hidden */
+  public end?: Expression;
+  /** @hidden */
+  public start: Expression;
+
   constructor(
-    public start: Expression,
-    public end?: Expression, // undefined for infinite ranges like [0..]
-    public step?: Expression, // for [start, second .. end] syntax
+    start: Expression,
+    end?: Expression, // undefined for infinite ranges like [0..]
+    step?: Expression, // for [start, second .. end] syntax
     loc?: SourceLocation
   ) {
     super(loc);
+    this.start = start;
+    this.end = end;
+    this.step = step;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitRangeExpression?.(this);
@@ -519,15 +659,26 @@ export type Expression =
  * Nested `else if` need to be desugared into `else { if ... }`
  * @example
  * if (condition) { ... } else { ... }
+ * @category Expressions
  */
 export class If extends ASTNode {
+  /** @hidden */
+  public elseExpr: Expression;
+  /** @hidden */
+  public then: Expression;
+  /** @hidden */
+  public condition: Expression;
+
   constructor(
-    public condition: Expression,
-    public then: Expression,
-    public elseExpr: Expression,
+    condition: Expression,
+    then: Expression,
+    elseExpr: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+    this.condition = condition;
+    this.then = then;
+    this.elseExpr = elseExpr;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitIf?.(this);
@@ -552,13 +703,15 @@ export class If extends ASTNode {
  * function f(x) {
  *    return x * 2 // The node holds this expression
  * }
+ * @category Statements
  */
 export class Return extends ASTNode {
-  constructor(
-    public body: Expression = new NilPrimitive(null),
-    loc?: SourceLocation
-  ) {
+  /** @hidden */
+  public body?: Expression;
+
+  constructor(body: Expression = new NilPrimitive(null), loc?: SourceLocation) {
     super(loc);
+    this.body = body;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitReturn?.(this);
@@ -576,14 +729,22 @@ export class Return extends ASTNode {
  * The name can be undefined to support positional-only Records
  * @example
  * ... { name :: String }
+ * @category Declarations
  */
 export class Field extends ASTNode {
+  /** @hidden */
+  public value: Type;
+  /** @hidden */
+  public name: SymbolPrimitive | undefined;
+
   constructor(
-    public name: SymbolPrimitive | undefined,
-    public value: Type,
+    name: SymbolPrimitive | undefined,
+    value: Type,
     loc?: SourceLocation
   ) {
     super(loc);
+    this.name = name;
+    this.value = value;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitField?.(this);
@@ -602,14 +763,18 @@ export class Field extends ASTNode {
  * Holds an array of Field nodes.
  * @example
  * data Record = Constructor { field :: String }
+ * @category Declarations
  */
 export class Constructor extends ASTNode {
-  constructor(
-    public name: SymbolPrimitive,
-    public fields: Field[],
-    loc?: SourceLocation
-  ) {
+  /** @hidden */
+  public fields: Field[];
+  /** @hidden */
+  public name: SymbolPrimitive;
+
+  constructor(name: SymbolPrimitive, fields: Field[], loc?: SourceLocation) {
     super(loc);
+    this.name = name;
+    this.fields = fields;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitConstructor?.(this);
@@ -628,15 +793,26 @@ export class Constructor extends ASTNode {
  * @example
  * data Record = Constructor { field :: String }
  * data PositionalRecord = Constructor String String
+ * @category Declarations
  */
 export class Record extends ASTNode {
+  /** @hidden */
+  public deriving?: SymbolPrimitive[];
+  /** @hidden */
+  public contents: Constructor[];
+  /** @hidden */
+  public name: SymbolPrimitive;
+
   constructor(
-    public name: SymbolPrimitive,
-    public contents: Constructor[],
-    public deriving?: SymbolPrimitive[],
+    name: SymbolPrimitive,
+    contents: Constructor[],
+    deriving?: SymbolPrimitive[],
     loc?: SourceLocation
   ) {
     super(loc);
+    this.name = name;
+    this.contents = contents;
+    this.deriving = deriving;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitRecord?.(this);
@@ -661,10 +837,15 @@ export class Record extends ASTNode {
  * function f(x) {
  *    return x + 2;
  * }
+ * @category Declarations
  */
 export class UnguardedBody extends ASTNode {
-  constructor(public sequence: Sequence, loc?: SourceLocation) {
+  /** @hidden */
+  public sequence: Sequence;
+
+  constructor(sequence: Sequence, loc?: SourceLocation) {
     super(loc);
+    this.sequence = sequence;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitUnguardedBody?.(this);
@@ -684,14 +865,18 @@ export class UnguardedBody extends ASTNode {
  * f x
  *    | x > 2 = x * 2
  *    | otherwise = x / 2
+ * @category Declarations
  */
 export class GuardedBody extends ASTNode {
-  constructor(
-    public condition: Expression,
-    public body: Expression,
-    loc?: SourceLocation
-  ) {
+  /** @hidden */
+  public body: Expression;
+  /** @hidden */
+  public condition: Expression;
+
+  constructor(condition: Expression, body: Expression, loc?: SourceLocation) {
     super(loc);
+    this.condition = condition;
+    this.body = body;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitGuardedBody?.(this);
@@ -708,19 +893,35 @@ export class GuardedBody extends ASTNode {
 /**
  * Represents one Equation with its arguments and body. Allows for overloading and pattern matching.
  * You may define the return statement to access it more easily.
+ *
+ * @example
+ * add 0 y = y
+ * add x y = x + y
+ * @category Declarations
  */
 export class Equation extends ASTNode {
+  /** @hidden */
+  public patterns: Pattern[];
+  /** @hidden */
+  public body: UnguardedBody | GuardedBody[];
+  /** @hidden */
+  public returnExpr?: Return;
   constructor(
-    public patterns: Pattern[],
-    public body: UnguardedBody | GuardedBody[],
-    public returnExpr?: Return,
+    patterns: Pattern[],
+    body: UnguardedBody | GuardedBody[],
+    returnExpr?: Return,
     loc?: SourceLocation
   ) {
     super(loc);
+    this.patterns = patterns;
+    this.body = body;
+    this.returnExpr = returnExpr;
   }
+  /** @hidden */
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitEquation?.(this);
   }
+  /** @hidden */
   public toJSON() {
     return {
       type: "Equation",
@@ -743,15 +944,22 @@ export class Equation extends ASTNode {
  * @example
  * def foo(bar):
  *    return bar
- *
+ * @category Declarations
  */
 export class Function extends ASTNode {
+  /** @hidden */
+  public equations: Equation[];
+  /** @hidden */
+  public identifier: SymbolPrimitive;
+
   constructor(
-    public identifier: SymbolPrimitive,
-    public equations: Equation[],
+    identifier: SymbolPrimitive,
+    equations: Equation[],
     loc?: SourceLocation
   ) {
     super(loc);
+    this.identifier = identifier;
+    this.equations = equations;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitFunction?.(this);
@@ -765,13 +973,25 @@ export class Function extends ASTNode {
   }
 }
 
+/**
+ * Represents a case expression, selecting a branch based on pattern matching against a value.
+ *
+ * @example
+ * case x of
+ *   [] -> 0
+ *   (x:xs) -> 1 + length xs
+ * @category Expressions
+ */
 export class Case extends ASTNode {
-  constructor(
-    public condition: Expression,
-    public body: Expression,
-    loc?: SourceLocation
-  ) {
+  /** @hidden */
+  public body: Expression;
+  /** @hidden */
+  public condition: Expression;
+
+  constructor(condition: Expression, body: Expression, loc?: SourceLocation) {
     super(loc);
+    this.condition = condition;
+    this.body = body;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitCase?.(this);
@@ -784,14 +1004,28 @@ export class Case extends ASTNode {
     };
   }
 }
+/**
+ * Represents a switch statement, selecting execution paths based on value equality.
+ * @category Expressions
+ */
 export class Switch extends ASTNode {
+  /** @hidden */
+  public defaultExpr?: Expression;
+  /** @hidden */
+  public cases: Case[];
+  /** @hidden */
+  public value: Expression;
+
   constructor(
-    public value: Expression,
-    public cases: Case[],
-    public defaultExpr?: Expression,
+    value: Expression,
+    cases: Case[],
+    defaultExpr?: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+    this.value = value;
+    this.cases = cases;
+    this.defaultExpr = defaultExpr;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitSwitch?.(this);
@@ -809,13 +1043,20 @@ export class Switch extends ASTNode {
   }
 }
 
+/**
+ * Represents a catch block for handling exceptions thrown in a try block.
+ * @category Statements
+ */
 export class Catch extends ASTNode {
-  constructor(
-    public patterns: Pattern[],
-    public body: Expression,
-    loc?: SourceLocation
-  ) {
+  /** @hidden */
+  public body: Expression;
+  /** @hidden */
+  public patterns: Pattern[];
+
+  constructor(patterns: Pattern[], body: Expression, loc?: SourceLocation) {
     super(loc);
+    this.patterns = patterns;
+    this.body = body;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitCatch?.(this);
@@ -828,14 +1069,31 @@ export class Catch extends ASTNode {
     };
   }
 }
+/**
+ * Represents a try block, wrapping code that might throw exceptions.
+ *
+ * @example
+ * try { ... } catch e : DomainException { ... }
+ * @category Statements
+ */
 export class Try extends ASTNode {
+  /** @hidden */
+  public finallyExpr: Expression;
+  /** @hidden */
+  public catchExpr: Catch[];
+  /** @hidden */
+  public body: Expression;
+
   constructor(
-    public body: Expression,
-    public catchExpr: Catch[],
-    public finallyExpr: Expression,
+    body: Expression,
+    catchExpr: Catch[],
+    finallyExpr: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+    this.body = body;
+    this.catchExpr = catchExpr;
+    this.finallyExpr = finallyExpr;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitTry?.(this);
@@ -853,9 +1111,17 @@ export class Try extends ASTNode {
   }
 }
 
+/**
+ * Represents an explicit raising or throwing of an exception or error.
+ * @category Statements
+ */
 export class Raise extends ASTNode {
-  constructor(public body: Expression, loc?: SourceLocation) {
+  /** @hidden */
+  public body: Expression;
+
+  constructor(body: Expression, loc?: SourceLocation) {
     super(loc);
+    this.body = body;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitRaise?.(this);
@@ -868,9 +1134,17 @@ export class Raise extends ASTNode {
   }
 }
 
+/**
+ * Represents a command to output data to the standard output.
+ * @category Statements
+ */
 export class Print extends ASTNode {
-  constructor(public expression: Expression, loc?: SourceLocation) {
+  /** @hidden */
+  public expression: Expression;
+
+  constructor(expression: Expression, loc?: SourceLocation) {
     super(loc);
+    this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitPrint?.(this);
@@ -882,13 +1156,24 @@ export class Print extends ASTNode {
     };
   }
 }
+/**
+ * Represents a command to read input from the user or standard input.
+ * @category Statements
+ */
 export class Input extends ASTNode {
+  /** @hidden */
+  public variable: SymbolPrimitive;
+  /** @hidden */
+  public message: Expression;
+
   constructor(
-    public message: Expression,
-    public variable: SymbolPrimitive,
+    message: Expression,
+    variable: SymbolPrimitive,
     loc?: SourceLocation
   ) {
     super(loc);
+    this.message = message;
+    this.variable = variable;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitInput?.(this);
@@ -902,13 +1187,20 @@ export class Input extends ASTNode {
   }
 }
 
+/**
+ * Represents a for-loop control structure for iterating over a sequence or range.
+ * @category Statements
+ */
 export class For extends ASTNode {
-  constructor(
-    public body: Expression,
-    public statements: Statement[],
-    loc?: SourceLocation
-  ) {
+  /** @hidden */
+  public statements: Statement[];
+  /** @hidden */
+  public body: Expression;
+
+  constructor(body: Expression, statements: Statement[], loc?: SourceLocation) {
     super(loc);
+    this.body = body;
+    this.statements = statements;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitFor?.(this);
@@ -921,12 +1213,17 @@ export class For extends ASTNode {
     };
   }
 }
+/**
+ * Represents a control flow statement to exit the current loop immediately.
+ * @category Statements
+ */
 export class Break extends ASTNode {
-  constructor(
-    public body: Expression = new NilPrimitive(null),
-    loc?: SourceLocation
-  ) {
+  /** @hidden */
+  public body?: Expression;
+
+  constructor(body: Expression = new NilPrimitive(null), loc?: SourceLocation) {
     super(loc);
+    this.body = body;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitBreak?.(this);
@@ -938,12 +1235,17 @@ export class Break extends ASTNode {
     };
   }
 }
+/**
+ * Represents a control flow statement to skip the rest of the current loop iteration.
+ * @category Statements
+ */
 export class Continue extends ASTNode {
-  constructor(
-    public body: Expression = new NilPrimitive(null),
-    loc?: SourceLocation
-  ) {
+  /** @hidden */
+  public body?: Expression;
+
+  constructor(body: Expression = new NilPrimitive(null), loc?: SourceLocation) {
     super(loc);
+    this.body = body;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitContinue?.(this);
@@ -956,14 +1258,28 @@ export class Continue extends ASTNode {
   }
 }
 
+/**
+ * Represents a variable usage or reference in an expression.
+ * @category Expressions
+ */
 export class Variable extends ASTNode {
+  /** @hidden */
+  public variableType?: Type;
+  /** @hidden */
+  public expression: Expression;
+  /** @hidden */
+  public identifier: SymbolPrimitive;
+
   constructor(
-    public identifier: SymbolPrimitive,
-    public expression: Expression,
-    public variableType?: Type,
+    identifier: SymbolPrimitive,
+    expression: Expression,
+    variableType?: Type,
     loc?: SourceLocation
   ) {
     super(loc);
+    this.identifier = identifier;
+    this.expression = expression;
+    this.variableType = variableType;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitVariable?.(this);
@@ -978,13 +1294,27 @@ export class Variable extends ASTNode {
   }
 }
 
+/**
+ * Represents an assignment operation, binding a value to a variable.
+ *
+ * @example
+ * count = count + 1
+ * @category Statements
+ */
 export class Assignment extends ASTNode {
+  /** @hidden */
+  public expression: Expression;
+  /** @hidden */
+  public identifier: SymbolPrimitive;
+
   constructor(
-    public identifier: SymbolPrimitive,
-    public expression: Expression,
+    identifier: SymbolPrimitive,
+    expression: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+    this.identifier = identifier;
+    this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitAssignment?.(this);
@@ -998,9 +1328,17 @@ export class Assignment extends ASTNode {
   }
 }
 
+/**
+ * Represents a sequence of statements executed in order.
+ * @category Statements
+ */
 export class Sequence extends ASTNode {
-  constructor(public statements: Statement[], loc?: SourceLocation) {
+  /** @hidden */
+  public statements: Statement[];
+
+  constructor(statements: Statement[], loc?: SourceLocation) {
     super(loc);
+    this.statements = statements;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitSequence?.(this);

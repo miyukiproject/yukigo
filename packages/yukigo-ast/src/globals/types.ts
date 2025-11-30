@@ -15,13 +15,24 @@ export type Type =
   | ParameterizedType
   | ConstrainedType;
 
+/**
+ * Represents a basic named type (e.g., Int, Bool).
+ * @category Types
+ */
 export class SimpleType extends ASTNode {
+    /** @hidden */
+    public constraints: Constraint[];
+    /** @hidden */
+    public value: string;
+
   constructor(
-    public value: string,
-    public constraints: Constraint[],
+    value: string,
+    constraints: Constraint[],
     loc?: SourceLocation
   ) {
     super(loc);
+      this.value = value;
+      this.constraints = constraints;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitSimpleType?.(this);
@@ -34,13 +45,24 @@ export class SimpleType extends ASTNode {
     };
   }
 }
+/**
+ * Represents a type variable (e.g., 'a), used in polymorphic types.
+ * @category Types
+ */
 export class TypeVar extends ASTNode {
+    /** @hidden */
+    public constraints: Constraint[];
+    /** @hidden */
+    public value: string;
+
   constructor(
-    public value: string,
-    public constraints: Constraint[],
+    value: string,
+    constraints: Constraint[],
     loc?: SourceLocation
   ) {
     super(loc);
+      this.value = value;
+      this.constraints = constraints;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitTypeVar?.(this);
@@ -53,13 +75,24 @@ export class TypeVar extends ASTNode {
     };
   }
 }
+/**
+ * Represents the application of a type constructor to arguments (e.g., List Int).
+ * @category Types
+ */
 export class TypeApplication extends ASTNode {
+    /** @hidden */
+    public argument: Type;
+    /** @hidden */
+    public functionType: Type;
+
   constructor(
-    public functionType: Type,
-    public argument: Type,
+    functionType: Type,
+    argument: Type,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.functionType = functionType;
+      this.argument = argument;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitTypeApplication?.(this);
@@ -72,13 +105,24 @@ export class TypeApplication extends ASTNode {
     };
   }
 }
+/**
+ * Represents a list type (e.g., [Int]).
+ * @category Types
+ */
 export class ListType extends ASTNode {
+    /** @hidden */
+    public constraints: Constraint[];
+    /** @hidden */
+    public values: Type;
+
   constructor(
-    public values: Type,
-    public constraints: Constraint[],
+    values: Type,
+    constraints: Constraint[],
     loc?: SourceLocation
   ) {
     super(loc);
+      this.values = values;
+      this.constraints = constraints;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitListType?.(this);
@@ -91,13 +135,24 @@ export class ListType extends ASTNode {
     };
   }
 }
+/**
+ * Represents a tuple type (e.g., (Int, Bool)).
+ * @category Types
+ */
 export class TupleType extends ASTNode {
+    /** @hidden */
+    public constraints: Constraint[];
+    /** @hidden */
+    public values: Type[];
+
   constructor(
-    public values: Type[],
-    public constraints: Constraint[],
+    values: Type[],
+    constraints: Constraint[],
     loc?: SourceLocation
   ) {
     super(loc);
+      this.values = values;
+      this.constraints = constraints;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitTupleType?.(this);
@@ -111,13 +166,27 @@ export class TupleType extends ASTNode {
   }
 }
 
+/**
+ * Represents a type constraint or class constraint (e.g., Eq a).
+ *
+ * @example
+ * (Eq a) => a -> a -> Bool
+ * @category Types
+ */
 export class Constraint extends ASTNode {
+    /** @hidden */
+    public parameters: Type[];
+    /** @hidden */
+    public name: string;
+
   constructor(
-    public name: string,
-    public parameters: Type[],
+    name: string,
+    parameters: Type[],
     loc?: SourceLocation
   ) {
     super(loc);
+      this.name = name;
+      this.parameters = parameters;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitConstraint?.(this);
@@ -131,14 +200,28 @@ export class Constraint extends ASTNode {
   }
 }
 
+/**
+ * Represents a type that accepts type parameters.
+ * @category Types
+ */
 export class ParameterizedType extends ASTNode {
+    /** @hidden */
+    public constraints: Constraint[];
+    /** @hidden */
+    public returnType: Type;
+    /** @hidden */
+    public inputs: Type[];
+
   constructor(
-    public inputs: Type[],
-    public returnType: Type,
-    public constraints: Constraint[],
+    inputs: Type[],
+    returnType: Type,
+    constraints: Constraint[],
     loc?: SourceLocation
   ) {
     super(loc);
+      this.inputs = inputs;
+      this.returnType = returnType;
+      this.constraints = constraints;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitParameterizedType?.(this);
@@ -152,9 +235,17 @@ export class ParameterizedType extends ASTNode {
     };
   }
 }
+/**
+ * Represents a type qualified by a context of constraints.
+ * @category Types
+ */
 export class ConstrainedType extends ASTNode {
-  constructor(public constraints: Constraint[], loc?: SourceLocation) {
+    /** @hidden */
+    public constraints: Constraint[];
+
+  constructor(constraints: Constraint[], loc?: SourceLocation) {
     super(loc);
+      this.constraints = constraints;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitConstrainedType?.(this);
@@ -167,14 +258,31 @@ export class ConstrainedType extends ASTNode {
   }
 }
 
+/**
+ * Represents a type alias definition, giving a new name to an existing type.
+ *
+ * @example
+ * type String = [Char]
+ * @category Types
+ */
 export class TypeAlias extends ASTNode {
+    /** @hidden */
+    public value: Type;
+    /** @hidden */
+    public variables: string[];
+    /** @hidden */
+    public identifier: SymbolPrimitive;
+
   constructor(
-    public identifier: SymbolPrimitive,
-    public variables: string[],
-    public value: Type,
+    identifier: SymbolPrimitive,
+    variables: string[],
+    value: Type,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.identifier = identifier;
+      this.variables = variables;
+      this.value = value;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitTypeAlias?.(this);
@@ -189,13 +297,27 @@ export class TypeAlias extends ASTNode {
   }
 }
 
+/**
+ * Represents an explicit type signature declaration for a function or variable.
+ *
+ * @example
+ * add :: Int -> Int -> Int
+ * @category Types
+ */
 export class TypeSignature extends ASTNode {
+    /** @hidden */
+    public body: Type;
+    /** @hidden */
+    public identifier: SymbolPrimitive;
+
   constructor(
-    public identifier: SymbolPrimitive,
-    public body: Type,
+    identifier: SymbolPrimitive,
+    body: Type,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.identifier = identifier;
+      this.body = body;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitTypeSignature?.(this);
@@ -208,13 +330,24 @@ export class TypeSignature extends ASTNode {
     };
   }
 }
+/**
+ * Represents an explicit type casting or annotation expression.
+ * @category Types
+ */
 export class TypeCast extends ASTNode {
+    /** @hidden */
+    public body: Type;
+    /** @hidden */
+    public expression: Expression;
+
   constructor(
-    public expression: Expression,
-    public body: Type,
+    expression: Expression,
+    body: Type,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.expression = expression;
+      this.body = body;
   }
   accept<R>(visitor: Visitor<R>): R {
     return visitor.visitTypeCast?.(this);

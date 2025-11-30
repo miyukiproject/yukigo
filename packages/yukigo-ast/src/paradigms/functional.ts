@@ -7,13 +7,24 @@ import {
 import { Pattern } from "../globals/patterns.js";
 import { Visitor } from "../visitor.js";
 
+/**
+ * Represents function composition (e.g., f . g).
+ * @category Expressions
+ */
 export class CompositionExpression extends ASTNode {
+    /** @hidden */
+    public right: Expression;
+    /** @hidden */
+    public left: Expression;
+
   constructor(
-    public left: Expression,
-    public right: Expression,
+    left: Expression,
+    right: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.left = left;
+      this.right = right;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitCompositionExpression?.(this);
@@ -27,13 +38,27 @@ export class CompositionExpression extends ASTNode {
   }
 }
 
+/**
+ * Represents an anonymous function or lambda abstraction.
+ *
+ * @example
+ * \x -> x + 1
+ * @category Expressions
+ */
 export class Lambda extends ASTNode {
+    /** @hidden */
+    public body: Expression;
+    /** @hidden */
+    public parameters: Pattern[];
+
   constructor(
-    public parameters: Pattern[],
-    public body: Expression,
+    parameters: Pattern[],
+    body: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.parameters = parameters;
+      this.body = body;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitLambda?.(this);
@@ -46,9 +71,17 @@ export class Lambda extends ASTNode {
     };
   }
 }
+/**
+ * Represents a yield statement, often used in generators or coroutines.
+ * @category Statements
+ */
 export class Yield extends ASTNode {
-  constructor(public expression: Expression, loc?: SourceLocation) {
+    /** @hidden */
+    public expression: Expression;
+
+  constructor(expression: Expression, loc?: SourceLocation) {
     super(loc);
+      this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitYield?.(this);
@@ -61,13 +94,27 @@ export class Yield extends ASTNode {
   }
 }
 
+/**
+ * Represents the application of a function to an argument.
+ *
+ * @example
+ * map (*2) [1..5]
+ * @category Expressions
+ */
 export class Application extends ASTNode {
+    /** @hidden */
+    public parameter: Expression;
+    /** @hidden */
+    public functionExpr: Expression;
+
   constructor(
-    public functionExpr: Expression,
-    public parameter: Expression,
+    functionExpr: Expression,
+    parameter: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.functionExpr = functionExpr;
+      this.parameter = parameter;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitApplication?.(this);

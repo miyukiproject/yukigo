@@ -7,13 +7,29 @@ import {
 } from "../globals/generics.js";
 import { Visitor } from "../visitor.js";
 
+/**
+ * Represents a method definition within a class or object.
+ *
+ * @example
+ * method exhaust() {
+ *    energy -= 5
+ * }
+ * @category OOP
+ */
 export class Method extends ASTNode {
+    /** @hidden */
+    public equations: Equation[];
+    /** @hidden */
+    public identifier: SymbolPrimitive;
+
   constructor(
-    public identifier: SymbolPrimitive,
-    public equations: Equation[],
+    identifier: SymbolPrimitive,
+    equations: Equation[],
     loc?: SourceLocation
   ) {
     super(loc);
+      this.identifier = identifier;
+      this.equations = equations;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitMethod?.(this);
@@ -27,13 +43,24 @@ export class Method extends ASTNode {
   }
 }
 
+/**
+ * Represents an attribute or instance variable of an object.
+ * @category OOP
+ */
 export class Attribute extends ASTNode {
+    /** @hidden */
+    public expression: Expression;
+    /** @hidden */
+    public identifier: SymbolPrimitive;
+
   constructor(
-    public identifier: SymbolPrimitive,
-    public expression: Expression,
+    identifier: SymbolPrimitive,
+    expression: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.identifier = identifier;
+      this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitAttribute?.(this);
@@ -47,13 +74,27 @@ export class Attribute extends ASTNode {
   }
 }
 
+/**
+ * Represents an object definition or a singleton object.
+ *
+ * @example
+ * object pepita { ... }
+ * @category OOP
+ */
 export class Object extends ASTNode {
+    /** @hidden */
+    public expression: Expression;
+    /** @hidden */
+    public identifier: SymbolPrimitive;
+
   constructor(
-    public identifier: SymbolPrimitive,
-    public expression: Expression,
+    identifier: SymbolPrimitive,
+    expression: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.identifier = identifier;
+      this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitObject?.(this);
@@ -67,15 +108,35 @@ export class Object extends ASTNode {
   }
 }
 
+/**
+ * Represents a class definition, a blueprint for objects.
+ *
+ * @example
+ * class Bird inherits Animal { ... }
+ * @category OOP
+ */
 export class Class extends ASTNode {
+    /** @hidden */
+    public expression: Expression;
+    /** @hidden */
+    public implementsNode: Implement | undefined;
+    /** @hidden */
+    public extendsSymbol: SymbolPrimitive | undefined;
+    /** @hidden */
+    public identifier: SymbolPrimitive;
+
   constructor(
-    public identifier: SymbolPrimitive,
-    public extendsSymbol: SymbolPrimitive | undefined,
-    public implementsNode: Implement | undefined,
-    public expression: Expression,
+    identifier: SymbolPrimitive,
+    extendsSymbol: SymbolPrimitive | undefined,
+    implementsNode: Implement | undefined,
+    expression: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.identifier = identifier;
+      this.extendsSymbol = extendsSymbol;
+      this.implementsNode = implementsNode;
+      this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitClass?.(this);
@@ -91,14 +152,28 @@ export class Class extends ASTNode {
   }
 }
 
+/**
+ * Represents an interface or protocol definition.
+ * @category OOP
+ */
 export class Interface extends ASTNode {
+    /** @hidden */
+    public expression: Expression;
+    /** @hidden */
+    public extendsSymbol: SymbolPrimitive[];
+    /** @hidden */
+    public identifier: SymbolPrimitive;
+
   constructor(
-    public identifier: SymbolPrimitive,
-    public extendsSymbol: SymbolPrimitive[],
-    public expression: Expression,
+    identifier: SymbolPrimitive,
+    extendsSymbol: SymbolPrimitive[],
+    expression: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.identifier = identifier;
+      this.extendsSymbol = extendsSymbol;
+      this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitInterface?.(this);
@@ -113,14 +188,31 @@ export class Interface extends ASTNode {
   }
 }
 
+/**
+ * Represents a message send or method invocation on an object.
+ *
+ * @example
+ * pepita.fly(10)
+ * @category OOP
+ */
 export class Send extends ASTNode {
+    /** @hidden */
+    public args: Expression[];
+    /** @hidden */
+    public selector: Expression;
+    /** @hidden */
+    public receiver: Expression;
+
   constructor(
-    public receiver: Expression,
-    public selector: Expression,
-    public args: Expression[],
+    receiver: Expression,
+    selector: Expression,
+    args: Expression[],
     loc?: SourceLocation
   ) {
     super(loc);
+      this.receiver = receiver;
+      this.selector = selector;
+      this.args = args;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitSend?.(this);
@@ -135,13 +227,27 @@ export class Send extends ASTNode {
   }
 }
 
+/**
+ * Represents the instantiation of a class.
+ *
+ * @example
+ * new Bird()
+ * @category OOP
+ */
 export class New extends ASTNode {
+    /** @hidden */
+    public args: Expression[];
+    /** @hidden */
+    public identifier: SymbolPrimitive;
+
   constructor(
-    public identifier: SymbolPrimitive,
-    public args: Expression[],
+    identifier: SymbolPrimitive,
+    args: Expression[],
     loc?: SourceLocation
   ) {
     super(loc);
+      this.identifier = identifier;
+      this.args = args;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitNew?.(this);
@@ -155,9 +261,17 @@ export class New extends ASTNode {
   }
 }
 
+/**
+ * Represents an implementation clause for an interface.
+ * @category OOP
+ */
 export class Implement extends ASTNode {
-  constructor(public identifier: SymbolPrimitive, loc?: SourceLocation) {
+    /** @hidden */
+    public identifier: SymbolPrimitive;
+
+  constructor(identifier: SymbolPrimitive, loc?: SourceLocation) {
     super(loc);
+      this.identifier = identifier;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitImplement?.(this);
@@ -170,9 +284,17 @@ export class Implement extends ASTNode {
   }
 }
 
+/**
+ * Represents the inclusion of a module or mixin.
+ * @category OOP
+ */
 export class Include extends ASTNode {
-  constructor(public identifier: SymbolPrimitive, loc?: SourceLocation) {
+    /** @hidden */
+    public identifier: SymbolPrimitive;
+
+  constructor(identifier: SymbolPrimitive, loc?: SourceLocation) {
     super(loc);
+      this.identifier = identifier;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitInclude?.(this);
@@ -184,6 +306,10 @@ export class Include extends ASTNode {
     };
   }
 }
+/**
+ * Represents a reference to the current object instance (self/this).
+ * @category OOP
+ */
 export class Self extends ASTNode {
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitSelf?.(this);
@@ -194,6 +320,10 @@ export class Self extends ASTNode {
     };
   }
 }
+/**
+ * Represents a reference to the superclass or parent object.
+ * @category OOP
+ */
 export class Super extends ASTNode {
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitSuper?.(this);

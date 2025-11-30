@@ -6,9 +6,20 @@ import {
   SymbolPrimitive,
 } from "./generics.js";
 
+/**
+ * Represents a pattern that matches any value and binds it to a variable.
+ *
+ * @example
+ * map (\x -> x + 1)
+ * @category Patterns
+ */
 export class VariablePattern extends ASTNode {
-  constructor(public name: SymbolPrimitive, loc?: SourceLocation) {
+    /** @hidden */
+    public name: SymbolPrimitive;
+
+  constructor(name: SymbolPrimitive, loc?: SourceLocation) {
     super(loc);
+      this.name = name;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitVariablePattern?.(this);
@@ -21,9 +32,17 @@ export class VariablePattern extends ASTNode {
   }
 }
 
+/**
+ * Represents a pattern that matches an exact literal value.
+ * @category Patterns
+ */
 export class LiteralPattern extends ASTNode {
-  constructor(public name: Primitive, loc?: SourceLocation) {
+    /** @hidden */
+    public name: Primitive;
+
+  constructor(name: Primitive, loc?: SourceLocation) {
     super(loc);
+      this.name = name;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitLiteralPattern?.(this);
@@ -35,13 +54,24 @@ export class LiteralPattern extends ASTNode {
     };
   }
 }
+/**
+ * Represents a pattern matching a function application or constructor with arguments.
+ * @category Patterns
+ */
 export class ApplicationPattern extends ASTNode {
+    /** @hidden */
+    public args: Pattern[];
+    /** @hidden */
+    public symbol: SymbolPrimitive;
+
   constructor(
-    public symbol: SymbolPrimitive,
-    public args: Pattern[],
+    symbol: SymbolPrimitive,
+    args: Pattern[],
     loc?: SourceLocation
   ) {
     super(loc);
+      this.symbol = symbol;
+      this.args = args;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitApplicationPattern?.(this);
@@ -55,9 +85,17 @@ export class ApplicationPattern extends ASTNode {
   }
 }
 
+/**
+ * Represents a pattern matching a tuple structure.
+ * @category Patterns
+ */
 export class TuplePattern extends ASTNode {
-  constructor(public elements: Pattern[], loc?: SourceLocation) {
+    /** @hidden */
+    public elements: Pattern[];
+
+  constructor(elements: Pattern[], loc?: SourceLocation) {
     super(loc);
+      this.elements = elements;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitTuplePattern?.(this);
@@ -70,9 +108,20 @@ export class TuplePattern extends ASTNode {
   }
 }
 
+/**
+ * Represents a pattern matching a list structure.
+ *
+ * @example
+ * sum (x:xs) = x + sum xs
+ * @category Patterns
+ */
 export class ListPattern extends ASTNode {
-  constructor(public elements: Pattern[], loc?: SourceLocation) {
+    /** @hidden */
+    public elements: Pattern[];
+
+  constructor(elements: Pattern[], loc?: SourceLocation) {
     super(loc);
+      this.elements = elements;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitListPattern?.(this);
@@ -85,13 +134,24 @@ export class ListPattern extends ASTNode {
   }
 }
 
+/**
+ * Represents a pattern matching a functor or compound term.
+ * @category Patterns
+ */
 export class FunctorPattern extends ASTNode {
+    /** @hidden */
+    public args: Pattern[];
+    /** @hidden */
+    public identifier: SymbolPrimitive;
+
   constructor(
-    public identifier: SymbolPrimitive,
-    public args: Pattern[],
+    identifier: SymbolPrimitive,
+    args: Pattern[],
     loc?: SourceLocation
   ) {
     super(loc);
+      this.identifier = identifier;
+      this.args = args;
   }
 
   public accept<R>(visitor: Visitor<R>): R {
@@ -106,13 +166,27 @@ export class FunctorPattern extends ASTNode {
   }
 }
 
+/**
+ * Represents an alias pattern (e.g., x@pat), binding the whole value to a name while matching inner patterns.
+ *
+ * @example
+ * f p@(x, y) = ...
+ * @category Patterns
+ */
 export class AsPattern extends ASTNode {
+    /** @hidden */
+    public pattern: Pattern;
+    /** @hidden */
+    public alias: VariablePattern | WildcardPattern;
+
   constructor(
-    public alias: VariablePattern | WildcardPattern,
-    public pattern: Pattern,
+    alias: VariablePattern | WildcardPattern,
+    pattern: Pattern,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.alias = alias;
+      this.pattern = pattern;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitAsPattern?.(this);
@@ -126,6 +200,13 @@ export class AsPattern extends ASTNode {
   }
 }
 
+/**
+ * Represents a wildcard pattern (_), which matches anything and discards the value.
+ *
+ * @example
+ * const _ x = x
+ * @category Patterns
+ */
 export class WildcardPattern extends ASTNode {
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitWildcardPattern?.(this);
@@ -138,9 +219,17 @@ export class WildcardPattern extends ASTNode {
   }
 }
 
+/**
+ * Represents a union of patterns, matching if any of the sub-patterns match.
+ * @category Patterns
+ */
 export class UnionPattern extends ASTNode {
-  constructor(public patterns: Pattern[], loc?: SourceLocation) {
+    /** @hidden */
+    public patterns: Pattern[];
+
+  constructor(patterns: Pattern[], loc?: SourceLocation) {
     super(loc);
+      this.patterns = patterns;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitUnionPattern?.(this);
@@ -153,13 +242,27 @@ export class UnionPattern extends ASTNode {
   }
 }
 
+/**
+ * Represents a pattern matching a specific data constructor.
+ *
+ * @example
+ * safeDiv (Just x) y = x / y
+ * @category Patterns
+ */
 export class ConstructorPattern extends ASTNode {
+    /** @hidden */
+    public patterns: Pattern[];
+    /** @hidden */
+    public constr: string;
+
   constructor(
-    public constr: string,
-    public patterns: Pattern[],
+    constr: string,
+    patterns: Pattern[],
     loc?: SourceLocation
   ) {
     super(loc);
+      this.constr = constr;
+      this.patterns = patterns;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitConstructorPattern?.(this);
@@ -173,13 +276,24 @@ export class ConstructorPattern extends ASTNode {
   }
 }
 
+/**
+ * Represents a pattern matching the head and tail of a list (x:xs).
+ * @category Patterns
+ */
 export class ConsPattern extends ASTNode {
+    /** @hidden */
+    public tail: Pattern;
+    /** @hidden */
+    public head: Pattern;
+
   constructor(
-    public head: Pattern,
-    public tail: Pattern,
+    head: Pattern,
+    tail: Pattern,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.head = head;
+      this.tail = tail;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitConsPattern?.(this);

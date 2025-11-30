@@ -1,0 +1,23 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["../../packages/yukigo-ast/src/index.ts"],
+  "out": "./docs/ast",
+  "plugin": ["typedoc-plugin-markdown"],
+  "tsconfig": "../../packages/yukigo-ast/tsconfig.json",
+  "readme": "none",
+  
+  "router": "category",
+  "outputFileStrategy": "members",
+  "disableSources": true,
+  "hideBreadcrumbs": true,
+  "hidePageHeader": true,
+  "flattenOutputFiles": false,
+  "parametersFormat": "table",
+  "propertiesFormat": "table",
+  "tableColumnSettings": {
+    "hideInherited": true,
+    "hideModifiers": true,
+    "hideDefaults": true,
+    "hideSources": true
+  }
+}

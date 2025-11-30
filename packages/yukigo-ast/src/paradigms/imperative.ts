@@ -8,13 +8,24 @@ import {
 } from "../globals/generics.js";
 import { Visitor } from "../visitor.js";
 
+/**
+ * Represents the main entry point of a program.
+ * @category Declarations
+ */
 export class EntryPoint extends ASTNode {
+    /** @hidden */
+    public expressions: Expression[];
+    /** @hidden */
+    public identifier: SymbolPrimitive;
+
   constructor(
-    public identifier: SymbolPrimitive,
-    public expressions: Expression[],
+    identifier: SymbolPrimitive,
+    expressions: Expression[],
     loc?: SourceLocation
   ) {
     super(loc);
+      this.identifier = identifier;
+      this.expressions = expressions;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitEntryPoint?.(this);
@@ -28,13 +39,24 @@ export class EntryPoint extends ASTNode {
   }
 }
 
+/**
+ * Represents a procedure definition, typically a function without a return value.
+ * @category Declarations
+ */
 export class Procedure extends ASTNode {
+    /** @hidden */
+    public equations: Equation[];
+    /** @hidden */
+    public identifier: SymbolPrimitive;
+
   constructor(
-    public identifier: SymbolPrimitive,
-    public equations: Equation[],
+    identifier: SymbolPrimitive,
+    equations: Equation[],
     loc?: SourceLocation
   ) {
     super(loc);
+      this.identifier = identifier;
+      this.equations = equations;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitProcedure?.(this);
@@ -48,13 +70,25 @@ export class Procedure extends ASTNode {
   }
 }
 
+/**
+ * Represents a definition of a structured data type (struct).
+ * @category Declarations
+ */
 export class Structure extends ASTNode {
+    /** @hidden */
+    public elements: (Variable | Structure)[];
+    /** @hidden */
+    public identifier: SymbolPrimitive;
+
   constructor(
-    public identifier: SymbolPrimitive,
-    public elements: (Variable | Structure)[],
-    public loc?: SourceLocation
+    identifier: SymbolPrimitive,
+    elements: (Variable | Structure)[],
+    loc?: SourceLocation
   ) {
     super();
+      this.identifier = identifier;
+      this.elements = elements;
+      this.loc = loc;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitStructure?.(this);
@@ -68,13 +102,24 @@ export class Structure extends ASTNode {
   }
 }
 
+/**
+ * Represents an enumeration type definition.
+ * @category Declarations
+ */
 export class Enumeration extends ASTNode {
+    /** @hidden */
+    public contents: SymbolPrimitive[];
+    /** @hidden */
+    public identifier: SymbolPrimitive;
+
   constructor(
-    public identifier: SymbolPrimitive,
-    public contents: SymbolPrimitive[],
+    identifier: SymbolPrimitive,
+    contents: SymbolPrimitive[],
     loc?: SourceLocation
   ) {
     super(loc);
+      this.identifier = identifier;
+      this.contents = contents;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitEnumeration?.(this);
@@ -88,13 +133,27 @@ export class Enumeration extends ASTNode {
   }
 }
 
+/**
+ * Represents a while loop control structure.
+ *
+ * @example
+ * while (x > 0) { ... }
+ * @category Statements
+ */
 export class While extends ASTNode {
+    /** @hidden */
+    public body: Expression;
+    /** @hidden */
+    public condition: Expression;
+
   constructor(
-    public condition: Expression,
-    public body: Expression,
+    condition: Expression,
+    body: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.condition = condition;
+      this.body = body;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitWhile?.(this);
@@ -107,13 +166,24 @@ export class While extends ASTNode {
     };
   }
 }
+/**
+ * Represents a repeat-until loop control structure.
+ * @category Statements
+ */
 export class Repeat extends ASTNode {
+    /** @hidden */
+    public body: Expression;
+    /** @hidden */
+    public count: Expression;
+
   constructor(
-    public count: Expression,
-    public body: Expression,
+    count: Expression,
+    body: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.count = count;
+      this.body = body;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitRepeat?.(this);
@@ -127,15 +197,32 @@ export class Repeat extends ASTNode {
   }
 }
 
+/**
+ * Represents a C-style or range-based for loop.
+ * @category Statements
+ */
 export class ForLoop extends ASTNode {
+    /** @hidden */
+    public body: Expression;
+    /** @hidden */
+    public update: Expression;
+    /** @hidden */
+    public condition: Expression;
+    /** @hidden */
+    public initialization: Expression;
+
   constructor(
-    public initialization: Expression,
-    public condition: Expression,
-    public update: Expression,
-    public body: Expression,
+    initialization: Expression,
+    condition: Expression,
+    update: Expression,
+    body: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.initialization = initialization;
+      this.condition = condition;
+      this.update = update;
+      this.body = body;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitForLoop?.(this);

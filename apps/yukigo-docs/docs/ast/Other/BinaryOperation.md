@@ -1,0 +1,3 @@
+# Type Alias: BinaryOperation
+
+> **BinaryOperation** = [`ArithmeticBinaryOperation`](../Operators/index.ArithmeticBinaryOperation.md) \| [`StringOperation`](../Operators/index.StringOperation.md) \| [`ListBinaryOperation`](../Operators/index.ListBinaryOperation.md) \| [`LogicalBinaryOperation`](../Operators/index.LogicalBinaryOperation.md) \| [`ComparisonOperation`](../Operators/index.ComparisonOperation.md) \| [`UnifyOperation`](../Logic/index.UnifyOperation.md) \| [`AssignOperation`](../Operators/index.AssignOperation.md) \| [`BitwiseBinaryOperation`](../Operators/index.BitwiseBinaryOperation.md)

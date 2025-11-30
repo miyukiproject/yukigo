@@ -11,14 +11,31 @@ import { Visitor } from "../visitor.js";
 
 export type Clause = Rule | Fact | Query | Primitive;
 
+/**
+ * Represents a logic programming rule (Head :- Body).
+ *
+ * @example
+ * grandparent(X, Z) :- parent(X, Y), parent(Y, Z).
+ * @category Logic
+ */
 export class Rule extends ASTNode {
+    /** @hidden */
+    public expressions: Expression[];
+    /** @hidden */
+    public patterns: Pattern[];
+    /** @hidden */
+    public identifier: SymbolPrimitive;
+
   constructor(
-    public identifier: SymbolPrimitive,
-    public patterns: Pattern[],
-    public expressions: Expression[],
+    identifier: SymbolPrimitive,
+    patterns: Pattern[],
+    expressions: Expression[],
     loc?: SourceLocation
   ) {
     super(loc);
+      this.identifier = identifier;
+      this.patterns = patterns;
+      this.expressions = expressions;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitRule?.(this);
@@ -32,13 +49,24 @@ export class Rule extends ASTNode {
     };
   }
 }
+/**
+ * Represents a call to a predicate or goal.
+ * @category Logic
+ */
 export class Call extends ASTNode {
+    /** @hidden */
+    public args: Expression[];
+    /** @hidden */
+    public callee: SymbolPrimitive;
+
   constructor(
-    public callee: SymbolPrimitive,
-    public args: Expression[],
+    callee: SymbolPrimitive,
+    args: Expression[],
     loc?: SourceLocation
   ) {
     super(loc);
+      this.callee = callee;
+      this.args = args;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitCall?.(this);
@@ -52,13 +80,27 @@ export class Call extends ASTNode {
   }
 }
 
+/**
+ * Represents a fact, a rule with no body (always true).
+ *
+ * @example
+ * human(socrates).
+ * @category Logic
+ */
 export class Fact extends ASTNode {
+    /** @hidden */
+    public patterns: Pattern[];
+    /** @hidden */
+    public identifier: SymbolPrimitive;
+
   constructor(
-    public identifier: SymbolPrimitive,
-    public patterns: Pattern[],
+    identifier: SymbolPrimitive,
+    patterns: Pattern[],
     loc?: SourceLocation
   ) {
     super(loc);
+      this.identifier = identifier;
+      this.patterns = patterns;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitFact?.(this);
@@ -72,9 +114,20 @@ export class Fact extends ASTNode {
   }
 }
 
+/**
+ * Represents a query or goal to be proven.
+ *
+ * @example
+ * ?- human(X).
+ * @category Logic
+ */
 export class Query extends ASTNode {
-  constructor(public expression: Expression, loc?: SourceLocation) {
+    /** @hidden */
+    public expression: Expression;
+
+  constructor(expression: Expression, loc?: SourceLocation) {
     super(loc);
+      this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitQuery?.(this);
@@ -87,13 +140,24 @@ export class Query extends ASTNode {
   }
 }
 
+/**
+ * Represents an existential quantification.
+ * @category Logic
+ */
 export class Exist extends ASTNode {
+    /** @hidden */
+    public patterns: Pattern[];
+    /** @hidden */
+    public identifier: SymbolPrimitive;
+
   constructor(
-    public identifier: SymbolPrimitive,
-    public patterns: Pattern[],
+    identifier: SymbolPrimitive,
+    patterns: Pattern[],
     loc?: SourceLocation
   ) {
     super(loc);
+      this.identifier = identifier;
+      this.patterns = patterns;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitExist?.(this);
@@ -107,9 +171,17 @@ export class Exist extends ASTNode {
   }
 }
 
+/**
+ * Represents logical negation or failure-as-negation.
+ * @category Logic
+ */
 export class Not extends ASTNode {
-  constructor(public expressions: Expression[], loc?: SourceLocation) {
+    /** @hidden */
+    public expressions: Expression[];
+
+  constructor(expressions: Expression[], loc?: SourceLocation) {
     super(loc);
+      this.expressions = expressions;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitNot?.(this);
@@ -121,14 +193,28 @@ export class Not extends ASTNode {
     };
   }
 }
+/**
+ * Represents a higher-order predicate finding all solutions (e.g., findall/3).
+ * @category Logic
+ */
 export class Findall extends ASTNode {
+    /** @hidden */
+    public bag: Expression;
+    /** @hidden */
+    public goal: Expression;
+    /** @hidden */
+    public template: Expression;
+
   constructor(
-    public template: Expression,
-    public goal: Expression,
-    public bag: Expression,
+    template: Expression,
+    goal: Expression,
+    bag: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.template = template;
+      this.goal = goal;
+      this.bag = bag;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitFindall?.(this);
@@ -142,13 +228,24 @@ export class Findall extends ASTNode {
     };
   }
 }
+/**
+ * Represents a universal quantification or forall predicate.
+ * @category Logic
+ */
 export class Forall extends ASTNode {
+    /** @hidden */
+    public action: Expression;
+    /** @hidden */
+    public condition: Expression;
+
   constructor(
-    public condition: Expression,
-    public action: Expression,
+    condition: Expression,
+    action: Expression,
     loc?: SourceLocation
   ) {
     super(loc);
+      this.condition = condition;
+      this.action = action;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitForall?.(this);
@@ -162,13 +259,24 @@ export class Forall extends ASTNode {
   }
 }
 
+/**
+ * Represents a single goal within a logical rule or query.
+ * @category Logic
+ */
 export class Goal extends ASTNode {
+    /** @hidden */
+    public args: Pattern[];
+    /** @hidden */
+    public identifier: SymbolPrimitive;
+
   constructor(
-    public identifier: SymbolPrimitive,
-    public args: Pattern[],
+    identifier: SymbolPrimitive,
+    args: Pattern[],
     loc?: SourceLocation
   ) {
     super(loc);
+      this.identifier = identifier;
+      this.args = args;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitGoal?.(this);
