@@ -165,7 +165,7 @@ export class PatternMatcher implements Visitor<boolean> {
   }
 
   visitConsPattern(node: ConsPattern): boolean {
-    // Handle finite arrays
+    //finite arrays
     if (Array.isArray(this.value)) {
       if (this.value.length === 0) return false;
       const headMatcher = new PatternMatcher(this.value[0], this.bindings);
@@ -175,23 +175,28 @@ export class PatternMatcher implements Visitor<boolean> {
       return node.tail.accept(tailMatcher);
     }
 
-    // Handle LazyList
+    // LazyList
     if (isLazyList(this.value)) {
-      const iter = this.value.generator();
-      const first = iter.next();
+      const headIter = this.value.generator();
+      const first = headIter.next();
+
       if (first.done) return false;
 
       const headMatcher = new PatternMatcher(first.value, this.bindings);
       if (!node.head.accept(headMatcher)) return false;
 
-      // tail generator that yields the rest
+      const parentGeneratorFactory = this.value.generator;
+
       const tailGenerator = function* (): Generator<
         PrimitiveValue,
         void,
         unknown
       > {
-        let next;
-        while (!(next = iter.next()).done) {
+        const freshIter = parentGeneratorFactory();
+        freshIter.next();
+
+        let next: IteratorResult<PrimitiveValue, void>;
+        while (!(next = freshIter.next()).done) {
           yield next.value;
         }
       };
