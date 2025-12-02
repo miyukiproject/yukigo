@@ -10,6 +10,7 @@ import {
   ListPattern,
   ListPrimitive,
   LiteralPattern,
+  Pattern,
   PrimitiveValue,
   SymbolPrimitive,
   TuplePattern,
@@ -20,6 +21,7 @@ import {
 } from "@yukigo/ast";
 import { Bindings } from "../index.js";
 import { InterpreterVisitor } from "./Visitor.js";
+import { createStream } from "../utils.js";
 
 export class PatternResolver implements Visitor<string> {
   visitVariablePattern(node: VariablePattern): string {
@@ -118,150 +120,109 @@ export class PatternMatcher implements Visitor<boolean> {
 
     for (let i = 0; i < node.elements.length; i++) {
       const matcher = new PatternMatcher(this.value[i], this.bindings);
-      if (!node.elements[i].accept(matcher)) {
-        return false;
-      }
+      if (!node.elements[i].accept(matcher)) return false;
     }
     return true;
   }
 
   visitListPattern(node: ListPattern): boolean {
-    // Empty list pattern: []
+    // empty list case
     if (node.elements.length === 0) {
-      if (Array.isArray(this.value)) {
-        return this.value.length === 0;
-      }
+      if (Array.isArray(this.value)) return this.value.length === 0;
+
       if (isLazyList(this.value)) {
         const iter = this.value.generator();
-        return iter.next().done; // true if empty
+        return iter.next().done;
       }
       return false;
     }
 
-    if (Array.isArray(this.value)) {
-      if (this.value.length !== node.elements.length) return false;
-      for (let i = 0; i < node.elements.length; i++) {
-        const matcher = new PatternMatcher(this.value[i], this.bindings);
-        if (!node.elements[i].accept(matcher)) {
-          return false;
-        }
-      }
-      return true;
-    }
+    // finite list case
+    if (Array.isArray(this.value))
+      return this.matchList(node.elements, this.value);
+
+    // lazy list case
     if (isLazyList(this.value)) {
-      // Realize the lazy list (with safety limit)
       const realized = this.realize(this.value);
-      if (realized.length !== node.elements.length) return false;
-      for (let i = 0; i < node.elements.length; i++) {
-        const matcher = new PatternMatcher(realized[i], this.bindings);
-        if (!node.elements[i].accept(matcher)) {
-          return false;
-        }
-      }
-      return true;
+      return this.matchList(node.elements, realized);
     }
 
     return false;
   }
-
-  visitConsPattern(node: ConsPattern): boolean {
-    //finite arrays
-    if (Array.isArray(this.value)) {
-      if (this.value.length === 0) return false;
-      const headMatcher = new PatternMatcher(this.value[0], this.bindings);
-      if (!node.head.accept(headMatcher)) return false;
-      const tail = this.value.slice(1);
-      const tailMatcher = new PatternMatcher(tail, this.bindings);
-      return node.tail.accept(tailMatcher);
-    }
-
-    // LazyList
-    if (isLazyList(this.value)) {
-      const headIter = this.value.generator();
-      const first = headIter.next();
-
-      if (first.done) return false;
-
-      const headMatcher = new PatternMatcher(first.value, this.bindings);
-      if (!node.head.accept(headMatcher)) return false;
-
-      const parentGeneratorFactory = this.value.generator;
-
-      const tailGenerator = function* (): Generator<
-        PrimitiveValue,
-        void,
-        unknown
-      > {
-        const freshIter = parentGeneratorFactory();
-        freshIter.next();
-
-        let next: IteratorResult<PrimitiveValue, void>;
-        while (!(next = freshIter.next()).done) {
-          yield next.value;
-        }
-      };
-
-      const tailLazyList: LazyList = {
-        type: "LazyList",
-        generator: tailGenerator,
-      };
-
-      const tailMatcher = new PatternMatcher(tailLazyList, this.bindings);
-      return node.tail.accept(tailMatcher);
-    }
-
-    return false;
-  }
-
-  visitConstructorPattern(node: ConstructorPattern): boolean {
-    // Assume runtime representation: [constructorName, ...args]
-    if (!Array.isArray(this.value) || this.value.length === 0) return false;
-    if (this.value[0] !== node.constr) return false;
-
-    const args = this.value.slice(1);
-    if (args.length !== node.patterns.length) return false;
-
-    for (let i = 0; i < node.patterns.length; i++) {
-      const matcher = new PatternMatcher(args[i], this.bindings);
-      if (!node.patterns[i].accept(matcher)) {
-        return false;
-      }
+  private matchList(elements: Pattern[], value: PrimitiveValue[]) {
+    if (value.length !== elements.length) return false;
+    for (let i = 0; i < elements.length; i++) {
+      const matcher = new PatternMatcher(value[i], this.bindings);
+      const isMatch = elements[i].accept(matcher);
+      if (!isMatch) return false;
     }
     return true;
   }
 
+  visitConsPattern(node: ConsPattern): boolean {
+    const [head, tail] = this.resolveCons(this.value);
+    if(!head || !tail) return false
+    const headMatcher = new PatternMatcher(head, this.bindings);
+    const headMatches = node.head.accept(headMatcher);
+    if (!headMatches) return false;
+
+    const tailMatcher = new PatternMatcher(tail, this.bindings);
+    return node.tail.accept(tailMatcher);
+  }
+  private resolveCons(list: PrimitiveValue): [PrimitiveValue, PrimitiveValue] {
+    if (Array.isArray(list))
+      return list.length === 0 ? [null, null] : [list[0], list.slice(1)];
+    if (isLazyList(list)) {
+      const headIter = list.generator();
+      const next = headIter.next();
+      if (next.done) return [null, null];
+      const parentGeneratorFactory = list.generator;
+      const tailGenerator = function* (): Generator<PrimitiveValue> {
+        const freshIter = parentGeneratorFactory();
+        freshIter.next();
+        let next: IteratorResult<PrimitiveValue, void>;
+        while (!(next = freshIter.next()).done) yield next.value;
+      };
+
+      return [next.value, createStream(tailGenerator)];
+    }
+    return [null, null]
+  }
+
+  visitConstructorPattern(node: ConstructorPattern): boolean {
+    if (!Array.isArray(this.value) || this.value.length === 0) return false;
+    if (this.value[0] !== node.constr) return false;
+
+    const args = this.value.slice(1);
+    return this.matchList(node.patterns, args);
+  }
+
   visitFunctorPattern(node: FunctorPattern): boolean {
-    // Same as ConstructorPattern (alias)
     return this.visitConstructorPattern(
       new ConstructorPattern(node.identifier.value, node.args)
     );
   }
 
   visitApplicationPattern(node: ApplicationPattern): boolean {
-    // Same as FunctorPattern
     return this.visitConstructorPattern(
       new ConstructorPattern(node.symbol.value, node.args)
     );
   }
 
   visitAsPattern(node: AsPattern): boolean {
-    // First match the inner pattern
     const innerMatcher = new PatternMatcher(this.value, this.bindings);
-    if (!node.pattern.accept(innerMatcher)) return false;
+    const innerMatches = node.pattern.accept(innerMatcher);
+    if (!innerMatches) return false;
 
-    // Then bind the alias
     const aliasMatcher = new PatternMatcher(this.value, this.bindings);
     return node.alias.accept(aliasMatcher);
   }
 
   visitUnionPattern(node: UnionPattern): boolean {
-    // Try each pattern in order; succeed if any matches
     for (const pattern of node.patterns) {
-      // Use a fresh bindings list for each attempt
       const trialBindings: Bindings = [];
       const matcher = new PatternMatcher(this.value, trialBindings);
       if (pattern.accept(matcher)) {
-        // Commit the bindings
         this.bindings.push(...trialBindings);
         return true;
       }

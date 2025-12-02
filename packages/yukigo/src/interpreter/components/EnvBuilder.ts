@@ -4,6 +4,7 @@ import {
   EquationRuntime,
   Fact,
   Function,
+  isRuntimePredicate,
   Rule,
   RuntimeFunction,
   TraverseVisitor,
@@ -40,9 +41,8 @@ export class EnvBuilderVisitor extends TraverseVisitor {
         throw new Error(`All equations of ${name} must have the same arity`);
     }
 
-    // for recursive references
-    const placeholder: Partial<RuntimeFunction> = {};
-    define(this.env, name, placeholder as RuntimeFunction);
+    let placeholder: RuntimeFunction;
+    define(this.env, name, placeholder);
 
     const equations: EquationRuntime[] = node.equations.map((eq) => ({
       patterns: eq.patterns,
@@ -60,12 +60,7 @@ export class EnvBuilderVisitor extends TraverseVisitor {
     const identifier = node.identifier.value;
     const runtimeValue = this.env[0].get(identifier);
 
-    if (
-      runtimeValue &&
-      typeof runtimeValue === "object" &&
-      "kind" in runtimeValue &&
-      runtimeValue.kind === "Fact"
-    ) {
+    if (isRuntimePredicate(runtimeValue) && runtimeValue.kind === "Fact") {
       this.env[0].set(identifier, {
         ...runtimeValue,
         equations: [...runtimeValue.equations, node],
@@ -83,12 +78,7 @@ export class EnvBuilderVisitor extends TraverseVisitor {
     const identifier = node.identifier.value;
     const runtimeValue = this.env[0].get(identifier);
 
-    if (
-      runtimeValue &&
-      typeof runtimeValue === "object" &&
-      "kind" in runtimeValue &&
-      runtimeValue.kind === "Rule"
-    ) {
+    if (isRuntimePredicate(runtimeValue) && runtimeValue.kind === "Rule") {
       this.env[0].set(identifier, {
         ...runtimeValue,
         equations: [...runtimeValue.equations, node],

@@ -80,6 +80,21 @@ import {
   TypeCast,
 } from "./globals/types.js";
 import {
+  AlterDatabase,
+  AlterTable,
+  Commit,
+  CreateDatabase,
+  CreateIndex,
+  CreateTable,
+  Delete,
+  DropIndex,
+  DropTable,
+  InsertInto,
+  Rollback,
+  Select,
+  Update,
+} from "./paradigms/data.js";
+import {
   CompositionExpression,
   Lambda,
   Application,
@@ -229,6 +244,20 @@ export interface StrictVisitor<TReturn> {
   visitTypeAlias(node: TypeAlias): TReturn;
   visitTypeSignature(node: TypeSignature): TReturn;
   visitTypeCast(node: TypeCast): TReturn;
+  // Data Manipulation Nodes
+  visitSelect(node: Select): TReturn;
+  visitUpdate(node: Update): TReturn;
+  visitDelete(node: Delete): TReturn;
+  visitInsertInto(node: InsertInto): TReturn;
+  visitCreateDatabase(node: CreateDatabase): TReturn;
+  visitAlterDatabase(node: AlterDatabase): TReturn;
+  visitCreateTable(node: CreateTable): TReturn;
+  visitAlterTable(node: AlterTable): TReturn;
+  visitDropTable(node: DropTable): TReturn;
+  visitCreateIndex(node: CreateIndex): TReturn;
+  visitDropIndex(node: DropIndex): TReturn;
+  visitCommit(node: Commit): TReturn;
+  visitRollback(node: Rollback): TReturn;
   visit(node: ASTNode): TReturn;
 }
 
@@ -241,6 +270,37 @@ export class StopTraversalException extends Error {
 }
 
 export class TraverseVisitor implements StrictVisitor<void> {
+  visitSelect(node: Select): void {
+    this.traverseCollection(node.columns);
+    node.where?.accept(this);
+  }
+  visitUpdate(node: Update): void {
+    this.traverseCollection(node.assignments);
+    node.where?.accept(this);
+  }
+  visitDelete(node: Delete): void {
+    node.where?.accept(this);
+  }
+  visitInsertInto(node: InsertInto): void {
+    node.values.forEach((val) => this.traverseCollection(val));
+  }
+  visitCreateDatabase(node: CreateDatabase): void {}
+  visitAlterDatabase(node: AlterDatabase): void {}
+  visitCreateTable(node: CreateTable): void {
+    this.traverseCollection(node.columns);
+  }
+  visitAlterTable(node: AlterTable): void {
+    node.action.accept(this);
+  }
+  visitDropTable(node: DropTable): void {}
+  visitCreateIndex(node: CreateIndex): void {}
+  visitDropIndex(node: DropIndex): void {}
+  visitCommit(node: Commit): void {
+    node.name.accept(this)
+  }
+  visitRollback(node: Rollback): void {
+    node.name.accept(this)
+  }
   protected traverseCollection(nodes: ASTNode[]): void {
     for (const node of nodes) {
       try {

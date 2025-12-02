@@ -3,7 +3,6 @@ import {
   Expression,
   Findall,
   Goal,
-  isYukigoPrimitive,
   LiteralPattern,
   Pattern,
   PrimitiveValue,
@@ -16,10 +15,12 @@ import {
   InternalLogicResult,
   solveGoal,
   Substitution,
+  success,
 } from "./LogicResolver.js";
 import { PatternResolver } from "./PatternMatcher.js";
 import { EnvStack, InterpreterConfig } from "../index.js";
 import { createStream, ExpressionEvaluator } from "../utils.js";
+import { InterpreterError } from "../errors.js";
 
 export class LogicEngine {
   constructor(
@@ -44,7 +45,8 @@ export class LogicEngine {
   }
 
   public solveFindall(node: Findall): PrimitiveValue {
-    if (!(node.goal instanceof Goal)) throw new Error("Findall expects a Goal");
+    if (!(node.goal instanceof Goal))
+      throw new InterpreterError("solveFindall", "Findall expects a Goal");
 
     const goalPatterns = node.goal.args.map((arg) => {
       return this.expressionToPattern(arg);
@@ -79,7 +81,7 @@ export class LogicEngine {
     substs: Substitution
   ): Generator<InternalLogicResult> {
     if (expressions.length === 0) {
-      yield { success: true, substs };
+      yield success(substs);
       return;
     }
 
@@ -141,7 +143,10 @@ export class LogicEngine {
       return new LiteralPattern(new SymbolPrimitive(String(val)));
 
     // TODO: Manejar arrays/listas complejas si es necesario
-    throw new Error(`Cannot convert value ${val} to Logic Pattern`);
+    throw new InterpreterError(
+      "primitiveToPattern",
+      `Cannot convert value ${val} to Logic Pattern`
+    );
   }
 
   private instantiateExpressionAsPattern(
@@ -185,25 +190,30 @@ export class LogicEngine {
     gen: Generator<InternalLogicResult>
   ): PrimitiveValue {
     const mode = this.config.outputMode || "first";
-
-    if (mode === "stream") {
-      const self = this;
-      return createStream(
-        (function* () {
+    switch (mode) {
+      case "stream": {
+        const self = this;
+        return createStream(function* () {
           for (const res of gen) yield self.formatLogicResult(res.substs);
-        })()
-      );
-    }
+        });
+      }
+      case "all": {
+        const res = [];
+        for (const r of gen) res.push(this.formatLogicResult(r.substs));
+        return res;
+      }
+      case "first": {
+        const next = gen.next();
+        if (next.done) return false;
+        return this.formatLogicResult(next.value.substs);
+      }
 
-    if (mode === "all") {
-      const res = [];
-      for (const r of gen) res.push(this.formatLogicResult(r.substs));
-      return res;
+      default:
+        throw new InterpreterError(
+          "handleOutputMode",
+          `Unsupported mode: ${mode}. Supported modes: all | stream | first`
+        );
     }
-
-    const next = gen.next();
-    if (next.done) return false;
-    return this.formatLogicResult(next.value.substs);
   }
 
   private formatLogicResult(substs: Substitution): any {

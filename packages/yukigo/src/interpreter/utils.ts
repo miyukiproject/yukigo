@@ -1,4 +1,4 @@
-import { Expression, PrimitiveValue } from "@yukigo/ast";
+import { Expression, LazyList, PrimitiveValue } from "@yukigo/ast";
 import { Environment, EnvStack } from "./index.js";
 import { UnboundVariable } from "./errors.js";
 
@@ -7,13 +7,11 @@ export interface ExpressionEvaluator {
 }
 
 export function createStream(
-  generator: Generator<any, void, unknown>
-): PrimitiveValue {
+  generator: () => Generator<PrimitiveValue, void, unknown>
+): LazyList {
   return {
     type: "LazyList",
-    generator: function* () {
-      yield* generator;
-    },
+    generator,
   };
 }
 
@@ -54,16 +52,14 @@ export function createEnv(bindings: [string, PrimitiveValue][]): Environment {
 }
 
 export function createGlobalEnv(): EnvStack {
-  return [new Map<string, PrimitiveValue>()]; // just global frame
+  return [new Map<string, PrimitiveValue>()];
 }
 
 export function pushEnv(env: EnvStack, frame?: Environment): EnvStack {
-  // Creates a new copy of the stack with a new local frame added
   return [frame ?? new Map(), ...env];
 }
 
 export function popEnv(env: EnvStack): EnvStack {
-  // Pops the most local frame
   return env.slice(1);
 }
 
@@ -79,6 +75,5 @@ export function define(
   name: string,
   value: PrimitiveValue
 ): void {
-  // Define in the most local frame
   env[0].set(name, value);
 }

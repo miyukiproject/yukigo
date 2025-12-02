@@ -25,6 +25,23 @@ export type BodySolver = (
   env: Substitution
 ) => Generator<InternalLogicResult>;
 
+export function success(substs: Substitution): InternalLogicResult {
+  return { success: true, substs };
+}
+
+function unifyParameters(
+  patterns: Pattern[],
+  args: Pattern[]
+): [Substitution, boolean] {
+  const subst: Substitution = new Map();
+  for (let i = 0; i < patterns.length; i++) {
+    const match = unify(patterns[i], args[i], subst);
+    if (!match) return [, false];
+    match.forEach((v, k) => subst.set(k, v));
+  }
+  return [subst, true];
+}
+
 export function* solveGoal(
   envs: EnvStack,
   predicateName: string,
@@ -37,33 +54,17 @@ export function* solveGoal(
   for (const clause of pred.equations) {
     if (clause.patterns.length !== args.length) continue;
 
-    let currentSubsts: Substitution = new Map();
-    let headMatches = true;
-
-    for (let i = 0; i < clause.patterns.length; i++) {
-      const match = unify(clause.patterns[i], args[i], new Map(currentSubsts));
-      console.log("In *solveGoal, match: ", match);
-
-      if (!match) {
-        headMatches = false;
-        break;
-      }
-      match.forEach((v, k) => currentSubsts.set(k, v));
-    }
-
-    if (!headMatches) continue;
+    const [substs, matches] = unifyParameters(clause.patterns, args);
+    if (!matches) continue;
 
     if (clause instanceof Fact) {
-      yield { success: true, substs: currentSubsts };
+      yield success(substs);
       continue;
     }
     if (clause instanceof Rule) {
-      const rule = clause as Rule;
-      const bodyGenerator = solveBody(rule.expressions, currentSubsts);
-
+      const bodyGenerator = solveBody(clause.expressions, substs);
       for (const finalResult of bodyGenerator)
-        yield { success: true, substs: finalResult.substs };
-
+        yield success(finalResult.substs);
       continue;
     }
     throw new InterpreterError(

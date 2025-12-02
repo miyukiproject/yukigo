@@ -16,6 +16,7 @@ import {
   PatternMatcher,
   PatternResolver,
 } from "../../src/interpreter/components/PatternMatcher.js";
+import { createStream } from "../../src/interpreter/utils.js";
 
 const s = (v: string) => new SymbolPrimitive(v);
 const n = (v: number) => new NumberPrimitive(v);
@@ -154,12 +155,10 @@ describe("Pattern System", () => {
     });
 
     describe("LazyList Matching", () => {
-      const createLazy = (items: number[]): LazyList => ({
-        type: "LazyList",
-        generator: function* () {
+      const createLazy = (items: number[]): LazyList =>
+        createStream(function* () {
           for (const i of items) yield i;
-        },
-      });
+        });
 
       it("should match Cons pattern against LazyList", () => {
         const p = new ConsPattern(variable("X"), variable("Xs"));

@@ -80,13 +80,17 @@ export class InterpreterVisitor
   implements Visitor<PrimitiveValue>, ExpressionEvaluator
 {
   private frames: ErrorFrame[];
+  private env: EnvStack;
+  private readonly config: InterpreterConfig;
 
   constructor(
-    private env: EnvStack,
-    private readonly config: InterpreterConfig,
+    env: EnvStack,
+    config: InterpreterConfig,
     frames: ErrorFrame[] = []
   ) {
     this.frames = frames;
+    this.env = env;
+    this.config = config;
   }
 
   evaluate(node: Expression): PrimitiveValue {
@@ -112,6 +116,9 @@ export class InterpreterVisitor
   visitNilPrimitive(node: NilPrimitive): PrimitiveValue {
     return node.value;
   }
+  visitCharPrimitive(node: CharPrimitive): PrimitiveValue {
+    return node.value;
+  }
   visitSymbolPrimitive(node: SymbolPrimitive): PrimitiveValue {
     try {
       return lookup(this.env, node.value);
@@ -124,9 +131,6 @@ export class InterpreterVisitor
     const value = node.expression.accept(this);
     this.env.at(-1).set(name, value);
     return true;
-  }
-  visitCharPrimitive(node: CharPrimitive): PrimitiveValue {
-    return node.value;
   }
   visitArithmeticUnaryOperation(
     node: ArithmeticUnaryOperation
@@ -277,20 +281,17 @@ export class InterpreterVisitor
     const f = node.left.accept(this);
     const g = node.right.accept(this);
 
-    if (!this.isRuntimeFunction(f) || !this.isRuntimeFunction(g)) {
+    if (!this.isRuntimeFunction(f) || !this.isRuntimeFunction(g))
       throw new InterpreterError(
         "CompositionExpression",
         "Both operands of (.) must be functions"
       );
-    }
 
     const fLabel = f.identifier ?? "λ";
-    const gLabel = g.identifier ?? "λ";
 
-    // Get the parameter patterns from g
+    const gLabel = g.identifier ?? "λ";
     const arity = g.arity;
 
-    // Generate placeholder variables for arguments
     const placeholders = Array.from(
       { length: arity },
       (_, i) => new VariablePattern(new SymbolPrimitive(`_p${i}`))
@@ -302,10 +303,7 @@ export class InterpreterVisitor
       new SymbolPrimitive(gLabel)
     );
 
-    // Then f (g p1 ... pN)
     const composedBody = new Application(new SymbolPrimitive(fLabel), gCall);
-
-    // Create lambda taking those placeholders
     const lambda = new Lambda(placeholders, composedBody);
 
     return lambda.accept(this);
@@ -326,22 +324,22 @@ export class InterpreterVisitor
 
   visitApplication(node: Application): PrimitiveValue {
     const func = node.functionExpr.accept(this);
-    const argThunk = () => node.parameter.accept(this);
 
     if (!this.isRuntimeFunction(func))
       throw new InterpreterError("Application", "Cannot apply non-function");
+
+    const argThunk = () => node.parameter.accept(this);
 
     const pending = func.pendingArgs
       ? [...func.pendingArgs, argThunk]
       : [argThunk];
 
     // partially applied
-    if (pending.length < func.arity) {
+    if (pending.length < func.arity)
       return {
         ...func,
         pendingArgs: pending,
       };
-    }
 
     //  fully applied
     if (pending.length === func.arity) {
@@ -421,15 +419,13 @@ export class InterpreterVisitor
       if (err instanceof InterpreterError) {
         err.pushFrame({ nodeType: node.constructor.name, loc: node.loc });
         throw err;
-      } else {
-        // Wrap unknown errors
-        const wrapped = new InterpreterError(
-          node.constructor.name,
-          (err as Error).message,
-          [...this.frames, { nodeType: node.constructor.name, loc: node.loc }]
-        );
-        throw wrapped;
       }
+      const wrapped = new InterpreterError(
+        node.constructor.name,
+        (err as Error).message,
+        [...this.frames, { nodeType: node.constructor.name, loc: node.loc }]
+      );
+      throw wrapped;
     }
   }
   private isRuntimeFunction(val: any): val is RuntimeFunction {
@@ -452,13 +448,12 @@ export class InterpreterVisitor
     const left = node.left.accept(this);
     const right = node.right.accept(this);
 
-    if (!typeGuard(left, right)) {
+    if (!typeGuard(left, right))
       throw new InterpreterError(
         contextName,
         `Type mismatch: ${left}, ${right}`,
         this.frames
       );
-    }
 
     const fn = table[node.operator];
     if (!fn)
@@ -473,13 +468,13 @@ export class InterpreterVisitor
     contextName: string
   ): PrimitiveValue {
     const operand = node.operand.accept(this);
-    if (!typeGuard(operand)) {
+    if (!typeGuard(operand))
       throw new InterpreterError(
         contextName,
         `Type mismatch: ${operand}`,
         this.frames
       );
-    }
+
     const fn = table[node.operator];
     if (!fn)
       throw new InterpreterError(contextName, `Unknown op: ${node.operator}`);

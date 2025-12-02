@@ -18,9 +18,6 @@ class NonExhaustivePatterns extends InterpreterError {
 }
 
 export class FunctionRuntime {
-  /**
-   * Intenta encajar los argumentos con las ecuaciones disponibles y ejecuta el cuerpo.
-   */
   static apply(
     funcName: string,
     equations: EquationRuntime[],
@@ -37,7 +34,6 @@ export class FunctionRuntime {
       const localEnv = new Map<string, PrimitiveValue>(bindings);
       const newStack: EnvStack = [localEnv, ...currentEnv];
 
-      // create evaluator for this new scope
       const scopeEvaluator = evaluatorFactory(newStack);
 
       // UnguardedBody
@@ -65,9 +61,6 @@ export class FunctionRuntime {
     return true;
   }
 
-  /**
-   * Maneja la ejecución secuencial (imperativa) dentro de un cuerpo funcional
-   */
   private static evaluateSequence(
     seq: Sequence,
     evaluator: ExpressionEvaluator
@@ -78,7 +71,7 @@ export class FunctionRuntime {
       if (stmt instanceof Return) {
         return evaluator.evaluate(stmt.body);
       } else {
-        result = evaluator.evaluate(stmt as Expression);
+        result = evaluator.evaluate(stmt);
       }
     }
     return result;

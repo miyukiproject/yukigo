@@ -6,6 +6,7 @@ import {
   LazyList,
   NumberPrimitive,
 } from "@yukigo/ast";
+import { createStream } from "../../src/interpreter/utils.js";
 
 class MockEvaluator {
   evaluate(node: any): any {
@@ -45,13 +46,10 @@ describe("LazyRuntime", () => {
     });
 
     it("should consume a LazyList into an array", () => {
-      const lazyList: LazyList = {
-        type: "LazyList",
-        generator: function* () {
-          yield 10;
-          yield 20;
-        },
-      };
+      const lazyList: LazyList = createStream(function* () {
+        yield 10;
+        yield 20;
+      });
 
       const result = LazyRuntime.realizeList(lazyList);
       expect(result).to.deep.equal([10, 20]);
@@ -99,13 +97,6 @@ describe("LazyRuntime", () => {
     });
 
     describe("Infinite Ranges", () => {
-      it("should throw if lazyLoading is disabled", () => {
-        const node = range(1);
-        expect(() =>
-          LazyRuntime.evaluateRange(node, evaluator, { lazyLoading: false })
-        ).to.throw(/Infinite range requires lazyLoading/);
-      });
-
       it("should return a LazyList object", () => {
         const node = range(1);
         const result = LazyRuntime.evaluateRange(node, evaluator, {
@@ -167,13 +158,10 @@ describe("LazyRuntime", () => {
       });
 
       it("should return a new LazyList if tail is a LazyList", () => {
-        const tailLazy: LazyList = {
-          type: "LazyList",
-          generator: function* () {
-            yield 2;
-            yield 3;
-          },
-        };
+        const tailLazy: LazyList = createStream(function* () {
+          yield 2;
+          yield 3;
+        });
 
         const node = cons(1, tailLazy);
         const result = LazyRuntime.evaluateCons(

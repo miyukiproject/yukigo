@@ -3,8 +3,9 @@ import {
   RangeExpression,
   ConsExpression,
   isLazyList,
+  LazyList,
 } from "@yukigo/ast";
-import { ExpressionEvaluator } from "../utils.js";
+import { createStream, ExpressionEvaluator } from "../utils.js";
 
 export class LazyRuntime {
   static realizeList(val: PrimitiveValue): PrimitiveValue[] {
@@ -45,18 +46,13 @@ export class LazyRuntime {
     }
 
     if (!hasEnd) {
-      if (!config.lazyLoading)
-        throw new Error("Infinite range requires lazyLoading enabled");
-      return {
-        type: "LazyList",
-        generator: function* () {
-          let current = startVal;
-          while (true) {
-            yield current;
-            current += step;
-          }
-        },
-      };
+      return createStream(function* () {
+        let current = startVal;
+        while (true) {
+          yield current;
+          current += step;
+        }
+      });
     }
 
     const endVal = evaluator.evaluate(node.end);
@@ -83,15 +79,12 @@ export class LazyRuntime {
     if (lazy) {
       const tail = evaluator.evaluate(node.tail);
       if (Array.isArray(tail)) return [head, ...tail];
-      if (isLazyList(tail)) {
-        return {
-          type: "LazyList",
-          generator: function* () {
-            yield head;
-            yield* tail.generator();
-          },
-        };
-      }
+      if (isLazyList(tail))
+        return createStream(function* () {
+          yield head;
+          yield* tail.generator();
+        });
+
       throw new Error(`Invalid tail type for Cons: ${typeof tail}`);
     }
 
