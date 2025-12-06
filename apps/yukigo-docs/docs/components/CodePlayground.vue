@@ -1,7 +1,22 @@
 <template>
-  <div class="flex w-full gap-8 h-64">
-    <Editor v-model="code" />
+  <div class="flex flex-col w-full gap-4">
+    <!-- Parser Selector -->
+    <div class="flex gap-4 items-center p-4 bg-gradient-to-r from-primary/10 to-purple-500/10 rounded-lg border border-primary/20">
+      <label class="font-semibold text-gray-700">Select Language:</label>
+      <select 
+        v-model="selectedLanguage"
+        @change="switchLanguage"
+        class="px-4 py-2 rounded-lg border border-primary/30 bg-white text-gray-800 font-medium cursor-pointer hover:border-primary/60 transition">
+        <option value="haskell">Haskell</option>
+        <option value="prolog">Prolog</option>
+        <option value="wollok">Wollok</option>
+      </select>
+    </div>
 
+    <!-- Editor and Terminal -->
+    <div class="flex w-full gap-8 h-64">
+      <Editor v-model="code" />
+    </div>
     <div class="w-1/2 h-full">
       <div
         class="h-full flex flex-col bg-[#1e1e1e] rounded-[14px] overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.25)] font-mono">
@@ -47,6 +62,9 @@
 import { ref, onMounted, nextTick } from "vue";
 import Editor from "./Editor.vue";
 import { YukigoHaskellParser } from "yukigo-haskell-parser";
+import { YukigoPrologParser } from "yukigo-prolog-parser";
+import { YukigoWollokParser } from "yukigo-wollok-parser";
+
 import { Interpreter } from "yukigo";
 
 const props = defineProps({
@@ -56,6 +74,23 @@ const props = defineProps({
   },
 });
 
+// Language examples
+const languageExamples = {
+  haskell: {
+    code: "doble x = x * 2",
+    parser: new YukigoHaskellParser(),
+  },
+  prolog: {
+    code: "parent(tom, bob).\nparent(tom, liz).",
+    parser: new YukigoPrologParser(),
+  },
+  wollok: {
+    code: "method double(x) = x * 2",
+    parser: new YukigoWollokParser(),
+  },
+};
+
+const selectedLanguage = ref("haskell");
 const code = ref(props.initialCode);
 const commandHistory = ref([
   { type: "output", text: "Yukigo REPL v0.1.0 — Try a command!" },
@@ -66,8 +101,20 @@ const historyIndex = ref(-1);
 const inputRef = ref(null);
 const terminalBodyRef = ref(null);
 
-const parser = new YukigoHaskellParser();
-const replParser = new YukigoHaskellParser("");
+let parser = new YukigoHaskellParser();
+let replParser = new YukigoHaskellParser("");
+
+function switchLanguage() {
+  const example = languageExamples[selectedLanguage.value];
+  parser = example.parser;
+  replParser = example.parser;
+  code.value = example.code;
+  commandHistory.value = [
+    { type: "output", text: `Yukigo REPL v0.1.0 — ${selectedLanguage.value} loaded` },
+  ];
+  currentCommand.value = "";
+  historyIndex.value = -1;
+}
 
 function scrollToBottom() {
   if (!terminalBodyRef.value) return;
