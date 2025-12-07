@@ -1403,9 +1403,4 @@ export interface Arrow {
   expression1: Expression[];
   expression2: Expression[];
 }
-
-export interface PrimitiveMethod {
-  type: "PrimitiveMethod";
-  operator: Operator;
-  equations: Equation[];
-} */
+ */

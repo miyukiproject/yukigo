@@ -5,6 +5,7 @@ import {
   SourceLocation,
   SymbolPrimitive,
 } from "../globals/generics.js";
+import { Operator } from "../globals/operators.js";
 import { Visitor } from "../visitor.js";
 
 /**
@@ -17,10 +18,10 @@ import { Visitor } from "../visitor.js";
  * @category OOP
  */
 export class Method extends ASTNode {
-    /** @hidden */
-    public equations: Equation[];
-    /** @hidden */
-    public identifier: SymbolPrimitive;
+  /** @hidden */
+  public equations: Equation[];
+  /** @hidden */
+  public identifier: SymbolPrimitive;
 
   constructor(
     identifier: SymbolPrimitive,
@@ -28,8 +29,8 @@ export class Method extends ASTNode {
     loc?: SourceLocation
   ) {
     super(loc);
-      this.identifier = identifier;
-      this.equations = equations;
+    this.identifier = identifier;
+    this.equations = equations;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitMethod?.(this);
@@ -48,10 +49,10 @@ export class Method extends ASTNode {
  * @category OOP
  */
 export class Attribute extends ASTNode {
-    /** @hidden */
-    public expression: Expression;
-    /** @hidden */
-    public identifier: SymbolPrimitive;
+  /** @hidden */
+  public expression: Expression;
+  /** @hidden */
+  public identifier: SymbolPrimitive;
 
   constructor(
     identifier: SymbolPrimitive,
@@ -59,8 +60,8 @@ export class Attribute extends ASTNode {
     loc?: SourceLocation
   ) {
     super(loc);
-      this.identifier = identifier;
-      this.expression = expression;
+    this.identifier = identifier;
+    this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitAttribute?.(this);
@@ -82,10 +83,10 @@ export class Attribute extends ASTNode {
  * @category OOP
  */
 export class Object extends ASTNode {
-    /** @hidden */
-    public expression: Expression;
-    /** @hidden */
-    public identifier: SymbolPrimitive;
+  /** @hidden */
+  public expression: Expression;
+  /** @hidden */
+  public identifier: SymbolPrimitive;
 
   constructor(
     identifier: SymbolPrimitive,
@@ -93,8 +94,8 @@ export class Object extends ASTNode {
     loc?: SourceLocation
   ) {
     super(loc);
-      this.identifier = identifier;
-      this.expression = expression;
+    this.identifier = identifier;
+    this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitObject?.(this);
@@ -116,14 +117,14 @@ export class Object extends ASTNode {
  * @category OOP
  */
 export class Class extends ASTNode {
-    /** @hidden */
-    public expression: Expression;
-    /** @hidden */
-    public implementsNode: Implement | undefined;
-    /** @hidden */
-    public extendsSymbol: SymbolPrimitive | undefined;
-    /** @hidden */
-    public identifier: SymbolPrimitive;
+  /** @hidden */
+  public expression: Expression;
+  /** @hidden */
+  public implementsNode: Implement | undefined;
+  /** @hidden */
+  public extendsSymbol: SymbolPrimitive | undefined;
+  /** @hidden */
+  public identifier: SymbolPrimitive;
 
   constructor(
     identifier: SymbolPrimitive,
@@ -133,10 +134,10 @@ export class Class extends ASTNode {
     loc?: SourceLocation
   ) {
     super(loc);
-      this.identifier = identifier;
-      this.extendsSymbol = extendsSymbol;
-      this.implementsNode = implementsNode;
-      this.expression = expression;
+    this.identifier = identifier;
+    this.extendsSymbol = extendsSymbol;
+    this.implementsNode = implementsNode;
+    this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitClass?.(this);
@@ -157,12 +158,12 @@ export class Class extends ASTNode {
  * @category OOP
  */
 export class Interface extends ASTNode {
-    /** @hidden */
-    public expression: Expression;
-    /** @hidden */
-    public extendsSymbol: SymbolPrimitive[];
-    /** @hidden */
-    public identifier: SymbolPrimitive;
+  /** @hidden */
+  public expression: Expression;
+  /** @hidden */
+  public extendsSymbol: SymbolPrimitive[];
+  /** @hidden */
+  public identifier: SymbolPrimitive;
 
   constructor(
     identifier: SymbolPrimitive,
@@ -171,9 +172,9 @@ export class Interface extends ASTNode {
     loc?: SourceLocation
   ) {
     super(loc);
-      this.identifier = identifier;
-      this.extendsSymbol = extendsSymbol;
-      this.expression = expression;
+    this.identifier = identifier;
+    this.extendsSymbol = extendsSymbol;
+    this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitInterface?.(this);
@@ -196,12 +197,12 @@ export class Interface extends ASTNode {
  * @category OOP
  */
 export class Send extends ASTNode {
-    /** @hidden */
-    public args: Expression[];
-    /** @hidden */
-    public selector: Expression;
-    /** @hidden */
-    public receiver: Expression;
+  /** @hidden */
+  public args: Expression[];
+  /** @hidden */
+  public selector: Expression;
+  /** @hidden */
+  public receiver: Expression;
 
   constructor(
     receiver: Expression,
@@ -210,9 +211,9 @@ export class Send extends ASTNode {
     loc?: SourceLocation
   ) {
     super(loc);
-      this.receiver = receiver;
-      this.selector = selector;
-      this.args = args;
+    this.receiver = receiver;
+    this.selector = selector;
+    this.args = args;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitSend?.(this);
@@ -235,10 +236,10 @@ export class Send extends ASTNode {
  * @category OOP
  */
 export class New extends ASTNode {
-    /** @hidden */
-    public args: Expression[];
-    /** @hidden */
-    public identifier: SymbolPrimitive;
+  /** @hidden */
+  public args: Expression[];
+  /** @hidden */
+  public identifier: SymbolPrimitive;
 
   constructor(
     identifier: SymbolPrimitive,
@@ -246,8 +247,8 @@ export class New extends ASTNode {
     loc?: SourceLocation
   ) {
     super(loc);
-      this.identifier = identifier;
-      this.args = args;
+    this.identifier = identifier;
+    this.args = args;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitNew?.(this);
@@ -266,12 +267,12 @@ export class New extends ASTNode {
  * @category OOP
  */
 export class Implement extends ASTNode {
-    /** @hidden */
-    public identifier: SymbolPrimitive;
+  /** @hidden */
+  public identifier: SymbolPrimitive;
 
   constructor(identifier: SymbolPrimitive, loc?: SourceLocation) {
     super(loc);
-      this.identifier = identifier;
+    this.identifier = identifier;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitImplement?.(this);
@@ -289,12 +290,12 @@ export class Implement extends ASTNode {
  * @category OOP
  */
 export class Include extends ASTNode {
-    /** @hidden */
-    public identifier: SymbolPrimitive;
+  /** @hidden */
+  public identifier: SymbolPrimitive;
 
   constructor(identifier: SymbolPrimitive, loc?: SourceLocation) {
     super(loc);
-      this.identifier = identifier;
+    this.identifier = identifier;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitInclude?.(this);
@@ -331,6 +332,35 @@ export class Super extends ASTNode {
   public toJSON() {
     return {
       type: "Super",
+    };
+  }
+}
+/**
+ * Declaration of custom primitive operators - also known as operator overriding.
+ * @category OOP
+ * @example
+ * def ==(other)
+ * end
+ * def hash
+ * end
+
+ */
+export class PrimitiveMethod extends ASTNode {
+  public operator: Operator;
+  public equations: Equation[];
+  constructor(operator: Operator, equations: Equation[], loc: SourceLocation) {
+    super(loc);
+    this.operator = operator;
+    this.equations = equations;
+  }
+  public accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitPrimitiveMethod?.(this);
+  }
+  public toJSON() {
+    return {
+      type: "PrimitiveMethod",
+      operator: this.operator,
+      equations: this.equations,
     };
   }
 }

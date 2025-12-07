@@ -132,6 +132,7 @@ import {
   Interface,
   Object,
   Super,
+  PrimitiveMethod,
 } from "./paradigms/object.js";
 
 export interface StrictVisitor<TReturn> {
@@ -216,6 +217,7 @@ export interface StrictVisitor<TReturn> {
   visitFact(node: Fact): TReturn;
   visitQuery(node: Query): TReturn;
   visitMethod(node: Method): TReturn;
+  visitPrimitiveMethod(node: PrimitiveMethod): TReturn;
   visitAttribute(node: Attribute): TReturn;
   visitObject(node: Object): TReturn;
   visitClass(node: Class): TReturn;
@@ -296,10 +298,10 @@ export class TraverseVisitor implements StrictVisitor<void> {
   visitCreateIndex(node: CreateIndex): void {}
   visitDropIndex(node: DropIndex): void {}
   visitCommit(node: Commit): void {
-    node.name.accept(this)
+    node.name.accept(this);
   }
   visitRollback(node: Rollback): void {
-    node.name.accept(this)
+    node.name.accept(this);
   }
   protected traverseCollection(nodes: ASTNode[]): void {
     for (const node of nodes) {
@@ -585,6 +587,9 @@ export class TraverseVisitor implements StrictVisitor<void> {
   }
   visitMethod(node: Method): void {
     node.identifier.accept(this);
+    this.traverseCollection(node.equations);
+  }
+  visitPrimitiveMethod(node: PrimitiveMethod): void {
     this.traverseCollection(node.equations);
   }
   visitAttribute(node: Attribute): void {
