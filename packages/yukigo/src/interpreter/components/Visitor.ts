@@ -70,7 +70,7 @@ import {
   LogicalUnaryTable,
   StringOperationTable,
 } from "./Operations.js";
-import { ExpressionEvaluator, lookup } from "../utils.js";
+import { define, ExpressionEvaluator, lookup } from "../utils.js";
 import { LogicEngine } from "./LogicEngine.js";
 import { ErrorFrame, InterpreterError, UnexpectedValue } from "../errors.js";
 import { LazyRuntime } from "./LazyRuntime.js";
@@ -287,9 +287,14 @@ export class InterpreterVisitor
         "Both operands of (.) must be functions"
       );
 
-    const fLabel = f.identifier ?? "λ";
-
-    const gLabel = g.identifier ?? "λ";
+    const fName = `__comp_f_${Date.now()}_${Math.random()
+      .toString(36)
+      .substring(2, 5)}`;
+    const gName = `__comp_g_${Date.now()}_${Math.random()
+      .toString(36)
+      .substring(2, 5)}`;
+    define(this.env, fName, f);
+    define(this.env, gName, g);
     const arity = g.arity;
 
     const placeholders = Array.from(
@@ -297,15 +302,13 @@ export class InterpreterVisitor
       (_, i) => new VariablePattern(new SymbolPrimitive(`_p${i}`))
     );
 
-    // Build g applied to all placeholders
     const gCall = placeholders.reduce<Expression>(
       (acc, p) => new Application(acc, new SymbolPrimitive(p.name.value)),
-      new SymbolPrimitive(gLabel)
+      new SymbolPrimitive(gName)
     );
 
-    const composedBody = new Application(new SymbolPrimitive(fLabel), gCall);
+    const composedBody = new Application(new SymbolPrimitive(fName), gCall);
     const lambda = new Lambda(placeholders, composedBody);
-
     return lambda.accept(this);
   }
   visitLambda(node: Lambda): PrimitiveValue {
@@ -319,6 +322,7 @@ export class InterpreterVisitor
       equations: [equation],
       pendingArgs: [],
       identifier: "<lambda>",
+      closure: Array.from(this.env),
     };
   }
 
@@ -346,11 +350,12 @@ export class InterpreterVisitor
       const evaluatedArgs = pending.map((arg) =>
         typeof arg === "function" ? arg() : arg
       );
+      const executionEnv = func.closure ?? this.env;
       return FunctionRuntime.apply(
         func.identifier ?? "<anonymous>",
         func.equations,
         evaluatedArgs,
-        this.env,
+        executionEnv,
         (newEnv) => new InterpreterVisitor(newEnv, this.config, this.frames)
       );
     }

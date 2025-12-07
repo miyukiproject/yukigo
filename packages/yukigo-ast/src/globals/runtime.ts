@@ -16,6 +16,7 @@ export interface RuntimeFunction {
   identifier?: string;
   equations: EquationRuntime[];
   pendingArgs?: (PrimitiveValue | PrimitiveThunk)[]; // for partial application
+  closure?: Map<string, PrimitiveValue>[];
 }
 export interface LazyList {
   readonly type: "LazyList";
