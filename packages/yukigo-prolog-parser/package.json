@@ -7,7 +7,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "nearleyc ./src/parser/grammar.ne -o ./src/parser/grammar.ts && tsc",
-    "test": "npm run build && mocha --import=tsx"
+    "test": "mocha --import=tsx"
   },
   "keywords": [],
   "author": "noiseArch",

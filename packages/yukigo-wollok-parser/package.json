@@ -11,7 +11,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "npm run build && mocha --import=tsx"
+    "test": "mocha --import=tsx"
   },
   "keywords": [],
   "author": "",
