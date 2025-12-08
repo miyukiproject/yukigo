@@ -8,6 +8,7 @@
   "scripts": {
     "build": "npm build --workspaces --if-present",
     "test": "npm test --workspaces --if-present",
+    "build:ast": "npm run build -w @yukigo/ast",
     "docs:dev": "npm run docs:dev --workspace=@yukigo/docs",
     "docs:gen": "npm run docs:gen --workspace=@yukigo/docs"
   },

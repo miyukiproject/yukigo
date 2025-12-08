@@ -12,7 +12,7 @@ import {
   TraverseVisitor,
   UnifyOperation,
 } from "@yukigo/ast";
-import { InspectionMap, executeVisitor } from "../index.js";
+import { InspectionMap, executeVisitor } from "../utils.js";
 import { isYukigoPrimitive } from "@yukigo/ast";
 
 export abstract class DeclaresBinding extends TraverseVisitor {
@@ -159,7 +159,8 @@ export const logicInspections: InspectionMap = {
   UsesUnificationOperator: (node, args, binding) =>
     executeVisitor(node, new UsesUnificationOperator(binding)),
   UsesCut: (node, args, binding) => executeVisitor(node, new UsesCut(binding)),
-  UsesFail: (node, args, binding) => executeVisitor(node, new UsesFail(binding)),
+  UsesFail: (node, args, binding) =>
+    executeVisitor(node, new UsesFail(binding)),
   HasRedundantReduction: (node, args, binding) =>
     executeVisitor(node, new HasRedundantReduction(binding)),
 };

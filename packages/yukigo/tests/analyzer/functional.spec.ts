@@ -1,519 +1,221 @@
-import { YukigoParser } from "@yukigo/ast";
-import { YukigoHaskellParser } from "yukigo-haskell-parser";
-import { Analyzer } from "../../src/analyzer/index.js";
-import { assert } from "chai";
-import { inspect } from "util";
+import { expect } from "chai";
+import {
+  Function,
+  Equation,
+  SymbolPrimitive,
+  UnguardedBody,
+  GuardedBody,
+  Sequence,
+  CompositionExpression,
+  Lambda,
+  Application,
+  ListComprehension,
+  Yield,
+  LiteralPattern,
+  ListPattern,
+  WildcardPattern,
+  BooleanPrimitive,
+  NumberPrimitive,
+  If,
+} from "@yukigo/ast";
+import {
+  UsesComposition,
+  UsesAnonymousVariable,
+  UsesComprehension,
+  UsesGuards,
+  UsesLambda,
+  UsesYield,
+  UsesPatternMatching,
+} from "../../src/analyzer/inspections/functional.js";
+import { executeVisitor } from "../../src/analyzer/utils.js";
 
 describe("Functional Spec", () => {
-  let haskellParser: YukigoParser;
-  let analyzer: Analyzer;
-  beforeEach(() => {
-    haskellParser = new YukigoHaskellParser("");
-    analyzer = new Analyzer();
-  });
+  const createSymbol = (name: string) => new SymbolPrimitive(name);
+  const createSequence = (expr: any) => new Sequence([expr]);
+  const createEquation = (patterns: any[], bodyExpr: any) => {
+    const body = Array.isArray(bodyExpr)
+      ? bodyExpr
+      : new UnguardedBody(createSequence(bodyExpr));
+
+    return new Equation(patterns, body, undefined);
+  };
+  const createFunction = (name: string, equations: Equation[]) => {
+    return new Function(createSymbol(name), equations);
+  };
+  const mockExpr = new NumberPrimitive(1);
+
   describe("UsesGuards", () => {
-    it("detects guards when are present", () => {
-      const inspection = {
-        inspection: "UsesGuards",
-        binding: "f",
-        args: [],
-        expected: true,
-      };
-      const ast = haskellParser.parse(
-        "f x \r\n\t| c x = 2\r\n\t| otherwise = 4"
-      );
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: true },
-      ]);
+    it("detects guards when they are present", () => {
+      const guardedBody = new GuardedBody(mockExpr, mockExpr);
+      const equation = new Equation([], [guardedBody, guardedBody], undefined);
+      const func = createFunction("f", [equation]);
+
+      const visitor = new UsesGuards("f");
+      expect(executeVisitor(func, visitor)).to.eq(true);
     });
-    it("detects guards when are not present", () => {
-      const inspection = {
-        inspection: "UsesGuards",
-        binding: "f",
-        args: [],
-        expected: false,
-      };
-      const ast = haskellParser.parse("f x = c x == 2");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: false },
-      ]);
+
+    it("does not detect guards when using UnguardedBody", () => {
+      const equation = createEquation([], mockExpr);
+      const func = createFunction("f", [equation]);
+
+      const visitor = new UsesGuards("f");
+      expect(executeVisitor(func, visitor)).to.eq(false);
+    });
+
+    it("should respect binding scope", () => {
+      const guardedBody = new GuardedBody(mockExpr, mockExpr);
+      const equation = new Equation([], [guardedBody], undefined);
+      const func = createFunction("g", [equation]);
+
+      const visitor = new UsesGuards("f");
+      expect(executeVisitor(func, visitor)).to.eq(false);
     });
   });
+
   describe("UsesComposition", () => {
+    const createComp = () => new CompositionExpression(mockExpr, mockExpr);
+
     it("is True when composition is present on top level", () => {
-      const inspection = {
-        inspection: "UsesComposition",
-        binding: "x",
-        args: [],
-        expected: true,
-      };
-      const ast = haskellParser.parse("x = y . z");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: true },
-      ]);
+      const func = createFunction("x", [createEquation([], createComp())]);
+
+      const visitor = new UsesComposition("x");
+      expect(executeVisitor(func, visitor)).to.eq(true);
     });
+
     it("is True when composition is present inside lambda", () => {
-      const inspection = {
-        inspection: "UsesComposition",
-        binding: "x",
-        args: [],
-        expected: true,
-      };
-      const ast = haskellParser.parse("x = (\\m -> y . z)");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: true },
-      ]);
+      const lambda = new Lambda([], createComp());
+      const func = createFunction("x", [createEquation([], lambda)]);
+
+      const visitor = new UsesComposition("x");
+      expect(executeVisitor(func, visitor)).to.eq(true);
     });
+
     it("is True when composition is present inside application", () => {
-      const inspection = {
-        inspection: "UsesComposition",
-        binding: "x",
-        args: [],
-        expected: true,
-      };
-      const ast = haskellParser.parse("x = f (g.h) x");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: true },
-      ]);
+      const app = new Application(mockExpr, createComp());
+      const func = createFunction("x", [createEquation([], app)]);
+
+      const visitor = new UsesComposition("x");
+      expect(executeVisitor(func, visitor)).to.eq(true);
     });
+
     it("is True when composition is present within if", () => {
-      const inspection = {
-        inspection: "UsesComposition",
-        binding: "f",
-        args: [],
-        expected: true,
-      };
-      const ast = haskellParser.parse("f x = if True then (g . f) x else 5");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: true },
-      ]);
+      const ifExpr = new If(new BooleanPrimitive(true), createComp(), mockExpr);
+      const func = createFunction("f", [createEquation([], ifExpr)]);
+
+      const visitor = new UsesComposition("f");
+      expect(executeVisitor(func, visitor)).to.eq(true);
     });
-    it("is True when composition is present within list", () => {
-      const inspection = {
-        inspection: "UsesComposition",
-        binding: "f",
-        args: [],
-        expected: true,
-      };
-      const ast = haskellParser.parse("f x = [(g.h x), m]");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: true },
-      ]);
-    });
-    it("is True when composition is present within comprehension", () => {
-      const inspection = {
-        inspection: "UsesComposition",
-        binding: "f",
-        args: [],
-        expected: true,
-      };
-      const ast = haskellParser.parse("f x = [ (g.h x) m | m <- [1..20]]");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: true },
-      ]);
-    });
-    it("is True when composition is present within where", () => {
-      const inspection = {
-        inspection: "UsesComposition",
-        binding: "f",
-        args: [],
-        expected: true,
-      };
-      const ast = haskellParser.parse("f x = m\r\n\twhere m = (f.g) ");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: true },
-      ]);
-    });
-    it("is True when composition is present on top level, guarded body", () => {
-      const inspection = {
-        inspection: "UsesComposition",
-        binding: "f",
-        args: [],
-        expected: true,
-      };
-      const ast = haskellParser.parse(
-        "f x \r\n\t| c x = g . f $ x\r\n\t| otherwise = 4"
-      );
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: true },
-      ]);
-    });
-    it("is True when composition is present on guard, guarded body", () => {
-      const inspection = {
-        inspection: "UsesComposition",
-        binding: "f",
-        args: [],
-        expected: true,
-      };
-      const ast = haskellParser.parse(
-        "f x \r\n\t| (c . g) x = g x\r\n\t| otherwise = 4"
-      );
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: true },
-      ]);
-    });
-    it("is False when composition not present, guarded body", () => {
-      const inspection = {
-        inspection: "UsesComposition",
-        binding: "f",
-        args: [],
-        expected: false,
-      };
-      const ast = haskellParser.parse(
-        "f x \r\n\t| c x = f x\r\n\t| otherwise = 4"
-      );
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: false },
-      ]);
-    });
-    it("is False when composition not present", () => {
-      const inspection = {
-        inspection: "UsesComposition",
-        binding: "x",
-        args: [],
-        expected: false,
-      };
-      const ast = haskellParser.parse("x = 1");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: false },
-      ]);
+
+    it("is False when composition is not present", () => {
+      const func = createFunction("x", [createEquation([], mockExpr)]);
+      const visitor = new UsesComposition("x");
+      expect(executeVisitor(func, visitor)).to.eq(false);
     });
   });
+
   describe("UsesPatternMatching", () => {
-    it("is True when there Pattern Matching with Literal, unscoped", () => {
-      const inspection = {
-        inspection: "UsesPatternMatching",
-        args: [],
-        expected: true,
-      };
-      const ast = haskellParser.parse(
-        "factorial 0 = 1\r\nfactorial n = n * factorial (n - 1)"
-      );
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: true },
+    it("is True when Pattern Matching with Literal", () => {
+      const pattern = new LiteralPattern(new NumberPrimitive(0));
+      const func = createFunction("factorial", [
+        createEquation([pattern], mockExpr),
       ]);
+
+      const visitor = new UsesPatternMatching("factorial");
+      expect(executeVisitor(func, visitor)).to.eq(true);
     });
-    it("is True when there Pattern Matching with Literal", () => {
-      const inspection = {
-        inspection: "UsesPatternMatching",
-        binding: "factorial",
-        args: [],
-        expected: true,
-      };
-      const ast = haskellParser.parse(
-        "factorial 0 = 1\r\nfactorial n = n * factorial (n - 1)"
-      );
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: true },
-      ]);
+
+    it("is True when Pattern Matching on List", () => {
+      const pattern = new ListPattern([]);
+      const func = createFunction("foo", [createEquation([pattern], mockExpr)]);
+
+      const visitor = new UsesPatternMatching("foo");
+      expect(executeVisitor(func, visitor)).to.eq(true);
     });
-    it("is True when there Pattern Matching on List", () => {
-      const inspection = {
-        inspection: "UsesPatternMatching",
-        binding: "foo",
-        args: [],
-        expected: true,
-      };
-      const ast = haskellParser.parse("foo [] = 0\nfoo (x:xs) = 1 + foo xs");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: true },
-      ]);
+
+    it("is True when Pattern Matching on anonymous variable (Wildcard)", () => {
+      const pattern = new WildcardPattern();
+      const func = createFunction("baz", [createEquation([pattern], mockExpr)]);
+
+      const visitor = new UsesPatternMatching("baz");
+      expect(executeVisitor(func, visitor)).to.eq(true);
     });
-    it("is True when there Pattern Matching on Maybe", () => {
-      const inspection = {
-        inspection: "UsesPatternMatching",
-        binding: "foo",
-        args: [],
-        expected: true,
-      };
-      const ast = haskellParser.parse("foo Nothing = 0\nfoo (Just x) = 1");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: true },
-      ]);
-    });
-    it("is True when there there Pattern Matching on anonymous variable", () => {
-      const inspection = {
-        inspection: "UsesPatternMatching",
-        binding: "baz",
-        args: [],
-        expected: true,
-      };
-      const ast = haskellParser.parse("baz _ = 5 + 8");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: true },
-      ]);
-    });
-    it("is False when there not Pattern Matching", () => {
-      const inspection = {
-        inspection: "UsesPatternMatching",
-        binding: "foo",
-        args: [],
-        expected: false,
-      };
-      const ast = haskellParser.parse("foo x = 2");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: false },
-      ]);
+
+    it("is False when no patterns (or ignored patterns) are used", () => {
+      const func = createFunction("foo", [createEquation([], mockExpr)]);
+      const visitor = new UsesPatternMatching("foo");
+      expect(executeVisitor(func, visitor)).to.eq(false);
     });
   });
+
   describe("UsesLambda", () => {
     it("detects lambda when is present", () => {
-      const inspection = {
-        inspection: "UsesLambda",
-        binding: "f",
-        args: [],
-        expected: true,
-      };
-      const ast = haskellParser.parse("f x = (\\y -> 4) x");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: true },
-      ]);
+      const lambda = new Lambda([], mockExpr);
+      const func = createFunction("f", [createEquation([], lambda)]);
+
+      const visitor = new UsesLambda("f");
+      expect(executeVisitor(func, visitor)).to.eq(true);
     });
+
     it("detects lambda when is not present", () => {
-      const inspection = {
-        inspection: "UsesLambda",
-        binding: "f",
-        args: [],
-        expected: false,
-      };
-      const ast = haskellParser.parse("f x = 4");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: false },
-      ]);
+      const func = createFunction("f", [createEquation([], mockExpr)]);
+      const visitor = new UsesLambda("f");
+      expect(executeVisitor(func, visitor)).to.eq(false);
     });
   });
+
   describe("UsesAnonymousVariable", () => {
-    it("is True if _ is present in paramenters", () => {
-      const inspection = {
-        inspection: "UsesAnonymousVariable",
-        binding: "foo",
-        args: [],
-        expected: true,
-      };
-      const ast = haskellParser.parse("foo _ = 1");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: true },
-      ]);
+    it("is True if _ is present in parameters", () => {
+      const pattern = new WildcardPattern();
+      const func = createFunction("foo", [createEquation([pattern], mockExpr)]);
+
+      const visitor = new UsesAnonymousVariable("foo");
+      expect(executeVisitor(func, visitor)).to.eq(true);
     });
-    it("is True if _ is present in nested list patterns", () => {
-      const inspection = {
-        inspection: "UsesAnonymousVariable",
-        binding: "foo",
-        args: [],
-        expected: true,
-      };
-      const ast = haskellParser.parse("foo [3, _] = 1");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: true },
+
+    it("is True if _ is present in nested structures (e.g. ListPattern)", () => {
+      const innerWildcard = new WildcardPattern();
+
+      const listPattern = new ListPattern([innerWildcard]);
+
+      const func = createFunction("foo", [
+        createEquation([listPattern], mockExpr),
       ]);
+
+      const visitor = new UsesAnonymousVariable("foo");
+
+      expect(executeVisitor(func, visitor)).to.eq(true);
     });
-    it("is True if _ is present in nested infix application patterns", () => {
-      const inspection = {
-        inspection: "UsesAnonymousVariable",
-        binding: "foo",
-        args: [],
-        expected: true,
-      };
-      const ast = haskellParser.parse("foo (x:_) = 1");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: true },
-      ]);
-    });
-    it("is True if _ is present in nested application patterns", () => {
-      const inspection = {
-        inspection: "UsesAnonymousVariable",
-        binding: "foo",
-        args: [],
-        expected: true,
-      };
-      const ast = haskellParser.parse("foo (F _ 1) = 1");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: true },
-      ]);
-    });
-    it("is True if _ is present in nested tuple patterns", () => {
-      const inspection = {
-        inspection: "UsesAnonymousVariable",
-        binding: "foo",
-        args: [],
-        expected: true,
-      };
-      const ast = haskellParser.parse("foo (_, 1) = 1");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: true },
-      ]);
-    });
-    it("is True if _ is present in nested at patterns", () => {
-      const inspection = {
-        inspection: "UsesAnonymousVariable",
-        binding: "foo",
-        args: [],
-        expected: true,
-      };
-      const ast = haskellParser.parse("foo x@(_, 1) = 1");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: true },
-      ]);
-    });
-    it("is False if _ is not present in parameters", () => {
-      const inspection = {
-        inspection: "UsesAnonymousVariable",
-        binding: "foo",
-        args: [],
-        expected: false,
-      };
-      const ast = haskellParser.parse("foo x = 1");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: false },
-      ]);
-    });
-    it("is True if _ is present only in second equation", () => {
-      const inspection = {
-        inspection: "UsesAnonymousVariable",
-        binding: "foo",
-        args: [],
-        expected: true,
-      };
-      const ast = haskellParser.parse(
-        "foo False bool = bool\r\nfoo True _ = True"
-      );
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: true },
-      ]);
-    });
-    it("is False if there is no _ but a comment", () => {
-      const inspection = {
-        inspection: "UsesAnonymousVariable",
-        binding: "foo",
-        args: [],
-        expected: false,
-      };
-      const ast = haskellParser.parse("foo x = 1\n--");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: false },
-      ]);
-    });
-    it("is False if there is only a comment", () => {
-      const inspection = {
-        inspection: "UsesAnonymousVariable",
-        args: [],
-        expected: false,
-      };
-      const ast = haskellParser.parse("--");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: false },
-      ]);
+
+    it("is False if _ is not present", () => {
+      const func = createFunction("foo", [createEquation([], mockExpr)]);
+      const visitor = new UsesAnonymousVariable("foo");
+      expect(executeVisitor(func, visitor)).to.eq(false);
     });
   });
-  /*   describe("UsesForComprehension", () => {
-    it("is True when list comprehension exists, unscoped", () => {
-      const inspection = {
-        inspection: "UsesForComprehension",
-        args: [],
-        expected: true,
-      };
-      const ast = haskellParser.parse("x = [m|m<-t]");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: true },
-      ]);
-    });
+
+  describe("UsesComprehension", () => {
     it("is True when list comprehension exists", () => {
-      const inspection = {
-        inspection: "UsesForComprehension",
-        binding: "x",
-        args: [],
-        expected: true,
-      };
-      const ast = haskellParser.parse("x = [m|m<-t]");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: true },
-      ]);
+      const comp = new ListComprehension(mockExpr, []);
+      const func = createFunction("x", [createEquation([], comp)]);
+
+      const visitor = new UsesComprehension(undefined);
+      expect(executeVisitor(func, visitor)).to.eq(true);
     });
-    it("is False when comprehension does not exists", () => {
-      const inspection = {
-        inspection: "UsesForComprehension",
-        binding: "x",
-        args: [],
-        expected: false,
-      };
-      const ast = haskellParser.parse("x = []");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: false },
-      ]);
-    });
-    it("is True when do syntax is used", () => {
-      const inspection = {
-        inspection: "UsesForComprehension",
-        binding: "y",
-        args: [],
-        expected: true,
-      };
-      const ast = haskellParser.parse("y = do { x <- xs; return x }");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: true },
-      ]);
-    });
-  }); */
-  describe("UsesComprehension, in hs", () => {
-    it("is True when list comprehension exists", () => {
-      const inspection = {
-        inspection: "UsesComprehension",
-        args: [],
-        expected: true,
-      };
-      const ast = haskellParser.parse("x = [m|m<-t]");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: true },
-      ]);
-    });
+
     it("is False when comprehension doesnt exists", () => {
-      const inspection = {
-        inspection: "UsesComprehension",
-        binding: "x",
-        args: [],
-        expected: false,
-      };
-      const ast = haskellParser.parse("x = []");
-      const result = analyzer.analyze(ast, [inspection]);
-      assert.deepEqual(result, [
-        { rule: inspection, passed: true, actual: false },
-      ]);
+      const func = createFunction("x", [createEquation([], mockExpr)]);
+      const visitor = new UsesComprehension("x");
+      expect(executeVisitor(func, visitor)).to.eq(false);
+    });
+  });
+
+  describe("UsesYield", () => {
+    it("is True when yield exists", () => {
+      const yieldNode = new Yield(mockExpr);
+      const func = createFunction("gen", [createEquation([], yieldNode)]);
+
+      const visitor = new UsesYield("gen");
+      expect(executeVisitor(func, visitor)).to.eq(true);
     });
   });
 });

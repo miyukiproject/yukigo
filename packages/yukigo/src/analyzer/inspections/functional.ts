@@ -22,7 +22,7 @@ import {
   WildcardPattern,
   Yield,
 } from "@yukigo/ast";
-import { InspectionMap, executeVisitor } from "../index.js";
+import { InspectionMap, executeVisitor } from "../utils.js";
 
 export class FunctionVisitor extends TraverseVisitor {
   private readonly targetBinding: string;

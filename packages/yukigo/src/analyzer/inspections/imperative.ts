@@ -9,7 +9,7 @@ import {
   TraverseVisitor,
   While,
 } from "@yukigo/ast";
-import { InspectionMap, executeVisitor } from "../index.js";
+import { InspectionMap, executeVisitor } from "../utils.js";
 
 export class BindingVisitor extends TraverseVisitor {
   private readonly targetBinding: string;
@@ -122,7 +122,8 @@ export const imperativeInspections: InspectionMap = {
     executeVisitor(node, new UsesRepeat(binding)),
   UsesWhile: (node, args, binding) =>
     executeVisitor(node, new UsesWhile(binding)),
-  UsesLoop: (node, args, binding) => executeVisitor(node, new UsesLoop(binding)),
+  UsesLoop: (node, args, binding) =>
+    executeVisitor(node, new UsesLoop(binding)),
   UsesSwitch: (node, args, binding) =>
     executeVisitor(node, new UsesSwitch(binding)),
 };

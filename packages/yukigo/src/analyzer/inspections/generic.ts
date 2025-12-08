@@ -6,13 +6,17 @@ import {
   ASTNode,
   Attribute,
   Call,
+  Catch,
+  ConstructorPattern,
   EntryPoint,
   Fact,
   Function,
   If,
+  ListType,
   LogicalBinaryOperation,
   LogicalUnaryOperation,
   Method,
+  ParameterizedType,
   Print,
   Procedure,
   Raise,
@@ -22,13 +26,17 @@ import {
   StopTraversalException,
   SymbolPrimitive,
   TraverseVisitor,
+  Try,
+  TupleType,
   Type,
   TypeAlias,
+  TypeApplication,
   TypeSignature,
   TypeVar,
   Variable,
+  VariablePattern,
 } from "@yukigo/ast";
-import { InspectionMap, executeVisitor } from "../index.js";
+import { InspectionMap, executeVisitor } from "../utils.js";
 
 export class Assigns extends TraverseVisitor {
   private readonly targetIdentifier: string;
@@ -312,6 +320,128 @@ export class HasBinding extends TraverseVisitor {
   }
 }
 
+export class SubordinatesDeclarationsTo extends TraverseVisitor {
+  constructor(private childName: string, private parentName: string) {
+    super();
+  }
+
+  visitFunction(node: Function): void {
+    if (node.identifier.value === this.parentName) {
+      const childFinder = new Declares(this.childName);
+      node.equations.forEach((eq) => eq.accept(childFinder)); // we expect that this will throw if find the subordinated decl
+    } else {
+      super.visitFunction(node);
+    }
+  }
+}
+
+export class SubordinatesDeclarationsToEntryPoint extends TraverseVisitor {
+  constructor(private childName: string) {
+    super();
+  }
+
+  visitEntryPoint(node: EntryPoint): void {
+    const childFinder = new Declares(this.childName);
+    node.expression.statements.forEach((stmt) => stmt.accept(childFinder));
+  }
+}
+
+export class TypesAs extends TraverseVisitor {
+  constructor(private bindingName: string, private typeName: string) {
+    super();
+  }
+
+  visitTypeSignature(node: TypeSignature): void {
+    if (node.identifier.value === this.bindingName) {
+      const actualType = node.body.toString();
+      if (
+        actualType.replace(/\s+/g, " ").trim() ===
+        this.typeName.replace(/\s+/g, " ").trim()
+      ) {
+        throw new StopTraversalException();
+      }
+    }
+  }
+}
+
+export class TypesParameterAs extends TraverseVisitor {
+  constructor(
+    private bindingName: string,
+    private paramIndex: number,
+    private typeName: string
+  ) {
+    super();
+  }
+
+  visitTypeSignature(node: TypeSignature): void {
+    if (node.identifier.value === this.bindingName) {
+      if (node.body instanceof ParameterizedType) {
+        const paramType = node.body.inputs[this.paramIndex];
+        if (paramType) {
+          const actualType = paramType.toString();
+          if (
+            actualType.replace(/\s+/g, " ").trim() ===
+            this.typeName.replace(/\s+/g, " ").trim()
+          ) {
+            throw new StopTraversalException();
+          }
+        }
+      }
+    }
+  }
+}
+
+export class TypesReturnAs extends TraverseVisitor {
+  constructor(private bindingName: string, private typeName: string) {
+    super();
+  }
+
+  visitTypeSignature(node: TypeSignature): void {
+    if (node.identifier.value === this.bindingName) {
+      if (node.body instanceof ParameterizedType) {
+        const actualType = node.body.returnType.toString();
+        if (
+          actualType.replace(/\s+/g, " ").trim() ===
+          this.typeName.replace(/\s+/g, " ").trim()
+        ) {
+          throw new StopTraversalException();
+        }
+      }
+    }
+  }
+}
+
+export class Rescues extends TraverseVisitor {
+  constructor(private exceptionName: string) {
+    super();
+  }
+  visitCatch(node: Catch): void {
+    for (const pattern of node.patterns) {
+      if (
+        pattern instanceof VariablePattern &&
+        pattern.name.value === this.exceptionName
+      ) {
+        throw new StopTraversalException();
+      }
+    }
+  }
+}
+
+export class UsesExceptionHandling extends TraverseVisitor {
+  visitTry(node: Try): void {
+    throw new StopTraversalException();
+  }
+}
+
+export class UsesExceptions extends TraverseVisitor {
+  visitTry(node: Try): void {
+    throw new StopTraversalException();
+  }
+  visitRaise(node: Raise): void {
+    throw new StopTraversalException();
+  }
+}
+
 export const genericInspections: InspectionMap = {
   Assigns: (node, args) => executeVisitor(node, new Assigns(args[0])),
   Calls: (node, args) => executeVisitor(node, new Calls(args[0])),
@@ -343,31 +473,23 @@ export const genericInspections: InspectionMap = {
   Raises: (node, args) => executeVisitor(node, new Raises()),
   Uses: (node, args) => executeVisitor(node, new Uses(args[0])),
   UsesArithmetic: (node, args) => executeVisitor(node, new UsesArithmetic()),
-  /*   Rescues: (ast, args) => {
-    throw Error("Inspection not implemented");
-  },
-  SubordinatesDeclarationsTo: (ast, args) => {
-    throw Error("Inspection not implemented");
-  },
-  SubordinatesDeclarationsToEntryPoint: (ast, args) => {
-    throw Error("Inspection not implemented");
-  },
-  TypesAs: (ast, args) => {
-    throw Error("Inspection not implemented");
-  },
-  TypesParameterAs: (ast, args) => {
-    throw Error("Inspection not implemented");
-  },
-  TypesReturnAs: (ast, args) => {
-    throw Error("Inspection not implemented");
-  }, */
+  SubordinatesDeclarationsTo: (node, args) =>
+    executeVisitor(node, new SubordinatesDeclarationsTo(args[0], args[1])),
+  SubordinatesDeclarationsToEntryPoint: (node, args) =>
+    executeVisitor(node, new SubordinatesDeclarationsToEntryPoint(args[0])),
+  TypesAs: (node, args) => executeVisitor(node, new TypesAs(args[0], args[1])),
+  TypesParameterAs: (node, args) =>
+    executeVisitor(
+      node,
+      new TypesParameterAs(args[0], Number(args[1]), args[2])
+    ),
+  TypesReturnAs: (node, args) =>
+    executeVisitor(node, new TypesReturnAs(args[0], args[1])),
   UsesConditional: (node, args) => executeVisitor(node, new UsesConditional()),
-  /*   UsesExceptionHandling: (ast, args) => {
-    throw Error("Inspection not implemented");
-  },
-  UsesExceptions: (ast, args) => {
-    throw Error("Inspection not implemented");
-  }, */
+  Rescues: (node, args) => executeVisitor(node, new Rescues(args[0])),
+  UsesExceptionHandling: (node, args) =>
+    executeVisitor(node, new UsesExceptionHandling()),
+  UsesExceptions: (node, args) => executeVisitor(node, new UsesExceptions()),
   UsesIf: (node, args) => executeVisitor(node, new UsesConditional()),
   UsesLogic: (node, args) => executeVisitor(node, new UsesLogic()),
   UsesMath: (node, args) => executeVisitor(node, new UsesArithmetic()),

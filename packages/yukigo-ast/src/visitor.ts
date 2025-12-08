@@ -549,7 +549,7 @@ export class TraverseVisitor implements StrictVisitor<void> {
   }
   visitEntryPoint(node: EntryPoint): void {
     node.identifier.accept(this);
-    this.traverseCollection(node.expressions);
+    node.expression.accept(this);
   }
   visitProcedure(node: Procedure): void {
     node.identifier.accept(this);
@@ -602,9 +602,9 @@ export class TraverseVisitor implements StrictVisitor<void> {
   }
   visitClass(node: Class): void {
     node.identifier.accept(this);
-    node.extendsSymbol.accept(this);
-    node.implementsNode.accept(this);
     node.expression.accept(this);
+    node.extendsSymbol?.accept(this);
+    node.implementsNode?.accept(this);
   }
   visitInterface(node: Interface): void {
     node.identifier.accept(this);

@@ -1,14 +1,10 @@
-import {
-  AST,
-  ASTNode,
-  StopTraversalException,
-  TraverseVisitor,
-} from "@yukigo/ast";
+import { AST } from "@yukigo/ast";
 import { genericInspections } from "./inspections/generic.js";
 import { functionalInspections } from "./inspections/functional.js";
 import { logicInspections } from "./inspections/logic.js";
 import { objectInspections } from "./inspections/object.js";
 import { imperativeInspections } from "./inspections/imperative.js";
+import { InspectionHandler, InspectionMap } from "./utils.js";
 
 export type AnalysisResult = {
   rule: InspectionRule;
@@ -24,14 +20,6 @@ export type InspectionRule = {
   expected: boolean;
 };
 
-export type InspectionHandler = (
-  node: ASTNode,
-  args: string[],
-  binding?: string
-) => boolean;
-
-export type InspectionMap = Record<string, InspectionHandler>;
-
 export const defaultInspectionSet: InspectionMap = {
   ...genericInspections,
   ...functionalInspections,
@@ -39,23 +27,6 @@ export const defaultInspectionSet: InspectionMap = {
   ...objectInspections,
   ...imperativeInspections,
 };
-
-export function executeVisitor(
-  node: ASTNode,
-  visitor: TraverseVisitor
-): boolean {
-  let passes = false;
-  try {
-    node.accept(visitor);
-  } catch (e) {
-    if (e instanceof StopTraversalException) {
-      passes = true;
-    } else {
-      throw e;
-    }
-  }
-  return passes;
-}
 
 /**
  * The Analyzer class.

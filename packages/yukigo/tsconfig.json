@@ -9,8 +9,9 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "noEmit": true
   },
   "include": ["**/*"],
-  "exclude": ["dist/**/*", "tests/**/*"]
+  "exclude": ["dist/**/*"]
 }

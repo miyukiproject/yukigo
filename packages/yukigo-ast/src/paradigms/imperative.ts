@@ -2,6 +2,7 @@ import {
   ASTNode,
   Equation,
   Expression,
+  Sequence,
   SourceLocation,
   SymbolPrimitive,
   Variable,
@@ -13,19 +14,19 @@ import { Visitor } from "../visitor.js";
  * @category Declarations
  */
 export class EntryPoint extends ASTNode {
-    /** @hidden */
-    public expressions: Expression[];
-    /** @hidden */
-    public identifier: SymbolPrimitive;
+  /** @hidden */
+  public expression: Sequence;
+  /** @hidden */
+  public identifier: SymbolPrimitive;
 
   constructor(
     identifier: SymbolPrimitive,
-    expressions: Expression[],
+    expression: Sequence,
     loc?: SourceLocation
   ) {
     super(loc);
-      this.identifier = identifier;
-      this.expressions = expressions;
+    this.identifier = identifier;
+    this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitEntryPoint?.(this);
@@ -34,7 +35,7 @@ export class EntryPoint extends ASTNode {
     return {
       type: "EntryPoint",
       identifier: this.identifier.toJSON(),
-      expressions: this.expressions.map((expr) => expr.toJSON()),
+      expression: this.expression.toJSON(),
     };
   }
 }
@@ -44,10 +45,10 @@ export class EntryPoint extends ASTNode {
  * @category Declarations
  */
 export class Procedure extends ASTNode {
-    /** @hidden */
-    public equations: Equation[];
-    /** @hidden */
-    public identifier: SymbolPrimitive;
+  /** @hidden */
+  public equations: Equation[];
+  /** @hidden */
+  public identifier: SymbolPrimitive;
 
   constructor(
     identifier: SymbolPrimitive,
@@ -55,8 +56,8 @@ export class Procedure extends ASTNode {
     loc?: SourceLocation
   ) {
     super(loc);
-      this.identifier = identifier;
-      this.equations = equations;
+    this.identifier = identifier;
+    this.equations = equations;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitProcedure?.(this);
@@ -75,10 +76,10 @@ export class Procedure extends ASTNode {
  * @category Declarations
  */
 export class Structure extends ASTNode {
-    /** @hidden */
-    public elements: (Variable | Structure)[];
-    /** @hidden */
-    public identifier: SymbolPrimitive;
+  /** @hidden */
+  public elements: (Variable | Structure)[];
+  /** @hidden */
+  public identifier: SymbolPrimitive;
 
   constructor(
     identifier: SymbolPrimitive,
@@ -86,9 +87,9 @@ export class Structure extends ASTNode {
     loc?: SourceLocation
   ) {
     super();
-      this.identifier = identifier;
-      this.elements = elements;
-      this.loc = loc;
+    this.identifier = identifier;
+    this.elements = elements;
+    this.loc = loc;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitStructure?.(this);
@@ -107,10 +108,10 @@ export class Structure extends ASTNode {
  * @category Declarations
  */
 export class Enumeration extends ASTNode {
-    /** @hidden */
-    public contents: SymbolPrimitive[];
-    /** @hidden */
-    public identifier: SymbolPrimitive;
+  /** @hidden */
+  public contents: SymbolPrimitive[];
+  /** @hidden */
+  public identifier: SymbolPrimitive;
 
   constructor(
     identifier: SymbolPrimitive,
@@ -118,8 +119,8 @@ export class Enumeration extends ASTNode {
     loc?: SourceLocation
   ) {
     super(loc);
-      this.identifier = identifier;
-      this.contents = contents;
+    this.identifier = identifier;
+    this.contents = contents;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitEnumeration?.(this);
@@ -141,19 +142,15 @@ export class Enumeration extends ASTNode {
  * @category Statements
  */
 export class While extends ASTNode {
-    /** @hidden */
-    public body: Expression;
-    /** @hidden */
-    public condition: Expression;
+  /** @hidden */
+  public body: Expression;
+  /** @hidden */
+  public condition: Expression;
 
-  constructor(
-    condition: Expression,
-    body: Expression,
-    loc?: SourceLocation
-  ) {
+  constructor(condition: Expression, body: Expression, loc?: SourceLocation) {
     super(loc);
-      this.condition = condition;
-      this.body = body;
+    this.condition = condition;
+    this.body = body;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitWhile?.(this);
@@ -171,19 +168,15 @@ export class While extends ASTNode {
  * @category Statements
  */
 export class Repeat extends ASTNode {
-    /** @hidden */
-    public body: Expression;
-    /** @hidden */
-    public count: Expression;
+  /** @hidden */
+  public body: Expression;
+  /** @hidden */
+  public count: Expression;
 
-  constructor(
-    count: Expression,
-    body: Expression,
-    loc?: SourceLocation
-  ) {
+  constructor(count: Expression, body: Expression, loc?: SourceLocation) {
     super(loc);
-      this.count = count;
-      this.body = body;
+    this.count = count;
+    this.body = body;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitRepeat?.(this);
@@ -202,14 +195,14 @@ export class Repeat extends ASTNode {
  * @category Statements
  */
 export class ForLoop extends ASTNode {
-    /** @hidden */
-    public body: Expression;
-    /** @hidden */
-    public update: Expression;
-    /** @hidden */
-    public condition: Expression;
-    /** @hidden */
-    public initialization: Expression;
+  /** @hidden */
+  public body: Expression;
+  /** @hidden */
+  public update: Expression;
+  /** @hidden */
+  public condition: Expression;
+  /** @hidden */
+  public initialization: Expression;
 
   constructor(
     initialization: Expression,
@@ -219,10 +212,10 @@ export class ForLoop extends ASTNode {
     loc?: SourceLocation
   ) {
     super(loc);
-      this.initialization = initialization;
-      this.condition = condition;
-      this.update = update;
-      this.body = body;
+    this.initialization = initialization;
+    this.condition = condition;
+    this.update = update;
+    this.body = body;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitForLoop?.(this);

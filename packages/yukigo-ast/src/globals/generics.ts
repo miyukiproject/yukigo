@@ -45,18 +45,33 @@ export type Modify<T, R> = Omit<T, keyof R> & R;
 
 // Universal primitive value types
 
-/**
- * Base class for all AST nodes
- */
+type Metadata = Map<string, any>;
 /**
  * @hidden
  */
 export abstract class ASTNode {
   /** @hidden */
-  public loc?: SourceLocation;
-  constructor(loc?: SourceLocation) {
+  public loc: SourceLocation;
+  /** @hidden */
+  public metadata: Metadata = new Map();
+
+  constructor(loc?: SourceLocation, metadata?: Metadata) {
     this.loc = loc;
+    this.metadata = metadata ?? new Map();
   }
+
+  public setMetadata(key: string, value: any): void {
+    this.metadata.set(key, value);
+  }
+
+  public getMetadata<T>(key: string): T | undefined {
+    return this.metadata.get(key);
+  }
+
+  public hasMetadata(key: string): boolean {
+    return this.metadata.has(key);
+  }
+
   /** @hidden */
   abstract accept<R>(visitor: Visitor<R>): R;
   /** @hidden */
