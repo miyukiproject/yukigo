@@ -37,7 +37,7 @@ jobs:
           npm run build -w yukigo
 
       - name: Generate AST Docs
-        run: npm run docs:gen --workspace=@yukigo/docs
+        run: npm run docs:gen --workspace=yukigo-docs
 
       - name: Build Docs
         run: |
