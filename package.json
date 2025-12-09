@@ -6,10 +6,10 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm build --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
     "test": "npm test --workspaces --if-present",
     "build:ast": "npm run build -w @yukigo/ast",
-    "docs:dev": "npm run build -w @yukigo/ast & npm run build & npm run test & npm run docs:dev --workspace=@yukigo/docs",
+    "docs:dev": "npm run build & npm run docs:dev --workspace=@yukigo/docs",
     "docs:gen": "npm run docs:gen --workspace=@yukigo/docs"
   },
   "dependencies": {
