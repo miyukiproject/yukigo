@@ -25,7 +25,7 @@ import {
   StopTraversalException, 
   Function, 
   Recursion 
-} from "@yukigo/ast";
+} from "yukigo-ast";
 
 // A helper visitor that only enters the function with the specific name
 export class ScopedFunctionVisitor extends TraverseVisitor {

@@ -11,7 +11,7 @@ import {
   VariablePattern,
   WildcardPattern,
   isRuntimePredicate,
-} from "@yukigo/ast";
+} from "yukigo-ast";
 import { EnvStack } from "../index.js";
 import { lookup } from "../utils.js";
 import { InterpreterError } from "../errors.js";

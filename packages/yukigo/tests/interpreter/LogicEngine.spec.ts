@@ -12,7 +12,7 @@ import {
   RuntimeFact,
   RuntimeRule,
   LogicResult,
-} from "@yukigo/ast";
+} from "yukigo-ast";
 import { ExpressionEvaluator } from "../../src/interpreter/utils.js";
 import { LogicEngine } from "../../src/interpreter/components/LogicEngine.js";
 import { EnvStack, InterpreterConfig } from "../../src/interpreter/index.js";

@@ -4,7 +4,7 @@ import {
   ConsExpression,
   isLazyList,
   LazyList,
-} from "@yukigo/ast";
+} from "yukigo-ast";
 import { createStream, ExpressionEvaluator } from "../utils.js";
 
 export class LazyRuntime {

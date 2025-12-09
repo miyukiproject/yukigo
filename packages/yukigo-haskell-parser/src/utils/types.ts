@@ -1,4 +1,4 @@
-import { YukigoPrimitive } from "@yukigo/ast";
+import { YukigoPrimitive } from "yukigo-ast";
 
 export const keywords = [
   "type",

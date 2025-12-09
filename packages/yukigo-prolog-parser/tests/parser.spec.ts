@@ -26,7 +26,7 @@ import {
   VariablePattern,
   WildcardPattern,
   YukigoParser,
-} from "@yukigo/ast";
+} from "yukigo-ast";
 const _deepEqual = assert.deepEqual;
 assert.deepEqual = function (actual: any, expected: any, ...args: any[]) {
   function stripLoc(obj: any): any {

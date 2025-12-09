@@ -1,4 +1,4 @@
-import { Expression, LazyList, PrimitiveValue } from "@yukigo/ast";
+import { Expression, LazyList, PrimitiveValue } from "yukigo-ast";
 import { Environment, EnvStack } from "./index.js";
 import { UnboundVariable } from "./errors.js";
 

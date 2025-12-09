@@ -21,7 +21,7 @@ import {
   UnionPattern,
   WildcardPattern,
   Yield,
-} from "@yukigo/ast";
+} from "yukigo-ast";
 import { InspectionMap, executeVisitor } from "../utils.js";
 
 export class FunctionVisitor extends TraverseVisitor {

@@ -9,7 +9,7 @@ import {
   Type as YukigoType,
   ConstrainedType,
   ASTNode,
-} from "@yukigo/ast";
+} from "yukigo-ast";
 import { typeMappings } from "../utils/types.js";
 import { CoreHM } from "./core.js";
 import { functionType, Type, TypeConstructor, TypeVar } from "./checker.js";

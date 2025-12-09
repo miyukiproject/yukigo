@@ -5,7 +5,7 @@ import {
   Sequence,
   Return,
   Expression,
-} from "@yukigo/ast";
+} from "yukigo-ast";
 import { Bindings, EnvStack } from "../index.js";
 import { PatternMatcher } from "./PatternMatcher.js";
 import { ExpressionEvaluator } from "../utils.js";

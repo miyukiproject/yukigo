@@ -8,9 +8,9 @@
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "test": "npm test --workspaces --if-present",
-    "build:ast": "npm run build -w @yukigo/ast",
-    "docs:dev": "npm run build & npm run docs:dev --workspace=@yukigo/docs",
-    "docs:gen": "npm run docs:gen --workspace=@yukigo/docs"
+    "build:ast": "npm run build -w yukigo-ast",
+    "docs:dev": "npm run build & npm run docs:dev --workspace=yukigo-docs",
+    "docs:gen": "npm run docs:gen --workspace=yukigo-docs"
   },
   "dependencies": {
     "ts-morph": "^27.0.2"

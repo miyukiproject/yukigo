@@ -9,7 +9,7 @@ import {
   LiteralPattern,
   VariablePattern,
   GuardedBody,
-} from "@yukigo/ast";
+} from "yukigo-ast";
 import { FunctionRuntime } from "../../src/interpreter/components/FunctionRuntime.js";
 
 const s = (val: string) => new SymbolPrimitive(val);

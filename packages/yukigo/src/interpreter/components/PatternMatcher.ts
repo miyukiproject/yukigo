@@ -18,7 +18,7 @@ import {
   VariablePattern,
   Visitor,
   WildcardPattern,
-} from "@yukigo/ast";
+} from "yukigo-ast";
 import { Bindings } from "../index.js";
 import { InterpreterVisitor } from "./Visitor.js";
 import { createStream } from "../utils.js";

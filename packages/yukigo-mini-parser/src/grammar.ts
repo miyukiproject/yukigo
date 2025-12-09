@@ -42,7 +42,7 @@ import {
     CharPrimitive,
     NilPrimitive,
     Return
-} from "@yukigo/ast"
+} from "yukigo-ast"
 
 interface NearleyToken {
   value: any;

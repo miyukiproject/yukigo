@@ -11,9 +11,9 @@ import {
   SymbolPrimitive,
   TraverseVisitor,
   UnifyOperation,
-} from "@yukigo/ast";
+} from "yukigo-ast";
 import { InspectionMap, executeVisitor } from "../utils.js";
-import { isYukigoPrimitive } from "@yukigo/ast";
+import { isYukigoPrimitive } from "yukigo-ast";
 
 export abstract class DeclaresBinding extends TraverseVisitor {
   protected readonly targetBinding: string;

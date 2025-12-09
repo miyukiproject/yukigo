@@ -21,7 +21,7 @@ import {
   VariablePattern,
   While,
   YukigoParser,
-} from "@yukigo/ast";
+} from "yukigo-ast";
 import { YukigoMiniParser } from "../src/index.js";
 
 describe("Parser Tests", () => {

@@ -1,5 +1,5 @@
 import { MulangAdapter } from "../../src/index.js";
-import { isYukigoPrimitive, NumberPrimitive, Otherwise } from "@yukigo/ast";
+import { isYukigoPrimitive, NumberPrimitive, Otherwise } from "yukigo-ast";
 import { assert } from "chai";
 
 describe("Helpers Spec", () => {

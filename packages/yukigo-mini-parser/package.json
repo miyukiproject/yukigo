@@ -1,6 +1,6 @@
 {
   "name": "yukigo-mini-parser",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "",
   "scripts": {
     "build": "nearleyc src/grammar.ne -o src/grammar.ts && tsc",
@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@types/moo": "^0.5.10",
-    "@yukigo/ast": "^0.1.0",
+    "yukigo-ast": "^0.1.0",
     "moo": "^0.5.2",
     "moo-ignore": "^2.5.3",
     "nearley": "^2.20.1"

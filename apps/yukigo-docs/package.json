@@ -16,7 +16,7 @@
     "yukigo": "^0.1.0",
     "yukigo-haskell-parser": "^0.1.0",
     "yukigo-prolog-parser":  "^0.1.0",
-    "yukigo-wollok-parser" : "^1.0.0"
+    "yukigo-wollok-parser" : "^0.1.0"
   },
   "devDependencies": {
     "@types/node": "^24.9.2",

@@ -12,7 +12,7 @@
 
 ### 🧱 Updated Dependencies
 
-- Updated @yukigo/ast to 0.1.0
+- Updated yukigo-ast to 0.1.0
 
 ### ❤️ Thank You
 

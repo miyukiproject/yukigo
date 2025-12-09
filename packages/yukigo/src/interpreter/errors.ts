@@ -1,4 +1,4 @@
-import { SourceLocation } from "@yukigo/ast";
+import { SourceLocation } from "yukigo-ast";
 
 export interface ErrorFrame {
   nodeType: string;

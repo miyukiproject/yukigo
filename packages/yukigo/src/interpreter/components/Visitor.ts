@@ -56,7 +56,7 @@ import {
   ASTNode,
   Raise,
   Query,
-} from "@yukigo/ast";
+} from "yukigo-ast";
 import { EnvStack, InterpreterConfig } from "../index.js";
 import {
   ArithmeticBinaryTable,

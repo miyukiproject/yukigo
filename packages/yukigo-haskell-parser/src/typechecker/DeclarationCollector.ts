@@ -4,7 +4,7 @@ import {
   TypeAlias,
   TypeSignature,
   Visitor,
-} from "@yukigo/ast";
+} from "yukigo-ast";
 import {
   functionType,
   Type,

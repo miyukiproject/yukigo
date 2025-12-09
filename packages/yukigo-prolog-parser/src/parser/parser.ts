@@ -1,4 +1,4 @@
-import { AST, YukigoParser } from "@yukigo/ast";
+import { AST, YukigoParser } from "yukigo-ast";
 import nearley from "nearley";
 import grammar from "./grammar.js";
 

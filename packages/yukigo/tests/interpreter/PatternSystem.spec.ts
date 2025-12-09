@@ -11,7 +11,7 @@ import {
   UnionPattern,
   AsPattern,
   LazyList,
-} from "@yukigo/ast";
+} from "yukigo-ast";
 import {
   PatternMatcher,
   PatternResolver,

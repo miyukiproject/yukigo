@@ -8,7 +8,7 @@ import {
   Rule,
   RuntimeFunction,
   TraverseVisitor,
-} from "@yukigo/ast";
+} from "yukigo-ast";
 import { EnvStack } from "../index.js";
 import { define } from "../utils.js";
 

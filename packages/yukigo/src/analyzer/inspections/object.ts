@@ -12,7 +12,7 @@ import {
   StopTraversalException,
   SymbolPrimitive,
   TraverseVisitor,
-} from "@yukigo/ast";
+} from "yukigo-ast";
 import { executeVisitor, InspectionMap } from "../utils.js";
 
 export class DeclaresAttribute extends TraverseVisitor {

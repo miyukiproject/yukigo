@@ -1,6 +1,6 @@
 import grammar from "./grammar.js";
 import nearley from "nearley";
-import { AST, YukigoParser } from "@yukigo/ast";
+import { AST, YukigoParser } from "yukigo-ast";
 
 export class YukigoParserPlaceholder implements YukigoParser {
   public errors: string[] = [];

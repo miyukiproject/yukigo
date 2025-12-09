@@ -1,6 +1,6 @@
 import { inspect } from "util";
-import { AST } from "@yukigo/ast";
-import { Function } from "@yukigo/ast";
+import { AST } from "yukigo-ast";
+import { Function } from "yukigo-ast";
 
 export function groupFunctionDeclarations(ast: AST): AST {
   const groups: Record<string, Function[]> = {};

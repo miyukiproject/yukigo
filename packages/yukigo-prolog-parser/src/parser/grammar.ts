@@ -50,7 +50,7 @@ import {
     LiteralPattern,
     WildcardPattern,
     TuplePattern
- } from "@yukigo/ast"
+ } from "yukigo-ast"
 
 import { PrologLexer } from "./lexer.js"
 

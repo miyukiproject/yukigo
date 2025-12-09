@@ -34,7 +34,7 @@ import {
   UnguardedBody,
   VariablePattern,
   WildcardPattern,
-} from "@yukigo/ast";
+} from "yukigo-ast";
 import { Interpreter } from "../../src/interpreter/index.js";
 import {
   solveGoal,

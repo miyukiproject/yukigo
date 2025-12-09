@@ -9,7 +9,7 @@ import {
     SymbolPrimitive,
     CharPrimitive,
     BooleanPrimitive
-} from "@yukigo/ast"
+} from "yukigo-ast"
 
 const loc = (token) => new SourceLocation(token.line, token.col);
 

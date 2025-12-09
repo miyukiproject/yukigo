@@ -20,7 +20,7 @@ import {
   Statement,
   Print,
   StringPrimitive,
-} from "@yukigo/ast";
+} from "yukigo-ast";
 import {
   DeclaresAttribute,
   DeclaresClass,

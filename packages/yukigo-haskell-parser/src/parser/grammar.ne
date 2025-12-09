@@ -58,7 +58,7 @@ import {
   StringPrimitive,
   BooleanPrimitive,
   SourceLocation
-} from "@yukigo/ast";
+} from "yukigo-ast";
 
 const filter = d => {
     return d.filter((token) => token !== null);

@@ -32,7 +32,7 @@ jobs:
         run: npm ci
       - name: Build Packages
         run: | 
-          npm run build -w @yukigo/ast
+          npm run build -w yukigo-ast
           npm run build -w yukigo-haskell-parser
           npm run build -w yukigo
 

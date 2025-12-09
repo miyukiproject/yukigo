@@ -19,7 +19,7 @@ For now, Yukigo provides support for:
 - Prolog
 - Wollok
 
-The modular nature of Yukigo allows for everyone to build a parser for their desired language, as long as it produces a Yukigo AST which is easier using `@yukigo/ast`, a package that provides all the available AST nodes as classes that can be instantiated in the parser.
+The modular nature of Yukigo allows for everyone to build a parser for their desired language, as long as it produces a Yukigo AST which is easier using `yukigo-ast`, a package that provides all the available AST nodes as classes that can be instantiated in the parser.
 
 See [Guide: Making a Yukigo Parser](/guides/making-a-parser.html) for more on that topic.
 

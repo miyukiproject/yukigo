@@ -24,7 +24,7 @@ import {
     CharPrimitive,
     NilPrimitive,
     Return
-} from "@yukigo/ast"
+} from "yukigo-ast"
 %}
 
 @preprocessor typescript

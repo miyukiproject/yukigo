@@ -32,7 +32,7 @@ import {
   TypeSignature,
   UnguardedBody,
   VariablePattern,
-} from "@yukigo/ast";
+} from "yukigo-ast";
 
 const _deepEqual = assert.deepEqual;
 assert.deepEqual = function (actual: any, expected: any, ...args: any[]) {

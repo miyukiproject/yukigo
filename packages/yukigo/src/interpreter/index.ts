@@ -1,4 +1,4 @@
-import { PrimitiveValue, Expression, AST } from "@yukigo/ast";
+import { PrimitiveValue, Expression, AST } from "yukigo-ast";
 import { InterpreterVisitor } from "./components/Visitor.js";
 import { EnvBuilderVisitor } from "./components/EnvBuilder.js";
 import { InterpreterError } from "./errors.js";

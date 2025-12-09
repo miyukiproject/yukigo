@@ -1,4 +1,4 @@
-import { PrimitiveValue } from "@yukigo/ast";
+import { PrimitiveValue } from "yukigo-ast";
 import { isArrayOfNumbers } from "../utils.js";
 
 export type UnaryOp<T, R = T> = (x: T) => R;

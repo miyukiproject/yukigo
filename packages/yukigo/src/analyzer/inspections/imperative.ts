@@ -8,7 +8,7 @@ import {
   Switch,
   TraverseVisitor,
   While,
-} from "@yukigo/ast";
+} from "yukigo-ast";
 import { InspectionMap, executeVisitor } from "../utils.js";
 
 export class BindingVisitor extends TraverseVisitor {

@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import * as Yu from "@yukigo/ast";
+import * as Yu from "yukigo-ast";
 import { WollokToYukigoTransformer } from "../src/transformer";
 import {
   Assignment,

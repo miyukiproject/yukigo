@@ -5,7 +5,7 @@ import {
   GuardedBody,
   Visitor,
   Return,
-} from "@yukigo/ast";
+} from "yukigo-ast";
 import { typeMappings } from "../utils/types.js";
 import { InferenceEngine, PatternVisitor } from "./inference.js";
 import { CoreHM } from "./core.js";

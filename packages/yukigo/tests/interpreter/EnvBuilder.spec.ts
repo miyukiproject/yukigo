@@ -5,7 +5,7 @@ import {
   Rule,
   SymbolPrimitive,
   Equation,
-} from '@yukigo/ast';
+} from 'yukigo-ast';
 import { EnvBuilderVisitor } from '../../src/interpreter/components/EnvBuilder.js';
 
 const id = (val: string) => ({ value: val } as SymbolPrimitive);

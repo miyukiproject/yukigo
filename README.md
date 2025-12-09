@@ -168,7 +168,7 @@ console.log(results);
 ```
 
 # Relevant tools
-- @yukigo/ast: A library of AST node definitions and utilities for making yukigo parsers
+- yukigo-ast: A library of AST node definitions and utilities for making yukigo parsers
   
 ## Tools
 - [CLI](https://github.com/noiseArch/yukigo-cli)

@@ -176,15 +176,15 @@ console.log(results);
 ```
 
 # Relevant tools
-- [@yukigo/ast](https://github.com/noiseArch/@yukigo/ast): A library of AST's node definitions
+- yukigo-ast: A library of AST's node definitions
   
 ## Tools
 - [CLI](https://github.com/noiseArch/yukigo-cli)
-- [Demo web](https://github.com/noiseArch/yukigo-demo-web/)
   
 ## Parsers
-- [Haskell](https://github.com/noiseArch/yukigo-haskell-parser)
-- [Prolog](https://github.com/noiseArch/yukigo-prolog-parser)
+- Haskell
+- Prolog
+
 # How to make a parser
 
 A yukigo's parser is a class that implements the interface `YukigoParser` which exposes a public method called `parse` and an `errors` array like this:
@@ -193,7 +193,7 @@ errors: string[];
 parse: (code: string) => AST;
 ```
 
-The package `@yukigo/ast` has all the current supported AST nodes.
+The package `yukigo-ast` has all the current supported AST nodes.
 For the grammar, you can use a tool like Jison or Nearley.
 
 Here's a tutorial for implementing a small custom language.

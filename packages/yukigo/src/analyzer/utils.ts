@@ -1,4 +1,4 @@
-import { ASTNode, StopTraversalException, TraverseVisitor } from "@yukigo/ast";
+import { ASTNode, StopTraversalException, TraverseVisitor } from "yukigo-ast";
 
 export type InspectionHandler = (
   node: ASTNode,

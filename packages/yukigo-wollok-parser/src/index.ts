@@ -1,4 +1,4 @@
-import { AST, YukigoParser } from "@yukigo/ast";
+import { AST, YukigoParser } from "yukigo-ast;
 import { parse } from "wollok-ts";
 import { WollokToYukigoTransformer } from "./transformer.js";
 

@@ -35,7 +35,7 @@ import {
   TypeVar,
   Variable,
   VariablePattern,
-} from "@yukigo/ast";
+} from "yukigo-ast";
 import { InspectionMap, executeVisitor } from "../utils.js";
 
 export class Assigns extends TraverseVisitor {

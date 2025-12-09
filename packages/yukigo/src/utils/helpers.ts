@@ -1,6 +1,6 @@
 import { parseDocument } from "yaml";
 import { InspectionRule } from "../analyzer/index.js";
-import { YukigoPrimitive } from "@yukigo/ast";
+import { YukigoPrimitive } from "yukigo-ast";
 
 /**
  * Translates Mulang inspections (YAML format) to an array of `InspectionRule` objects.

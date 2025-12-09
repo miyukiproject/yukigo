@@ -1,4 +1,4 @@
-import { AST } from "@yukigo/ast";
+import { AST } from "yukigo-ast";
 import { genericInspections } from "./inspections/generic.js";
 import { functionalInspections } from "./inspections/functional.js";
 import { logicInspections } from "./inspections/logic.js";

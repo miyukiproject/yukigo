@@ -5,7 +5,7 @@ import {
   YukigoParser,
   Return,
   SourceLocation,
-} from "@yukigo/ast";
+} from "yukigo-ast";
 import { assert } from "chai";
 
 describe("Parser Tests", () => {

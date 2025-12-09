@@ -13,7 +13,7 @@ import {
   ASTNode,
   StopTraversalException,
   ArithmeticBinaryOperation,
-} from "@yukigo/ast";
+} from "yukigo-ast";
 import {
   DeclaresFact,
   DeclaresRule,

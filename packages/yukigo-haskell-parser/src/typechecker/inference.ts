@@ -52,7 +52,7 @@ import {
   Visitor,
   WildcardPattern,
   Yield,
-} from "@yukigo/ast";
+} from "yukigo-ast";
 import {
   Environment,
   getArgumentTypes,

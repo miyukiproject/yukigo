@@ -2,7 +2,7 @@ import grammar from "./parser/grammar.js";
 import nearley from "nearley";
 import { groupFunctionDeclarations } from "./utils/helpers.js";
 import { TypeChecker } from "./typechecker/checker.js";
-import { AST, YukigoParser } from "@yukigo/ast";
+import { AST, YukigoParser } from "yukigo-ast";
 import { inspect } from "util";
 import { preprocessor } from "./parser/layoutPreprocessor.js";
 import { preludeCode } from "./prelude.js";

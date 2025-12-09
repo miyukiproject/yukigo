@@ -8,7 +8,7 @@ import {
   ParameterizedType,
   SymbolPrimitive,
   SimpleType,
-} from "@yukigo/ast";
+} from "yukigo-ast";
 import { executeVisitor } from "../../src/analyzer/utils.js";
 
 describe("Generic Inspections Type Checks", () => {

@@ -10,7 +10,7 @@ import {
   SymbolPrimitive,
   Variable,
   VariablePattern,
-} from "@yukigo/ast";
+} from "yukigo-ast";
 import {
   InternalLogicResult,
   solveGoal,

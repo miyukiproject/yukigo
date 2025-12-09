@@ -1,6 +1,6 @@
 {
   "name": "yukigo-wollok-parser",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "",
   "type": "module",
   "main": "dist/index.js",
@@ -30,6 +30,6 @@
     "moo": "^0.5.2",
     "nearley": "^2.20.1",
     "wollok-ts": "^4.2.3",
-    "@yukigo/ast": "0.1.0"
+    "yukigo-ast": "0.1.0"
   }
 }
