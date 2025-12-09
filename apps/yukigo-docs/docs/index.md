@@ -13,7 +13,7 @@ markdownStyles: false
   import CodePlayground from "./components/CodePlayground.vue"
 </script>
 
-<main class="flex flex-col gap-16 px-48">
+<main class="flex flex-col gap-8 sm:gap-12 lg:gap-16 px-4 sm:px-6 lg:px-48">
   <Hero />
   <CodePlayground initial-code="doble x = x * 2" />
 </main>

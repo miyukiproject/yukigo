@@ -1,5 +1,5 @@
 <template>
-  <div class="flex w-1/2 shadow-2xl bg-[#0f1115] border border-white/5 rounded-2xl overflow-hidden font-mono text-sm text-gray-200 h-full" @keydown="onKeyDown">
+  <div class="flex w-full shadow-2xl bg-[#0f1115] border border-white/5 rounded-2xl overflow-hidden font-mono text-sm text-gray-200 h-full" @keydown="onKeyDown">
     <div class="bg-white/5 px-3 py-2 select-none text-right overflow-hidden">
       <div v-for="ln in lineCount" :key="ln" class="text-gray-500 leading-5">{{ ln }}</div>
     </div>

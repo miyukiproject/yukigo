@@ -1,8 +1,41 @@
 <template>
-  <div class="flex w-full gap-8 h-64">
-    <Editor v-model="code" />
+  <div class="flex flex-col w-full gap-4">
+    <!-- Parser Selector -->
+    <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+      <!-- Desktop: Buttons -->
+      <div class="hidden sm:flex gap-3">
+        <button
+          v-for="lang in languages"
+          :key="lang.value"
+          @click="switchLanguage(lang.value)"
+          :class="[
+            'px-4 py-2 rounded-full font-semibold transition-all duration-200 border backdrop-blur',
+            selectedLanguage === lang.value
+              ? 'bg-gradient-to-r from-primary to-purple-500 text-white border-transparent shadow-[0_8px_24px_rgba(59,130,246,0.35)] scale-[1.02]'
+              : 'bg-white/10 text-gray-200 border-white/15 hover:bg-white/15 hover:border-white/25 hover:shadow-[0_6px_18px_rgba(0,0,0,0.25)]'
+          ]">
+          {{ lang.label }}
+        </button>
+      </div>
+      
+      <!-- Mobile: Select -->
+      <select 
+        v-model="selectedLanguage"
+        @change="switchLanguage(selectedLanguage)"
+        class="sm:hidden px-4 py-2 rounded-full border border-white/20 bg-[#16181d]/80 text-gray-100 font-semibold cursor-pointer focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 backdrop-blur">
+        <option v-for="lang in languages" :key="lang.value" :value="lang.value">
+          {{ lang.label }}
+        </option>
+      </select>
+    </div>
 
-    <div class="w-1/2 h-full">
+    <!-- Editor and Terminal -->
+    <div class="flex flex-col lg:flex-row w-full gap-4 lg:gap-8">
+      <div class="w-full lg:w-1/2 h-80 sm:h-96 lg:h-80">
+        <Editor v-model="code" />
+      </div>
+      
+      <div class="w-full lg:w-1/2 h-80 sm:h-96 lg:h-80">
       <div
         class="h-full flex flex-col bg-[#1e1e1e] rounded-[14px] overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.25)] font-mono">
         <div
@@ -39,6 +72,7 @@
           </div>
         </div>
       </div>
+      </div>
     </div>
   </div>
 </template>
@@ -47,6 +81,9 @@
 import { ref, onMounted, nextTick } from "vue";
 import Editor from "./Editor.vue";
 import { YukigoHaskellParser } from "yukigo-haskell-parser";
+import { YukigoPrologParser } from "yukigo-prolog-parser";
+import { YukigoWollokParser } from "yukigo-wollok-parser";
+
 import { Interpreter } from "yukigo";
 
 const props = defineProps({
@@ -56,6 +93,29 @@ const props = defineProps({
   },
 });
 
+// Language configuration
+const languages = [
+  { value: "haskell", label: "Haskell" },
+  { value: "prolog", label: "Prolog" },
+  { value: "wollok", label: "Wollok" },
+];
+
+const languageExamples = {
+  haskell: {
+    code: "doble x = x * 2",
+    parser: new YukigoHaskellParser(),
+  },
+  prolog: {
+    code: "parent(tom, bob).\nparent(tom, liz).",
+    parser: new YukigoPrologParser(),
+  },
+  wollok: {
+    code: "method double(x) = x * 2",
+    parser: new YukigoWollokParser(),
+  },
+};
+
+const selectedLanguage = ref("haskell");
 const code = ref(props.initialCode);
 const commandHistory = ref([
   { type: "output", text: "Yukigo REPL v0.1.0 — Try a command!" },
@@ -66,8 +126,21 @@ const historyIndex = ref(-1);
 const inputRef = ref(null);
 const terminalBodyRef = ref(null);
 
-const parser = new YukigoHaskellParser();
-const replParser = new YukigoHaskellParser("");
+let parser = new YukigoHaskellParser();
+let replParser = new YukigoHaskellParser("");
+
+function switchLanguage(lang) {
+  selectedLanguage.value = lang;
+  const example = languageExamples[lang];
+  parser = example.parser;
+  replParser = example.parser;
+  code.value = example.code;
+  commandHistory.value = [
+    { type: "output", text: `Yukigo REPL v0.1.0 — ${lang.charAt(0).toUpperCase() + lang.slice(1)} loaded` },
+  ];
+  currentCommand.value = "";
+  historyIndex.value = -1;
+}
 
 function scrollToBottom() {
   if (!terminalBodyRef.value) return;
