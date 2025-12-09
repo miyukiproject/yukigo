@@ -1,4 +1,4 @@
-import * as Yu from "yukigo-ast;
+import * as Yu from "yukigo-ast";
 import {
   Assignment,
   Body,

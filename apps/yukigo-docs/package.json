@@ -1,5 +1,5 @@
 {
-  "name": "@yukigo/docs",
+  "name": "yukigo-docs",
   "private": true,
   "type": "module",
   "scripts": {
