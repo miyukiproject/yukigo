@@ -1,7 +1,7 @@
 {
   "name": "create-yukigo-parser",
   "description": "A CLI to quickly set up a new Yukigo parser project.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "main": "dist/index.js",
   "type": "module",
   "bin": {
