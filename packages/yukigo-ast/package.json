@@ -2,6 +2,9 @@
   "name": "@yukigo/ast",
   "version": "0.1.0",
   "description": "",
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
