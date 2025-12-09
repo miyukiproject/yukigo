@@ -27,9 +27,9 @@
     "typescript": "^5.9.2"
   },
   "dependencies": {
-    "@yukigo/ast": "^0.1.0",
     "moo": "^0.5.2",
     "nearley": "^2.20.1",
-    "wollok-ts": "^4.2.3"
+    "wollok-ts": "^4.2.3",
+    "@yukigo/ast": "0.1.0"
   }
 }

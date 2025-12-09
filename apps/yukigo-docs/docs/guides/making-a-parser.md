@@ -27,100 +27,19 @@ For this tutorial we will be implementing a parser for a subset of [mini-lang](h
 
 We will be using [nearley.js](https://nearley.js.org/) as our parser generator, but feel free to use any tool you find convenient.
 
-Let's start a new Typescript project and install all the packages we need.
+Let's start a new Yukigo Parser project with `create-yukigo-parser`.
 
 ```sh
 > mkdir yukigo-mini-parser
-> npm init -y
-> npm i -D typescript ts-node @types/node @types/chai @types/mocha chai mocha
-> npm i -g nearley
-> npm i nearley moo @types/moo moo-ignore yukigo-core
-> mkdir src
-> touch src/index.ts
-> tsc --init
-```
-
-For the `tsconfig.json` file this will be the configuration:
-
-```json
-{
-  "compilerOptions": {
-    "target": "ES2024",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "lib": ["ES2024"],
-    "outDir": "./dist",
-    "declaration": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "sourceMap": true,
-    "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
-  },
-  "include": ["src"],
-  "exclude": ["dist/**/*"]
-}
-```
-
-And in `package.json` we will have this
-```json
-{
-  "name": "yukigo-mini-parser",
-  "version": "1.0.0",
-  "description": "",
-  "scripts": {
-    "build": "nearleyc src/grammar.ne -o src/grammar.ts && tsc",
-    "test": "npm run build && mocha"
-  },
-  "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": "./dist/index.js",
-    "./package.json": "./package.json"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "@types/chai": "^5.2.2",
-    "@types/mocha": "^10.0.10",
-    "@types/node": "^24.7.0",
-    "chai": "^6.2.0",
-    "mocha": "^11.7.4",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.2"
-  },
-  "dependencies": {
-    "@types/moo": "^0.5.10",
-    "moo": "^0.5.2",
-    "moo-ignore": "^2.5.3",
-    "nearley": "^2.20.1",
-    "yukigo-core": "file:../yukigo-core"
-  }
-}
-```
-
-So let's start our parser as a class that implements `YukigoParser`.
-In our `src/index.ts`
-
-```ts
-import { YukigoParser } from "yukigo-core";
-
-export class YukigoMiniParser implements YukigoParser {
-  public errors: string[] = [];
-
-  public parse(code: string) {
-    return [];
-  }
-}
+> cd yukigo-mini-parser
+> npx create-yukigo-parser
 ```
 
 ## Lexer
 
 Great! We have a base to work on. Now let's work on the lexer, this is the component reponsible for lexical tokenization, the process where a string is converted to meaningful tokens.
 
-Let's create a `src/lexer.ts` file and define the meaningful tokens in our language:
+IN the `src/lexer.ts` file, let's define the meaningful tokens in our language:
 ```ts
 import moo from "moo";
 import { makeLexer } from "moo-ignore";

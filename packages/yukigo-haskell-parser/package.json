@@ -30,6 +30,7 @@
     "moo": "^0.5.2",
     "moo-ignore": "^2.5.3",
     "moo-indentation-lexer": "^6.0.0",
-    "nearley": "^2.20.1"
+    "nearley": "^2.20.1",
+    "@yukigo/ast": "0.1.0"
   }
 }

@@ -8,14 +8,14 @@
     ".": "./dist/index.js",
     "./package.json": "./package.json"
   },
-  "dependencies": {
-    "@yukigo/ast": "^0.1.0",
-    "typescript": "^5.9.2",
-    "yaml": "^2.8.0"
-  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "test": "mocha --import=tsx"
+  },
+  "dependencies": {
+    "typescript": "^5.9.2",
+    "yaml": "^2.8.0",
+    "@yukigo/ast": "0.1.0"
   },
   "devDependencies": {
     "@types/chai": "^5.2.2",

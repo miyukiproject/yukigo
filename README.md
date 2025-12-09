@@ -1,4 +1,4 @@
-# ❄️ Yukigo (WIP)
+# ❄️ Yukigo
 A universal, multi-language, multi-paradigm code analyzer highly inspired in [mulang](https://github.com/mumuki/mulang)
 
 ## Components
@@ -189,4 +189,4 @@ parse: (code: string) => AST;
 The package `yukigo-core` has all the current supported AST nodes.
 For the grammar, you can use a tool like Jison or Nearley.
 
-Here's a tutorial for implementing a small custom language.
+Here's a [tutorial](https://miyukiproject.github.io/yukigo/guides/making-a-parser.html) for implementing a small custom language.
