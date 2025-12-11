@@ -1,3 +1,4 @@
+export const stdCode = `
 % between(+Low, +High, ?Value)
 % True if Low =< Value =< High (assuming integers)
 between(Low, High, Low) :- Low =< High.
@@ -117,3 +118,4 @@ exclude(Pred, [H|T], Rest) :-
     ;   Rest = [H|Rest2],
         exclude(Pred, T, Rest2)
     ).
+`

@@ -52,7 +52,7 @@ assert.deepEqual = function (actual: any, expected: any, ...args: any[]) {
 describe("Parser Tests", () => {
   let parser: YukigoHaskellParser;
   beforeEach(() => {
-    parser = new YukigoHaskellParser("");
+    parser = new YukigoHaskellParser("", { typecheck: false });
   });
   it("parses boolean expressions", () => {
     const returnExpression = new Return(
@@ -92,7 +92,7 @@ describe("Parser Tests", () => {
     assert.deepEqual(parser.parse('f "hello world" = 1'), [
       new Function(new SymbolPrimitive("f"), [
         new Equation(
-          [new LiteralPattern(new StringPrimitive('hello world'))],
+          [new LiteralPattern(new StringPrimitive("hello world"))],
           new UnguardedBody(new Sequence([returnExpression])),
           returnExpression
         ),

@@ -27,6 +27,7 @@ import {
   WildcardPattern,
   YukigoParser,
 } from "yukigo-ast";
+import { stdCode } from "../src/std.js";
 const _deepEqual = assert.deepEqual;
 assert.deepEqual = function (actual: any, expected: any, ...args: any[]) {
   function stripLoc(obj: any): any {
@@ -45,11 +46,11 @@ assert.deepEqual = function (actual: any, expected: any, ...args: any[]) {
 describe("Parser Test", () => {
   let parser: YukigoParser;
   beforeEach(() => {
-    parser = new YukigoPrologParser();
+    parser = new YukigoPrologParser("");
   });
   it("std.pl", () => {
     assert.doesNotThrow(() =>
-      parser.parse(readFileSync("./src/std.pl").toString())
+      parser.parse(stdCode)
     );
   });
   it("simplest fact/0", () => {
