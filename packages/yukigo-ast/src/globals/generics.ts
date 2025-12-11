@@ -1405,6 +1405,7 @@ export type AST = Statement[];
 export interface YukigoParser {
   errors?: string[];
   parse: (code: string) => AST;
+  parseExpression: (code: string) => Expression;
 }
 
 /* export interface Match {

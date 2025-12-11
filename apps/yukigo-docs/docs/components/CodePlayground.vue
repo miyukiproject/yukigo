@@ -127,13 +127,11 @@ const inputRef = ref(null);
 const terminalBodyRef = ref(null);
 
 let parser = new YukigoHaskellParser();
-let replParser = new YukigoHaskellParser("");
 
 function switchLanguage(lang) {
   selectedLanguage.value = lang;
   const example = languageExamples[lang];
   parser = example.parser;
-  replParser = example.parser;
   code.value = example.code;
   commandHistory.value = [
     { type: "output", text: `Yukigo REPL v0.1.0 — ${lang.charAt(0).toUpperCase() + lang.slice(1)} loaded` },
@@ -173,7 +171,7 @@ function executeCommand() {
         lazyLoading: true,
         debug: true,
       });
-      const expression = replParser.parse(commandText);
+      const expression = parser.parseExpression(commandText);
       output = interpreter.evaluate(expression[0]);
     } catch (err) {
       output = err.toString();

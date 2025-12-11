@@ -78,6 +78,10 @@ export class WollokToYukigoTransformer {
     const result = this.visit(root);
     return Array.isArray(result) ? result : [result];
   }
+  public transformExpr(root: Package): Yu.Expression {
+    const result = this.visit(root);
+    return result;
+  }
 
   private visit(node: Node): any {
     const nodeType = node.constructor ? node.constructor.name : "Unknown";
