@@ -59,6 +59,20 @@ export function pushEnv(env: EnvStack, frame?: Environment): EnvStack {
   return [frame ?? new Map(), ...env];
 }
 
+export function replace(
+  env: EnvStack,
+  name: string,
+  value: PrimitiveValue
+): boolean {
+  for (let i = env.length - 1; i >= 0; i--) {
+    if (env[i].has(name)) {
+      env[i].set(name, value);
+      return true;
+    }
+  }
+  return false;
+}
+
 export function popEnv(env: EnvStack): EnvStack {
   return env.slice(1);
 }
@@ -76,4 +90,7 @@ export function define(
   value: PrimitiveValue
 ): void {
   env[0].set(name, value);
+}
+export function remove(env: EnvStack, name: string): void {
+  env[0].delete(name);
 }

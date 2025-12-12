@@ -26,7 +26,6 @@ import {
   Attribute,
   Class,
   Implement,
-  Include,
   Interface,
   Method,
   New,
@@ -38,7 +37,7 @@ import {
 import { Visitor } from "../visitor.js";
 import { Operation } from "./operators.js";
 import { Pattern } from "./patterns.js";
-import { LazyList, RuntimeFunction } from "./runtime.js";
+import { LazyList, RuntimeClass, RuntimeFunction, RuntimeObject } from "./runtime.js";
 import { Type, TypeAlias, TypeCast, TypeSignature } from "./types.js";
 
 export type Modify<T, R> = Omit<T, keyof R> & R;
@@ -330,6 +329,8 @@ export type PrimitiveValue =
   | null
   | void
   | PrimitiveValue[]
+  | RuntimeObject
+  | RuntimeClass
   | undefined;
 
 export type Primitive =
@@ -647,7 +648,6 @@ export type Expression =
   | Self
   | Sequence
   | New
-  | Include
   | Implement
   | DataExpression
   | CompositionExpression

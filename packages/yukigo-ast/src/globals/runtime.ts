@@ -18,6 +18,31 @@ export interface RuntimeFunction {
   pendingArgs?: (PrimitiveValue | PrimitiveThunk)[]; // for partial application
   closure?: Map<string, PrimitiveValue>[];
 }
+
+export interface RuntimeClass {
+  type: "Class";
+  identifier: string;
+  fields: Map<string, PrimitiveValue>;
+  methods: Map<string, RuntimeFunction>;
+  superclass?: string;
+  mixins: string[];
+}
+
+export function isRuntimeClass(val: any): val is RuntimeClass {
+  return val && typeof val === "object" && val.type === "Class";
+}
+
+export interface RuntimeObject {
+  type: "Object";
+  className: string;
+  fields: Map<string, PrimitiveValue>;
+  methods: Map<string, RuntimeFunction>;
+}
+
+export function isRuntimeObject(val: any): val is RuntimeObject {
+  return val && typeof val === "object" && val.type === "Object";
+}
+
 export interface LazyList {
   readonly type: "LazyList";
   readonly generator: () => Generator<PrimitiveValue, void, unknown>;

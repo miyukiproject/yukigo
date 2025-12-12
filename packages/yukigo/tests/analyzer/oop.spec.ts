@@ -7,7 +7,6 @@ import {
   SymbolPrimitive,
   Attribute,
   New,
-  Include,
   Interface,
   Object as AstObject,
   PrimitiveMethod,
@@ -75,17 +74,28 @@ describe("OOP Spec", () => {
     name: string,
     stmts: Statement[] = [],
     extendsName?: string,
-    implementsName?: string
+    implementsName?: string,
+    includes?: string[]
   ): Class => {
     const identifier = createSymbol(name);
     const extendsSymbol = extendsName ? createSymbol(extendsName) : undefined;
     const implementsNode = implementsName
       ? new Implement(createSymbol(implementsName))
       : undefined;
+    const includesMixin =
+      includes && includes.length > 0
+        ? includes.map((sym) => createSymbol(sym))
+        : undefined;
 
     const expression = new Sequence(stmts);
 
-    return new Class(identifier, extendsSymbol, implementsNode, expression);
+    return new Class(
+      identifier,
+      extendsSymbol,
+      implementsNode,
+      includesMixin,
+      expression
+    );
   };
 
   const createObject = (name: string, children: ASTNode[] = []) => {
@@ -172,7 +182,9 @@ describe("OOP Spec", () => {
 
   describe("IncludeMixin", () => {
     it("should detect usage of a specific mixin", () => {
-      const node = new Include(createSymbol("Walking"));
+      const node = createClass("ClassWithMixin", [], undefined, undefined, [
+        "Walking",
+      ]);
       const visitor = new IncludeMixin("Walking");
       expect(executeVisitor(node, visitor)).to.eq(true);
     });
@@ -236,7 +248,9 @@ describe("OOP Spec", () => {
 
   describe("UsesMixins", () => {
     it("should detect any mixin usage", () => {
-      const node = new Include(createSymbol("AnyMixin"));
+      const node = createClass("ClassWithMixin", [], undefined, undefined, [
+        "AnyMixin",
+      ]);
       const visitor = new UsesMixins();
       expect(executeVisitor(node, visitor)).to.eq(true);
     });

@@ -2,8 +2,10 @@ import {
   Exist,
   Expression,
   Findall,
+  Forall,
   Goal,
   LiteralPattern,
+  Not,
   Pattern,
   PrimitiveValue,
   Query,
@@ -16,6 +18,7 @@ import {
   solveGoal,
   Substitution,
   success,
+  unify,
 } from "./LogicResolver.js";
 import { PatternResolver } from "./PatternMatcher.js";
 import { EnvStack, InterpreterConfig } from "../index.js";
@@ -28,7 +31,12 @@ export class LogicEngine {
     private config: InterpreterConfig,
     private evaluator: ExpressionEvaluator
   ) {}
-
+  public unifyExpr(left: Expression, right: Expression): PrimitiveValue {
+    const p1 = this.instantiateExpressionAsPattern(left, new Map());
+    const p2 = this.instantiateExpressionAsPattern(right, new Map());
+    const resultSubsts = unify(p1, p2, new Map());
+    return resultSubsts !== null;
+  }
   public solveQuery(node: Query): PrimitiveValue {
     return this.evaluator.evaluate(node.expression);
   }
@@ -43,7 +51,11 @@ export class LogicEngine {
     );
     return this.handleOutputMode(generator);
   }
-
+  public solveNot(node: Not): PrimitiveValue {
+    const generator = this.solveConjunction(node.expressions, new Map());
+    const result = generator.next();
+    return result.done === true;
+  }
   public solveFindall(node: Findall): PrimitiveValue {
     if (!(node.goal instanceof Goal))
       throw new InterpreterError("solveFindall", "Findall expects a Goal");
@@ -65,7 +77,23 @@ export class LogicEngine {
 
     return results;
   }
+  public solveForall(node: Forall): PrimitiveValue {
+    const conditionGenerator = this.solveConjunction(
+      [node.condition],
+      new Map()
+    );
 
+    for (const condResult of conditionGenerator) {
+      const actionGenerator = this.solveConjunction(
+        [node.action],
+        condResult.substs
+      );
+      const actionResult = actionGenerator.next();
+
+      if (actionResult.done) return false;
+    }
+    return true;
+  }
   public solveExist(node: Exist): PrimitiveValue {
     const generator = solveGoal(
       this.env,

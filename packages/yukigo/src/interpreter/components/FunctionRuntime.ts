@@ -35,7 +35,6 @@ export class FunctionRuntime {
       const newStack: EnvStack = [localEnv, ...currentEnv];
 
       const scopeEvaluator = evaluatorFactory(newStack);
-
       // UnguardedBody
       if (eq.body instanceof UnguardedBody)
         return this.evaluateSequence(eq.body.sequence, scopeEvaluator);

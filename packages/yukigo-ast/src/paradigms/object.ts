@@ -125,11 +125,14 @@ export class Class extends ASTNode {
   public extendsSymbol: SymbolPrimitive | undefined;
   /** @hidden */
   public identifier: SymbolPrimitive;
+  /** @hidden */
+  public includes: SymbolPrimitive[];
 
   constructor(
     identifier: SymbolPrimitive,
     extendsSymbol: SymbolPrimitive | undefined,
     implementsNode: Implement | undefined,
+    includes: SymbolPrimitive[],
     expression: Expression,
     loc?: SourceLocation
   ) {
@@ -137,6 +140,7 @@ export class Class extends ASTNode {
     this.identifier = identifier;
     this.extendsSymbol = extendsSymbol;
     this.implementsNode = implementsNode;
+    this.includes = includes;
     this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
@@ -148,6 +152,7 @@ export class Class extends ASTNode {
       identifier: this.identifier.toJSON(),
       extends: this.extendsSymbol.toJSON(),
       implements: this.implementsNode.toJSON(),
+      includes: this.includes.map((s) => s.toJSON()),
       expression: this.expression.toJSON(),
     };
   }
@@ -200,13 +205,13 @@ export class Send extends ASTNode {
   /** @hidden */
   public args: Expression[];
   /** @hidden */
-  public selector: Expression;
+  public selector: SymbolPrimitive;
   /** @hidden */
   public receiver: Expression;
-
+  /** @hidden */
   constructor(
     receiver: Expression,
-    selector: Expression,
+    selector: SymbolPrimitive,
     args: Expression[],
     loc?: SourceLocation
   ) {
@@ -285,28 +290,6 @@ export class Implement extends ASTNode {
   }
 }
 
-/**
- * Represents the inclusion of a module or mixin.
- * @category OOP
- */
-export class Include extends ASTNode {
-  /** @hidden */
-  public identifier: SymbolPrimitive;
-
-  constructor(identifier: SymbolPrimitive, loc?: SourceLocation) {
-    super(loc);
-    this.identifier = identifier;
-  }
-  public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitInclude?.(this);
-  }
-  public toJSON() {
-    return {
-      type: "Include",
-      identifier: this.identifier.toJSON(),
-    };
-  }
-}
 /**
  * Represents a reference to the current object instance (self/this).
  * @category OOP

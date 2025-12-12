@@ -45,7 +45,6 @@ import {
   Send,
   New,
   Implement,
-  Include,
   Self,
   ListComprehension,
   RangeExpression,
@@ -56,6 +55,9 @@ import {
   ASTNode,
   Raise,
   Query,
+  Record as YuRecord,
+  isRuntimeObject,
+  isRuntimeClass,
 } from "yukigo-ast";
 import { EnvStack, InterpreterConfig } from "../index.js";
 import {
@@ -70,11 +72,25 @@ import {
   LogicalUnaryTable,
   StringOperationTable,
 } from "./Operations.js";
-import { define, ExpressionEvaluator, lookup } from "../utils.js";
+import {
+  define,
+  ExpressionEvaluator,
+  lookup,
+  popEnv,
+  pushEnv,
+  remove,
+  replace,
+} from "../utils.js";
 import { LogicEngine } from "./LogicEngine.js";
-import { ErrorFrame, InterpreterError, UnexpectedValue } from "../errors.js";
+import {
+  ErrorFrame,
+  InterpreterError,
+  UnboundVariable,
+  UnexpectedValue,
+} from "../errors.js";
 import { LazyRuntime } from "./LazyRuntime.js";
 import { FunctionRuntime } from "./FunctionRuntime.js";
+import { ObjectRuntime } from "./ObjectRuntime.js";
 
 export class InterpreterVisitor
   implements Visitor<PrimitiveValue>, ExpressionEvaluator
@@ -247,19 +263,42 @@ export class InterpreterVisitor
     );
   }
   visitUnifyOperation(node: UnifyOperation): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    return this.getLogicEngine().unifyExpr(node.left, node.right);
   }
   visitAssignOperation(node: AssignOperation): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    if (!(node.left instanceof Variable))
+      throw new InterpreterError(
+        "AssignOperation",
+        "Left side must be a Variable"
+      );
+    const identifier = node.left.identifier;
+    const value = node.right.accept(this);
+
+    // check if the value to change is a member from an obj
+    const obj = identifier.accept(this);
+    if (isRuntimeObject(obj)) {
+      const val = node.right.accept(this);
+      return ObjectRuntime.setField(obj, identifier.value, val);
+    }
+    const succed = replace(this.env, identifier.value, value);
+    if (!succed) define(this.env, identifier.value, value);
+    return true;
   }
   visitTupleExpr(node: TupleExpression): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    return node.elements.map((elem) => elem.accept(this));
   }
-  visitFieldExpr(node: FieldExpression): PrimitiveValue {
-    throw new Error("Method not implemented.");
+  visitFieldExpression(node: FieldExpression): PrimitiveValue {
+    const obj = node.name.accept(this);
+    return ObjectRuntime.getField(obj, node.name.value);
   }
   visitDataExpr(node: DataExpression): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    const fieldValues = new Map<string, PrimitiveValue>();
+
+    for (const field of node.contents) {
+      const value = field.expression.accept(this);
+      fieldValues.set(field.name.value, value);
+    }
+    return ObjectRuntime.instantiate(node.name.value, fieldValues, new Map());
   }
   visitConsExpr(node: ConsExpression): PrimitiveValue {
     try {
@@ -269,10 +308,29 @@ export class InterpreterVisitor
     }
   }
   visitLetInExpr(node: LetInExpression): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    pushEnv(this.env);
+    try {
+      node.declarations.accept(this);
+      return node.expression.accept(this);
+    } finally {
+      popEnv(this.env);
+    }
   }
   visitCall(node: Call): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    // similar to Application but without currying
+    const callee = node.callee.accept(this);
+    const args = node.args.map((arg) => arg.accept(this));
+
+    if (this.isRuntimeFunction(callee)) {
+      return FunctionRuntime.apply(
+        callee.identifier,
+        callee.equations,
+        args,
+        callee.closure || this.env,
+        (newEnv) => new InterpreterVisitor(newEnv, this.config, this.frames)
+      );
+    }
+    throw new InterpreterError("Call", "Target is not a function");
   }
   visitOtherwise(node: Otherwise): PrimitiveValue {
     return true;
@@ -369,37 +427,99 @@ export class InterpreterVisitor
     return this.getLogicEngine().solveExist(node);
   }
   visitNot(node: Not): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    return this.getLogicEngine().solveNot(node);
   }
   visitFindall(node: Findall): PrimitiveValue {
     return this.getLogicEngine().solveFindall(node);
   }
   visitForall(node: Forall): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    return this.getLogicEngine().solveForall(node);
   }
   visitGoal(node: Goal): PrimitiveValue {
     return this.getLogicEngine().solveGoal(node);
   }
   visitSend(node: Send): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    const receiver = node.receiver.accept(this);
+    const args = node.args.map((arg) => arg.accept(this));
+    const methodName = node.selector.value;
+
+    return ObjectRuntime.dispatch(
+      receiver,
+      methodName,
+      args,
+      this.env,
+      (newEnv) => new InterpreterVisitor(newEnv, this.config, this.frames)
+    );
   }
   visitNew(node: New): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    const className = node.identifier.value;
+    // Search class in env
+    const classDef = lookup(this.env, className);
+    if (!isRuntimeClass(classDef))
+      throw new InterpreterError(
+        "New",
+        `${className} is not a class.`,
+        this.frames
+      );
+
+    return ObjectRuntime.instantiate(
+      node.identifier.value,
+      classDef.fields,
+      classDef.methods
+    );
   }
   visitImplement(node: Implement): PrimitiveValue {
     throw new Error("Method not implemented.");
   }
-  visitInclude(node: Include): PrimitiveValue {
-    throw new Error("Method not implemented.");
-  }
   visitSelf(node: Self): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    try {
+      return lookup(this.env, "self");
+    } catch {
+      throw new InterpreterError(
+        "Self",
+        "'self' is not defined in this context"
+      );
+    }
   }
   visitListComprehension(node: ListComprehension): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    const results: PrimitiveValue[] = [];
+
+    const process = (index: number) => {
+      if (index >= node.generators.length) {
+        results.push(node.projection.accept(this));
+        return;
+      }
+
+      const current = node.generators[index];
+
+      if (current instanceof YuGenerator) {
+        const sourceList = this.realizeList(current.expression.accept(this));
+        for (const item of sourceList) {
+          const varName = current.variable.value;
+          const previousVal = lookup(this.env, varName);
+          define(this.env, varName, item);
+          process(index + 1);
+          if (previousVal !== undefined) define(this.env, varName, previousVal);
+          else remove(this.env, varName);
+        }
+      } else {
+        const guard = current as Expression;
+        const condition = guard.accept(this);
+        if (condition === true) process(index + 1);
+      }
+    };
+
+    pushEnv(this.env); // Temp env for evaluating the list
+    try {
+      process(0);
+    } finally {
+      popEnv(this.env);
+    }
+
+    return results;
   }
   visitGenerator(node: YuGenerator): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    return node.expression.accept(this);
   }
   visitRaise(node: Raise): PrimitiveValue {
     const msg = node.body.accept(this);
