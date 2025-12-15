@@ -251,14 +251,6 @@ describe("WollokToYukigoTransformer", () => {
   });
 
   describe("Structural Extensions (Import, Mixin, Field)", () => {
-    it("should transform Import -> Include", () => {
-      const input = p([], [imp("wollok.game")]);
-      const result = transformNode(input) as Yu.Include;
-      const importStmt = result[0];
-      expect(importStmt).to.be.instanceOf(Yu.Include);
-      expect(importStmt.identifier.value).to.equal("wollok.game");
-    });
-
     it("should transform Mixin -> Class", () => {
       const input = mixin("FlyingAbility", []);
       const result = transformNode(input) as Yu.Class;

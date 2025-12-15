@@ -3,9 +3,9 @@ import {
   RangeExpression,
   ConsExpression,
   isLazyList,
-  LazyList,
 } from "yukigo-ast";
 import { createStream, ExpressionEvaluator } from "../utils.js";
+import { createMemoizedStream, isMemoizedList } from "./PatternMatcher.js";
 
 export class LazyRuntime {
   static realizeList(val: PrimitiveValue): PrimitiveValue[] {
@@ -27,8 +27,7 @@ export class LazyRuntime {
 
   static evaluateRange(
     node: RangeExpression,
-    evaluator: ExpressionEvaluator,
-    config: any
+    evaluator: ExpressionEvaluator
   ): PrimitiveValue {
     const startVal = evaluator.evaluate(node.start);
     if (typeof startVal !== "number")
@@ -46,7 +45,7 @@ export class LazyRuntime {
     }
 
     if (!hasEnd) {
-      return createStream(function* () {
+      return createMemoizedStream(function* () {
         let current = startVal;
         while (true) {
           yield current;
@@ -55,6 +54,7 @@ export class LazyRuntime {
       });
     }
 
+    // eager eval
     const endVal = evaluator.evaluate(node.end);
     if (typeof endVal !== "number")
       throw new Error("Range end must be a number");
@@ -67,25 +67,44 @@ export class LazyRuntime {
       result.push(current);
       current += step;
     }
+    console.log("result", result);
     return result;
   }
-
   static evaluateCons(
     node: ConsExpression,
     evaluator: ExpressionEvaluator,
     lazy: boolean
   ): PrimitiveValue {
     const head = evaluator.evaluate(node.head);
-    if (lazy) {
-      const tail = evaluator.evaluate(node.tail);
-      if (Array.isArray(tail)) return [head, ...tail];
-      if (isLazyList(tail))
-        return createStream(function* () {
-          yield head;
-          yield* tail.generator();
-        });
 
-      throw new Error(`Invalid tail type for Cons: ${typeof tail}`);
+    if (lazy) {
+      return createMemoizedStream(function* () {
+        yield head;
+        const tail = evaluator.evaluate(node.tail);
+
+        if (Array.isArray(tail)) {
+          for (const item of tail) yield item;
+          return;
+        }
+
+        if (isLazyList(tail)) {
+          if (isMemoizedList(tail)) {
+            const seq = tail._sequence;
+            let currentIdx = tail._offset;
+            while (true) {
+              const res = seq.get(currentIdx);
+              if (res.done) break;
+              yield res.value!;
+              currentIdx++;
+            }
+          } else {
+            yield* tail.generator();
+          }
+          return;
+        }
+
+        throw new Error(`Invalid tail type for Cons: ${typeof tail}`);
+      });
     }
 
     // Eager behavior

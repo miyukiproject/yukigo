@@ -505,9 +505,6 @@ export class InterpreterVisitor
       classDef.methods
     );
   }
-  visitImplement(node: Implement): PrimitiveValue {
-    throw new Error("Method not implemented.");
-  }
   visitSelf(node: Self): PrimitiveValue {
     try {
       return lookup(this.env, "self");
@@ -566,7 +563,7 @@ export class InterpreterVisitor
   }
   visitRangeExpression(node: RangeExpression): PrimitiveValue {
     try {
-      return LazyRuntime.evaluateRange(node, this, this.config);
+      return LazyRuntime.evaluateRange(node, this);
     } catch (e) {
       throw new InterpreterError("Range", e.message, this.frames);
     }
