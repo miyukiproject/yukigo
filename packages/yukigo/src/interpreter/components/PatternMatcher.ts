@@ -21,7 +21,7 @@ import {
 } from "yukigo-ast";
 import { Bindings } from "../index.js";
 import { InterpreterVisitor } from "./Visitor.js";
-import { createStream } from "../utils.js";
+import { createGlobalEnv, createStream } from "../utils.js";
 
 export class PatternResolver implements Visitor<string> {
   visitVariablePattern(node: VariablePattern): string {
@@ -249,6 +249,6 @@ export class PatternMatcher implements Visitor<boolean> {
     return false;
   }
   private realize(value: PrimitiveValue): PrimitiveValue[] {
-    return new InterpreterVisitor([new Map()], {}).realizeList(value);
+    return new InterpreterVisitor(createGlobalEnv(), {}).realizeList(value);
   }
 }

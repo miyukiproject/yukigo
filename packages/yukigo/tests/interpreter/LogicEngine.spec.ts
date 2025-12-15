@@ -12,10 +12,11 @@ import {
   RuntimeFact,
   RuntimeRule,
   LogicResult,
+  EnvStack
 } from "yukigo-ast";
-import { ExpressionEvaluator } from "../../src/interpreter/utils.js";
+import { createGlobalEnv, ExpressionEvaluator } from "../../src/interpreter/utils.js";
 import { LogicEngine } from "../../src/interpreter/components/LogicEngine.js";
-import { EnvStack, InterpreterConfig } from "../../src/interpreter/index.js";
+import { InterpreterConfig } from "../../src/interpreter/index.js";
 import { unify } from "../../src/interpreter/components/LogicResolver.js";
 import { PatternResolver } from "../../src/interpreter/components/PatternMatcher.js";
 
@@ -45,8 +46,7 @@ describe("Logic Engine & Unification", () => {
   let evaluator: MockEvaluator;
 
   beforeEach(() => {
-    const globalEnv = new Map<string, any>();
-    env = [globalEnv];
+    env = createGlobalEnv();
     evaluator = new MockEvaluator();
 
     const config: InterpreterConfig = {
@@ -95,7 +95,7 @@ describe("Logic Engine & Unification", () => {
 
   describe("LogicEngine Execution", () => {
     beforeEach(() => {
-      const globalEnv = env[0];
+      const globalEnv = env.head;
       const factsParent: RuntimeFact = {
         kind: "Fact",
         identifier: "parent",

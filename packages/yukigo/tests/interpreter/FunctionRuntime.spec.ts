@@ -9,8 +9,11 @@ import {
   LiteralPattern,
   VariablePattern,
   GuardedBody,
+  EnvStack,
+  PrimitiveValue,
 } from "yukigo-ast";
 import { FunctionRuntime } from "../../src/interpreter/components/FunctionRuntime.js";
+import { createGlobalEnv } from "../../src/interpreter/utils.js";
 
 const s = (val: string) => new SymbolPrimitive(val);
 const n = (val: number) => new NumberPrimitive(val);
@@ -26,12 +29,12 @@ const guarded = (guards: { cond: any; body: any }[]): GuardedBody[] => {
 };
 
 class MockEvaluator {
-  constructor(public env: any[]) {}
+  constructor(public env: EnvStack) {}
 
-  evaluate(node: any): any {
+  evaluate(node: any): PrimitiveValue {
     if (node.type === "Value") return node.value;
     if (node.type === "Variable") {
-      const val = this.env[0].get(node.value);
+      const val = this.env.head.get(node.value);
       return val !== undefined ? val : `Error: ${node.value} not found`;
     }
     return node;
@@ -39,12 +42,12 @@ class MockEvaluator {
 }
 
 describe("FunctionRuntime", () => {
-  let globalEnv: any[];
+  let globalEnv: EnvStack;
   let evaluatorFactory: any;
 
   beforeEach(() => {
-    globalEnv = [new Map()];
-    evaluatorFactory = (env: any[]) => new MockEvaluator(env);
+    globalEnv = createGlobalEnv();
+    evaluatorFactory = (env: EnvStack) => new MockEvaluator(env);
   });
 
   describe("Pattern Matching & Dispatch", () => {
@@ -111,7 +114,7 @@ describe("FunctionRuntime", () => {
     });
 
     it("should prioritize local scope over global scope", () => {
-      globalEnv[0].set("X", 1);
+      globalEnv.head.set("X", 1);
 
       const eq1: EquationRuntime = {
         patterns: [varPat("X")],

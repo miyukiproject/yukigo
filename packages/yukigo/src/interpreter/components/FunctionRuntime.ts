@@ -4,11 +4,11 @@ import {
   UnguardedBody,
   Sequence,
   Return,
-  Expression,
+  EnvStack,
 } from "yukigo-ast";
-import { Bindings, EnvStack } from "../index.js";
+import { Bindings } from "../index.js";
 import { PatternMatcher } from "./PatternMatcher.js";
-import { ExpressionEvaluator } from "../utils.js";
+import { ExpressionEvaluator, pushEnv } from "../utils.js";
 import { InterpreterError } from "../errors.js";
 
 class NonExhaustivePatterns extends InterpreterError {
@@ -32,7 +32,7 @@ export class FunctionRuntime {
 
       if (!FunctionRuntime.patternsMatch(eq, args, bindings)) continue;
       const localEnv = new Map<string, PrimitiveValue>(bindings);
-      const newStack: EnvStack = [localEnv, ...currentEnv];
+      const newStack: EnvStack = pushEnv(currentEnv, localEnv);
 
       const scopeEvaluator = evaluatorFactory(newStack);
       // UnguardedBody

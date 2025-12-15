@@ -8,6 +8,12 @@ export interface EquationRuntime {
 
 export type PrimitiveThunk = () => PrimitiveValue;
 
+export type Environment = Map<string, PrimitiveValue>;
+export type EnvStack = {
+  head: Environment;
+  tail: EnvStack | null;
+};
+
 /**
  * Runtime Function used in the Interpreter
  */
@@ -16,7 +22,7 @@ export interface RuntimeFunction {
   identifier?: string;
   equations: EquationRuntime[];
   pendingArgs?: (PrimitiveValue | PrimitiveThunk)[]; // for partial application
-  closure?: Map<string, PrimitiveValue>[];
+  closure?: EnvStack;
 }
 
 export interface RuntimeClass {

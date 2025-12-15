@@ -13,11 +13,10 @@ import {
   Rule,
   RuntimeClass,
   RuntimeFunction,
-  Sequence,
+  EnvStack,
   TraverseVisitor,
 } from "yukigo-ast";
-import { EnvStack } from "../index.js";
-import { define } from "../utils.js";
+import { createGlobalEnv, define, lookup } from "../utils.js";
 import { InterpreterVisitor } from "./Visitor.js";
 
 /**
@@ -30,7 +29,7 @@ export class EnvBuilderVisitor extends TraverseVisitor {
 
   constructor(baseEnv?: EnvStack) {
     super();
-    this.env = baseEnv ?? [new Map()];
+    this.env = baseEnv ?? createGlobalEnv();
   }
 
   public build(ast: AST): EnvStack {
@@ -67,21 +66,15 @@ export class EnvBuilderVisitor extends TraverseVisitor {
   visitClass(node: Class): void {
     const identifier = node.identifier.value;
 
-    // 1. Herencia Directa (Extends)
     const superclass = node.extendsSymbol?.value;
 
-    // 2. Mixines (Includes) - ACCESO DIRECTO ESTRUCTURAL
-    // Mapeamos los SymbolPrimitive a strings directamente
     const mixins = node.includes.map((symbol) => symbol.value);
 
-    // 3. Recolectar el cuerpo (Solo Métodos y Atributos)
     const collector = new OOPCollector();
     node.expression.accept(collector);
 
     const fields = collector.collectedFields;
     const methods = collector.collectedMethods;
-
-    // El collector ya NO recolecta mixines, porque ya los tenemos
 
     const runtimeClass: RuntimeClass = {
       type: "Class",
@@ -89,22 +82,23 @@ export class EnvBuilderVisitor extends TraverseVisitor {
       fields,
       methods,
       superclass,
-      mixins, // <--- Pasamos el array limpio
+      mixins,
     };
 
     define(this.env, identifier, runtimeClass);
   }
   visitFact(node: Fact): void {
     const identifier = node.identifier.value;
-    const runtimeValue = this.env[0].get(identifier);
+    const localEnv = this.env.head;
+    const runtimeValue = localEnv.get(identifier);
 
     if (isRuntimePredicate(runtimeValue) && runtimeValue.kind === "Fact") {
-      this.env[0].set(identifier, {
+      localEnv.set(identifier, {
         ...runtimeValue,
         equations: [...runtimeValue.equations, node],
       });
     } else {
-      this.env[0].set(identifier, {
+      localEnv.set(identifier, {
         kind: "Fact",
         identifier,
         equations: [node],
@@ -114,15 +108,16 @@ export class EnvBuilderVisitor extends TraverseVisitor {
 
   visitRule(node: Rule): void {
     const identifier = node.identifier.value;
-    const runtimeValue = this.env[0].get(identifier);
+    const localEnv = this.env.head;
+    const runtimeValue = localEnv.get(identifier);
 
     if (isRuntimePredicate(runtimeValue) && runtimeValue.kind === "Rule") {
-      this.env[0].set(identifier, {
+      localEnv.set(identifier, {
         ...runtimeValue,
         equations: [...runtimeValue.equations, node],
       });
     } else {
-      this.env[0].set(identifier, {
+      localEnv.set(identifier, {
         kind: "Rule",
         identifier,
         equations: [node],

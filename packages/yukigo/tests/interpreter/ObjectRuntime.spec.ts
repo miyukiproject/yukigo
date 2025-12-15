@@ -12,9 +12,16 @@ import {
   RuntimeClass,
   StringPrimitive,
   Primitive,
+  Equation,
+  Super,
+  ArithmeticBinaryOperation,
+  EnvStack,
 } from "yukigo-ast";
-import { EnvStack } from "../../src/index.js";
 import { ObjectRuntime } from "../../src/interpreter/components/ObjectRuntime.js";
+import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
+import { createGlobalEnv, lookup } from "../../src/interpreter/utils.js";
+
+const createEmptyEnv = () => ({ head: new Map(), tail: null });
 
 const createMethodMap = (
   methods: RuntimeFunction[]
@@ -55,12 +62,7 @@ const dummyFactory = (env: EnvStack) => {
     evaluate: (n: any) => {
       if (n instanceof NumberPrimitive) return n.value;
       if (n instanceof StringPrimitive) return n.value;
-      if (n instanceof SymbolPrimitive) {
-        for (const map of env) {
-          if (map.has(n.value)) return map.get(n.value);
-        }
-        throw new Error(`Var ${n.value} not found in test env`);
-      }
+      if (n instanceof SymbolPrimitive) return lookup(env, n.value);
       throw new Error("Unexpected value in dummyFactory: ", n);
     },
   };
@@ -82,7 +84,8 @@ describe("ObjectRuntime", () => {
     mixins: [],
     superclass: undefined,
   };
-  const env: EnvStack = [new Map([[className, classDef]])];
+  const env: EnvStack = createGlobalEnv();
+  env.head.set(className, classDef);
   beforeEach(() => {
     objectInstance = ObjectRuntime.instantiate(
       className,
@@ -159,7 +162,7 @@ describe("ObjectRuntime", () => {
         objectInstance,
         "getCount",
         [],
-        [],
+        env,
         dummyFactory
       );
 
@@ -184,10 +187,10 @@ describe("ObjectRuntime", () => {
           "soy un string" as any,
           "toString",
           [],
-          [],
+          createEmptyEnv(),
           dummyFactory
         );
-      }).to.throw(/Cannot call method 'toString' on non-object/);
+      }).to.throw(/is not an object/);
     });
 
     it("debe permitir argumentos en el método", () => {
@@ -210,7 +213,7 @@ describe("ObjectRuntime", () => {
         objectInstance,
         "echo",
         [999],
-        [],
+        env,
         dummyFactory
       );
 
@@ -219,7 +222,7 @@ describe("ObjectRuntime", () => {
   });
   describe("Method Lookup", () => {
     it("debe delegar a la superclase si el método no está en la instancia ni en la clase", () => {
-      env[0].set(
+      env.head.set(
         "Animal",
         createClass(
           "Animal",
@@ -227,7 +230,7 @@ describe("ObjectRuntime", () => {
           createMethodMap([createMethod("speak", new StringPrimitive("Guau"))])
         )
       );
-      env[0].set("Perro", createClass("Perro", "Animal"));
+      env.head.set("Perro", createClass("Perro", "Animal"));
 
       const perro = ObjectRuntime.instantiate("Perro", new Map(), new Map());
 
@@ -236,7 +239,7 @@ describe("ObjectRuntime", () => {
     });
 
     it("debe subir múltiples niveles en la jerarquía (Abuelo -> Padre -> Hijo)", () => {
-      env[0].set(
+      env.head.set(
         "A",
         createClass(
           "A",
@@ -244,8 +247,8 @@ describe("ObjectRuntime", () => {
           createMethodMap([createMethod("id", new NumberPrimitive(1))])
         )
       );
-      env[0].set("B", createClass("B", "A"));
-      env[0].set("C", createClass("C", "B"));
+      env.head.set("B", createClass("B", "A"));
+      env.head.set("C", createClass("C", "B"));
 
       const objC = ObjectRuntime.instantiate("C", new Map(), new Map());
       expect(
@@ -254,7 +257,7 @@ describe("ObjectRuntime", () => {
     });
 
     it("debe encontrar métodos definidos en un Mixin", () => {
-      env[0].set(
+      env.head.set(
         "Volador",
         createClass(
           "Volador",
@@ -262,7 +265,10 @@ describe("ObjectRuntime", () => {
           createMethodMap([createMethod("volar", new StringPrimitive("Wosh"))])
         )
       );
-      env[0].set("Ave", createClass("Ave", undefined, undefined, ["Volador"]));
+      env.head.set(
+        "Ave",
+        createClass("Ave", undefined, undefined, ["Volador"])
+      );
 
       const pepita = ObjectRuntime.instantiate("Ave", new Map(), new Map());
       expect(
@@ -271,7 +277,7 @@ describe("ObjectRuntime", () => {
     });
 
     it("debe soportar Mixines recursivos (Mixin incluye otro Mixin)", () => {
-      env[0].set(
+      env.head.set(
         "HabilidadA",
         createClass(
           "HabilidadA",
@@ -279,11 +285,11 @@ describe("ObjectRuntime", () => {
           createMethodMap([createMethod("skill", new StringPrimitive("Fire"))])
         )
       );
-      env[0].set(
+      env.head.set(
         "HabilidadB",
         createClass("HabilidadB", undefined, undefined, ["HabilidadA"])
       );
-      env[0].set(
+      env.head.set(
         "Heroe",
         createClass("Heroe", undefined, undefined, ["HabilidadB"])
       );
@@ -295,7 +301,7 @@ describe("ObjectRuntime", () => {
     });
 
     it("Prioridad: La Clase Propia gana a Mixines y Superclase", () => {
-      env[0].set(
+      env.head.set(
         "Super",
         createClass(
           "Super",
@@ -303,7 +309,7 @@ describe("ObjectRuntime", () => {
           createMethodMap([createMethod("val", new NumberPrimitive(1))])
         )
       );
-      env[0].set(
+      env.head.set(
         "Mixin",
         createClass(
           "Mixin",
@@ -312,7 +318,7 @@ describe("ObjectRuntime", () => {
         )
       );
 
-      env[0].set(
+      env.head.set(
         "Child",
         createClass(
           "Child",
@@ -329,7 +335,7 @@ describe("ObjectRuntime", () => {
     });
 
     it("Prioridad: El Mixin gana a la Superclase", () => {
-      env[0].set(
+      env.head.set(
         "Super",
         createClass(
           "Super",
@@ -337,7 +343,7 @@ describe("ObjectRuntime", () => {
           createMethodMap([createMethod("val", new NumberPrimitive(1))])
         )
       );
-      env[0].set(
+      env.head.set(
         "Mixin",
         createClass(
           "Mixin",
@@ -345,7 +351,10 @@ describe("ObjectRuntime", () => {
           createMethodMap([createMethod("val", new NumberPrimitive(2))])
         )
       );
-      env[0].set("Child", createClass("Child", "Super", undefined, ["Mixin"]));
+      env.head.set(
+        "Child",
+        createClass("Child", "Super", undefined, ["Mixin"])
+      );
 
       const child = ObjectRuntime.instantiate("Child", new Map(), new Map());
       expect(
@@ -354,7 +363,7 @@ describe("ObjectRuntime", () => {
     });
 
     it("Prioridad: El último Mixin de la lista gana (Shadowing de derecha a izquierda)", () => {
-      env[0].set(
+      env.head.set(
         "MixinA",
         createClass(
           "MixinA",
@@ -362,7 +371,7 @@ describe("ObjectRuntime", () => {
           createMethodMap([createMethod("val", new NumberPrimitive(10))])
         )
       );
-      env[0].set(
+      env.head.set(
         "MixinB",
         createClass(
           "MixinB",
@@ -371,7 +380,7 @@ describe("ObjectRuntime", () => {
         )
       );
 
-      env[0].set(
+      env.head.set(
         "Clase",
         createClass("Clase", undefined, undefined, ["MixinA", "MixinB"])
       );
@@ -383,7 +392,7 @@ describe("ObjectRuntime", () => {
     });
 
     it("Prioridad: Orden inverso de Mixines", () => {
-      env[0].set(
+      env.head.set(
         "MixinA",
         createClass(
           "MixinA",
@@ -391,7 +400,7 @@ describe("ObjectRuntime", () => {
           createMethodMap([createMethod("val", new NumberPrimitive(10))])
         )
       );
-      env[0].set(
+      env.head.set(
         "MixinB",
         createClass(
           "MixinB",
@@ -400,7 +409,7 @@ describe("ObjectRuntime", () => {
         )
       );
 
-      env[0].set(
+      env.head.set(
         "Clase",
         createClass("Clase", undefined, undefined, ["MixinB", "MixinA"])
       );
@@ -409,6 +418,63 @@ describe("ObjectRuntime", () => {
       expect(
         ObjectRuntime.dispatch(obj, "val", [], env, dummyFactory)
       ).to.equal(10);
+    });
+  });
+  describe("Super", () => {
+    it("debe invocar al método de la superclase y operar con el resultado", () => {
+      env.head.set(
+        "Base",
+        createClass(
+          "Base",
+          undefined,
+          createMethodMap([createMethod("calc", new NumberPrimitive(10))])
+        )
+      );
+
+      const astBody = new UnguardedBody(
+        new Sequence([
+          new Return(
+            new ArithmeticBinaryOperation(
+              "Plus",
+              new Super([]),
+              new NumberPrimitive(5)
+            )
+          ),
+        ])
+      );
+
+      const methodHijo: RuntimeFunction = {
+        identifier: "calc",
+        arity: 0,
+        pendingArgs: [],
+        equations: [new Equation([], astBody)],
+      };
+
+      const Hijo: RuntimeClass = {
+        type: "Class",
+        identifier: "Hijo",
+        fields: new Map(),
+        methods: new Map([["calc", methodHijo]]),
+        superclass: "Base",
+        mixins: [],
+      };
+      env.head.set("Hijo", Hijo);
+
+      const hijoInstance = ObjectRuntime.instantiate(
+        "Hijo",
+        new Map(),
+        new Map()
+      );
+
+      const result = ObjectRuntime.dispatch(
+        hijoInstance,
+        "calc",
+        [],
+        env,
+        (newEnv) => new InterpreterVisitor(newEnv, {}, [])
+      );
+
+      expect(result).to.equal(15);
     });
   });
 });

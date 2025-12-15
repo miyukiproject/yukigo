@@ -6,6 +6,7 @@ import {
   SymbolPrimitive,
 } from "../globals/generics.js";
 import { Operator } from "../globals/operators.js";
+import { Pattern } from "../globals/patterns.js";
 import { Visitor } from "../visitor.js";
 
 /**
@@ -309,12 +310,19 @@ export class Self extends ASTNode {
  * @category OOP
  */
 export class Super extends ASTNode {
+  /** @hidden */
+  public args: Expression[];
+  constructor(args: Expression[], loc?: SourceLocation) {
+    super(loc);
+    this.args = args;
+  }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitSuper?.(this);
   }
   public toJSON() {
     return {
       type: "Super",
+      args: this.args,
     };
   }
 }

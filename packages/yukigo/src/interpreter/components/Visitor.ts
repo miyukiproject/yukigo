@@ -55,11 +55,12 @@ import {
   ASTNode,
   Raise,
   Query,
-  Record as YuRecord,
   isRuntimeObject,
   isRuntimeClass,
+  Super,
+  EnvStack,
 } from "yukigo-ast";
-import { EnvStack, InterpreterConfig } from "../index.js";
+import { InterpreterConfig } from "../index.js";
 import {
   ArithmeticBinaryTable,
   ArithmeticUnaryTable,
@@ -73,6 +74,7 @@ import {
   StringOperationTable,
 } from "./Operations.js";
 import {
+  createGlobalEnv,
   define,
   ExpressionEvaluator,
   lookup,
@@ -145,7 +147,7 @@ export class InterpreterVisitor
   visitVariable(node: Variable): PrimitiveValue {
     const name = node.identifier.value;
     const value = node.expression.accept(this);
-    this.env.at(-1).set(name, value);
+    define(this.env, name, value);
     return true;
   }
   visitArithmeticUnaryOperation(
@@ -380,7 +382,7 @@ export class InterpreterVisitor
       equations: [equation],
       pendingArgs: [],
       identifier: "<lambda>",
-      closure: Array.from(this.env),
+      closure: this.env,
     };
   }
 
@@ -438,7 +440,42 @@ export class InterpreterVisitor
   visitGoal(node: Goal): PrimitiveValue {
     return this.getLogicEngine().solveGoal(node);
   }
+  visitSuper(node: Super): PrimitiveValue {
+    let methodName: string;
+    try {
+      methodName = lookup(this.env, "__METHOD_NAME__") as string;
+    } catch (e) {
+      throw new InterpreterError(
+        "Super",
+        "'super' keyword used outside of a method context",
+        this.frames
+      );
+    }
+
+    if (typeof methodName !== "string")
+      throw new InterpreterError("Super", "Corrupted method context");
+
+    const args = node.args.map((arg) => arg.accept(this));
+
+    return ObjectRuntime.dispatchSuper(
+      this.env,
+      methodName,
+      args,
+      (newEnv) => new InterpreterVisitor(newEnv, this.config, this.frames)
+    );
+  }
   visitSend(node: Send): PrimitiveValue {
+    if (node.receiver instanceof Super) {
+      const args = node.args.map((arg) => arg.accept(this));
+      const methodName = node.selector.value;
+
+      return ObjectRuntime.dispatchSuper(
+        this.env,
+        methodName,
+        args,
+        (newEnv) => new InterpreterVisitor(newEnv, this.config, this.frames)
+      );
+    }
     const receiver = node.receiver.accept(this);
     const args = node.args.map((arg) => arg.accept(this));
     const methodName = node.selector.value;
@@ -453,7 +490,7 @@ export class InterpreterVisitor
   }
   visitNew(node: New): PrimitiveValue {
     const className = node.identifier.value;
-    // Search class in env
+
     const classDef = lookup(this.env, className);
     if (!isRuntimeClass(classDef))
       throw new InterpreterError(
@@ -509,7 +546,7 @@ export class InterpreterVisitor
       }
     };
 
-    pushEnv(this.env); // Temp env for evaluating the list
+    pushEnv(this.env);
     try {
       process(0);
     } finally {
@@ -607,7 +644,7 @@ export class InterpreterVisitor
   }
   static evaluateLiteral(node: ASTNode): PrimitiveValue {
     return node.accept(
-      new InterpreterVisitor([new Map()], { lazyLoading: false })
+      new InterpreterVisitor(createGlobalEnv(), { lazyLoading: false })
     );
   }
 }

@@ -12,6 +12,7 @@ import {
   SymbolPrimitive,
   Variable,
   VariablePattern,
+  EnvStack,
 } from "yukigo-ast";
 import {
   InternalLogicResult,
@@ -21,8 +22,8 @@ import {
   unify,
 } from "./LogicResolver.js";
 import { PatternResolver } from "./PatternMatcher.js";
-import { EnvStack, InterpreterConfig } from "../index.js";
-import { createStream, ExpressionEvaluator } from "../utils.js";
+import { InterpreterConfig } from "../index.js";
+import { createStream, ExpressionEvaluator, isDefined } from "../utils.js";
 import { InterpreterError } from "../errors.js";
 
 export class LogicEngine {
@@ -60,9 +61,7 @@ export class LogicEngine {
     if (!(node.goal instanceof Goal))
       throw new InterpreterError("solveFindall", "Findall expects a Goal");
 
-    const goalPatterns = node.goal.args.map((arg) => {
-      return this.expressionToPattern(arg);
-    });
+    const goalPatterns = node.goal.args;
 
     const generator = solveGoal(
       this.env,
@@ -117,9 +116,11 @@ export class LogicEngine {
     let headGen: Generator<InternalLogicResult> | null = null;
 
     if (head instanceof Goal) {
+      console.log("head", head.args);
       const args = head.args.map((arg) =>
         this.instantiateExpressionAsPattern(arg, substs)
       );
+      console.log("args", args);
       headGen = solveGoal(this.env, head.identifier.value, args, (b, s) =>
         this.solveConjunction(b, s)
       );
@@ -146,20 +147,26 @@ export class LogicEngine {
   }
 
   private expressionToPattern(expr: Expression): Pattern {
-    if (expr instanceof VariablePattern) return expr;
+    // 1. Si ya es explícitamente un patrón (ej. sintaxis especial si tuvieras), devolverlo.
+    if (expr instanceof VariablePattern) return expr; // 2. Si es una variable, tenemos un dilema: ¿Es valor o incógnita?
 
     if (expr instanceof Variable) {
       const name = expr.identifier.value;
-      if (/^[A-Z_]/.test(name)) return new VariablePattern(expr.identifier);
+
+      // A. ¿Existe definida en el entorno actual?
+      // Usamos una función auxiliar para no lanzar excepción
+      if (isDefined(this.env, name)) {
+        const val = this.evaluator.evaluate(expr);
+        return this.primitiveToPattern(val); // Es un VALOR (ej: 42)
+      }
+
+      // B. No existe en el entorno -> Es una INCÓGNITA LÓGICA nueva
+      return new VariablePattern(expr.identifier);
     }
 
-    try {
-      const val = this.evaluator.evaluate(expr);
-      return this.primitiveToPattern(val);
-    } catch (e) {
-      if (expr instanceof Variable) return new VariablePattern(expr.identifier);
-      throw e;
-    }
+    // 3. Cualquier otra expresión (números, strings, operaciones 1+1) se evalúa
+    const val = this.evaluator.evaluate(expr);
+    return this.primitiveToPattern(val);
   }
 
   private primitiveToPattern(val: PrimitiveValue): Pattern {

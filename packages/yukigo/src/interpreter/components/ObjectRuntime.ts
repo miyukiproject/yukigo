@@ -1,15 +1,25 @@
 import {
   PrimitiveValue,
   RuntimeFunction,
-  Expression,
   RuntimeObject,
   isRuntimeObject,
   isRuntimeClass,
+  RuntimeClass,
+  EnvStack,
 } from "yukigo-ast";
-import { EnvStack, InterpreterConfig } from "../index.js";
 import { FunctionRuntime } from "./FunctionRuntime.js";
-import { ExpressionEvaluator, lookup } from "../utils.js";
+import { ExpressionEvaluator, lookup, pushEnv } from "../utils.js";
 import { InterpreterError } from "../errors.js";
+
+type OOPEntity = RuntimeClass | RuntimeObject;
+
+type OOPMatch = {
+  method: RuntimeFunction;
+  holder: RuntimeObject | RuntimeClass;
+};
+
+const __CONTEXT_CLASS__ = Symbol("CONTEXT_CLASS");
+const __METHOD_NAME__ = Symbol("METHOD_NAME");
 
 export class ObjectRuntime {
   /**
@@ -18,16 +28,13 @@ export class ObjectRuntime {
    */
   static instantiate(
     className: string,
-    fieldDefinitions: Map<string, PrimitiveValue>, // Initial values
+    fieldDefinitions: Map<string, PrimitiveValue>,
     methodDefinitions: Map<string, RuntimeFunction>
   ): RuntimeObject {
     return {
       type: "Object",
       className,
-      // Clone fields so every instance has its own state
       fields: new Map(fieldDefinitions),
-      // Methods can be shared by reference if they are pure,
-      // or cloned if they capture closure. Usually sharing is fine.
       methods: methodDefinitions,
     };
   }
@@ -43,91 +50,137 @@ export class ObjectRuntime {
     env: EnvStack,
     evaluatorFactory: (env: EnvStack) => ExpressionEvaluator
   ): PrimitiveValue {
-    // 1. Validar que es un objeto
-    if (!isRuntimeObject(receiver)) {
+    if (!isRuntimeObject(receiver))
+      throw new Error(`${receiver} is not an object`);
+
+    const chain = this.getResolutionChain(receiver, env);
+    const match = this.findMethodInChain(chain, methodName);
+
+    if (!match)
       throw new InterpreterError(
         "MethodDispatch",
-        `Cannot call method '${methodName}' on non-object of type ${typeof receiver}`
-      );
-    }
-
-    // 2. BUSQUEDA (METHOD LOOKUP)
-    // Primero buscamos en la instancia misma (caso Singleton o métodos ad-hoc)
-    let method = receiver.methods.get(methodName);
-
-    // Si no está en la instancia, subimos a la jerarquía (Clase -> Mixins -> Super)
-    if (!method && receiver.className) {
-      method = this.resolveMethodInHierarchy(
-        receiver.className,
-        methodName,
-        env
-      );
-    }
-
-    // 3. Si falló todo
-    if (!method)
-      throw new InterpreterError(
-        "MethodDispatch",
-        `Object of class '${receiver.className}' does not understand '${methodName}'`
+        `${receiver.className} does not understand '${methodName}'.`
       );
 
-    // === THE OOP MAGIC ===
-    const objectScope = new Map<string, PrimitiveValue>();
-
-    // Bind 'self' -> SIEMPRE apunta a la instancia original (receiver)
-    // aunque el método venga de un Mixin o Superclase.
-    objectScope.set("self", receiver);
-
-    // Bind fields (Implicit Access)
-    for (const [key, val] of receiver.fields) {
-      objectScope.set(key, val);
-    }
-
-    const methodEnv: EnvStack = [objectScope, ...env];
+    const objectScope = this.createDispatchScope(receiver, match, methodName);
 
     return FunctionRuntime.apply(
       methodName,
-      method.equations,
+      match.method.equations,
       args,
-      methodEnv,
+      pushEnv(env, objectScope),
       evaluatorFactory
     );
   }
 
-  private static resolveMethodInHierarchy(
-    className: string,
+  /**
+   * Maneja llamadas a super() o super.metodo()
+   */
+  static dispatchSuper(
+    currentEnv: EnvStack,
     methodName: string,
-    env: EnvStack
-  ): RuntimeFunction | undefined {
-    const classDef = lookup(env, className);
-    if (!classDef || !isRuntimeClass(classDef)) return undefined;
+    args: PrimitiveValue[],
+    evaluatorFactory: (env: EnvStack) => ExpressionEvaluator
+  ): PrimitiveValue {
+    const self = lookup(currentEnv, "self") as RuntimeObject;
+    const currentHolder = lookup(currentEnv, "__CONTEXT_CLASS__") as OOPEntity;
+    const currentMethodName = lookup(currentEnv, "__METHOD_NAME__");
+    const targetMethodName = methodName || currentMethodName;
 
-    // search within the class
-    if (classDef.methods.has(methodName))
-      return classDef.methods.get(methodName);
-
-    // search in the mixins. last to first
-    if (classDef.mixins && classDef.mixins.length > 0) {
-      for (let i = classDef.mixins.length - 1; i >= 0; i--) {
-        const mixinName = classDef.mixins[i];
-        // allow mixins to have mixins
-        const mixinMethod = this.resolveMethodInHierarchy(
-          mixinName,
-          methodName,
-          env
-        );
-        if (mixinMethod) return mixinMethod;
-      }
-    }
-
-    // search in superclass
-    if (classDef.superclass)
-      return this.resolveMethodInHierarchy(
-        classDef.superclass,
-        methodName,
-        env
+    if (!self || !currentHolder)
+      throw new InterpreterError(
+        "SuperError",
+        "'super' used outside of a method context"
       );
 
+    const chain = this.getResolutionChain(self, currentEnv);
+
+    const currentIndex = chain.findIndex((c) => c === currentHolder);
+
+    if (currentIndex === -1)
+      throw new Error("Fatal: Execution context not found in hierarchy chain");
+
+    const remainingChain = chain.slice(currentIndex + 1);
+    const match = this.findMethodInChain(remainingChain, methodName);
+
+    if (!match)
+      throw new InterpreterError(
+        "Super",
+        `Super method '${methodName}' not found`
+      );
+
+    const objectScope = this.createDispatchScope(self, match, targetMethodName);
+
+    return FunctionRuntime.apply(
+      methodName,
+      match.method.equations,
+      args,
+      pushEnv(currentEnv, objectScope),
+      evaluatorFactory
+    );
+  }
+  private static createDispatchScope(
+    self: RuntimeObject,
+    match: OOPMatch,
+    targetName: PrimitiveValue
+  ) {
+    const objectScope = new Map<string, PrimitiveValue>();
+    objectScope.set("self", self);
+    objectScope.set("__CONTEXT_CLASS__", match.holder);
+    objectScope.set("__METHOD_NAME__", targetName);
+
+    for (const [key, val] of self.fields) objectScope.set(key, val);
+    return objectScope;
+  }
+  private static getResolutionChain(
+    receiver: RuntimeObject,
+    env: EnvStack
+  ): Array<RuntimeObject | RuntimeClass> {
+    const chain: Array<RuntimeObject | RuntimeClass> = [];
+
+    chain.push(receiver);
+
+    if (receiver.className) {
+      this.expandClassHierarchy(receiver.className, env, chain);
+    }
+
+    return chain;
+  }
+  private static expandClassHierarchy(
+    className: string,
+    env: EnvStack,
+    chain: Array<RuntimeObject | RuntimeClass>
+  ) {
+    const classDef = lookup(env, className);
+    if (!isRuntimeClass(classDef))
+      throw new InterpreterError(
+        "expandClassHierarchy",
+        "classDef was expected to be a RuntimeClass"
+      );
+
+    chain.push(classDef);
+
+    const classDefCopy = [...classDef.mixins];
+
+    if (classDef.mixins)
+      classDefCopy.reverse().forEach((mixinName) => {
+        this.expandClassHierarchy(mixinName, env, chain);
+      });
+
+    if (classDef.superclass)
+      this.expandClassHierarchy(classDef.superclass, env, chain);
+  }
+  private static findMethodInChain(
+    chain: Array<RuntimeObject | RuntimeClass>,
+    methodName: string
+  ): OOPMatch | undefined {
+    for (const link of chain) {
+      if (link.methods.has(methodName))
+        return {
+          method: link.methods.get(methodName)!,
+          holder: link,
+        };
+    }
     return undefined;
   }
 
@@ -136,15 +189,13 @@ export class ObjectRuntime {
    * e.g. self.myField
    */
   static getField(receiver: PrimitiveValue, fieldName: string): PrimitiveValue {
-    if (!isRuntimeObject(receiver)) {
+    if (!isRuntimeObject(receiver))
       throw new InterpreterError("FieldAccess", "Target is not an object");
-    }
 
     if (!receiver.fields.has(fieldName)) {
-      // Optional: Check methods if you want bound methods as properties
-      if (receiver.methods.has(fieldName)) {
+      if (receiver.methods.has(fieldName))
         return receiver.methods.get(fieldName);
-      }
+
       throw new InterpreterError(
         "FieldAccess",
         `Field '${fieldName}' not found in ${receiver.className}`
@@ -163,17 +214,14 @@ export class ObjectRuntime {
     fieldName: string,
     value: PrimitiveValue
   ): PrimitiveValue {
-    if (!isRuntimeObject(receiver)) {
+    if (!isRuntimeObject(receiver))
       throw new InterpreterError("FieldAssignment", "Target is not an object");
-    }
 
-    // Strict mode: Only allow setting existing fields?
-    if (!receiver.fields.has(fieldName)) {
+    if (!receiver.fields.has(fieldName))
       throw new InterpreterError(
         "FieldAssignment",
         `Cannot set unknown field '${fieldName}'`
       );
-    }
 
     receiver.fields.set(fieldName, value);
     return value;
