@@ -116,11 +116,9 @@ export class LogicEngine {
     let headGen: Generator<InternalLogicResult> | null = null;
 
     if (head instanceof Goal) {
-      console.log("head", head.args);
       const args = head.args.map((arg) =>
         this.instantiateExpressionAsPattern(arg, substs)
       );
-      console.log("args", args);
       headGen = solveGoal(this.env, head.identifier.value, args, (b, s) =>
         this.solveConjunction(b, s)
       );

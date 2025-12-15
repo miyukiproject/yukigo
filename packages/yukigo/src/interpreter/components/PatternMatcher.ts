@@ -23,6 +23,87 @@ import { Bindings } from "../index.js";
 import { InterpreterVisitor } from "./Visitor.js";
 import { createGlobalEnv, createStream } from "../utils.js";
 
+class SharedSequence {
+  private cache: PrimitiveValue[] = [];
+  private source: Generator<PrimitiveValue, void, unknown>;
+  private isDone: boolean = false;
+
+  constructor(
+    generatorFactory: () => Generator<PrimitiveValue, void, unknown>
+  ) {
+    this.source = generatorFactory();
+  }
+
+  get(index: number): { value: PrimitiveValue | null; done: boolean } {
+    if (index < this.cache.length)
+      return { value: this.cache[index], done: false };
+
+    if (this.isDone) return { value: null, done: true };
+
+    while (this.cache.length <= index) {
+      const next = this.source.next();
+      if (next.done) {
+        this.isDone = true;
+        return { value: null, done: true };
+      }
+      this.cache.push(next.value);
+    }
+
+    return { value: this.cache[index], done: false };
+  }
+}
+
+export interface MemoizedLazyList extends LazyList {
+  _sequence: SharedSequence;
+  _offset: number;
+  toJSON: () => any;
+}
+
+export function isMemoizedList(list: any): list is MemoizedLazyList {
+  return (
+    list &&
+    typeof list === "object" &&
+    list.type === "LazyList" &&
+    list._sequence instanceof SharedSequence
+  );
+}
+
+export function createMemoizedStream(
+  genFactory: () => Generator<PrimitiveValue, void, unknown>,
+  sequence?: SharedSequence,
+  offset: number = 0
+): MemoizedLazyList {
+  const seq = sequence ?? new SharedSequence(genFactory);
+
+  return {
+    type: "LazyList",
+    _sequence: seq,
+    _offset: offset,
+
+    generator: function* () {
+      let currentIdx = offset;
+      while (true) {
+        const res = seq.get(currentIdx);
+        if (res.done) return;
+        yield res.value!;
+        currentIdx++;
+      }
+    },
+    toJSON() {
+      const iterator = this.generator();
+      const buffer: PrimitiveValue[] = [];
+      let next = iterator.next();
+
+      while (!next.done) {
+        buffer.push(next.value);
+        next = iterator.next();
+      }
+
+      return buffer;
+    },
+  };
+}
+
 export class PatternResolver implements Visitor<string> {
   visitVariablePattern(node: VariablePattern): string {
     return node.name.value;
@@ -126,6 +207,7 @@ export class PatternMatcher implements Visitor<boolean> {
   }
 
   visitListPattern(node: ListPattern): boolean {
+    const neededLength = node.elements.length;
     // empty list case
     if (node.elements.length === 0) {
       if (Array.isArray(this.value)) return this.value.length === 0;
@@ -138,13 +220,25 @@ export class PatternMatcher implements Visitor<boolean> {
     }
 
     // finite list case
-    if (Array.isArray(this.value))
+    if (Array.isArray(this.value)) {
+      if (this.value.length !== neededLength) return false;
       return this.matchList(node.elements, this.value);
+    }
 
     // lazy list case
     if (isLazyList(this.value)) {
-      const realized = this.realize(this.value);
-      return this.matchList(node.elements, realized);
+      const iterator = this.value.generator();
+      const bufferedValues: PrimitiveValue[] = [];
+
+      for (let i = 0; i < neededLength; i++) {
+        const next = iterator.next();
+        if (next.done) return false;
+        bufferedValues.push(next.value);
+      }
+      const peek = iterator.next();
+      if (!peek.done) return false;
+
+      return this.matchList(node.elements, bufferedValues);
     }
 
     return false;
@@ -161,7 +255,7 @@ export class PatternMatcher implements Visitor<boolean> {
 
   visitConsPattern(node: ConsPattern): boolean {
     const [head, tail] = this.resolveCons(this.value);
-    if(!head || !tail) return false
+    if (!head || !tail) return false;
     const headMatcher = new PatternMatcher(head, this.bindings);
     const headMatches = node.head.accept(headMatcher);
     if (!headMatches) return false;
@@ -172,21 +266,30 @@ export class PatternMatcher implements Visitor<boolean> {
   private resolveCons(list: PrimitiveValue): [PrimitiveValue, PrimitiveValue] {
     if (Array.isArray(list))
       return list.length === 0 ? [null, null] : [list[0], list.slice(1)];
-    if (isLazyList(list)) {
-      const headIter = list.generator();
-      const next = headIter.next();
-      if (next.done) return [null, null];
-      const parentGeneratorFactory = list.generator;
-      const tailGenerator = function* (): Generator<PrimitiveValue> {
-        const freshIter = parentGeneratorFactory();
-        freshIter.next();
-        let next: IteratorResult<PrimitiveValue, void>;
-        while (!(next = freshIter.next()).done) yield next.value;
-      };
 
-      return [next.value, createStream(tailGenerator)];
+    // lazy list case
+    if (isLazyList(list)) {
+      let memoList: MemoizedLazyList;
+
+      // optimize, convert to memoized
+      if (isMemoizedList(list)) {
+        memoList = list;
+      } else {
+        memoList = createMemoizedStream(list.generator);
+      }
+      const currentRes = memoList._sequence.get(memoList._offset);
+
+      if (currentRes.done) return [null, null];
+      const tail = createMemoizedStream(
+        list.generator,
+        memoList._sequence,
+        memoList._offset + 1
+      );
+
+      return [currentRes.value!, tail];
     }
-    return [null, null]
+
+    return [null, null];
   }
 
   visitConstructorPattern(node: ConstructorPattern): boolean {
@@ -248,6 +351,7 @@ export class PatternMatcher implements Visitor<boolean> {
 
     return false;
   }
+
   private realize(value: PrimitiveValue): PrimitiveValue[] {
     return new InterpreterVisitor(createGlobalEnv(), {}).realizeList(value);
   }
