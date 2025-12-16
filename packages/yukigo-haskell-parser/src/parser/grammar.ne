@@ -295,10 +295,10 @@ where_clause -> "where" _ "{" _ bindings_list _ "}" {% d => d[4] %}
 bindings_list -> function_declaration ((_ ";" _) function_declaration):* {% d => [d[0], ...d[1].map(x => x[1])] %}
 
 equation -> 
-  params (%NL __):? guarded_rhs (_ where_clause):? {%     (d) => {
+  params (%NL __):? guarded_rhs (_ where_clause):? {% (d) => {
       const body = d[2];
       const finalBody = d[3] 
-        ? new LetInExpression(d[3], body)
+        ? body.map(guard => new GuardedBody(guard.condition, new Sequence([...d[3][1], new Return(guard.body)])))
         : body;
       return new Equation(d[0], finalBody);
     } %}

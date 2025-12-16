@@ -324,7 +324,7 @@ const grammar: Grammar = {
     {"name": "equation", "symbols": ["params", "equation$ebnf$1", "guarded_rhs", "equation$ebnf$2"], "postprocess":  (d) => {
           const body = d[2];
           const finalBody = d[3] 
-            ? new LetInExpression(d[3], body)
+            ? body.map(guard => new GuardedBody(guard.condition, new Sequence([...d[3][1], new Return(guard.body)])))
             : body;
           return new Equation(d[0], finalBody);
         } },

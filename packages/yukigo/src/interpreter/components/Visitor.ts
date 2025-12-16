@@ -338,38 +338,60 @@ export class InterpreterVisitor
     return true;
   }
   visitCompositionExpression(node: CompositionExpression): PrimitiveValue {
+    // 1. Evaluamos f y g para obtener las RuntimeFunctions reales
     const f = node.left.accept(this);
     const g = node.right.accept(this);
 
-    if (!this.isRuntimeFunction(f) || !this.isRuntimeFunction(g))
+    if (!this.isRuntimeFunction(f) || !this.isRuntimeFunction(g)) {
       throw new InterpreterError(
-        "CompositionExpression",
+        "Composition",
         "Both operands of (.) must be functions"
       );
+    }
 
-    const fName = `__comp_f_${Date.now()}_${Math.random()
-      .toString(36)
-      .substring(2, 5)}`;
-    const gName = `__comp_g_${Date.now()}_${Math.random()
-      .toString(36)
-      .substring(2, 5)}`;
-    define(this.env, fName, f);
-    define(this.env, gName, g);
-    const arity = g.arity;
+    // 2. Nombres internos estables (ya no necesitan ser aleatorios globales)
+    const F_REF = "__internal_f";
+    const G_REF = "__internal_g";
+    const PARAM_NAME = "__x";
 
-    const placeholders = Array.from(
-      { length: arity },
-      (_, i) => new VariablePattern(new SymbolPrimitive(`_p${i}`))
+    // 3. Creamos el AST de la nueva función: \x -> f( g(x) )
+    // Notar que usamos los nombres internos F_REF y G_REF
+    const compositionBody = new Application(
+      new SymbolPrimitive(F_REF), // Aplica f...
+      new Application(
+        new SymbolPrimitive(G_REF), // ...al resultado de aplicar g...
+        new SymbolPrimitive(PARAM_NAME) // ...al argumento x
+      )
     );
 
-    const gCall = placeholders.reduce<Expression>(
-      (acc, p) => new Application(acc, new SymbolPrimitive(p.name.value)),
-      new SymbolPrimitive(gName)
-    );
+    // 4. Construimos la definición de la Lambda
+    const patterns = [new VariablePattern(new SymbolPrimitive(PARAM_NAME))];
+    const equation: EquationRuntime = {
+      patterns,
+      body: new UnguardedBody(new Sequence([new Return(compositionBody)])),
+    };
 
-    const composedBody = new Application(new SymbolPrimitive(fName), gCall);
-    const lambda = new Lambda(placeholders, composedBody);
-    return lambda.accept(this);
+    // 5. LA MAGIA: Clausura Privada (Closure Injection)
+    // Creamos un entorno que SOLO existe para esta función compuesta.
+    // Contiene las instancias reales de 'f' y 'g'.
+    const privateScope = new Map<string, PrimitiveValue>();
+    privateScope.set(F_REF, f);
+    privateScope.set(G_REF, g);
+
+    // Usamos tu estructura de EnvStack (Linked List)
+    // head: privateScope -> tail: this.env (scope actual)
+    const capturedEnv: EnvStack = {
+      head: privateScope,
+      tail: this.env,
+    };
+    console.log(equation);
+    return {
+      arity: 1, // La composición estándar es unaria: (f . g) x
+      identifier: `<(${f.identifier} . ${g.identifier})>`, // Nombre descriptivo para debug
+      equations: [equation],
+      pendingArgs: [],
+      closure: capturedEnv, // <--- Aquí guardamos el entorno con f y g inyectados
+    };
   }
   visitLambda(node: Lambda): PrimitiveValue {
     const patterns = node.parameters;
@@ -392,35 +414,60 @@ export class InterpreterVisitor
     if (!this.isRuntimeFunction(func))
       throw new InterpreterError("Application", "Cannot apply non-function");
 
+    // Creamos el thunk del nuevo argumento
     const argThunk = () => node.parameter.accept(this);
-
-    const pending = func.pendingArgs
+    // Combinamos con los argumentos que ya traía la función (currying previo)
+    const allPendingArgs = func.pendingArgs
       ? [...func.pendingArgs, argThunk]
       : [argThunk];
 
-    // partially applied
-    if (pending.length < func.arity)
+    // Delegamos la ejecución
+    return this.applyArguments(func, allPendingArgs);
+  }
+
+  // 2. Nuevo método helper para manejar la aplicación recursiva
+  private applyArguments(
+    func: RuntimeFunction,
+    args: (PrimitiveValue | (() => PrimitiveValue))[]
+  ): PrimitiveValue {
+    if (args.length < func.arity) {
       return {
         ...func,
-        pendingArgs: pending,
+        pendingArgs: args,
       };
-
-    //  fully applied
-    if (pending.length === func.arity) {
-      const evaluatedArgs = pending.map((arg) =>
-        typeof arg === "function" ? arg() : arg
-      );
-      const executionEnv = func.closure ?? this.env;
-      return FunctionRuntime.apply(
-        func.identifier ?? "<anonymous>",
-        func.equations,
-        evaluatedArgs,
-        executionEnv,
-        (newEnv) => new InterpreterVisitor(newEnv, this.config, this.frames)
-      );
     }
 
-    throw new InterpreterError("Application", "Too many arguments provided");
+    const argsToConsume = args.slice(0, func.arity);
+    const remainingArgs = args.slice(func.arity);
+
+    console.log(func, argsToConsume)
+    const evaluatedArgs = argsToConsume.map((arg) =>
+      typeof arg === "function" ? arg() : arg
+    );
+    const executionEnv = func.closure ?? this.env;
+    const result = FunctionRuntime.apply(
+      func.identifier ?? "<anonymous>",
+      func.equations,
+      evaluatedArgs,
+      executionEnv,
+      (newEnv) => new InterpreterVisitor(newEnv, this.config, this.frames)
+    );
+    if (remainingArgs.length > 0) {
+      if (this.isRuntimeFunction(result)) {
+        const nextArgs = result.pendingArgs
+          ? [...result.pendingArgs, ...remainingArgs]
+          : remainingArgs;
+
+        return this.applyArguments(result, nextArgs);
+      } else {
+        throw new InterpreterError(
+          "Application",
+          `Too many arguments provided. Result was '${result}' (not a function), but had ${remainingArgs.length} args left.`
+        );
+      }
+    }
+
+    return result;
   }
   visitQuery(node: Query): PrimitiveValue {
     return this.getLogicEngine().solveQuery(node);
@@ -606,7 +653,6 @@ export class InterpreterVisitor
   ): PrimitiveValue {
     const left = node.left.accept(this);
     const right = node.right.accept(this);
-
     if (!typeGuard(left, right))
       throw new InterpreterError(
         contextName,
