@@ -139,6 +139,11 @@ const inputRef = ref(null);
 const terminalBodyRef = ref(null);
 
 let parser = new YukigoHaskellParser();
+let replParser = new YukigoHaskellParser();
+
+const currentPlaceholder = computed(() => {
+  return languageExamples[selectedLanguage.value]?.placeholder || "doble 4";
+});
 
 const currentPlaceholder = computed(() => {
   return languageExamples[selectedLanguage.value]?.placeholder || "doble 4";
@@ -148,6 +153,7 @@ function switchLanguage(lang) {
   selectedLanguage.value = lang;
   const example = languageExamples[lang];
   parser = example.parser;
+  replParser = example.replParser;
   code.value = example.code;
   commandHistory.value = [
     { type: "output", text: `Yukigo REPL v0.1.0 — ${lang.charAt(0).toUpperCase() + lang.slice(1)} loaded` },
