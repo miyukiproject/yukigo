@@ -36,7 +36,7 @@ import {
   Variable,
   VariablePattern,
 } from "yukigo-ast";
-import { InspectionMap, executeVisitor } from "../utils.js";
+import { VisitorConstructor } from "../utils.js";
 
 export class Assigns extends TraverseVisitor {
   private readonly targetIdentifier: string;
@@ -442,58 +442,34 @@ export class UsesExceptions extends TraverseVisitor {
   }
 }
 
-export const genericInspections: InspectionMap = {
-  Assigns: (node, args) => executeVisitor(node, new Assigns(args[0])),
-  Calls: (node, args) => executeVisitor(node, new Calls(args[0])),
-  Declares: (node, args) => executeVisitor(node, new Declares(args[0])),
-  DeclaresComputation: (node, args) =>
-    executeVisitor(node, new DeclaresComputation(args[0])),
-  DeclaresComputationWithArity: (node, args, binding) =>
-    executeVisitor(
-      node,
-      new DeclaresComputationWithArity(binding, Number(args[0]))
-    ),
-  DeclaresEntryPoint: (node, args) =>
-    executeVisitor(node, new DeclaresEntryPoint()),
-  DeclaresFunction: (node, args) =>
-    executeVisitor(node, new DeclaresFunction(args[0])),
-  DeclaresRecursively: (node, args) =>
-    executeVisitor(node, new DeclaresRecursively(args[0])),
-  DeclaresTypeAlias: (node, args) =>
-    executeVisitor(node, new DeclaresTypeAlias(args[0])),
-  DeclaresTypeSignature: (node, args) =>
-    executeVisitor(node, new DeclaresTypeSignature(args[0])),
-  DeclaresVariable: (node, args) =>
-    executeVisitor(node, new DeclaresVariable(args[0])),
-  Delegates: (ast, args) => {
-    const declares = genericInspections.Declares(ast, args);
-    const calls = genericInspections.Calls(ast, args);
-    return declares && calls;
-  },
-  Raises: (node, args) => executeVisitor(node, new Raises()),
-  Uses: (node, args) => executeVisitor(node, new Uses(args[0])),
-  UsesArithmetic: (node, args) => executeVisitor(node, new UsesArithmetic()),
-  SubordinatesDeclarationsTo: (node, args) =>
-    executeVisitor(node, new SubordinatesDeclarationsTo(args[0], args[1])),
-  SubordinatesDeclarationsToEntryPoint: (node, args) =>
-    executeVisitor(node, new SubordinatesDeclarationsToEntryPoint(args[0])),
-  TypesAs: (node, args) => executeVisitor(node, new TypesAs(args[0], args[1])),
-  TypesParameterAs: (node, args) =>
-    executeVisitor(
-      node,
-      new TypesParameterAs(args[0], Number(args[1]), args[2])
-    ),
-  TypesReturnAs: (node, args) =>
-    executeVisitor(node, new TypesReturnAs(args[0], args[1])),
-  UsesConditional: (node, args) => executeVisitor(node, new UsesConditional()),
-  Rescues: (node, args) => executeVisitor(node, new Rescues(args[0])),
-  UsesExceptionHandling: (node, args) =>
-    executeVisitor(node, new UsesExceptionHandling()),
-  UsesExceptions: (node, args) => executeVisitor(node, new UsesExceptions()),
-  UsesIf: (node, args) => executeVisitor(node, new UsesConditional()),
-  UsesLogic: (node, args) => executeVisitor(node, new UsesLogic()),
-  UsesMath: (node, args) => executeVisitor(node, new UsesArithmetic()),
-  UsesPrint: (node, args) => executeVisitor(node, new UsesPrint()),
-  UsesType: (node, args) => executeVisitor(node, new UsesType(args[0])),
-  HasBinding: (node, args) => executeVisitor(node, new HasBinding(args[0])),
+export const genericInspections: Record<string, VisitorConstructor> = {
+  Assigns: Assigns,
+  Calls: Calls,
+  Declares: Declares,
+  DeclaresComputation: DeclaresComputation,
+  DeclaresComputationWithArity: DeclaresComputationWithArity,
+  DeclaresEntryPoint: DeclaresEntryPoint,
+  DeclaresFunction: DeclaresFunction,
+  DeclaresRecursively: DeclaresRecursively,
+  DeclaresTypeAlias: DeclaresTypeAlias,
+  DeclaresTypeSignature: DeclaresTypeSignature,
+  DeclaresVariable: DeclaresVariable,
+  Raises: Raises,
+  Uses: Uses,
+  UsesArithmetic: UsesArithmetic,
+  SubordinatesDeclarationsTo: SubordinatesDeclarationsTo,
+  SubordinatesDeclarationsToEntryPoint: SubordinatesDeclarationsToEntryPoint,
+  TypesAs: TypesAs,
+  TypesParameterAs: TypesParameterAs,
+  TypesReturnAs: TypesReturnAs,
+  UsesConditional: UsesConditional,
+  Rescues: Rescues,
+  UsesExceptionHandling: UsesExceptionHandling,
+  UsesExceptions: UsesExceptions,
+  UsesIf: UsesConditional,
+  UsesLogic: UsesLogic,
+  UsesMath: UsesArithmetic,
+  UsesPrint: UsesPrint,
+  UsesType: UsesType,
+  HasBinding: HasBinding,
 };

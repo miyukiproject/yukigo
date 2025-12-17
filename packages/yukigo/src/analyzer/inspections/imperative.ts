@@ -9,7 +9,7 @@ import {
   TraverseVisitor,
   While,
 } from "yukigo-ast";
-import { InspectionMap, executeVisitor } from "../utils.js";
+import { VisitorConstructor } from "../utils.js";
 
 export class BindingVisitor extends TraverseVisitor {
   private readonly targetBinding: string;
@@ -59,7 +59,8 @@ export class DeclaresEnumeration extends TraverseVisitor {
     this.enumName = enumName;
   }
   visitEnumeration(node: Enumeration): void {
-    if (node.identifier.value === this.enumName) throw StopTraversalException;
+    if (node.identifier.value === this.enumName)
+      throw new StopTraversalException();
   }
 }
 export class DeclaresProcedure extends TraverseVisitor {
@@ -70,33 +71,33 @@ export class DeclaresProcedure extends TraverseVisitor {
   }
   visitProcedure(node: Procedure): void {
     if (node.identifier.value === this.procedureName)
-      throw StopTraversalException;
+      throw new StopTraversalException();
   }
 }
 export class UsesForLoop extends BindingVisitor {
   visitForLoop(node: ForLoop): void {
-    throw StopTraversalException;
+    throw new StopTraversalException();
   }
 }
 export class UsesWhile extends BindingVisitor {
   visitWhile(node: While): void {
-    throw StopTraversalException;
+    throw new StopTraversalException();
   }
 }
 export class UsesRepeat extends BindingVisitor {
   visitRepeat(node: Repeat): void {
-    throw StopTraversalException;
+    throw new StopTraversalException();
   }
 }
 export class UsesLoop extends BindingVisitor {
   visitForLoop(node: ForLoop): void {
-    throw StopTraversalException;
+    throw new StopTraversalException();
   }
   visitWhile(node: While): void {
-    throw StopTraversalException;
+    throw new StopTraversalException();
   }
   visitRepeat(node: Repeat): void {
-    throw StopTraversalException;
+    throw new StopTraversalException();
   }
   // visitForEach(node: ForEach): void {
   //   throw StopTraversalException;
@@ -104,26 +105,16 @@ export class UsesLoop extends BindingVisitor {
 }
 export class UsesSwitch extends BindingVisitor {
   visitSwitch(node: Switch): void {
-    throw StopTraversalException;
+    throw new StopTraversalException();
   }
 }
 
-export const imperativeInspections: InspectionMap = {
-  DeclaresEnumeration: (node, args) =>
-    executeVisitor(node, new DeclaresEnumeration(args[0])),
-  DeclaresProcedure: (node, args) =>
-    executeVisitor(node, new DeclaresProcedure(args[0])),
-  UsesForEach: (node, args) => {
-    throw Error("Inspection not implemented");
-  },
-  UsesForLoop: (node, args, binding) =>
-    executeVisitor(node, new UsesForLoop(binding)),
-  UsesRepeat: (node, args, binding) =>
-    executeVisitor(node, new UsesRepeat(binding)),
-  UsesWhile: (node, args, binding) =>
-    executeVisitor(node, new UsesWhile(binding)),
-  UsesLoop: (node, args, binding) =>
-    executeVisitor(node, new UsesLoop(binding)),
-  UsesSwitch: (node, args, binding) =>
-    executeVisitor(node, new UsesSwitch(binding)),
+export const imperativeInspections: Record<string, VisitorConstructor> = {
+  DeclaresEnumeration: DeclaresEnumeration,
+  DeclaresProcedure: DeclaresProcedure,
+  UsesForLoop: UsesForLoop,
+  UsesRepeat: UsesRepeat,
+  UsesWhile: UsesWhile,
+  UsesLoop: UsesLoop,
+  UsesSwitch: UsesSwitch,
 };

@@ -12,7 +12,7 @@ import {
   SymbolPrimitive,
   TraverseVisitor,
 } from "yukigo-ast";
-import { executeVisitor, InspectionMap } from "../utils.js";
+import { VisitorConstructor } from "../utils.js";
 
 export class DeclaresAttribute extends TraverseVisitor {
   constructor(private attributeName: string) {
@@ -204,7 +204,7 @@ export class UsesTemplateMethod extends TraverseVisitor {
 
   visitClass(node: Class): void {
     const collector = new AbstractMethodCollector();
-    if (node.expression) executeVisitor(node.expression, collector);
+    if (node.expression) node.expression.accept(collector);
     this.abstractMethodsStack.push(collector.abstractMethods);
     node.expression.accept(this);
     this.abstractMethodsStack.pop();
@@ -226,56 +226,24 @@ export class UsesTemplateMethod extends TraverseVisitor {
   }
 }
 
-export const objectInspections: InspectionMap = {
-  DeclaresAttribute: (node, args) =>
-    executeVisitor(node, new DeclaresAttribute(args[0])),
-
-  DeclaresClass: (node, args) =>
-    executeVisitor(node, new DeclaresClass(args[0])),
-
-  DeclaresInterface: (node, args) =>
-    executeVisitor(node, new DeclaresInterface(args[0])),
-
-  DeclaresMethod: (node, args) =>
-    executeVisitor(node, new DeclaresMethod(args[0])),
-
-  DeclaresObject: (node, args) =>
-    executeVisitor(node, new DeclaresObject(args[0])),
-
-  DeclaresPrimitive: (node, args) =>
-    executeVisitor(node, new DeclaresPrimitive(args[0])),
-
-  DeclaresSuperclass: (node, args) =>
-    executeVisitor(node, new DeclaresSuperclass(args[0])),
-
-  Implements: (node, args) => executeVisitor(node, new Implements(args[0])),
-
-  Include: (node, args) => executeVisitor(node, new IncludeMixin(args[0])),
-
-  Inherits: (node, args) =>
-    executeVisitor(node, new DeclaresSuperclass(args[0])),
-
-  Instantiates: (node, args) => executeVisitor(node, new Instantiates(args[0])),
-
-  UsesDynamicPolymorphism: (node, args) =>
-    executeVisitor(node, new UsesDynamicPolymorphism(args[0])),
-
-  UsesInheritance: (node, args) => executeVisitor(node, new UsesInheritance()),
-
-  UsesMixins: (node, args) => executeVisitor(node, new UsesMixins()),
-
-  UsesObjectComposition: (node, args) =>
-    executeVisitor(node, new UsesObjectComposition()),
-
-  UsesStaticMethodOverload: (node, args) =>
-    executeVisitor(node, new UsesStaticMethodOverload()),
-
-  UsesDynamicMethodOverload: (node, args) =>
-    executeVisitor(node, new UsesDynamicMethodOverload()),
-
-  UsesTemplateMethod: (node, args) =>
-    executeVisitor(node, new UsesTemplateMethod()),
-
-  UsesStaticPolymorphism: (node, args) =>
-    executeVisitor(node, new UsesStaticMethodOverload()),
+export const objectInspections: Record<string, VisitorConstructor> = {
+  DeclaresAttribute: DeclaresAttribute,
+  DeclaresClass: DeclaresClass,
+  DeclaresInterface: DeclaresInterface,
+  DeclaresMethod: DeclaresMethod,
+  DeclaresObject: DeclaresObject,
+  DeclaresPrimitive: DeclaresPrimitive,
+  DeclaresSuperclass: DeclaresSuperclass,
+  Implements: Implements,
+  IncludeMixin: IncludeMixin,
+  Inherits: DeclaresSuperclass, // alias for DeclaresSuperclass
+  Instantiates: Instantiates,
+  UsesDynamicPolymorphism: UsesDynamicPolymorphism,
+  UsesInheritance: UsesInheritance,
+  UsesMixins: UsesMixins,
+  UsesObjectComposition: UsesObjectComposition,
+  UsesStaticMethodOverload: UsesStaticMethodOverload,
+  UsesDynamicMethodOverload: UsesDynamicMethodOverload,
+  UsesTemplateMethod: UsesTemplateMethod,
+  UsesStaticPolymorphism: UsesStaticMethodOverload, // alias for UsesStaticMethodOverload
 };

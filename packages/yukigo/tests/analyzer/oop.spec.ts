@@ -20,29 +20,25 @@ import {
   Print,
   StringPrimitive,
 } from "yukigo-ast";
-import {
-  DeclaresAttribute,
-  DeclaresClass,
-  DeclaresInterface,
-  DeclaresMethod,
-  DeclaresObject,
-  DeclaresPrimitive,
-  DeclaresSuperclass,
-  Implements,
-  IncludeMixin,
-  Instantiates,
-  UsesDynamicPolymorphism,
-  UsesInheritance,
-  UsesMixins,
-  UsesObjectComposition,
-  UsesStaticMethodOverload,
-  UsesDynamicMethodOverload,
-  UsesTemplateMethod,
-} from "../../src/analyzer/inspections/object.js";
-import { executeVisitor } from "../../src/analyzer/utils.js";
+import { Analyzer, InspectionRule } from "../../src/analyzer/index.js";
 
-describe("OOP Spec", () => {
+describe("OOP Inspections", () => {
   const createSymbol = (name: string) => new SymbolPrimitive(name);
+  const analyzer = new Analyzer();
+
+  const runSingleRule = (
+    ast: any[],
+    inspection: string,
+    expected: boolean,
+    binding?: string,
+    args: string[] = []
+  ) => {
+    const rule: InspectionRule = { inspection, binding, args, expected };
+    const results = analyzer.analyze(ast, [rule]);
+    const result = results[0]; // Assuming only one rule is passed
+    return result.passed;
+  };
+
   const createMethod = (
     name: string,
     equationsCount: number = 1,
@@ -100,101 +96,85 @@ describe("OOP Spec", () => {
 
   const createObject = (name: string, children: ASTNode[] = []) => {
     const identifier = createSymbol(name);
-    const expression = {
-      accept: (visitor: any) => {
-        children.forEach((child) => child.accept(visitor));
-      },
-      toJSON: () => ({}),
-    } as any;
+    const expression = new Sequence(children);
     return new AstObject(identifier, expression);
   };
 
   describe("DeclaresAttribute", () => {
     it("should detect if an attribute with the specific name is declared", () => {
       const attr = createAttribute("energy");
-      const visitor = new DeclaresAttribute("energy");
-      expect(executeVisitor(attr, visitor)).to.eq(true);
+      const ast = [createClass("A", [attr])];
+      expect(runSingleRule(ast, "DeclaresAttribute", true, undefined, ["energy"])).to.be.true;
     });
 
     it("should ignore attributes with different names", () => {
       const attr = createAttribute("life");
-      const visitor = new DeclaresAttribute("energy");
-      expect(executeVisitor(attr, visitor)).to.eq(false);
+      const ast = [createClass("A", [attr])];
+      expect(runSingleRule(ast, "DeclaresAttribute", false, undefined, ["energy"])).to.be.true;
     });
   });
 
   describe("DeclaresClass", () => {
     it("should detect specific class declaration", () => {
-      const node = createClass("Bird");
-      const visitor = new DeclaresClass("Bird");
-      expect(executeVisitor(node, visitor)).to.eq(true);
+      const ast = [createClass("Bird")];
+      expect(runSingleRule(ast, "DeclaresClass", true, "Bird")).to.be.true;
     });
   });
 
   describe("DeclaresInterface", () => {
     it("should detect specific interface declaration", () => {
-      const node = new Interface(createSymbol("Flyable"), [], {} as any);
-      const visitor = new DeclaresInterface("Flyable");
-      expect(executeVisitor(node, visitor)).to.eq(true);
+      const ast = [new Interface(createSymbol("Flyable"), [], {} as any)];
+      expect(runSingleRule(ast, "DeclaresInterface", true, "Flyable")).to.be.true;
     });
   });
 
   describe("DeclaresMethod", () => {
     it("should detect specific method declaration", () => {
-      const node = createMethod("fly");
-      const visitor = new DeclaresMethod("fly");
-      expect(executeVisitor(node, visitor)).to.eq(true);
+      const ast = [createMethod("fly")];
+      expect(runSingleRule(ast, "DeclaresMethod", true, "fly")).to.be.true;
     });
   });
 
   describe("DeclaresObject", () => {
     it("should detect specific object declaration", () => {
-      const node = createObject("pepita");
-      const visitor = new DeclaresObject("pepita");
-      expect(executeVisitor(node, visitor)).to.eq(true);
+      const ast = [createObject("pepita")];
+      expect(runSingleRule(ast, "DeclaresObject", true, "pepita")).to.be.true;
     });
   });
 
   describe("DeclaresPrimitive", () => {
     it("should detect primitive operator override", () => {
       const op: any = "==";
-      const node = new PrimitiveMethod(op, [], undefined as any);
-      const visitor = new DeclaresPrimitive("==");
-      expect(executeVisitor(node, visitor)).to.eq(true);
+      const ast = [new PrimitiveMethod(op, [], undefined as any)];
+      expect(runSingleRule(ast, "DeclaresPrimitive", true, "==")).to.be.true;
     });
   });
 
   describe("DeclaresSuperclass", () => {
     it("should detect if a class extends a specific superclass", () => {
-      const node = createClass("Sparrow", [], "Bird");
-      const visitor = new DeclaresSuperclass("Bird");
-      expect(executeVisitor(node, visitor)).to.eq(true);
+      const ast = [createClass("Sparrow", [], "Bird")];
+      expect(runSingleRule(ast, "DeclaresSuperclass", true, "Bird")).to.be.true;
     });
   });
 
   describe("Implements", () => {
     it("should detect if a class implements a specific interface", () => {
-      const node = createClass("Pigeon", [], undefined, "Messenger");
-      const visitor = new Implements("Messenger");
-      expect(executeVisitor(node, visitor)).to.eq(true);
+      const ast = [createClass("Pigeon", [], undefined, "Messenger")];
+      expect(runSingleRule(ast, "Implements", true, "Messenger")).to.be.true;
     });
   });
 
   describe("IncludeMixin", () => {
     it("should detect usage of a specific mixin", () => {
-      const node = createClass("ClassWithMixin", [], undefined, undefined, [
-        "Walking",
-      ]);
-      const visitor = new IncludeMixin("Walking");
-      expect(executeVisitor(node, visitor)).to.eq(true);
+      const ast = [createClass("ClassWithMixin", [], undefined, undefined, ["Walking"])];
+      expect(runSingleRule(ast, "IncludeMixin", true, "Walking")).to.be.true;
     });
   });
 
   describe("Instantiates", () => {
     it("should detect instantiation of a specific class", () => {
-      const node = createNew("Engine");
-      const visitor = new Instantiates("Engine");
-      expect(executeVisitor(node, visitor)).to.eq(true);
+      const ast = [createNew("Engine")];
+      expect(runSingleRule(ast, "Instantiates", true, "Engine")).to.be.true;
     });
   });
 
@@ -202,57 +182,41 @@ describe("OOP Spec", () => {
     it("should detect when a method name is used in at least two different places (polymorphism)", () => {
       const method1 = createMethod("fly");
       const method2 = createMethod("fly");
-
       const class1 = createClass("Bird", [method1]);
       const class2 = createClass("Airplane", [method2]);
-
-      const visitor = new UsesDynamicPolymorphism("fly");
-
-      executeVisitor(class1, visitor);
-
-      expect(executeVisitor(class2, visitor)).to.eq(true);
+      const ast = [class1, class2];
+      expect(runSingleRule(ast, "UsesDynamicPolymorphism", true, "fly")).to.be.true;
     });
 
     it("should not throw if only one method is found", () => {
       const method1 = createMethod("fly");
       const class1 = createClass("Bird", [method1]);
-      const visitor = new UsesDynamicPolymorphism("fly");
-
-      expect(executeVisitor(class1, visitor)).to.eq(false);
+      const ast = [class1];
+      expect(runSingleRule(ast, "UsesDynamicPolymorphism", false, "fly")).to.be.true;
     });
   });
 
   describe("UsesInheritance", () => {
     it("should detect inheritance in classes", () => {
-      const node = createClass("Child", [], "Parent");
-      const visitor = new UsesInheritance();
-      expect(executeVisitor(node, visitor)).to.eq(true);
+      const ast = [createClass("Child", [], "Parent")];
+      expect(runSingleRule(ast, "UsesInheritance", true)).to.be.true;
     });
 
     it("should detect inheritance in interfaces", () => {
-      const node = new Interface(
-        createSymbol("IChild"),
-        [createSymbol("IParent")],
-        {} as any
-      );
-      const visitor = new UsesInheritance();
-      expect(executeVisitor(node, visitor)).to.eq(true);
+      const ast = [new Interface(createSymbol("IChild"), [createSymbol("IParent")], {} as any)];
+      expect(runSingleRule(ast, "UsesInheritance", true)).to.be.true;
     });
 
     it("should ignore classes without parent", () => {
-      const node = createClass("Orphan");
-      const visitor = new UsesInheritance();
-      expect(executeVisitor(node, visitor)).to.eq(false);
+      const ast = [createClass("Orphan")];
+      expect(runSingleRule(ast, "UsesInheritance", false)).to.be.true;
     });
   });
 
   describe("UsesMixins", () => {
     it("should detect any mixin usage", () => {
-      const node = createClass("ClassWithMixin", [], undefined, undefined, [
-        "AnyMixin",
-      ]);
-      const visitor = new UsesMixins();
-      expect(executeVisitor(node, visitor)).to.eq(true);
+      const ast = [createClass("ClassWithMixin", [], undefined, undefined, ["AnyMixin"])];
+      expect(runSingleRule(ast, "UsesMixins", true)).to.be.true;
     });
   });
 
@@ -260,17 +224,14 @@ describe("OOP Spec", () => {
     it("should detect composition when an attribute is initialized with New", () => {
       const instantiation = createNew("Engine");
       const attr = createAttribute("myEngine", instantiation);
-      const visitor = new UsesObjectComposition();
-      expect(executeVisitor(attr, visitor)).to.eq(true);
+      const ast = [createClass("A", [attr])];
+      expect(runSingleRule(ast, "UsesObjectComposition", true)).to.be.true;
     });
 
     it("should ignore attributes initialized with literals", () => {
-      const attr = createAttribute(
-        "energy",
-        new StringPrimitive("Initialized with string!")
-      );
-      const visitor = new UsesObjectComposition();
-      expect(executeVisitor(attr, visitor)).to.eq(false);
+      const attr = createAttribute("energy", new StringPrimitive("Initialized with string!"));
+      const ast = [createClass("A", [attr])];
+      expect(runSingleRule(ast, "UsesObjectComposition", false)).to.be.true;
     });
   });
 
@@ -278,58 +239,39 @@ describe("OOP Spec", () => {
     it("should detect two methods with the same name in the same class", () => {
       const m1 = createMethod("calculate");
       const m2 = createMethod("calculate");
-      const classNode = createClass("Calculator", [m1, m2]);
-
-      const visitor = new UsesStaticMethodOverload();
-      expect(executeVisitor(classNode, visitor)).to.eq(true);
+      const ast = [createClass("Calculator", [m1, m2])];
+      expect(runSingleRule(ast, "UsesStaticMethodOverload", true)).to.be.true;
     });
 
     it("should NOT detect overload if methods are in different classes", () => {
       const m1 = createMethod("calculate");
       const m2 = createMethod("calculate");
-
       const classA = createClass("A", [m1]);
       const classB = createClass("B", [m2]);
-
-      const visitor = new UsesStaticMethodOverload();
-
-      executeVisitor(classA, visitor);
-
-      expect(executeVisitor(classB, visitor)).to.eq(false);
+      const ast = [classA, classB];
+      expect(runSingleRule(ast, "UsesStaticMethodOverload", false)).to.be.true;
     });
   });
 
   describe("UsesDynamicMethodOverload", () => {
     it("should detect a method with multiple equations (pattern matching)", () => {
-      const method = createMethod("fibonacci", 2);
-      const visitor = new UsesDynamicMethodOverload();
-      expect(executeVisitor(method, visitor)).to.eq(true);
+      const ast = [createMethod("fibonacci", 2)];
+      expect(runSingleRule(ast, "UsesDynamicMethodOverload", true)).to.be.true;
     });
 
     it("should ignore methods with a single equation", () => {
-      const method = createMethod("fibonacci", 1);
-      const visitor = new UsesDynamicMethodOverload();
-      expect(executeVisitor(method, visitor)).to.eq(false);
+      const ast = [createMethod("fibonacci", 1)];
+      expect(runSingleRule(ast, "UsesDynamicMethodOverload", false)).to.be.true;
     });
   });
 
   describe("UsesTemplateMethod", () => {
     it("should detect template method usage (call to undeclared method on self)", () => {
       const declaredMethod = createMethod("abstractMethod", 1, true);
-      const sendToSelf = new Send(
-        new Self(),
-        createSymbol("abstractMethod"),
-        []
-      );
-
+      const sendToSelf = new Send(new Self(), createSymbol("abstractMethod"), []);
       const templateMethod = createMethod("process", 1, false, sendToSelf);
-      const classNode = createClass("MyClass", [
-        declaredMethod,
-        templateMethod,
-      ]);
-
-      const visitor = new UsesTemplateMethod();
-      expect(executeVisitor(classNode, visitor)).to.eq(true);
+      const ast = [createClass("MyClass", [declaredMethod, templateMethod])];
+      expect(runSingleRule(ast, "UsesTemplateMethod", true)).to.be.true;
     });
 
     it("should NOT detect if calling a declared method on self", () => {
@@ -340,13 +282,9 @@ describe("OOP Spec", () => {
         new Print(new StringPrimitive("This method is Declared"))
       );
       const sendToSelf = new Send(new Self(), createSymbol("declared"), []);
-
       const method = createMethod("process", 1, false, sendToSelf);
-
-      const classNode = createClass("MyClass", [declaredMethod, method]);
-
-      const visitor = new UsesTemplateMethod();
-      expect(executeVisitor(classNode, visitor)).to.eq(false);
+      const ast = [createClass("MyClass", [declaredMethod, method])];
+      expect(runSingleRule(ast, "UsesTemplateMethod", false)).to.be.true;
     });
   });
 });
