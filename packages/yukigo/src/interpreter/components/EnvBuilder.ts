@@ -4,7 +4,6 @@ import {
   Attribute,
   Class,
   EquationRuntime,
-  Expression,
   Fact,
   Function,
   isRuntimePredicate,
@@ -15,8 +14,9 @@ import {
   RuntimeFunction,
   EnvStack,
   TraverseVisitor,
+  Sequence,
 } from "yukigo-ast";
-import { createGlobalEnv, define, lookup } from "../utils.js";
+import { createGlobalEnv, define } from "../utils.js";
 import { InterpreterVisitor } from "./Visitor.js";
 
 /**
@@ -35,6 +35,9 @@ export class EnvBuilderVisitor extends TraverseVisitor {
   public build(ast: AST): EnvStack {
     for (const node of ast) node.accept(this);
     return this.env;
+  }
+  visitSequence(node: Sequence): void {
+    for (const stmt of node.statements) stmt.accept(this);
   }
   visitFunction(node: Function): void {
     const name = node.identifier.value;
@@ -57,6 +60,7 @@ export class EnvBuilderVisitor extends TraverseVisitor {
     }));
 
     const runtimeFunc: RuntimeFunction = {
+      type: "Function",
       identifier: name,
       arity,
       equations,
@@ -134,6 +138,7 @@ class OOPCollector extends TraverseVisitor {
   public collectedFields: Map<string, PrimitiveValue> = new Map();
   visitMethod(node: Method) {
     const runtimeMethod: RuntimeFunction = {
+      type: "Function",
       identifier: node.identifier.value,
       arity: node.equations[0].patterns.length,
       equations: node.equations,

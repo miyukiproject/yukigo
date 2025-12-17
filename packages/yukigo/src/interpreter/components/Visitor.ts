@@ -59,6 +59,8 @@ import {
   isRuntimeClass,
   Super,
   EnvStack,
+  If,
+  isRuntimeFunction,
 } from "yukigo-ast";
 import { InterpreterConfig } from "../index.js";
 import {
@@ -93,6 +95,7 @@ import {
 import { LazyRuntime } from "./LazyRuntime.js";
 import { FunctionRuntime } from "./FunctionRuntime.js";
 import { ObjectRuntime } from "./ObjectRuntime.js";
+import { EnvBuilderVisitor } from "./EnvBuilder.js";
 
 export class InterpreterVisitor
   implements Visitor<PrimitiveValue>, ExpressionEvaluator
@@ -114,11 +117,6 @@ export class InterpreterVisitor
   evaluate(node: Expression): PrimitiveValue {
     return node.accept(this);
   }
-
-  private getLogicEngine(): LogicEngine {
-    return new LogicEngine(this.env, this.config, this);
-  }
-
   visitNumberPrimitive(node: NumberPrimitive): PrimitiveValue {
     return node.value;
   }
@@ -139,7 +137,19 @@ export class InterpreterVisitor
   }
   visitSymbolPrimitive(node: SymbolPrimitive): PrimitiveValue {
     try {
-      return lookup(this.env, node.value);
+      const val = lookup(this.env, node.value);
+      // evaluate if its a function with arity 0
+      if (isRuntimeFunction(val) && val.arity === 0) {
+        return FunctionRuntime.apply(
+          val.identifier ?? "<anon>",
+          val.equations,
+          [],
+          val.closure || this.env,
+          (newEnv) => new InterpreterVisitor(newEnv, this.config, this.frames)
+        );
+      }
+
+      return val;
     } catch (error) {
       throw new InterpreterError("Symbol Lookup", error.message, this.frames);
     }
@@ -312,10 +322,25 @@ export class InterpreterVisitor
   visitLetInExpr(node: LetInExpression): PrimitiveValue {
     pushEnv(this.env);
     try {
-      node.declarations.accept(this);
+      const envBuilder = new EnvBuilderVisitor(this.env);
+      node.declarations.accept(envBuilder);
       return node.expression.accept(this);
     } finally {
       popEnv(this.env);
+    }
+  }
+  visitIf(node: If): PrimitiveValue {
+    const condition = node.condition.accept(this);
+    if (typeof condition !== "boolean")
+      throw new InterpreterError(
+        "If",
+        `Expected boolean in condition and got ${typeof condition}`,
+        this.frames
+      );
+    if (condition) {
+      return node.then.accept(this);
+    } else {
+      return node.elseExpr.accept(this);
     }
   }
   visitCall(node: Call): PrimitiveValue {
@@ -323,7 +348,7 @@ export class InterpreterVisitor
     const callee = node.callee.accept(this);
     const args = node.args.map((arg) => arg.accept(this));
 
-    if (this.isRuntimeFunction(callee)) {
+    if (isRuntimeFunction(callee)) {
       return FunctionRuntime.apply(
         callee.identifier,
         callee.equations,
@@ -338,59 +363,49 @@ export class InterpreterVisitor
     return true;
   }
   visitCompositionExpression(node: CompositionExpression): PrimitiveValue {
-    // 1. Evaluamos f y g para obtener las RuntimeFunctions reales
     const f = node.left.accept(this);
     const g = node.right.accept(this);
 
-    if (!this.isRuntimeFunction(f) || !this.isRuntimeFunction(g)) {
+    if (!isRuntimeFunction(f) || !isRuntimeFunction(g)) {
       throw new InterpreterError(
         "Composition",
         "Both operands of (.) must be functions"
       );
     }
 
-    // 2. Nombres internos estables (ya no necesitan ser aleatorios globales)
     const F_REF = "__internal_f";
     const G_REF = "__internal_g";
     const PARAM_NAME = "__x";
 
-    // 3. Creamos el AST de la nueva función: \x -> f( g(x) )
-    // Notar que usamos los nombres internos F_REF y G_REF
     const compositionBody = new Application(
-      new SymbolPrimitive(F_REF), // Aplica f...
+      new SymbolPrimitive(F_REF),
       new Application(
-        new SymbolPrimitive(G_REF), // ...al resultado de aplicar g...
-        new SymbolPrimitive(PARAM_NAME) // ...al argumento x
+        new SymbolPrimitive(G_REF),
+        new SymbolPrimitive(PARAM_NAME)
       )
     );
 
-    // 4. Construimos la definición de la Lambda
     const patterns = [new VariablePattern(new SymbolPrimitive(PARAM_NAME))];
     const equation: EquationRuntime = {
       patterns,
       body: new UnguardedBody(new Sequence([new Return(compositionBody)])),
     };
 
-    // 5. LA MAGIA: Clausura Privada (Closure Injection)
-    // Creamos un entorno que SOLO existe para esta función compuesta.
-    // Contiene las instancias reales de 'f' y 'g'.
     const privateScope = new Map<string, PrimitiveValue>();
     privateScope.set(F_REF, f);
     privateScope.set(G_REF, g);
 
-    // Usamos tu estructura de EnvStack (Linked List)
-    // head: privateScope -> tail: this.env (scope actual)
     const capturedEnv: EnvStack = {
       head: privateScope,
       tail: this.env,
     };
-    console.log(equation);
     return {
-      arity: 1, // La composición estándar es unaria: (f . g) x
-      identifier: `<(${f.identifier} . ${g.identifier})>`, // Nombre descriptivo para debug
+      type: "Function",
+      arity: 1,
+      identifier: `<(${f.identifier} . ${g.identifier})>`,
       equations: [equation],
       pendingArgs: [],
-      closure: capturedEnv, // <--- Aquí guardamos el entorno con f y g inyectados
+      closure: capturedEnv,
     };
   }
   visitLambda(node: Lambda): PrimitiveValue {
@@ -400,6 +415,7 @@ export class InterpreterVisitor
       body: new UnguardedBody(new Sequence([new Return(node.body)])),
     };
     return {
+      type: "Function",
       arity: patterns.length,
       equations: [equation],
       pendingArgs: [],
@@ -411,21 +427,18 @@ export class InterpreterVisitor
   visitApplication(node: Application): PrimitiveValue {
     const func = node.functionExpr.accept(this);
 
-    if (!this.isRuntimeFunction(func))
+    if (!isRuntimeFunction(func))
       throw new InterpreterError("Application", "Cannot apply non-function");
 
-    // Creamos el thunk del nuevo argumento
     const argThunk = () => node.parameter.accept(this);
-    // Combinamos con los argumentos que ya traía la función (currying previo)
+
     const allPendingArgs = func.pendingArgs
       ? [...func.pendingArgs, argThunk]
       : [argThunk];
 
-    // Delegamos la ejecución
     return this.applyArguments(func, allPendingArgs);
   }
 
-  // 2. Nuevo método helper para manejar la aplicación recursiva
   private applyArguments(
     func: RuntimeFunction,
     args: (PrimitiveValue | (() => PrimitiveValue))[]
@@ -440,10 +453,10 @@ export class InterpreterVisitor
     const argsToConsume = args.slice(0, func.arity);
     const remainingArgs = args.slice(func.arity);
 
-    console.log(func, argsToConsume)
     const evaluatedArgs = argsToConsume.map((arg) =>
       typeof arg === "function" ? arg() : arg
     );
+
     const executionEnv = func.closure ?? this.env;
     const result = FunctionRuntime.apply(
       func.identifier ?? "<anonymous>",
@@ -453,7 +466,7 @@ export class InterpreterVisitor
       (newEnv) => new InterpreterVisitor(newEnv, this.config, this.frames)
     );
     if (remainingArgs.length > 0) {
-      if (this.isRuntimeFunction(result)) {
+      if (isRuntimeFunction(result)) {
         const nextArgs = result.pendingArgs
           ? [...result.pendingArgs, ...remainingArgs]
           : remainingArgs;
@@ -634,14 +647,6 @@ export class InterpreterVisitor
       throw wrapped;
     }
   }
-  private isRuntimeFunction(val: any): val is RuntimeFunction {
-    return (
-      typeof val === "object" &&
-      val !== null &&
-      Array.isArray(val.equations) &&
-      typeof val.arity === "number"
-    );
-  }
   public realizeList(val: PrimitiveValue): PrimitiveValue[] {
     return LazyRuntime.realizeList(val);
   }
@@ -684,6 +689,9 @@ export class InterpreterVisitor
     if (!fn)
       throw new InterpreterError(contextName, `Unknown op: ${node.operator}`);
     return fn(operand);
+  }
+  private getLogicEngine(): LogicEngine {
+    return new LogicEngine(this.env, this.config, this);
   }
   static evaluateLiteral(node: ASTNode): PrimitiveValue {
     return node.accept(

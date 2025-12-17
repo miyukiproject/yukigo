@@ -1,11 +1,6 @@
 import { GuardedBody, PrimitiveValue, UnguardedBody } from "./generics.js";
 import { Pattern } from "./patterns.js";
 
-export interface EquationRuntime {
-  patterns: Pattern[];
-  body: GuardedBody[] | UnguardedBody;
-}
-
 export type PrimitiveThunk = () => PrimitiveValue;
 
 export type Environment = Map<string, PrimitiveValue>;
@@ -14,15 +9,28 @@ export type EnvStack = {
   tail: EnvStack | null;
 };
 
+export interface EquationRuntime {
+  patterns: Pattern[];
+  body: GuardedBody[] | UnguardedBody;
+}
 /**
  * Runtime Function used in the Interpreter
  */
 export interface RuntimeFunction {
+  type: "Function";
   arity: number;
   identifier?: string;
   equations: EquationRuntime[];
   pendingArgs?: (PrimitiveValue | PrimitiveThunk)[]; // for partial application
   closure?: EnvStack;
+}
+export function isRuntimeFunction(val: PrimitiveValue): val is RuntimeFunction {
+  return (
+    typeof val === "object" &&
+    val !== null &&
+    "type" in val &&
+    val.type === "Function"
+  );
 }
 
 export interface RuntimeClass {
@@ -34,8 +42,10 @@ export interface RuntimeClass {
   mixins: string[];
 }
 
-export function isRuntimeClass(val: any): val is RuntimeClass {
-  return val && typeof val === "object" && val.type === "Class";
+export function isRuntimeClass(val: PrimitiveValue): val is RuntimeClass {
+  return (
+    val && typeof val === "object" && "type" in val && val.type === "Class"
+  );
 }
 
 export interface RuntimeObject {
@@ -45,8 +55,10 @@ export interface RuntimeObject {
   methods: Map<string, RuntimeFunction>;
 }
 
-export function isRuntimeObject(val: any): val is RuntimeObject {
-  return val && typeof val === "object" && val.type === "Object";
+export function isRuntimeObject(val: PrimitiveValue): val is RuntimeObject {
+  return (
+    val && typeof val === "object" && "type" in val && val.type === "Object"
+  );
 }
 
 export interface LazyList {

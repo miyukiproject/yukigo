@@ -29,6 +29,7 @@ const createMethodMap = (
   new Map(methods.map((m) => [m.identifier, m]));
 const createMethod = (name: string, returnVal: Primitive): RuntimeFunction => {
   return {
+    type: "Function",
     identifier: name,
     arity: 0,
     pendingArgs: [],
@@ -143,6 +144,7 @@ describe("ObjectRuntime", () => {
   describe("dispatch()", () => {
     it("debe ejecutar un método que accede a 'self' (campos del objeto)", () => {
       const getCountMethod: RuntimeFunction = {
+        type: "Function",
         identifier: "getCount",
         arity: 0,
         pendingArgs: [],
@@ -196,6 +198,7 @@ describe("ObjectRuntime", () => {
     it("debe permitir argumentos en el método", () => {
       const returnArgAST = new Return(new SymbolPrimitive("val"));
       const addMethod: RuntimeFunction = {
+        type: "Function",
         identifier: "echo",
         arity: 1,
         pendingArgs: [],
@@ -444,6 +447,7 @@ describe("ObjectRuntime", () => {
       );
 
       const methodHijo: RuntimeFunction = {
+        type: "Function",
         identifier: "calc",
         arity: 0,
         pendingArgs: [],
