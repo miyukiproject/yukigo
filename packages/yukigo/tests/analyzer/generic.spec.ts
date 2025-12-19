@@ -1,17 +1,13 @@
 import { expect } from "chai";
-import {
-  TypesParameterAs,
-  TypesReturnAs,
-} from "../../src/analyzer/inspections/generic.js";
+import { Analyzer, InspectionRule } from "../../src/analyzer/index.js";
 import {
   TypeSignature,
   ParameterizedType,
   SymbolPrimitive,
   SimpleType,
 } from "yukigo-ast";
-import { executeVisitor } from "../../src/analyzer/utils.js";
 
-describe("Generic Inspections Type Checks", () => {
+describe("Generic Inspections", () => {
   const createTypeSignature = (name: string, params: string[], ret: string) => {
     const identifier = new SymbolPrimitive(name);
     const inputTypes = params.map((p) => {
@@ -29,72 +25,140 @@ describe("Generic Inspections Type Checks", () => {
 
   describe("TypesParameterAs", () => {
     it("should find a match when parameter type matches at correct index", () => {
-      // f :: Int -> String -> Bool
-      const node = createTypeSignature("f", ["Int", "String"], "Bool");
-      const visitor = new TypesParameterAs("f", 0, "Int");
-
-      expect(executeVisitor(node, visitor)).to.eq(true);
+      const ast = [createTypeSignature("f", ["Int", "String"], "Bool")];
+      const rules: InspectionRule[] = [
+        {
+          inspection: "TypesParameterAs",
+          binding: "f",
+          args: ["0", "Int"],
+          expected: true,
+        },
+      ];
+      const analyzer = new Analyzer();
+      const results = analyzer.analyze(ast, rules);
+      expect(results[0].passed).to.be.true;
     });
 
     it("should find a match at a specific index (2nd parameter)", () => {
-      // f :: Int -> String -> Bool
-      const node = createTypeSignature("f", ["Int", "String"], "Bool");
-      const visitor = new TypesParameterAs("f", 1, "String");
-
-      expect(executeVisitor(node, visitor)).to.eq(true);
+      const ast = [createTypeSignature("f", ["Int", "String"], "Bool")];
+      const rules: InspectionRule[] = [
+        {
+          inspection: "TypesParameterAs",
+          binding: "f",
+          args: ["1", "String"],
+          expected: true,
+        },
+      ];
+      const analyzer = new Analyzer();
+      const results = analyzer.analyze(ast, rules);
+      expect(results[0].passed).to.be.true;
     });
 
-    it("should NOT throw if parameter index is out of bounds", () => {
-      const node = createTypeSignature("f", ["Int"], "Bool");
-      const visitor = new TypesParameterAs("f", 2, "Int");
-
-      expect(executeVisitor(node, visitor)).to.eq(false);
+    it("should NOT pass if parameter index is out of bounds", () => {
+      const ast = [createTypeSignature("f", ["Int"], "Bool")];
+      const rules: InspectionRule[] = [
+        {
+          inspection: "TypesParameterAs",
+          binding: "f",
+          args: ["2", "Int"],
+          expected: true,
+        },
+      ];
+      const analyzer = new Analyzer();
+      const results = analyzer.analyze(ast, rules);
+      expect(results[0].passed).to.be.false;
     });
 
-    it("should NOT throw if type does not match", () => {
-      const node = createTypeSignature("f", ["Int"], "Bool");
-      const visitor = new TypesParameterAs("f", 1, "String");
-
-      expect(executeVisitor(node, visitor)).to.eq(false);
+    it("should NOT pass if type does not match", () => {
+      const ast = [createTypeSignature("f", ["Int"], "Bool")];
+      const rules: InspectionRule[] = [
+        {
+          inspection: "TypesParameterAs",
+          binding: "f",
+          args: ["0", "String"],
+          expected: true,
+        },
+      ];
+      const analyzer = new Analyzer();
+      const results = analyzer.analyze(ast, rules);
+      expect(results[0].passed).to.be.false;
     });
 
-    it("should NOT throw if binding name does not match", () => {
-      const node = createTypeSignature("g", ["Int"], "Bool");
-      const visitor = new TypesParameterAs("f", 1, "Int");
-
-      expect(executeVisitor(node, visitor)).to.eq(false);
+    it("should NOT pass if binding name does not match", () => {
+      const ast = [createTypeSignature("g", ["Int"], "Bool")];
+      const rules: InspectionRule[] = [
+        {
+          inspection: "TypesParameterAs",
+          binding: "f",
+          args: ["0", "Int"],
+          expected: true,
+        },
+      ];
+      const analyzer = new Analyzer();
+      const results = analyzer.analyze(ast, rules);
+      expect(results[0].passed).to.be.false;
     });
   });
 
   describe("TypesReturnAs", () => {
     it("should find a match when return type matches", () => {
-      // f :: Int -> Bool
-      const node = createTypeSignature("f", ["Int"], "Bool");
-      const visitor = new TypesReturnAs("f", "Bool");
-
-      expect(executeVisitor(node, visitor)).to.eq(true);
+      const ast = [createTypeSignature("f", ["Int"], "Bool")];
+      const rules: InspectionRule[] = [
+        {
+          inspection: "TypesReturnAs",
+          binding: "f",
+          args: ["Bool"],
+          expected: true,
+        },
+      ];
+      const analyzer = new Analyzer();
+      const results = analyzer.analyze(ast, rules);
+      expect(results[0].passed).to.be.true;
     });
 
     it("should handle complex return types", () => {
-      // f :: Int -> (Int, Int)
-      const node = createTypeSignature("f", ["Int"], "(Int, Int)");
-      const visitor = new TypesReturnAs("f", "(Int, Int)");
-
-      expect(executeVisitor(node, visitor)).to.eq(true);
+      const ast = [createTypeSignature("f", ["Int"], "(Int, Int)")];
+      const rules: InspectionRule[] = [
+        {
+          inspection: "TypesReturnAs",
+          binding: "f",
+          args: ["(Int, Int)"],
+          expected: true,
+        },
+      ];
+      const analyzer = new Analyzer();
+      const results = analyzer.analyze(ast, rules);
+      expect(results[0].passed).to.be.true;
     });
 
-    it("should NOT throw if return type does not match", () => {
-      const node = createTypeSignature("f", ["Int"], "Bool");
-      const visitor = new TypesReturnAs("f", "Int");
-
-      expect(executeVisitor(node, visitor)).to.eq(false);
+    it("should NOT pass if return type does not match", () => {
+      const ast = [createTypeSignature("f", ["Int"], "Bool")];
+      const rules: InspectionRule[] = [
+        {
+          inspection: "TypesReturnAs",
+          binding: "f",
+          args: ["Int"],
+          expected: true,
+        },
+      ];
+      const analyzer = new Analyzer();
+      const results = analyzer.analyze(ast, rules);
+      expect(results[0].passed).to.be.false;
     });
 
-    it("should NOT throw if binding name does not match", () => {
-      const node = createTypeSignature("g", ["Int"], "Bool");
-      const visitor = new TypesReturnAs("f", "Bool");
-
-      expect(executeVisitor(node, visitor)).to.eq(false);
+    it("should NOT pass if binding name does not match", () => {
+      const ast = [createTypeSignature("g", ["Int"], "Bool")];
+      const rules: InspectionRule[] = [
+        {
+          inspection: "TypesReturnAs",
+          binding: "f",
+          args: ["Bool"],
+          expected: true,
+        },
+      ];
+      const analyzer = new Analyzer();
+      const results = analyzer.analyze(ast, rules);
+      expect(results[0].passed).to.be.false;
     });
   });
 });

@@ -12,7 +12,7 @@ import {
   TraverseVisitor,
   UnifyOperation,
 } from "yukigo-ast";
-import { InspectionMap, executeVisitor } from "../utils.js";
+import { VisitorConstructor } from "../utils.js";
 import { isYukigoPrimitive } from "yukigo-ast";
 
 export abstract class DeclaresBinding extends TraverseVisitor {
@@ -146,21 +146,15 @@ export class HasRedundantReduction extends TraverseVisitor {
   }
 }
 
-export const logicInspections: InspectionMap = {
-  DeclaresFact: (node, args, binding) =>
-    executeVisitor(node, new DeclaresFact(binding)),
-  DeclaresRule: (node, args, binding) =>
-    executeVisitor(node, new DeclaresRule(binding)),
-  DeclaresPredicate: (node, args, binding) =>
-    executeVisitor(node, new DeclaresPredicate(binding)),
-  UsesFindall: (node, args, binding) => executeVisitor(node, new UsesFindall()),
-  UsesForall: (node, args, binding) => executeVisitor(node, new UsesForall()),
-  UsesNot: (node, args, binding) => executeVisitor(node, new UsesNot()),
-  UsesUnificationOperator: (node, args, binding) =>
-    executeVisitor(node, new UsesUnificationOperator(binding)),
-  UsesCut: (node, args, binding) => executeVisitor(node, new UsesCut(binding)),
-  UsesFail: (node, args, binding) =>
-    executeVisitor(node, new UsesFail(binding)),
-  HasRedundantReduction: (node, args, binding) =>
-    executeVisitor(node, new HasRedundantReduction(binding)),
+export const logicInspections: Record<string, VisitorConstructor> = {
+  DeclaresFact: DeclaresFact,
+  DeclaresRule: DeclaresRule,
+  DeclaresPredicate: DeclaresPredicate,
+  UsesFindall: UsesFindall,
+  UsesForall: UsesForall,
+  UsesNot: UsesNot,
+  UsesUnificationOperator: UsesUnificationOperator,
+  UsesCut: UsesCut,
+  UsesFail: UsesFail,
+  HasRedundantReduction: HasRedundantReduction,
 };

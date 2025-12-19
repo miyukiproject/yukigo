@@ -18,18 +18,9 @@ import {
   NumberPrimitive,
   If,
 } from "yukigo-ast";
-import {
-  UsesComposition,
-  UsesAnonymousVariable,
-  UsesComprehension,
-  UsesGuards,
-  UsesLambda,
-  UsesYield,
-  UsesPatternMatching,
-} from "../../src/analyzer/inspections/functional.js";
-import { executeVisitor } from "../../src/analyzer/utils.js";
+import { Analyzer, InspectionRule } from "../../src/analyzer/index.js";
 
-describe("Functional Spec", () => {
+describe("Functional Inspections", () => {
   const createSymbol = (name: string) => new SymbolPrimitive(name);
   const createSequence = (expr: any) => new Sequence([expr]);
   const createEquation = (patterns: any[], bodyExpr: any) => {
@@ -43,32 +34,40 @@ describe("Functional Spec", () => {
     return new Function(createSymbol(name), equations);
   };
   const mockExpr = new NumberPrimitive(1);
+  const analyzer = new Analyzer();
+
+  const runSingleRule = (
+    ast: any[],
+    inspection: string,
+    expected: boolean,
+    binding?: string,
+    args: string[] = []
+  ) => {
+    const rule: InspectionRule = { inspection, binding, args, expected };
+    const results = analyzer.analyze(ast, [rule]);
+    const result = results[0]; // Assuming only one rule is passed
+    return result.passed;
+  };
 
   describe("UsesGuards", () => {
     it("detects guards when they are present", () => {
       const guardedBody = new GuardedBody(mockExpr, mockExpr);
       const equation = new Equation([], [guardedBody, guardedBody], undefined);
       const func = createFunction("f", [equation]);
-
-      const visitor = new UsesGuards("f");
-      expect(executeVisitor(func, visitor)).to.eq(true);
+      expect(runSingleRule([func], "UsesGuards", true, "f")).to.be.true;
     });
 
     it("does not detect guards when using UnguardedBody", () => {
       const equation = createEquation([], mockExpr);
       const func = createFunction("f", [equation]);
-
-      const visitor = new UsesGuards("f");
-      expect(executeVisitor(func, visitor)).to.eq(false);
+      expect(runSingleRule([func], "UsesGuards", false, "f")).to.be.true;
     });
 
     it("should respect binding scope", () => {
       const guardedBody = new GuardedBody(mockExpr, mockExpr);
       const equation = new Equation([], [guardedBody], undefined);
       const func = createFunction("g", [equation]);
-
-      const visitor = new UsesGuards("f");
-      expect(executeVisitor(func, visitor)).to.eq(false);
+      expect(runSingleRule([func], "UsesGuards", false, "f")).to.be.true;
     });
   });
 
@@ -77,39 +76,30 @@ describe("Functional Spec", () => {
 
     it("is True when composition is present on top level", () => {
       const func = createFunction("x", [createEquation([], createComp())]);
-
-      const visitor = new UsesComposition("x");
-      expect(executeVisitor(func, visitor)).to.eq(true);
+      expect(runSingleRule([func], "UsesComposition", true, "x")).to.be.true;
     });
 
     it("is True when composition is present inside lambda", () => {
       const lambda = new Lambda([], createComp());
       const func = createFunction("x", [createEquation([], lambda)]);
-
-      const visitor = new UsesComposition("x");
-      expect(executeVisitor(func, visitor)).to.eq(true);
+      expect(runSingleRule([func], "UsesComposition", true, "x")).to.be.true;
     });
 
     it("is True when composition is present inside application", () => {
       const app = new Application(mockExpr, createComp());
       const func = createFunction("x", [createEquation([], app)]);
-
-      const visitor = new UsesComposition("x");
-      expect(executeVisitor(func, visitor)).to.eq(true);
+      expect(runSingleRule([func], "UsesComposition", true, "x")).to.be.true;
     });
 
     it("is True when composition is present within if", () => {
       const ifExpr = new If(new BooleanPrimitive(true), createComp(), mockExpr);
       const func = createFunction("f", [createEquation([], ifExpr)]);
-
-      const visitor = new UsesComposition("f");
-      expect(executeVisitor(func, visitor)).to.eq(true);
+      expect(runSingleRule([func], "UsesComposition", true, "f")).to.be.true;
     });
 
     it("is False when composition is not present", () => {
       const func = createFunction("x", [createEquation([], mockExpr)]);
-      const visitor = new UsesComposition("x");
-      expect(executeVisitor(func, visitor)).to.eq(false);
+      expect(runSingleRule([func], "UsesComposition", false, "x")).to.be.true;
     });
   });
 
@@ -119,31 +109,28 @@ describe("Functional Spec", () => {
       const func = createFunction("factorial", [
         createEquation([pattern], mockExpr),
       ]);
-
-      const visitor = new UsesPatternMatching("factorial");
-      expect(executeVisitor(func, visitor)).to.eq(true);
+      expect(runSingleRule([func], "UsesPatternMatching", true, "factorial")).to
+        .be.true;
     });
 
     it("is True when Pattern Matching on List", () => {
       const pattern = new ListPattern([]);
       const func = createFunction("foo", [createEquation([pattern], mockExpr)]);
-
-      const visitor = new UsesPatternMatching("foo");
-      expect(executeVisitor(func, visitor)).to.eq(true);
+      expect(runSingleRule([func], "UsesPatternMatching", true, "foo")).to.be
+        .true;
     });
 
     it("is True when Pattern Matching on anonymous variable (Wildcard)", () => {
       const pattern = new WildcardPattern();
       const func = createFunction("baz", [createEquation([pattern], mockExpr)]);
-
-      const visitor = new UsesPatternMatching("baz");
-      expect(executeVisitor(func, visitor)).to.eq(true);
+      expect(runSingleRule([func], "UsesPatternMatching", true, "baz")).to.be
+        .true;
     });
 
     it("is False when no patterns (or ignored patterns) are used", () => {
       const func = createFunction("foo", [createEquation([], mockExpr)]);
-      const visitor = new UsesPatternMatching("foo");
-      expect(executeVisitor(func, visitor)).to.eq(false);
+      expect(runSingleRule([func], "UsesPatternMatching", false, "foo")).to.be
+        .true;
     });
   });
 
@@ -151,15 +138,12 @@ describe("Functional Spec", () => {
     it("detects lambda when is present", () => {
       const lambda = new Lambda([], mockExpr);
       const func = createFunction("f", [createEquation([], lambda)]);
-
-      const visitor = new UsesLambda("f");
-      expect(executeVisitor(func, visitor)).to.eq(true);
+      expect(runSingleRule([func], "UsesLambda", true, "f")).to.be.true;
     });
 
     it("detects lambda when is not present", () => {
       const func = createFunction("f", [createEquation([], mockExpr)]);
-      const visitor = new UsesLambda("f");
-      expect(executeVisitor(func, visitor)).to.eq(false);
+      expect(runSingleRule([func], "UsesLambda", false, "f")).to.be.true;
     });
   });
 
@@ -167,29 +151,24 @@ describe("Functional Spec", () => {
     it("is True if _ is present in parameters", () => {
       const pattern = new WildcardPattern();
       const func = createFunction("foo", [createEquation([pattern], mockExpr)]);
-
-      const visitor = new UsesAnonymousVariable("foo");
-      expect(executeVisitor(func, visitor)).to.eq(true);
+      expect(runSingleRule([func], "UsesAnonymousVariable", true, "foo")).to.be
+        .true;
     });
 
     it("is True if _ is present in nested structures (e.g. ListPattern)", () => {
       const innerWildcard = new WildcardPattern();
-
       const listPattern = new ListPattern([innerWildcard]);
-
       const func = createFunction("foo", [
         createEquation([listPattern], mockExpr),
       ]);
-
-      const visitor = new UsesAnonymousVariable("foo");
-
-      expect(executeVisitor(func, visitor)).to.eq(true);
+      expect(runSingleRule([func], "UsesAnonymousVariable", true, "foo")).to.be
+        .true;
     });
 
     it("is False if _ is not present", () => {
       const func = createFunction("foo", [createEquation([], mockExpr)]);
-      const visitor = new UsesAnonymousVariable("foo");
-      expect(executeVisitor(func, visitor)).to.eq(false);
+      expect(runSingleRule([func], "UsesAnonymousVariable", false, "foo")).to.be
+        .true;
     });
   });
 
@@ -197,15 +176,13 @@ describe("Functional Spec", () => {
     it("is True when list comprehension exists", () => {
       const comp = new ListComprehension(mockExpr, []);
       const func = createFunction("x", [createEquation([], comp)]);
-
-      const visitor = new UsesComprehension(undefined);
-      expect(executeVisitor(func, visitor)).to.eq(true);
+      expect(runSingleRule([func], "UsesComprehension", true, undefined)).to.be
+        .true;
     });
 
     it("is False when comprehension doesnt exists", () => {
       const func = createFunction("x", [createEquation([], mockExpr)]);
-      const visitor = new UsesComprehension("x");
-      expect(executeVisitor(func, visitor)).to.eq(false);
+      expect(runSingleRule([func], "UsesComprehension", false, "x")).to.be.true;
     });
   });
 
@@ -213,9 +190,7 @@ describe("Functional Spec", () => {
     it("is True when yield exists", () => {
       const yieldNode = new Yield(mockExpr);
       const func = createFunction("gen", [createEquation([], yieldNode)]);
-
-      const visitor = new UsesYield("gen");
-      expect(executeVisitor(func, visitor)).to.eq(true);
+      expect(runSingleRule([func], "UsesYield", true, "gen")).to.be.true;
     });
   });
 });

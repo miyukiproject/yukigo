@@ -10,34 +10,14 @@ import {
   AssignOperation,
   UnifyOperation,
   NumberPrimitive,
-  ASTNode,
-  StopTraversalException,
   ArithmeticBinaryOperation,
 } from "yukigo-ast";
-import {
-  DeclaresFact,
-  DeclaresRule,
-  DeclaresPredicate,
-  UsesFindall,
-  UsesForall,
-  UsesNot,
-  UsesUnificationOperator,
-  UsesCut,
-  UsesFail,
-  HasRedundantReduction,
-} from "../../src/analyzer/inspections/logic.js";
+import { Analyzer, InspectionRule } from "../../src/analyzer/index.js";
 
-function executeVisitor(node: ASTNode | ASTNode[], visitor: any) {
-  if (Array.isArray(node)) {
-    node.forEach((n) => n.accept(visitor));
-  } else {
-    node.accept(visitor);
-  }
-}
-
-describe("Logic Spec", () => {
+describe("Logic Inspections", () => {
   const createSymbol = (name: string) => new SymbolPrimitive(name);
   const createNumber = (val: number) => new NumberPrimitive(val);
+  const analyzer = new Analyzer();
 
   const createFact = (name: string, args: any[] = []) => {
     return new Fact(createSymbol(name), args);
@@ -55,59 +35,60 @@ describe("Logic Spec", () => {
     return new Exist(createSymbol(name), args);
   };
 
+  const runSingleRule = (
+    ast: any[],
+    inspection: string,
+    expected: boolean,
+    binding?: string,
+    args: string[] = []
+  ) => {
+    const rule: InspectionRule = { inspection, binding, args, expected };
+    const results = analyzer.analyze(ast, [rule]);
+    const result = results[0]; // Assuming only one rule is passed
+    return result.passed;
+  };
+
   describe("DeclaresFact", () => {
     it("detects when a specific fact is declared", () => {
       const fact = createFact("baz", [createSymbol("a")]);
-      const visitor = new DeclaresFact("baz");
-      expect(() => executeVisitor(fact, visitor)).to.throw(
-        StopTraversalException
-      );
+      expect(runSingleRule([fact], "DeclaresFact", true, "baz")).to.be.true;
     });
 
     it("ignores facts with different names", () => {
       const fact = createFact("baz");
-      const visitor = new DeclaresFact("foo");
-      expect(() => executeVisitor(fact, visitor)).to.not.throw();
+      expect(runSingleRule([fact], "DeclaresFact", false, "foo")).to.be.true;
     });
   });
 
   describe("DeclaresRule", () => {
     it("detects when a specific rule is declared", () => {
       const rule = createRule("foo");
-      const visitor = new DeclaresRule("foo");
-      expect(() => executeVisitor(rule, visitor)).to.throw(
-        StopTraversalException
-      );
+      expect(runSingleRule([rule], "DeclaresRule", true, "foo")).to.be.true;
     });
 
     it("ignores rules with different names", () => {
       const rule = createRule("foo");
-      const visitor = new DeclaresRule("baz");
-      expect(() => executeVisitor(rule, visitor)).to.not.throw();
+      expect(runSingleRule([rule], "DeclaresRule", false, "baz")).to.be.true;
     });
   });
 
   describe("DeclaresPredicate", () => {
     it("is True when rule is declared", () => {
       const rule = createRule("foo");
-      const visitor = new DeclaresPredicate("foo");
-      expect(() => executeVisitor(rule, visitor)).to.throw(
-        StopTraversalException
-      );
+      expect(runSingleRule([rule], "DeclaresPredicate", true, "foo")).to.be
+        .true;
     });
 
     it("is True when fact is declared", () => {
       const fact = createFact("foo");
-      const visitor = new DeclaresPredicate("foo");
-      expect(() => executeVisitor(fact, visitor)).to.throw(
-        StopTraversalException
-      );
+      expect(runSingleRule([fact], "DeclaresPredicate", true, "foo")).to.be
+        .true;
     });
 
     it("is False when predicate is not declared", () => {
       const fact = createFact("bar");
-      const visitor = new DeclaresPredicate("foo");
-      expect(() => executeVisitor(fact, visitor)).to.not.throw();
+      expect(runSingleRule([fact], "DeclaresPredicate", false, "foo")).to.be
+        .true;
     });
   });
 
@@ -115,17 +96,12 @@ describe("Logic Spec", () => {
     it("detects usage of forall/2", () => {
       const forallNode = new Forall(createCall("cond"), createCall("action"));
       const rule = createRule("foo", [], [forallNode]);
-
-      const visitor = new UsesForall();
-      expect(() => executeVisitor(rule, visitor)).to.throw(
-        StopTraversalException
-      );
+      expect(runSingleRule([rule], "UsesForall", true)).to.be.true;
     });
 
     it("is False when not used", () => {
       const rule = createRule("foo", [], [createCall("bar")]);
-      const visitor = new UsesForall();
-      expect(() => executeVisitor(rule, visitor)).to.not.throw();
+      expect(runSingleRule([rule], "UsesForall", false)).to.be.true;
     });
   });
 
@@ -137,11 +113,7 @@ describe("Logic Spec", () => {
         createSymbol("L")
       );
       const rule = createRule("foo", [], [findallNode]);
-
-      const visitor = new UsesFindall();
-      expect(() => executeVisitor(rule, visitor)).to.throw(
-        StopTraversalException
-      );
+      expect(runSingleRule([rule], "UsesFindall", true)).to.be.true;
     });
   });
 
@@ -149,27 +121,18 @@ describe("Logic Spec", () => {
     it("detects usage of Not node", () => {
       const notNode = new Not([createCall("g")]);
       const rule = createRule("foo", [], [notNode]);
-
-      const visitor = new UsesNot();
-      expect(() => executeVisitor(rule, visitor)).to.throw(
-        StopTraversalException
-      );
+      expect(runSingleRule([rule], "UsesNot", true)).to.be.true;
     });
 
     it("detects usage of 'not' as an Exist call (legacy/parsing variant)", () => {
       const notCall = createCall("not", [createCall("g")]);
       const rule = createRule("foo", [], [notCall]);
-
-      const visitor = new UsesNot();
-      expect(() => executeVisitor(rule, visitor)).to.throw(
-        StopTraversalException
-      );
+      expect(runSingleRule([rule], "UsesNot", true)).to.be.true;
     });
 
     it("is False when not used", () => {
       const rule = createRule("foo", [], [createCall("bar")]);
-      const visitor = new UsesNot();
-      expect(() => executeVisitor(rule, visitor)).to.not.throw();
+      expect(runSingleRule([rule], "UsesNot", false)).to.be.true;
     });
   });
 
@@ -181,17 +144,14 @@ describe("Logic Spec", () => {
         createNumber(4)
       );
       const rule = createRule("baz", [], [unify]);
-
-      const visitor = new UsesUnificationOperator("baz");
-      expect(() => executeVisitor(rule, visitor)).to.throw(
-        StopTraversalException
-      );
+      expect(runSingleRule([rule], "UsesUnificationOperator", true, "baz")).to.be
+        .true;
     });
 
     it("is False when no equal", () => {
       const rule = createRule("baz", [], [createCall("other")]);
-      const visitor = new UsesUnificationOperator("baz");
-      expect(() => executeVisitor(rule, visitor)).to.not.throw();
+      expect(runSingleRule([rule], "UsesUnificationOperator", false, "baz")).to
+        .be.true;
     });
   });
 
@@ -199,17 +159,12 @@ describe("Logic Spec", () => {
     it("detects usage of cut (!)", () => {
       const cut = createCall("!");
       const rule = createRule("baz", [], [cut]);
-
-      const visitor = new UsesCut("baz");
-      expect(() => executeVisitor(rule, visitor)).to.throw(
-        StopTraversalException
-      );
+      expect(runSingleRule([rule], "UsesCut", true, "baz")).to.be.true;
     });
 
     it("is False when not used", () => {
       const rule = createRule("baz");
-      const visitor = new UsesCut("baz");
-      expect(() => executeVisitor(rule, visitor)).to.not.throw();
+      expect(runSingleRule([rule], "UsesCut", false, "baz")).to.be.true;
     });
   });
 
@@ -217,11 +172,7 @@ describe("Logic Spec", () => {
     it("detects usage of fail", () => {
       const failNode = createCall("fail");
       const rule = createRule("baz", [], [failNode]);
-
-      const visitor = new UsesFail("baz");
-      expect(() => executeVisitor(rule, visitor)).to.throw(
-        StopTraversalException
-      );
+      expect(runSingleRule([rule], "UsesFail", true, "baz")).to.be.true;
     });
   });
 
@@ -233,11 +184,8 @@ describe("Logic Spec", () => {
         createSymbol("Y")
       );
       const rule = createRule("baz", [], [assign]);
-
-      const visitor = new HasRedundantReduction("baz");
-      expect(() => executeVisitor(rule, visitor)).to.throw(
-        StopTraversalException
-      );
+      expect(runSingleRule([rule], "HasRedundantReduction", true, "baz")).to.be
+        .true;
     });
 
     it("is True when there is a redundant reduction of literals (Var is 5)", () => {
@@ -247,22 +195,16 @@ describe("Logic Spec", () => {
         createNumber(5)
       );
       const rule = createRule("baz", [], [assign]);
-
-      const visitor = new HasRedundantReduction("baz");
-      expect(() => executeVisitor(rule, visitor)).to.throw(
-        StopTraversalException
-      );
+      expect(runSingleRule([rule], "HasRedundantReduction", true, "baz")).to.be
+        .true;
     });
 
     it("is True when there is a redundant reduction of functors (Var is struct)", () => {
       const functor = createCall("aFunctor", [createNumber(5)]);
       const assign = new AssignOperation("Assign", createSymbol("Z"), functor);
       const rule = createRule("baz", [], [assign]);
-
-      const visitor = new HasRedundantReduction("baz");
-      expect(() => executeVisitor(rule, visitor)).to.throw(
-        StopTraversalException
-      );
+      expect(runSingleRule([rule], "HasRedundantReduction", true, "baz")).to.be
+        .true;
     });
 
     it("is False when there is a complex reduction (operators)", () => {
@@ -272,9 +214,8 @@ describe("Logic Spec", () => {
         new ArithmeticBinaryOperation("Plus", createNumber(3), createNumber(2))
       );
       const rule = createRule("baz", [], [assign]);
-
-      const visitor = new HasRedundantReduction("baz");
-      expect(() => executeVisitor(rule, visitor)).to.not.throw();
+      expect(runSingleRule([rule], "HasRedundantReduction", false, "baz")).to.be
+        .true;
     });
 
     it("respects bindings checks", () => {
@@ -284,9 +225,8 @@ describe("Logic Spec", () => {
         createNumber(5)
       );
       const rule = createRule("other", [], [assign]);
-
-      const visitor = new HasRedundantReduction("baz");
-      expect(() => executeVisitor(rule, visitor)).to.not.throw();
+      expect(runSingleRule([rule], "HasRedundantReduction", false, "baz")).to.be
+        .true;
     });
   });
 });

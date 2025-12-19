@@ -1,10 +1,10 @@
-import { AST } from "yukigo-ast";
+import { AST, TraverseVisitor, StopTraversalException } from "yukigo-ast";
 import { genericInspections } from "./inspections/generic.js";
 import { functionalInspections } from "./inspections/functional.js";
 import { logicInspections } from "./inspections/logic.js";
 import { objectInspections } from "./inspections/object.js";
 import { imperativeInspections } from "./inspections/imperative.js";
-import { InspectionHandler, InspectionMap } from "./utils.js";
+import { InspectionMap, VisitorConstructor } from "./utils.js";
 
 export type AnalysisResult = {
   rule: InspectionRule;
@@ -31,7 +31,7 @@ export const defaultInspectionSet: InspectionMap = {
 /**
  * The Analyzer class.
  * @remarks
- * The Analyzer is the part of Yukigo which runs the inspections on the AST.
+ * The Analyzer is the part of Yukigo which runs the inspections on the AST.s
  */
 export class Analyzer {
   /**
@@ -39,31 +39,21 @@ export class Analyzer {
    * You can load your set of inspections or leave the default one.
    * @defaultValue a default set of inspections for each supported paradigm
    */
-  private inspectionHandlers: InspectionMap = {};
+  private inspectionConstructors: InspectionMap = {};
   constructor(inspectionSet?: InspectionMap) {
-    this.inspectionHandlers = inspectionSet ?? defaultInspectionSet;
+    this.inspectionConstructors = inspectionSet ?? defaultInspectionSet;
   }
 
   /**
    * Registers a new custom inspection handler after Analyzer was instantiated.
    * @param name The name of the inspection (e.g., "HasArithmetic").
-   * @param handler The function that implements the inspection logic.
-   *
-   * @example
-   * // Implementation of HasArithmetic inspection
-   * export class UsesArithmetic extends TraverseVisitor {
-   *  visitArithmeticBinaryOperation(node: ArithmeticBinaryOperation): void {
-   *    throw new StopTraversalException();
-   *  }
-   *  visitArithmeticUnaryOperation(node: ArithmeticUnaryOperation): void {
-   *    throw new StopTraversalException();
-   *  }
-   * }
-   * const analyzer = new ASTAnalyzer(ast);
-   * analyzer.registerInspection("HasArithmetic", (node, args) => executeVisitor(node, new UsesArithmetic()));
+   * @param visitorConstructor The constructor for the TraverseVisitor class.
    */
-  public registerInspection(name: string, handler: InspectionHandler) {
-    this.inspectionHandlers[name] = handler;
+  public registerInspection(
+    name: string,
+    visitorConstructor: VisitorConstructor
+  ) {
+    this.inspectionConstructors[name] = visitorConstructor;
   }
 
   /**
@@ -88,45 +78,62 @@ export class Analyzer {
    * const analysisResults = analyzer.analyze(expectations);
    */
   public analyze(ast: AST, rules: InspectionRule[]): AnalysisResult[] {
-    const results: AnalysisResult[] = [];
+    const ruleResults: Map<InspectionRule, AnalysisResult> = new Map();
+    const activeVisitors: Map<InspectionRule, TraverseVisitor> = new Map();
+
     for (const rule of rules) {
-      results.push(this.runRule(rule, ast));
+      const VisitorClass = this.inspectionConstructors[rule.inspection];
+      if (!VisitorClass) {
+        ruleResults.set(rule, {
+          rule,
+          passed: false,
+          actual: false,
+          error: "Unknown inspection: " + rule.inspection,
+        });
+        continue;
+      }
+      const visitorArgs = rule.binding
+        ? [rule.binding, ...rule.args]
+        : rule.args;
+      activeVisitors.set(rule, new VisitorClass(...visitorArgs));
     }
-    return results;
-  }
 
-  private runRule(rule: InspectionRule, ast: AST): AnalysisResult {
-    const inspection = this.inspectionHandlers[rule.inspection];
-    if (!inspection)
-      return {
-        rule,
-        passed: false,
-        actual: false,
-        error: "Unknown inspection",
-      };
+    for (const node of ast) {
+      for (const [rule, visitor] of activeVisitors.entries()) {
+        if (ruleResults.has(rule)) continue;
 
-    try {
-      let result = false;
-      for (const node of ast) {
-        if (inspection(node, rule.args, rule.binding)) {
-          result = true;
-          break;
+        try {
+          node.accept(visitor);
+        } catch (e) {
+          if (e instanceof StopTraversalException) {
+            ruleResults.set(rule, {
+              rule,
+              passed: rule.expected === true,
+              actual: true,
+            });
+          } else {
+            // unexpected error during traversal
+            ruleResults.set(rule, {
+              rule,
+              passed: false,
+              actual: false,
+              error: (e as Error).message,
+            });
+          }
         }
       }
-
-      const passed = result === rule.expected;
-      return {
-        rule,
-        passed,
-        actual: result,
-      };
-    } catch (error) {
-      return {
-        rule,
-        passed: false,
-        actual: false,
-        error,
-      };
     }
+
+    for (const rule of rules) {
+      if (!ruleResults.has(rule)) {
+        ruleResults.set(rule, {
+          rule,
+          passed: rule.expected === false,
+          actual: false,
+        });
+      }
+    }
+
+    return [...ruleResults.values()];
   }
 }

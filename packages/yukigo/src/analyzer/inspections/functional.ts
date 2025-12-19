@@ -22,7 +22,7 @@ import {
   WildcardPattern,
   Yield,
 } from "yukigo-ast";
-import { InspectionMap, executeVisitor } from "../utils.js";
+import { VisitorConstructor } from "../utils.js";
 
 export class FunctionVisitor extends TraverseVisitor {
   private readonly targetBinding: string;
@@ -141,19 +141,12 @@ export class UsesPatternMatching extends FunctionVisitor {
   }
 }
 
-export const functionalInspections: InspectionMap = {
-  UsesComposition: (node, args, binding) =>
-    executeVisitor(node, new UsesComposition(binding)),
-  UsesAnonymousVariable: (node, args, binding) =>
-    executeVisitor(node, new UsesAnonymousVariable(binding)),
-  UsesComprehension: (node, args, binding) =>
-    executeVisitor(node, new UsesComprehension(binding)),
-  UsesGuards: (node, args, binding) =>
-    executeVisitor(node, new UsesGuards(binding)),
-  UsesLambda: (node, args, binding) =>
-    executeVisitor(node, new UsesLambda(binding)),
-  UsesYield: (node, args, binding) =>
-    executeVisitor(node, new UsesYield(binding)),
-  UsesPatternMatching: (node, args, binding) =>
-    executeVisitor(node, new UsesPatternMatching(binding)),
+export const functionalInspections: Record<string, VisitorConstructor> = {
+  UsesComposition: UsesComposition,
+  UsesAnonymousVariable: UsesAnonymousVariable,
+  UsesComprehension: UsesComprehension,
+  UsesGuards: UsesGuards,
+  UsesLambda: UsesLambda,
+  UsesYield: UsesYield,
+  UsesPatternMatching: UsesPatternMatching,
 };
