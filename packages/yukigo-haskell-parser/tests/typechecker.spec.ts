@@ -184,9 +184,13 @@ describe("TypeChecker Tests", () => {
   it("detects data constructor type errors", () => {
     const code = `data Foo = Bar String | Baz\r\nf :: Int -> Foo\r\nf x = Bar x`;
     assert.throw(() => parser.parse(code));
-    assert.include(
-      parser.errors,
-      "Type error in 'f': Cannot apply YuNumber to type YuString -> Foo t657"
+    const targetError = parser.errors.find((e) =>
+      e.includes("Cannot apply YuNumber")
+    );
+    assert.exists(targetError);
+    assert.match(
+      targetError,
+      /Cannot apply YuNumber to type YuString -> Foo t\d+/
     );
   });
   it("validates correct usage of map", () => {
@@ -205,9 +209,13 @@ describe("TypeChecker Tests", () => {
   it("detects incorrect arity in map", () => {
     const code = `f :: [Int] -> [Int]\nf xs = map (\\x y -> x + 2) xs`;
     assert.throw(() => parser.parse(code));
-    assert.include(
-      parser.errors,
-      "Type error in 'f': Cannot unify t659 -> YuNumber with YuNumber"
+    const targetError = parser.errors.find((e) =>
+      e.includes("Type error in 'f': Cannot unify")
+    );
+    assert.exists(targetError);
+    assert.match(
+      targetError,
+      /Type error in 'f': Cannot unify t\d+ -> YuNumber with YuNumber/
     );
   });
   it("validates correct usage of filter", () => {
@@ -218,9 +226,13 @@ describe("TypeChecker Tests", () => {
   it("detects incorrect usage of filter", () => {
     const code = `f :: [Int] -> [Int]\nf xs = filter (\\x -> x ++ "2") xs`;
     assert.throw(() => parser.parse(code));
-    assert.include(
-      parser.errors,
-      "Type error in 'f': Cannot apply t657 -> YuString to type (t656 -> YuBoolean) -> [t656] -> [t656]"
+    const targetError = parser.errors.find((e) =>
+      e.includes("Type error in 'f': Cannot apply")
+    );
+    assert.exists(targetError);
+    assert.match(
+      targetError,
+      /Type error in 'f': Cannot apply t\d+ -> YuString to type \(t\d+ -> YuBoolean\) -> \[t\d+\] -> \[t\d+\]/
     );
   });
   it("handles multiple type errors", () => {
@@ -250,7 +262,7 @@ describe("TypeChecker Tests", () => {
     assert.throw(() => parser.parse(code));
     assert.include(
       parser.errors,
-      "Type error in 'f': Operand of Round must be a number"
+      "Type error in 'f': Type 'YuString' is not an instance of 'Num'"
     );
   });
   it("validates correct usage of function without signature defined after application", () => {

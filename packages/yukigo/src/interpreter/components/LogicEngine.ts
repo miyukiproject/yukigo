@@ -2,24 +2,28 @@ import {
   Exist,
   Expression,
   Findall,
+  Forall,
   Goal,
   LiteralPattern,
+  Not,
   Pattern,
   PrimitiveValue,
   Query,
   SymbolPrimitive,
   Variable,
   VariablePattern,
+  EnvStack,
 } from "yukigo-ast";
 import {
   InternalLogicResult,
   solveGoal,
   Substitution,
   success,
+  unify,
 } from "./LogicResolver.js";
 import { PatternResolver } from "./PatternMatcher.js";
-import { EnvStack, InterpreterConfig } from "../index.js";
-import { createStream, ExpressionEvaluator } from "../utils.js";
+import { InterpreterConfig } from "../index.js";
+import { createStream, ExpressionEvaluator, isDefined } from "../utils.js";
 import { InterpreterError } from "../errors.js";
 
 export class LogicEngine {
@@ -28,7 +32,12 @@ export class LogicEngine {
     private config: InterpreterConfig,
     private evaluator: ExpressionEvaluator
   ) {}
-
+  public unifyExpr(left: Expression, right: Expression): PrimitiveValue {
+    const p1 = this.instantiateExpressionAsPattern(left, new Map());
+    const p2 = this.instantiateExpressionAsPattern(right, new Map());
+    const resultSubsts = unify(p1, p2, new Map());
+    return resultSubsts !== null;
+  }
   public solveQuery(node: Query): PrimitiveValue {
     return this.evaluator.evaluate(node.expression);
   }
@@ -43,14 +52,16 @@ export class LogicEngine {
     );
     return this.handleOutputMode(generator);
   }
-
+  public solveNot(node: Not): PrimitiveValue {
+    const generator = this.solveConjunction(node.expressions, new Map());
+    const result = generator.next();
+    return result.done === true;
+  }
   public solveFindall(node: Findall): PrimitiveValue {
     if (!(node.goal instanceof Goal))
       throw new InterpreterError("solveFindall", "Findall expects a Goal");
 
-    const goalPatterns = node.goal.args.map((arg) => {
-      return this.expressionToPattern(arg);
-    });
+    const goalPatterns = node.goal.args;
 
     const generator = solveGoal(
       this.env,
@@ -65,7 +76,23 @@ export class LogicEngine {
 
     return results;
   }
+  public solveForall(node: Forall): PrimitiveValue {
+    const conditionGenerator = this.solveConjunction(
+      [node.condition],
+      new Map()
+    );
 
+    for (const condResult of conditionGenerator) {
+      const actionGenerator = this.solveConjunction(
+        [node.action],
+        condResult.substs
+      );
+      const actionResult = actionGenerator.next();
+
+      if (actionResult.done) return false;
+    }
+    return true;
+  }
   public solveExist(node: Exist): PrimitiveValue {
     const generator = solveGoal(
       this.env,
@@ -118,20 +145,26 @@ export class LogicEngine {
   }
 
   private expressionToPattern(expr: Expression): Pattern {
-    if (expr instanceof VariablePattern) return expr;
+    // 1. Si ya es explícitamente un patrón (ej. sintaxis especial si tuvieras), devolverlo.
+    if (expr instanceof VariablePattern) return expr; // 2. Si es una variable, tenemos un dilema: ¿Es valor o incógnita?
 
     if (expr instanceof Variable) {
       const name = expr.identifier.value;
-      if (/^[A-Z_]/.test(name)) return new VariablePattern(expr.identifier);
+
+      // A. ¿Existe definida en el entorno actual?
+      // Usamos una función auxiliar para no lanzar excepción
+      if (isDefined(this.env, name)) {
+        const val = this.evaluator.evaluate(expr);
+        return this.primitiveToPattern(val); // Es un VALOR (ej: 42)
+      }
+
+      // B. No existe en el entorno -> Es una INCÓGNITA LÓGICA nueva
+      return new VariablePattern(expr.identifier);
     }
 
-    try {
-      const val = this.evaluator.evaluate(expr);
-      return this.primitiveToPattern(val);
-    } catch (e) {
-      if (expr instanceof Variable) return new VariablePattern(expr.identifier);
-      throw e;
-    }
+    // 3. Cualquier otra expresión (números, strings, operaciones 1+1) se evalúa
+    const val = this.evaluator.evaluate(expr);
+    return this.primitiveToPattern(val);
   }
 
   private primitiveToPattern(val: PrimitiveValue): Pattern {

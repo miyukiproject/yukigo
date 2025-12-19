@@ -203,4 +203,20 @@ replicate :: Int -> a -> [a]
 replicate n x = take n (repeat x)
 cycle :: [a] -> [a]
 cycle [] = error "Prelude.cycle: empty list"
-cycle xs = xs ++ (cycle xs)`
+cycle xs = xs ++ (cycle xs)
+fst :: [a] -> a
+fst (x:_) = x
+snd :: [a] -> a
+snd (x:y:_) = y
+between :: Ord a => a -> a -> a -> Bool
+between m n p | n >= m && n <= p = True | otherwise = False
+truncate :: (Num a, Integral b) => a -> b
+truncate x = quot x 1
+floor :: (Num a, Integral b) => a -> b
+floor x = div x 1
+negate :: Num a => a -> a
+negate n = 0 - n
+ceiling :: (Num a, Integral b) => a -> b
+ceiling x = negate (floor (negate x))
+round :: (Num a, Integral b) => a -> b
+round x | r < 0.5 = n | r > 0.5 = n + 1 | even n = n | otherwise = n + 1 where { n = floor x; r = x - n }`

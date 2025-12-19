@@ -124,7 +124,6 @@ import {
   Send,
   New,
   Implement,
-  Include,
   Self,
   Method,
   Attribute,
@@ -177,7 +176,6 @@ export interface StrictVisitor<TReturn> {
   visitSend(node: Send): TReturn;
   visitNew(node: New): TReturn;
   visitImplement(node: Implement): TReturn;
-  visitInclude(node: Include): TReturn;
   visitListComprehension(node: ListComprehension): TReturn;
   visitGenerator(node: Generator): TReturn;
   visitRangeExpression(node: RangeExpression): TReturn;
@@ -438,9 +436,6 @@ export class TraverseVisitor implements StrictVisitor<void> {
     this.traverseCollection(node.args);
   }
   visitImplement(node: Implement): void {
-    node.identifier.accept(this);
-  }
-  visitInclude(node: Include): void {
     node.identifier.accept(this);
   }
   visitSelf(node: Self): void {}

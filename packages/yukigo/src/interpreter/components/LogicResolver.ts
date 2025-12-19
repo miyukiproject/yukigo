@@ -2,17 +2,15 @@ import {
   Expression,
   Fact,
   FunctorPattern,
-  Goal,
   ListPattern,
   LiteralPattern,
   Pattern,
-  PrimitiveValue,
+  EnvStack,
   Rule,
   VariablePattern,
   WildcardPattern,
   isRuntimePredicate,
 } from "yukigo-ast";
-import { EnvStack } from "../index.js";
 import { lookup } from "../utils.js";
 import { InterpreterError } from "../errors.js";
 

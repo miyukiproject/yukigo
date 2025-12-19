@@ -5,8 +5,13 @@ import {
   ConsExpression,
   LazyList,
   NumberPrimitive,
+  isRuntimeObject,
 } from "yukigo-ast";
 import { createStream } from "../../src/interpreter/utils.js";
+import {
+  isMemoizedList,
+  MemoizedLazyList,
+} from "../../src/interpreter/components/PatternMatcher.js";
 
 class MockEvaluator {
   evaluate(node: any): any {
@@ -66,31 +71,25 @@ describe("LazyRuntime", () => {
     describe("Finite Ranges", () => {
       it("should create a simple range [1..5]", () => {
         const node = range(1, 5);
-        const result = LazyRuntime.evaluateRange(node, evaluator, {
-          lazyLoading: false,
-        });
+        const result = LazyRuntime.evaluateRange(node, evaluator);
         expect(result).to.deep.equal([1, 2, 3, 4, 5]);
       });
 
       it("should handle custom steps [0, 2 .. 10]", () => {
         const node = range(0, 10, 2);
-        const result = LazyRuntime.evaluateRange(node, evaluator, {
-          lazyLoading: false,
-        });
+        const result = LazyRuntime.evaluateRange(node, evaluator);
         expect(result).to.deep.equal([0, 2, 4, 6, 8, 10]);
       });
 
       it("should handle negative steps [5, 4 .. 1]", () => {
         const node = range(5, 1, 4);
-        const result = LazyRuntime.evaluateRange(node, evaluator, {
-          lazyLoading: false,
-        });
+        const result = LazyRuntime.evaluateRange(node, evaluator);
         expect(result).to.deep.equal([5, 4, 3, 2, 1]);
       });
 
       it("should throw if step is zero", () => {
         const node = range(5, 10, 5);
-        expect(() => LazyRuntime.evaluateRange(node, evaluator, {})).to.throw(
+        expect(() => LazyRuntime.evaluateRange(node, evaluator)).to.throw(
           /Range step cannot be zero/
         );
       });
@@ -99,9 +98,7 @@ describe("LazyRuntime", () => {
     describe("Infinite Ranges", () => {
       it("should return a LazyList object", () => {
         const node = range(1);
-        const result = LazyRuntime.evaluateRange(node, evaluator, {
-          lazyLoading: true,
-        });
+        const result = LazyRuntime.evaluateRange(node, evaluator);
 
         expect(result).to.have.property("type", "LazyList");
         expect(result).to.have.property("generator");
@@ -109,9 +106,7 @@ describe("LazyRuntime", () => {
 
       it("should generate values on demand [1..]", () => {
         const node = range(1);
-        const result = LazyRuntime.evaluateRange(node, evaluator, {
-          lazyLoading: true,
-        }) as LazyList;
+        const result = LazyRuntime.evaluateRange(node, evaluator) as LazyList;
         const gen = result.generator();
         expect(gen.next().value).to.equal(1);
         expect(gen.next().value).to.equal(2);
@@ -120,9 +115,7 @@ describe("LazyRuntime", () => {
 
       it("should generate values with step on demand [0, 5 ..]", () => {
         const node = range(0, undefined, 5);
-        const result = LazyRuntime.evaluateRange(node, evaluator, {
-          lazyLoading: true,
-        }) as LazyList;
+        const result = LazyRuntime.evaluateRange(node, evaluator) as LazyList;
 
         const gen = result.generator();
         expect(gen.next().value).to.equal(0);
@@ -154,7 +147,12 @@ describe("LazyRuntime", () => {
       it("should return an array if tail is an array (hybrid)", () => {
         const node = cons(1, [2, 3]);
         const result = LazyRuntime.evaluateCons(node, evaluator, true);
-        expect(result).to.deep.equal([1, 2, 3]);
+        expect(isMemoizedList(result)).to.be.true;
+        const list = result as MemoizedLazyList;
+        const generator = list.generator();
+        expect(generator.next().value).to.deep.equal(1);
+        expect(generator.next().value).to.deep.equal(2);
+        expect(generator.next().value).to.deep.equal(3);
       });
 
       it("should return a new LazyList if tail is a LazyList", () => {
@@ -181,8 +179,12 @@ describe("LazyRuntime", () => {
 
       it("should throw if tail is invalid", () => {
         const node = cons(1, "invalid string");
-        expect(() => LazyRuntime.evaluateCons(node, evaluator, true)).to.throw(
-          /Invalid tail type/
+        const result = LazyRuntime.evaluateCons(node, evaluator, true)
+        expect(isMemoizedList(result)).to.be.true
+        const gen = (result as MemoizedLazyList).generator() 
+        gen.next()
+        expect(() => gen.next()).to.throw(
+          /Invalid tail type for Cons/
         );
       });
     });

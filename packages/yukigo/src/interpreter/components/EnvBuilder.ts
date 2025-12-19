@@ -1,16 +1,23 @@
 import {
   AST,
   ASTNode,
+  Attribute,
+  Class,
   EquationRuntime,
   Fact,
   Function,
   isRuntimePredicate,
+  Method,
+  PrimitiveValue,
   Rule,
+  RuntimeClass,
   RuntimeFunction,
+  EnvStack,
   TraverseVisitor,
+  Sequence,
 } from "yukigo-ast";
-import { EnvStack } from "../index.js";
-import { define } from "../utils.js";
+import { createGlobalEnv, define } from "../utils.js";
+import { InterpreterVisitor } from "./Visitor.js";
 
 /**
  * Builds the initial environment by collecting all top-level function declarations.
@@ -22,12 +29,15 @@ export class EnvBuilderVisitor extends TraverseVisitor {
 
   constructor(baseEnv?: EnvStack) {
     super();
-    this.env = baseEnv ?? [new Map()];
+    this.env = baseEnv ?? createGlobalEnv();
   }
 
   public build(ast: AST): EnvStack {
     for (const node of ast) node.accept(this);
     return this.env;
+  }
+  visitSequence(node: Sequence): void {
+    for (const stmt of node.statements) stmt.accept(this);
   }
   visitFunction(node: Function): void {
     const name = node.identifier.value;
@@ -50,23 +60,49 @@ export class EnvBuilderVisitor extends TraverseVisitor {
     }));
 
     const runtimeFunc: RuntimeFunction = {
+      type: "Function",
       identifier: name,
       arity,
       equations,
     };
     define(this.env, name, runtimeFunc);
   }
+  visitClass(node: Class): void {
+    const identifier = node.identifier.value;
+
+    const superclass = node.extendsSymbol?.value;
+
+    const mixins = node.includes.map((symbol) => symbol.value);
+
+    const collector = new OOPCollector();
+    node.expression.accept(collector);
+
+    const fields = collector.collectedFields;
+    const methods = collector.collectedMethods;
+
+    const runtimeClass: RuntimeClass = {
+      type: "Class",
+      identifier,
+      fields,
+      methods,
+      superclass,
+      mixins,
+    };
+
+    define(this.env, identifier, runtimeClass);
+  }
   visitFact(node: Fact): void {
     const identifier = node.identifier.value;
-    const runtimeValue = this.env[0].get(identifier);
+    const localEnv = this.env.head;
+    const runtimeValue = localEnv.get(identifier);
 
     if (isRuntimePredicate(runtimeValue) && runtimeValue.kind === "Fact") {
-      this.env[0].set(identifier, {
+      localEnv.set(identifier, {
         ...runtimeValue,
         equations: [...runtimeValue.equations, node],
       });
     } else {
-      this.env[0].set(identifier, {
+      localEnv.set(identifier, {
         kind: "Fact",
         identifier,
         equations: [node],
@@ -76,15 +112,16 @@ export class EnvBuilderVisitor extends TraverseVisitor {
 
   visitRule(node: Rule): void {
     const identifier = node.identifier.value;
-    const runtimeValue = this.env[0].get(identifier);
+    const localEnv = this.env.head;
+    const runtimeValue = localEnv.get(identifier);
 
     if (isRuntimePredicate(runtimeValue) && runtimeValue.kind === "Rule") {
-      this.env[0].set(identifier, {
+      localEnv.set(identifier, {
         ...runtimeValue,
         equations: [...runtimeValue.equations, node],
       });
     } else {
-      this.env[0].set(identifier, {
+      localEnv.set(identifier, {
         kind: "Rule",
         identifier,
         equations: [node],
@@ -93,5 +130,26 @@ export class EnvBuilderVisitor extends TraverseVisitor {
   }
   visit(node: ASTNode): void {
     return node.accept(this);
+  }
+}
+
+class OOPCollector extends TraverseVisitor {
+  public collectedMethods: Map<string, RuntimeFunction> = new Map();
+  public collectedFields: Map<string, PrimitiveValue> = new Map();
+  visitMethod(node: Method) {
+    const runtimeMethod: RuntimeFunction = {
+      type: "Function",
+      identifier: node.identifier.value,
+      arity: node.equations[0].patterns.length,
+      equations: node.equations,
+    };
+    this.collectedMethods.set(node.identifier.value, runtimeMethod);
+  }
+
+  visitAttribute(node: Attribute) {
+    this.collectedFields.set(
+      node.identifier.value,
+      InterpreterVisitor.evaluateLiteral(node.expression)
+    );
   }
 }

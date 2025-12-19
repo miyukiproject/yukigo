@@ -1,5 +1,10 @@
-import { Expression, LazyList, PrimitiveValue } from "yukigo-ast";
-import { Environment, EnvStack } from "./index.js";
+import {
+  Expression,
+  LazyList,
+  PrimitiveValue,
+  Environment,
+  EnvStack,
+} from "yukigo-ast";
 import { UnboundVariable } from "./errors.js";
 
 export interface ExpressionEvaluator {
@@ -44,6 +49,16 @@ export function generateRange(
 
   return result;
 }
+export function isDefined(env: EnvStack, name: string): boolean {
+  let current: EnvStack | null = env;
+
+  while (current !== null) {
+    if (current.head.has(name)) return true;
+    current = current.tail;
+  }
+
+  return false;
+}
 
 export function createEnv(bindings: [string, PrimitiveValue][]): Environment {
   const env = new Map();
@@ -52,21 +67,50 @@ export function createEnv(bindings: [string, PrimitiveValue][]): Environment {
 }
 
 export function createGlobalEnv(): EnvStack {
-  return [new Map<string, PrimitiveValue>()];
+  return {
+    head: new Map<string, PrimitiveValue>(),
+    tail: null,
+  };
 }
 
 export function pushEnv(env: EnvStack, frame?: Environment): EnvStack {
-  return [frame ?? new Map(), ...env];
+  return {
+    head: frame ?? new Map(),
+    tail: env,
+  };
+}
+export function replace(
+  env: EnvStack,
+  name: string,
+  value: PrimitiveValue
+): boolean {
+  let current: EnvStack | null = env;
+
+  while (current !== null) {
+    if (current.head.has(name)) {
+      current.head.set(name, value);
+      return true;
+    }
+    current = current.tail;
+  }
+
+  return false;
 }
 
 export function popEnv(env: EnvStack): EnvStack {
-  return env.slice(1);
+  if (!env.tail)
+    throw new Error("Runtime Error: Cannot pop the global environment scope.");
+  return env.tail;
 }
 
 export function lookup(env: EnvStack, name: string): PrimitiveValue {
-  for (const frame of env) {
-    if (frame.has(name)) return frame.get(name);
+  let current: EnvStack | null = env;
+
+  while (current !== null) {
+    if (current.head.has(name)) return current.head.get(name);
+    current = current.tail;
   }
+
   throw new UnboundVariable(name);
 }
 
@@ -75,5 +119,9 @@ export function define(
   name: string,
   value: PrimitiveValue
 ): void {
-  env[0].set(name, value);
+  env.head.set(name, value);
+}
+
+export function remove(env: EnvStack, name: string): void {
+  env.head.delete(name);
 }

@@ -1,7 +1,6 @@
 import {
   Attribute,
   Class,
-  Include,
   Interface,
   Method,
   New,
@@ -101,8 +100,8 @@ export class IncludeMixin extends TraverseVisitor {
   constructor(private mixinsName: string) {
     super();
   }
-  visitInclude(node: Include): void {
-    if (node.identifier.value === this.mixinsName)
+  visitClass(node: Class): void {
+    if (node.includes.some((sym) => sym.value === this.mixinsName))
       throw new StopTraversalException();
   }
 }
@@ -143,8 +142,8 @@ export class UsesInheritance extends TraverseVisitor {
 }
 
 export class UsesMixins extends TraverseVisitor {
-  visitInclude(node: Include): void {
-    throw new StopTraversalException();
+  visitClass(node: Class): void {
+    if (node.includes.length > 0) throw new StopTraversalException();
   }
 }
 

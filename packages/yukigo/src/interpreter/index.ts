@@ -1,4 +1,4 @@
-import { PrimitiveValue, Expression, AST } from "yukigo-ast";
+import { PrimitiveValue, Expression, AST, EnvStack } from "yukigo-ast";
 import { InterpreterVisitor } from "./components/Visitor.js";
 import { EnvBuilderVisitor } from "./components/EnvBuilder.js";
 import { InterpreterError } from "./errors.js";
@@ -11,9 +11,6 @@ export type InterpreterConfig = {
   debug?: boolean;
   outputMode?: LogicSearchMode;
 };
-
-export type Environment = Map<string, PrimitiveValue>;
-export type EnvStack = Environment[];
 
 const DefaultConfiguration: Required<InterpreterConfig> = {
   lazyLoading: false,

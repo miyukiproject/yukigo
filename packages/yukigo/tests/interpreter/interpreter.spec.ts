@@ -904,7 +904,8 @@ describe("Interpreter Spec", () => {
         new SymbolPrimitive("doble")
       );
       const app = new Application(fog, new NumberPrimitive(2));
-      assert.equal(interpreter.evaluate(app), 16);
+      const res = interpreter.evaluate(app)
+      assert.equal(res, 16);
     });
   });
   describe("Evaluates Range Expression", () => {

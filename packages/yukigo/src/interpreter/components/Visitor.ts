@@ -45,7 +45,6 @@ import {
   Send,
   New,
   Implement,
-  Include,
   Self,
   ListComprehension,
   RangeExpression,
@@ -56,8 +55,14 @@ import {
   ASTNode,
   Raise,
   Query,
+  isRuntimeObject,
+  isRuntimeClass,
+  Super,
+  EnvStack,
+  If,
+  isRuntimeFunction,
 } from "yukigo-ast";
-import { EnvStack, InterpreterConfig } from "../index.js";
+import { InterpreterConfig } from "../index.js";
 import {
   ArithmeticBinaryTable,
   ArithmeticUnaryTable,
@@ -70,11 +75,27 @@ import {
   LogicalUnaryTable,
   StringOperationTable,
 } from "./Operations.js";
-import { define, ExpressionEvaluator, lookup } from "../utils.js";
+import {
+  createGlobalEnv,
+  define,
+  ExpressionEvaluator,
+  lookup,
+  popEnv,
+  pushEnv,
+  remove,
+  replace,
+} from "../utils.js";
 import { LogicEngine } from "./LogicEngine.js";
-import { ErrorFrame, InterpreterError, UnexpectedValue } from "../errors.js";
+import {
+  ErrorFrame,
+  InterpreterError,
+  UnboundVariable,
+  UnexpectedValue,
+} from "../errors.js";
 import { LazyRuntime } from "./LazyRuntime.js";
 import { FunctionRuntime } from "./FunctionRuntime.js";
+import { ObjectRuntime } from "./ObjectRuntime.js";
+import { EnvBuilderVisitor } from "./EnvBuilder.js";
 
 export class InterpreterVisitor
   implements Visitor<PrimitiveValue>, ExpressionEvaluator
@@ -96,11 +117,6 @@ export class InterpreterVisitor
   evaluate(node: Expression): PrimitiveValue {
     return node.accept(this);
   }
-
-  private getLogicEngine(): LogicEngine {
-    return new LogicEngine(this.env, this.config, this);
-  }
-
   visitNumberPrimitive(node: NumberPrimitive): PrimitiveValue {
     return node.value;
   }
@@ -121,7 +137,19 @@ export class InterpreterVisitor
   }
   visitSymbolPrimitive(node: SymbolPrimitive): PrimitiveValue {
     try {
-      return lookup(this.env, node.value);
+      const val = lookup(this.env, node.value);
+      // evaluate if its a function with arity 0
+      if (isRuntimeFunction(val) && val.arity === 0) {
+        return FunctionRuntime.apply(
+          val.identifier ?? "<anon>",
+          val.equations,
+          [],
+          val.closure || this.env,
+          (newEnv) => new InterpreterVisitor(newEnv, this.config, this.frames)
+        );
+      }
+
+      return val;
     } catch (error) {
       throw new InterpreterError("Symbol Lookup", error.message, this.frames);
     }
@@ -129,7 +157,7 @@ export class InterpreterVisitor
   visitVariable(node: Variable): PrimitiveValue {
     const name = node.identifier.value;
     const value = node.expression.accept(this);
-    this.env.at(-1).set(name, value);
+    define(this.env, name, value);
     return true;
   }
   visitArithmeticUnaryOperation(
@@ -247,19 +275,42 @@ export class InterpreterVisitor
     );
   }
   visitUnifyOperation(node: UnifyOperation): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    return this.getLogicEngine().unifyExpr(node.left, node.right);
   }
   visitAssignOperation(node: AssignOperation): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    if (!(node.left instanceof Variable))
+      throw new InterpreterError(
+        "AssignOperation",
+        "Left side must be a Variable"
+      );
+    const identifier = node.left.identifier;
+    const value = node.right.accept(this);
+
+    // check if the value to change is a member from an obj
+    const obj = identifier.accept(this);
+    if (isRuntimeObject(obj)) {
+      const val = node.right.accept(this);
+      return ObjectRuntime.setField(obj, identifier.value, val);
+    }
+    const succed = replace(this.env, identifier.value, value);
+    if (!succed) define(this.env, identifier.value, value);
+    return true;
   }
   visitTupleExpr(node: TupleExpression): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    return node.elements.map((elem) => elem.accept(this));
   }
-  visitFieldExpr(node: FieldExpression): PrimitiveValue {
-    throw new Error("Method not implemented.");
+  visitFieldExpression(node: FieldExpression): PrimitiveValue {
+    const obj = node.name.accept(this);
+    return ObjectRuntime.getField(obj, node.name.value);
   }
   visitDataExpr(node: DataExpression): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    const fieldValues = new Map<string, PrimitiveValue>();
+
+    for (const field of node.contents) {
+      const value = field.expression.accept(this);
+      fieldValues.set(field.name.value, value);
+    }
+    return ObjectRuntime.instantiate(node.name.value, fieldValues, new Map());
   }
   visitConsExpr(node: ConsExpression): PrimitiveValue {
     try {
@@ -269,10 +320,44 @@ export class InterpreterVisitor
     }
   }
   visitLetInExpr(node: LetInExpression): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    pushEnv(this.env);
+    try {
+      const envBuilder = new EnvBuilderVisitor(this.env);
+      node.declarations.accept(envBuilder);
+      return node.expression.accept(this);
+    } finally {
+      popEnv(this.env);
+    }
+  }
+  visitIf(node: If): PrimitiveValue {
+    const condition = node.condition.accept(this);
+    if (typeof condition !== "boolean")
+      throw new InterpreterError(
+        "If",
+        `Expected boolean in condition and got ${typeof condition}`,
+        this.frames
+      );
+    if (condition) {
+      return node.then.accept(this);
+    } else {
+      return node.elseExpr.accept(this);
+    }
   }
   visitCall(node: Call): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    // similar to Application but without currying
+    const callee = node.callee.accept(this);
+    const args = node.args.map((arg) => arg.accept(this));
+
+    if (isRuntimeFunction(callee)) {
+      return FunctionRuntime.apply(
+        callee.identifier,
+        callee.equations,
+        args,
+        callee.closure || this.env,
+        (newEnv) => new InterpreterVisitor(newEnv, this.config, this.frames)
+      );
+    }
+    throw new InterpreterError("Call", "Target is not a function");
   }
   visitOtherwise(node: Otherwise): PrimitiveValue {
     return true;
@@ -281,35 +366,47 @@ export class InterpreterVisitor
     const f = node.left.accept(this);
     const g = node.right.accept(this);
 
-    if (!this.isRuntimeFunction(f) || !this.isRuntimeFunction(g))
+    if (!isRuntimeFunction(f) || !isRuntimeFunction(g)) {
       throw new InterpreterError(
-        "CompositionExpression",
+        "Composition",
         "Both operands of (.) must be functions"
       );
+    }
 
-    const fName = `__comp_f_${Date.now()}_${Math.random()
-      .toString(36)
-      .substring(2, 5)}`;
-    const gName = `__comp_g_${Date.now()}_${Math.random()
-      .toString(36)
-      .substring(2, 5)}`;
-    define(this.env, fName, f);
-    define(this.env, gName, g);
-    const arity = g.arity;
+    const F_REF = "__internal_f";
+    const G_REF = "__internal_g";
+    const PARAM_NAME = "__x";
 
-    const placeholders = Array.from(
-      { length: arity },
-      (_, i) => new VariablePattern(new SymbolPrimitive(`_p${i}`))
+    const compositionBody = new Application(
+      new SymbolPrimitive(F_REF),
+      new Application(
+        new SymbolPrimitive(G_REF),
+        new SymbolPrimitive(PARAM_NAME)
+      )
     );
 
-    const gCall = placeholders.reduce<Expression>(
-      (acc, p) => new Application(acc, new SymbolPrimitive(p.name.value)),
-      new SymbolPrimitive(gName)
-    );
+    const patterns = [new VariablePattern(new SymbolPrimitive(PARAM_NAME))];
+    const equation: EquationRuntime = {
+      patterns,
+      body: new UnguardedBody(new Sequence([new Return(compositionBody)])),
+    };
 
-    const composedBody = new Application(new SymbolPrimitive(fName), gCall);
-    const lambda = new Lambda(placeholders, composedBody);
-    return lambda.accept(this);
+    const privateScope = new Map<string, PrimitiveValue>();
+    privateScope.set(F_REF, f);
+    privateScope.set(G_REF, g);
+
+    const capturedEnv: EnvStack = {
+      head: privateScope,
+      tail: this.env,
+    };
+    return {
+      type: "Function",
+      arity: 1,
+      identifier: `<(${f.identifier} . ${g.identifier})>`,
+      equations: [equation],
+      pendingArgs: [],
+      closure: capturedEnv,
+    };
   }
   visitLambda(node: Lambda): PrimitiveValue {
     const patterns = node.parameters;
@@ -318,49 +415,72 @@ export class InterpreterVisitor
       body: new UnguardedBody(new Sequence([new Return(node.body)])),
     };
     return {
+      type: "Function",
       arity: patterns.length,
       equations: [equation],
       pendingArgs: [],
       identifier: "<lambda>",
-      closure: Array.from(this.env),
+      closure: this.env,
     };
   }
 
   visitApplication(node: Application): PrimitiveValue {
     const func = node.functionExpr.accept(this);
 
-    if (!this.isRuntimeFunction(func))
+    if (!isRuntimeFunction(func))
       throw new InterpreterError("Application", "Cannot apply non-function");
 
     const argThunk = () => node.parameter.accept(this);
 
-    const pending = func.pendingArgs
+    const allPendingArgs = func.pendingArgs
       ? [...func.pendingArgs, argThunk]
       : [argThunk];
 
-    // partially applied
-    if (pending.length < func.arity)
+    return this.applyArguments(func, allPendingArgs);
+  }
+
+  private applyArguments(
+    func: RuntimeFunction,
+    args: (PrimitiveValue | (() => PrimitiveValue))[]
+  ): PrimitiveValue {
+    if (args.length < func.arity) {
       return {
         ...func,
-        pendingArgs: pending,
+        pendingArgs: args,
       };
-
-    //  fully applied
-    if (pending.length === func.arity) {
-      const evaluatedArgs = pending.map((arg) =>
-        typeof arg === "function" ? arg() : arg
-      );
-      const executionEnv = func.closure ?? this.env;
-      return FunctionRuntime.apply(
-        func.identifier ?? "<anonymous>",
-        func.equations,
-        evaluatedArgs,
-        executionEnv,
-        (newEnv) => new InterpreterVisitor(newEnv, this.config, this.frames)
-      );
     }
 
-    throw new InterpreterError("Application", "Too many arguments provided");
+    const argsToConsume = args.slice(0, func.arity);
+    const remainingArgs = args.slice(func.arity);
+
+    const evaluatedArgs = argsToConsume.map((arg) =>
+      typeof arg === "function" ? arg() : arg
+    );
+
+    const executionEnv = func.closure ?? this.env;
+    const result = FunctionRuntime.apply(
+      func.identifier ?? "<anonymous>",
+      func.equations,
+      evaluatedArgs,
+      executionEnv,
+      (newEnv) => new InterpreterVisitor(newEnv, this.config, this.frames)
+    );
+    if (remainingArgs.length > 0) {
+      if (isRuntimeFunction(result)) {
+        const nextArgs = result.pendingArgs
+          ? [...result.pendingArgs, ...remainingArgs]
+          : remainingArgs;
+
+        return this.applyArguments(result, nextArgs);
+      } else {
+        throw new InterpreterError(
+          "Application",
+          `Too many arguments provided. Result was '${result}' (not a function), but had ${remainingArgs.length} args left.`
+        );
+      }
+    }
+
+    return result;
   }
   visitQuery(node: Query): PrimitiveValue {
     return this.getLogicEngine().solveQuery(node);
@@ -369,37 +489,131 @@ export class InterpreterVisitor
     return this.getLogicEngine().solveExist(node);
   }
   visitNot(node: Not): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    return this.getLogicEngine().solveNot(node);
   }
   visitFindall(node: Findall): PrimitiveValue {
     return this.getLogicEngine().solveFindall(node);
   }
   visitForall(node: Forall): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    return this.getLogicEngine().solveForall(node);
   }
   visitGoal(node: Goal): PrimitiveValue {
     return this.getLogicEngine().solveGoal(node);
   }
+  visitSuper(node: Super): PrimitiveValue {
+    let methodName: string;
+    try {
+      methodName = lookup(this.env, "__METHOD_NAME__") as string;
+    } catch (e) {
+      throw new InterpreterError(
+        "Super",
+        "'super' keyword used outside of a method context",
+        this.frames
+      );
+    }
+
+    if (typeof methodName !== "string")
+      throw new InterpreterError("Super", "Corrupted method context");
+
+    const args = node.args.map((arg) => arg.accept(this));
+
+    return ObjectRuntime.dispatchSuper(
+      this.env,
+      methodName,
+      args,
+      (newEnv) => new InterpreterVisitor(newEnv, this.config, this.frames)
+    );
+  }
   visitSend(node: Send): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    if (node.receiver instanceof Super) {
+      const args = node.args.map((arg) => arg.accept(this));
+      const methodName = node.selector.value;
+
+      return ObjectRuntime.dispatchSuper(
+        this.env,
+        methodName,
+        args,
+        (newEnv) => new InterpreterVisitor(newEnv, this.config, this.frames)
+      );
+    }
+    const receiver = node.receiver.accept(this);
+    const args = node.args.map((arg) => arg.accept(this));
+    const methodName = node.selector.value;
+
+    return ObjectRuntime.dispatch(
+      receiver,
+      methodName,
+      args,
+      this.env,
+      (newEnv) => new InterpreterVisitor(newEnv, this.config, this.frames)
+    );
   }
   visitNew(node: New): PrimitiveValue {
-    throw new Error("Method not implemented.");
-  }
-  visitImplement(node: Implement): PrimitiveValue {
-    throw new Error("Method not implemented.");
-  }
-  visitInclude(node: Include): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    const className = node.identifier.value;
+
+    const classDef = lookup(this.env, className);
+    if (!isRuntimeClass(classDef))
+      throw new InterpreterError(
+        "New",
+        `${className} is not a class.`,
+        this.frames
+      );
+
+    return ObjectRuntime.instantiate(
+      node.identifier.value,
+      classDef.fields,
+      classDef.methods
+    );
   }
   visitSelf(node: Self): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    try {
+      return lookup(this.env, "self");
+    } catch {
+      throw new InterpreterError(
+        "Self",
+        "'self' is not defined in this context"
+      );
+    }
   }
   visitListComprehension(node: ListComprehension): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    const results: PrimitiveValue[] = [];
+
+    const process = (index: number) => {
+      if (index >= node.generators.length) {
+        results.push(node.projection.accept(this));
+        return;
+      }
+
+      const current = node.generators[index];
+
+      if (current instanceof YuGenerator) {
+        const sourceList = this.realizeList(current.expression.accept(this));
+        for (const item of sourceList) {
+          const varName = current.variable.value;
+          const previousVal = lookup(this.env, varName);
+          define(this.env, varName, item);
+          process(index + 1);
+          if (previousVal !== undefined) define(this.env, varName, previousVal);
+          else remove(this.env, varName);
+        }
+      } else {
+        const guard = current as Expression;
+        const condition = guard.accept(this);
+        if (condition === true) process(index + 1);
+      }
+    };
+
+    pushEnv(this.env);
+    try {
+      process(0);
+    } finally {
+      popEnv(this.env);
+    }
+
+    return results;
   }
   visitGenerator(node: YuGenerator): PrimitiveValue {
-    throw new Error("Method not implemented.");
+    return node.expression.accept(this);
   }
   visitRaise(node: Raise): PrimitiveValue {
     const msg = node.body.accept(this);
@@ -409,7 +623,7 @@ export class InterpreterVisitor
   }
   visitRangeExpression(node: RangeExpression): PrimitiveValue {
     try {
-      return LazyRuntime.evaluateRange(node, this, this.config);
+      return LazyRuntime.evaluateRange(node, this);
     } catch (e) {
       throw new InterpreterError("Range", e.message, this.frames);
     }
@@ -433,14 +647,6 @@ export class InterpreterVisitor
       throw wrapped;
     }
   }
-  private isRuntimeFunction(val: any): val is RuntimeFunction {
-    return (
-      typeof val === "object" &&
-      val !== null &&
-      Array.isArray(val.equations) &&
-      typeof val.arity === "number"
-    );
-  }
   public realizeList(val: PrimitiveValue): PrimitiveValue[] {
     return LazyRuntime.realizeList(val);
   }
@@ -452,7 +658,6 @@ export class InterpreterVisitor
   ): PrimitiveValue {
     const left = node.left.accept(this);
     const right = node.right.accept(this);
-
     if (!typeGuard(left, right))
       throw new InterpreterError(
         contextName,
@@ -485,9 +690,12 @@ export class InterpreterVisitor
       throw new InterpreterError(contextName, `Unknown op: ${node.operator}`);
     return fn(operand);
   }
+  private getLogicEngine(): LogicEngine {
+    return new LogicEngine(this.env, this.config, this);
+  }
   static evaluateLiteral(node: ASTNode): PrimitiveValue {
     return node.accept(
-      new InterpreterVisitor([new Map()], { lazyLoading: false })
+      new InterpreterVisitor(createGlobalEnv(), { lazyLoading: false })
     );
   }
 }

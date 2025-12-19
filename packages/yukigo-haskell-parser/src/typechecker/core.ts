@@ -12,7 +12,12 @@ import {
 
 export class CoreHM {
   private nextVarId = 0;
-
+  constructor(private aliases: Map<string, Type> = new Map()) {}
+  public resolve(t: Type): Type {
+    if (t.type === "TypeConstructor" && this.aliases.has(t.name))
+      return this.resolve(this.aliases.get(t.name)!);
+    return t;
+  }
   public freshVar(constraints: string[] = []): TypeVar {
     return { type: "TypeVar", id: this.nextVarId++, constraints };
   }
@@ -90,19 +95,21 @@ export class CoreHM {
   }
 
   public unify(t1: Type, t2: Type): Result<Substitution> {
-    if (t1.type === "TypeVar") return this.unifyVar(t1, t2);
-    if (t2.type === "TypeVar") return this.unifyVar(t2, t1);
-    if (t1.type === "TypeConstructor" && t2.type === "TypeConstructor") {
-      if (t1.name !== t2.name || t1.args.length !== t2.args.length) {
+    const rt1 = this.resolve(t1);
+    const rt2 = this.resolve(t2);
+    if (rt1.type === "TypeVar") return this.unifyVar(rt1, rt2);
+    if (rt2.type === "TypeVar") return this.unifyVar(rt2, rt1);
+    if (rt1.type === "TypeConstructor" && rt2.type === "TypeConstructor") {
+      if (rt1.name !== rt2.name || rt1.args.length !== rt2.args.length) {
         return {
           success: false,
-          error: `Cannot unify ${showType(t1)} with ${showType(t2)}`,
+          error: `Cannot unify ${showType(rt1)} with ${showType(rt2)}`,
         };
       }
       let sub: Substitution = new Map();
-      for (let i = 0; i < t1.args.length; i++) {
-        const arg1 = this.applySubst(sub, t1.args[i]);
-        const arg2 = this.applySubst(sub, t2.args[i]);
+      for (let i = 0; i < rt1.args.length; i++) {
+        const arg1 = this.applySubst(sub, rt1.args[i]);
+        const arg2 = this.applySubst(sub, rt2.args[i]);
         const argSubRes = this.unify(arg1, arg2);
         if (!argSubRes.success) return argSubRes;
         sub = this.composeSubst(sub, argSubRes.value);
@@ -139,15 +146,16 @@ export class CoreHM {
   }
 
   public checkConstraint(constraintName: string, t: Type) {
-    if (t.type === "TypeVar") {
-      if (!t.constraints.includes(constraintName)) {
-        t.constraints.push(constraintName);
+    const rt = this.resolve(t);
+    if (rt.type === "TypeVar") {
+      if (!rt.constraints.includes(constraintName)) {
+        rt.constraints.push(constraintName);
       }
-    } else if (t.type === "TypeConstructor") {
+    } else if (rt.type === "TypeConstructor") {
       const instances = typeClasses.get(constraintName);
-      if (!instances || !instances.includes(t.name)) {
+      if (!instances || !instances.includes(rt.name)) {
         throw new Error(
-          `Type '${showType(t)}' is not an instance of '${constraintName}'`
+          `Type '${showType(rt)}' is not an instance of '${constraintName}'`
         );
       }
     }

@@ -78,9 +78,9 @@ export class WollokToYukigoTransformer {
     const result = this.visit(root);
     return Array.isArray(result) ? result : [result];
   }
-  public transformExpr(root: Package): Yu.Expression {
+  public transformExpr(root: Node): Yu.Expression {
     const result = this.visit(root);
-    return result;
+    return result
   }
 
   private visit(node: Node): any {
@@ -131,18 +131,7 @@ export class WollokToYukigoTransformer {
   }
 
   private visitPackage(node: Package): Yu.Statement[] {
-    return [
-      ...node.imports.map((imp) => this.visitImport(imp)),
-      ...node.members.map((member: Node) => this.visit(member)),
-    ];
-  }
-
-  private visitImport(node: Import): Yu.Include {
-    const identifier = new Yu.SymbolPrimitive(
-      node.entity.name,
-      mapLocation(node)
-    );
-    return new Yu.Include(identifier, mapLocation(node));
+    return node.members.map((member: Node) => this.visit(member));
   }
 
   private visitField(node: Field): Yu.Attribute {
@@ -247,7 +236,10 @@ export class WollokToYukigoTransformer {
     return new Yu.Catch([pattern], body, mapLocation(node));
   }
   private visitSuper(node: Super): Yu.Super {
-    return new Yu.Super(mapLocation(node));
+    return new Yu.Super(
+      node.args.map((arg) => this.visit(arg)),
+      mapLocation(node)
+    );
   }
 
   private visitSingleton(node: Singleton): Yu.Object {
@@ -268,6 +260,7 @@ export class WollokToYukigoTransformer {
       identifier,
       undefined,
       undefined,
+      [],
       bodyExpression,
       mapLocation(node)
     );
