@@ -65,7 +65,7 @@ export class YukigoHaskellParser implements YukigoParser {
   }
   public parseExpression(code: string): Expression {
     const processedCode = preprocessor(code);
-    const expr = this.feedParser(processedCode);
+    const expr = this.feedParser(processedCode)[0];
     return expr;
   }
   private feedParser(code: string): any {

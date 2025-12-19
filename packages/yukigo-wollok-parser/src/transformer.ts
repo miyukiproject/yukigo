@@ -78,14 +78,15 @@ export class WollokToYukigoTransformer {
     const result = this.visit(root);
     return Array.isArray(result) ? result : [result];
   }
-  public transformExpr(root: Package): Yu.Expression {
+  public transformExpr(root: Node): Yu.Expression {
     const result = this.visit(root);
     return result;
   }
 
   private visit(node: Node): any {
     const nodeType = node.constructor ? node.constructor.name : "Unknown";
-    switch (nodeType) {
+    const nodeTypeWithoutPrefix = nodeType.startsWith("_") ? nodeType.slice(1,nodeType.length) : nodeType;
+    switch (nodeTypeWithoutPrefix) {
       case "Package":
         return this.visitPackage(node as Package);
       case "Singleton":
