@@ -71,7 +71,7 @@ describe("TypeChecker Tests", () => {
   });
 
   it("validates polymorphic function signatures", () => {
-    const code = `id :: a -> a\nid x = x`;
+    const code = `id x = x`;
     parser.parse(code);
     assert.isEmpty(
       parser.errors,
@@ -112,7 +112,7 @@ describe("TypeChecker Tests", () => {
     assert.isEmpty(parser.errors);
   });
   it("detects incorrect polymorphic usage", () => {
-    const code = `id :: a -> a\nid x = x + "not polymorphic"`;
+    const code = `id x = x + "not polymorphic"`;
     assert.throw(() => parser.parse(code));
 
     assert.include(

@@ -2,6 +2,10 @@ import { YukigoHaskellParser } from "./index.js"
 
 export const preludeCode = `data Ordering  = LT | EQ | GT
 data Maybe a = Nothing | Just a
+id :: a -> a
+id x = x
+const :: a -> b -> a
+const x _ = x
 (,) :: a -> b -> (a, b)
 (,) x y = (x, y)
 ($) :: (a -> b) -> a -> b
@@ -13,21 +17,21 @@ data Maybe a = Nothing | Just a
 (++) :: [a] -> [a] -> [a]
 (++) [] ys = ys
 (++) (x:xs) ys = x : (xs ++ ys)
-(&&) :: (Eq a) => a -> a -> Boolean
-(||) :: (Eq a) => a -> a -> Boolean
+(&&) :: Bool -> Bool -> Bool
+(||) :: Bool -> Bool -> Bool
 (&&) x y = x && y
 (||) x y = x || y
 (==) :: (Ord a) => a -> a -> Boolean
-(/=) :: (Ord a) => a -> a -> Boolean
-(<) :: (Ord a) => a -> a -> Boolean
-(>) :: (Ord a) => a -> a -> Boolean
-(<=) :: (Ord a) => a -> a -> Boolean
-(>=) :: (Ord a) => a -> a -> Boolean
 (==) x y = x == y
+(/=) :: (Ord a) => a -> a -> Boolean
 (/=) x y = x /= y
+(<) :: (Ord a) => a -> a -> Boolean
 (<) x y = x < y
+(>) :: (Ord a) => a -> a -> Boolean
 (>) x y = x > y
+(<=) :: (Ord a) => a -> a -> Boolean
 (<=) x y = x <= y
+(>=) :: (Ord a) => a -> a -> Boolean
 (>=) x y = x >= y
 (+) :: Num a => a -> a -> a
 (-) :: Num a => a -> a -> a
@@ -78,9 +82,9 @@ abs :: (Num a) => a -> a
 abs n = if n < 0 then -n else n
 sqrt :: (Num a) => a -> a
 sqrt x = x ** 0.5
-max :: a -> a -> a
+max :: Ord a => a -> a -> a
 max x y = if x <= y then y else x
-min :: a -> a -> a
+min :: Ord a => a -> a -> a
 min x y = if x <= y then x else y
 even :: (Integral a) => a -> Bool
 odd :: (Integral a) => a -> Bool
@@ -188,7 +192,7 @@ sort :: (Ord a) => [a] -> [a]
 sort xs = sortBy compare xs
 sortBy :: (a -> a -> Ordering) -> [a] -> [a]
 sortBy cmp xs = foldr (insertBy cmp) [] xs
-compare :: a -> a -> Ordering
+compare :: Ord a => a -> a -> Ordering
 compare x y | x == y = EQ | x <= y = LT | otherwise = GT
 insertBy :: (a -> a -> Ordering) -> a -> [a] -> [a]
 insertBy cmp x [] = [x]
@@ -204,10 +208,10 @@ replicate n x = take n (repeat x)
 cycle :: [a] -> [a]
 cycle [] = error "Prelude.cycle: empty list"
 cycle xs = xs ++ (cycle xs)
-fst :: [a] -> a
-fst (x:_) = x
-snd :: [a] -> a
-snd (x:y:_) = y
+fst :: (a,b) -> a
+fst (x,_) = x
+snd :: (a,b) -> b
+snd (_,y) = y
 between :: Ord a => a -> a -> a -> Bool
 between m n p | n >= m && n <= p = True | otherwise = False
 truncate :: (Num a, Integral b) => a -> b
