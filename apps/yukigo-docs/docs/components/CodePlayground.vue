@@ -145,6 +145,10 @@ const currentPlaceholder = computed(() => {
   return languageExamples[selectedLanguage.value]?.placeholder || "doble 4";
 });
 
+const currentPlaceholder = computed(() => {
+  return languageExamples[selectedLanguage.value]?.placeholder || "doble 4";
+});
+
 function switchLanguage(lang) {
   selectedLanguage.value = lang;
   const example = languageExamples[lang];
