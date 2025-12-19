@@ -104,13 +104,11 @@ const languageExamples = {
   haskell: {
     code: "doble x = x * 2",
     parser: new YukigoHaskellParser(),
-    replParser: new YukigoHaskellParser(),
     placeholder: "doble 4",
   },
   prolog: {
     code: "padre(tom, bob).\npadre(tom, liz).\nabuelo(X, Y) :- padre(X, Z), padre(Z, Y).",
     parser: new YukigoPrologParser(),
-    replParser: new YukigoPrologParser(),
     placeholder: "padre(tom, X)",
   },
   wollok: {
@@ -121,8 +119,7 @@ const languageExamples = {
   }
   method energy() = energy
 }`,
-    parser: new YukigoWollokParser(false),
-    replParser: new YukigoWollokParser(true),
+    parser: new YukigoWollokParser(),
     placeholder: "pepita.energy()",
   },
 };
@@ -139,7 +136,6 @@ const inputRef = ref(null);
 const terminalBodyRef = ref(null);
 
 let parser = new YukigoHaskellParser();
-let replParser = new YukigoHaskellParser();
 
 const currentPlaceholder = computed(() => {
   return languageExamples[selectedLanguage.value]?.placeholder || "doble 4";
@@ -153,7 +149,6 @@ function switchLanguage(lang) {
   selectedLanguage.value = lang;
   const example = languageExamples[lang];
   parser = example.parser;
-  replParser = example.replParser;
   code.value = example.code;
   commandHistory.value = [
     { type: "output", text: `Yukigo REPL v0.1.0 — ${lang.charAt(0).toUpperCase() + lang.slice(1)} loaded` },
@@ -219,7 +214,7 @@ function executeCommand() {
         debug: true,
       });
       const expression = parser.parseExpression(commandText);
-      result = interpreter.evaluate(expression);
+      const result = interpreter.evaluate(expression);
       output = formatOutput(result);
     } catch (err) {
       output = err.toString();
