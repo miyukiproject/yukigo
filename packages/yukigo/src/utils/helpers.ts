@@ -21,7 +21,8 @@ export class MulangAdapter {
     }
 
     const inspection: string[] = mulangInspection.inspection.split(":");
-    const expected: boolean = inspection[0] !== "Not";
+    const expected: boolean =
+      inspection[0] !== "Not" && inspection[0] !== "Except";
     const args: string[] = inspection.slice(expected ? 1 : 2);
 
     return {
@@ -35,13 +36,19 @@ export class MulangAdapter {
   public translateMulangExpectations(
     mulangYamlString: string
   ): InspectionRule[] {
+    if (!mulangYamlString) return [];
     const parsedYaml = parseDocument(mulangYamlString).toJS();
 
-    if (
-      !parsedYaml ||
-      !parsedYaml.expectations ||
-      !Array.isArray(parsedYaml.expectations)
-    ) {
+    if (!parsedYaml) {
+      return [];
+    }
+
+    let expectations: any[] = [];
+    if (Array.isArray(parsedYaml)) {
+      expectations = parsedYaml;
+    } else if (Array.isArray(parsedYaml.expectations)) {
+      expectations = parsedYaml.expectations;
+    } else {
       throw Error(
         "Invalid Mulang YAML structure. Expected 'expectations' to be an array."
       );
@@ -49,7 +56,7 @@ export class MulangAdapter {
 
     const inspectionRules: InspectionRule[] = [];
 
-    for (const mulangInspection of parsedYaml.expectations) {
+    for (const mulangInspection of expectations) {
       const inspection = this.translateMulangInspection(mulangInspection);
       inspectionRules.push(inspection);
     }
