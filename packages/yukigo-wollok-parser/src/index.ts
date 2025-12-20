@@ -32,7 +32,7 @@ export class YukigoWollokParser implements YukigoParser {
     return yukigoAst;
   }
   public parseExpression(code: string): Expression {
-    const parserResult = parse.File("example").parse(code);
+    const parserResult = parse.Expression.parse(code);
     if (parserResult.status === false) {
       const { index, expected } = parserResult;
       const expectation = expected.join(" or ");
