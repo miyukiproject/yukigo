@@ -84,8 +84,11 @@ export class WollokToYukigoTransformer {
   }
 
   private visit(node: Node): any {
+    console.log(node)
     const nodeType = node.constructor ? node.constructor.name : "Unknown";
-    switch (nodeType) {
+    // Remove prefix like _ and trailing numbers (e.g., Variable3 -> Variable)
+    const nodeTypeWithoutPrefix = nodeType.replace(/^_/, '').replace(/\d+$/, '');
+    switch (nodeTypeWithoutPrefix) {
       case "Package":
         return this.visitPackage(node as Package);
       case "Singleton":

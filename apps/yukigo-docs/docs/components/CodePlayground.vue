@@ -78,7 +78,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from "vue";
+import { ref, computed, onMounted, nextTick } from "vue";
 import Editor from "./Editor.vue";
 import { YukigoHaskellParser } from "yukigo-haskell-parser";
 import { YukigoPrologParser } from "yukigo-prolog-parser";
@@ -108,22 +108,31 @@ const languageExamples = {
       lazyLoading: true,
       outputMode: "first",
     },
+    placeholder: "doble 4",
   },
   prolog: {
-    code: "parent(tom, bob).\nparent(tom, liz).",
+    code: "padre(tom, bob).\npadre(tom, liz).\nabuelo(X, Y) :- padre(X, Z), padre(Z, Y).",
     parser: new YukigoPrologParser(),
     interpreterConfig: {
       lazyLoading: true,
       outputMode: "all",
     },
+    placeholder: "padre(tom, X)",
   },
   wollok: {
-    code: "method double(x) = x * 2",
+    code: `object pepita {
+  var energy = 100
+  method fly(meters) {
+    energy = energy - meters
+  }
+  method energy() = energy
+}`,
     parser: new YukigoWollokParser(),
     interpreterConfig: {
       lazyLoading: false,
       outputMode: "first",
     },
+    placeholder: "pepita.energy()",
   },
 };
 
@@ -144,6 +153,11 @@ let interpreterConfig = {
   outputMode: "first",
 };
 
+
+const currentPlaceholder = computed(() => {
+  return languageExamples[selectedLanguage.value]?.placeholder || "doble 4";
+});
+
 function switchLanguage(lang) {
   selectedLanguage.value = lang;
   const example = languageExamples[lang];
@@ -160,6 +174,31 @@ function switchLanguage(lang) {
   ];
   currentCommand.value = "";
   historyIndex.value = -1;
+}
+
+function formatOutput(value) {
+  if (value === null || value === undefined) return "nil";
+  if (typeof value === "boolean") return value ? "True" : "False";
+  if (typeof value === "number") return String(value);
+  if (typeof value === "string") return `"${value}"`;
+  if (typeof value === "function") return "<function>";
+  if (value instanceof Map) {
+    // Formatear objetos Wollok (que se almacenan como Maps)
+    const attrs = [];
+    for (const [key, val] of value.entries()) {
+      if (!key.startsWith("__method_")) {
+        attrs.push(`${key} = ${formatOutput(val)}`);
+      }
+    }
+    return attrs.length > 0 ? `{ ${attrs.join(", ")} }` : "<object>";
+  }
+  if (Array.isArray(value)) {
+    return "[" + value.map(formatOutput).join(", ") + "]";
+  }
+  if (typeof value === "object") {
+    return JSON.stringify(value, null, 2);
+  }
+  return String(value);
 }
 
 function scrollToBottom() {
@@ -191,8 +230,8 @@ function executeCommand() {
       const programAst = parser.parse(code.value);
       const interpreter = new Interpreter(programAst, interpreterConfig);
       const expression = parser.parseExpression(commandText);
-      console.log(expression);
-      output = interpreter.evaluate(expression[0]);
+      const result = interpreter.evaluate(expression);
+      output = formatOutput(result);
     } catch (err) {
       output = err.toString();
     }

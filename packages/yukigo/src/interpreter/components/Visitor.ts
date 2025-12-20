@@ -21,6 +21,7 @@ import {
   StringOperation,
   UnifyOperation,
   AssignOperation,
+  Assignment,
   TupleExpression,
   FieldExpression,
   DataExpression,
@@ -159,6 +160,21 @@ export class InterpreterVisitor
     const value = node.expression.accept(this);
     define(this.env, name, value);
     return true;
+  }
+  visitAssignment(node: Assignment): PrimitiveValue {
+    const name = node.identifier.value;
+    const value = node.expression.accept(this);
+    
+    // Use replace to update existing variable in the env stack
+    const replaced = replace(this.env, name, value);
+    if (!replaced) {
+      throw new InterpreterError(
+        "Assignment",
+        `Cannot assign to undefined variable: ${name}`,
+        this.frames
+      );
+    }
+    return value;
   }
   visitArithmeticUnaryOperation(
     node: ArithmeticUnaryOperation
@@ -310,7 +326,7 @@ export class InterpreterVisitor
       const value = field.expression.accept(this);
       fieldValues.set(field.name.value, value);
     }
-    return ObjectRuntime.instantiate(node.name.value, fieldValues, new Map());
+    return ObjectRuntime.instantiate(node.name.value,node.name.value, fieldValues, new Map());
   }
   visitConsExpr(node: ConsExpression): PrimitiveValue {
     try {
@@ -560,6 +576,7 @@ export class InterpreterVisitor
       );
 
     return ObjectRuntime.instantiate(
+      className,
       node.identifier.value,
       classDef.fields,
       classDef.methods

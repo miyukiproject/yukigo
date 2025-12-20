@@ -15,6 +15,9 @@ import {
   EnvStack,
   TraverseVisitor,
   Sequence,
+  Object,
+  RuntimeObject,
+  Variable,
 } from "yukigo-ast";
 import { createGlobalEnv, define } from "../utils.js";
 import { InterpreterVisitor } from "./Visitor.js";
@@ -91,6 +94,25 @@ export class EnvBuilderVisitor extends TraverseVisitor {
 
     define(this.env, identifier, runtimeClass);
   }
+  visitObject(node: Object): void {
+    const identifier = node.identifier.value;
+
+    const collector = new OOPCollector();
+    node.expression.accept(collector);
+
+    const fields = collector.collectedFields;
+    const methods = collector.collectedMethods;
+
+    const runtimeObject: RuntimeObject = {
+      type: "Object",
+      identifier,
+      className: "",
+      fields,
+      methods
+    };
+
+    define(this.env, identifier, runtimeObject);
+  }
   visitFact(node: Fact): void {
     const identifier = node.identifier.value;
     const localEnv = this.env.head;
@@ -127,6 +149,11 @@ export class EnvBuilderVisitor extends TraverseVisitor {
         equations: [node],
       });
     }
+  }
+  visitVariable(node: Variable): void {
+    const identifier = node.identifier.value;
+    const interpreter = new InterpreterVisitor(this.env,{})
+    define(this.env,identifier,node.expression.accept(interpreter))
   }
   visit(node: ASTNode): void {
     return node.accept(this);
