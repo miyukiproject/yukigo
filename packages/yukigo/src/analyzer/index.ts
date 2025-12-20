@@ -93,7 +93,7 @@ export class Analyzer {
         continue;
       }
       const visitorArgs = rule.binding
-        ? [rule.binding, ...rule.args]
+        ? [...rule.args, rule.binding]
         : rule.args;
       activeVisitors.set(rule, new VisitorClass(...visitorArgs));
     }
