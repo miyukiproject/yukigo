@@ -137,9 +137,6 @@ const terminalBodyRef = ref(null);
 
 let parser = new YukigoHaskellParser();
 
-const currentPlaceholder = computed(() => {
-  return languageExamples[selectedLanguage.value]?.placeholder || "doble 4";
-});
 
 const currentPlaceholder = computed(() => {
   return languageExamples[selectedLanguage.value]?.placeholder || "doble 4";

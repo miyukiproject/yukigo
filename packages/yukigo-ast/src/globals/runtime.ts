@@ -50,6 +50,7 @@ export function isRuntimeClass(val: PrimitiveValue): val is RuntimeClass {
 
 export interface RuntimeObject {
   type: "Object";
+  identifier: string,
   className: string;
   fields: Map<string, PrimitiveValue>;
   methods: Map<string, RuntimeFunction>;

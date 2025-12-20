@@ -28,12 +28,14 @@ export class ObjectRuntime {
    */
   static instantiate(
     className: string,
+    identifier: string,
     fieldDefinitions: Map<string, PrimitiveValue>,
     methodDefinitions: Map<string, RuntimeFunction>
   ): RuntimeObject {
     return {
       type: "Object",
       className,
+      identifier,
       fields: new Map(fieldDefinitions),
       methods: methodDefinitions,
     };
