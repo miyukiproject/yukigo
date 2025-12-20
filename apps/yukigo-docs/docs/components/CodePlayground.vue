@@ -12,14 +12,14 @@
             'px-4 py-2 rounded-full font-semibold transition-all duration-200 border backdrop-blur',
             selectedLanguage === lang.value
               ? 'bg-gradient-to-r from-primary to-purple-500 text-white border-transparent shadow-[0_8px_24px_rgba(59,130,246,0.35)] scale-[1.02]'
-              : 'bg-white/10 text-gray-200 border-white/15 hover:bg-white/15 hover:border-white/25 hover:shadow-[0_6px_18px_rgba(0,0,0,0.25)]'
+              : 'bg-white/10 text-gray-200 border-white/15 hover:bg-white/15 hover:border-white/25 hover:shadow-[0_6px_18px_rgba(0,0,0,0.25)]',
           ]">
           {{ lang.label }}
         </button>
       </div>
-      
+
       <!-- Mobile: Select -->
-      <select 
+      <select
         v-model="selectedLanguage"
         @change="switchLanguage(selectedLanguage)"
         class="sm:hidden px-4 py-2 rounded-full border border-white/20 bg-[#16181d]/80 text-gray-100 font-semibold cursor-pointer focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/50 backdrop-blur">
@@ -34,44 +34,44 @@
       <div class="w-full lg:w-1/2 h-80 sm:h-96 lg:h-80">
         <Editor v-model="code" />
       </div>
-      
+
       <div class="w-full lg:w-1/2 h-80 sm:h-96 lg:h-80">
-      <div
-        class="h-full flex flex-col bg-[#1e1e1e] rounded-[14px] overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.25)] font-mono">
         <div
-          class="h-8 bg-[#2d2d2d] px-[0.6rem] flex items-center gap-[0.4rem] shrink-0">
-          <div class="w-3 h-3 rounded-full bg-red-400" />
-          <div class="w-3 h-3 rounded-full bg-yellow-400" />
-          <div class="w-3 h-3 rounded-full bg-green-400" />
-        </div>
-
-        <div
-          ref="terminalBodyRef"
-          class="flex-1 p-5 text-[#f0f0f0] overflow-y-auto text-[0.92rem] leading-relaxed scroll-smooth">
+          class="h-full flex flex-col bg-[#1e1e1e] rounded-[14px] overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.25)] font-mono">
           <div
-            v-for="(line, i) in commandHistory"
-            :key="i"
-            :class="[
-              'my-[0.4rem] whitespace-pre-wrap break-all',
-              line.type === 'input' ? 'text-primary' : 'text-gray-300',
-            ]">
-            {{ line.text }}
+            class="h-8 bg-[#2d2d2d] px-[0.6rem] flex items-center gap-[0.4rem] shrink-0">
+            <div class="w-3 h-3 rounded-full bg-red-400" />
+            <div class="w-3 h-3 rounded-full bg-yellow-400" />
+            <div class="w-3 h-3 rounded-full bg-green-400" />
           </div>
 
-          <div class="flex items-center mt-2">
-            <span class="text-primary mr-2 select-none">$</span>
-            <input
-              ref="inputRef"
-              v-model="currentCommand"
-              @keyup.enter="executeCommand"
-              @keydown="navigateHistory"
-              placeholder="doble 4"
-              spellcheck="false"
-              autocomplete="off"
-              class="bg-transparent border-none text-[#f0f0f0] font-inherit w-full focus:outline-none" />
+          <div
+            ref="terminalBodyRef"
+            class="flex-1 p-5 text-[#f0f0f0] overflow-y-auto text-[0.92rem] leading-relaxed scroll-smooth">
+            <div
+              v-for="(line, i) in commandHistory"
+              :key="i"
+              :class="[
+                'my-[0.4rem] whitespace-pre-wrap break-all',
+                line.type === 'input' ? 'text-primary' : 'text-gray-300',
+              ]">
+              {{ line.text }}
+            </div>
+
+            <div class="flex items-center mt-2">
+              <span class="text-primary mr-2 select-none">$</span>
+              <input
+                ref="inputRef"
+                v-model="currentCommand"
+                @keyup.enter="executeCommand"
+                @keydown="navigateHistory"
+                placeholder="doble 4"
+                spellcheck="false"
+                autocomplete="off"
+                class="bg-transparent border-none text-[#f0f0f0] font-inherit w-full focus:outline-none" />
+            </div>
           </div>
         </div>
-      </div>
       </div>
     </div>
   </div>
@@ -104,14 +104,26 @@ const languageExamples = {
   haskell: {
     code: "doble x = x * 2",
     parser: new YukigoHaskellParser(),
+    interpreterConfig: {
+      lazyLoading: true,
+      outputMode: "first",
+    },
   },
   prolog: {
     code: "parent(tom, bob).\nparent(tom, liz).",
     parser: new YukigoPrologParser(),
+    interpreterConfig: {
+      lazyLoading: true,
+      outputMode: "all",
+    },
   },
   wollok: {
     code: "method double(x) = x * 2",
     parser: new YukigoWollokParser(),
+    interpreterConfig: {
+      lazyLoading: false,
+      outputMode: "first",
+    },
   },
 };
 
@@ -127,14 +139,24 @@ const inputRef = ref(null);
 const terminalBodyRef = ref(null);
 
 let parser = new YukigoHaskellParser();
+let interpreterConfig = {
+  lazyLoading: true,
+  outputMode: "first",
+};
 
 function switchLanguage(lang) {
   selectedLanguage.value = lang;
   const example = languageExamples[lang];
   parser = example.parser;
+  interpreterConfig = example.interpreterConfig;
   code.value = example.code;
   commandHistory.value = [
-    { type: "output", text: `Yukigo REPL v0.1.0 — ${lang.charAt(0).toUpperCase() + lang.slice(1)} loaded` },
+    {
+      type: "output",
+      text: `Yukigo REPL v0.1.0 — ${
+        lang.charAt(0).toUpperCase() + lang.slice(1)
+      } loaded`,
+    },
   ];
   currentCommand.value = "";
   historyIndex.value = -1;
@@ -167,11 +189,9 @@ function executeCommand() {
   } else {
     try {
       const programAst = parser.parse(code.value);
-      const interpreter = new Interpreter(programAst, {
-        lazyLoading: true,
-        debug: true,
-      });
+      const interpreter = new Interpreter(programAst, interpreterConfig);
       const expression = parser.parseExpression(commandText);
+      console.log(expression);
       output = interpreter.evaluate(expression[0]);
     } catch (err) {
       output = err.toString();
