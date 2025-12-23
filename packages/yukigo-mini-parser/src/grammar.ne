@@ -30,11 +30,15 @@ import {
 @preprocessor typescript
 @lexer MiniLexer
 
-program -> statement:+ _ %EOF {% (d) => d[0].flat(Infinity) %}
+program -> _ statements _ %EOF {% (d) => d[1].flat(Infinity) %}
+
+statements -> 
+    statement {% (d) => [d[0]] %}
+    | statements _ statement {% (d) => [...d[0], d[2]] %}
 
 # Statements
 
-statement -> (assignment | variable_statement | function_statement | return_statement | if_statement | while_statement) _ ";" _ {% (d) => d[0][0] %}
+statement -> (assignment | variable_statement | function_statement | return_statement | if_statement | while_statement) _ ";" {% (d) => d[0][0] %}
 
 variable_statement -> type __ variable (_ ":=" _ expression):? {% (d) => new Variable(d[2], d[3] ? d[3][3] : new NilPrimitive(null), d[0]) %}
 
@@ -46,13 +50,16 @@ if_statement -> "if" _ condition _ statement_list _ "else" _ statement_list {% d
 
 condition -> "(" _ expression _ ")" {% (d) => d[2] %}
 
-statement_list -> "{" _ statement:* _ "}" {% d => new Sequence(d[2]) %}
+statement_list -> "{" _ body _ "}" {% d => d[2] %}
+body -> 
+    statements {% (d) => new Sequence(d[0].flat(Infinity)) %}
+    | null {% () => new Sequence([]) %}
 
 assignment -> variable _ ":=" _ expression {% (d) => new Assignment(d[0], d[4]) %}
 
 ## Function rules
 
-function_statement -> type __ variable ("(" _ param_list:? _ ")" _ "{" _ body _ "}") {% (d) => {
+function_statement -> type __ variable ("(" _ param_list:? _ ")" _ statement_list) {% (d) => {
     const paramTypeList = []
     const patternList = []
     if(d[3][2]) {
@@ -64,7 +71,7 @@ function_statement -> type __ variable ("(" _ param_list:? _ ")" _ "{" _ body _ 
     const signatureType = new ParameterizedType(paramTypeList, d[0], []) 
 
     const signature = new TypeSignature(d[2], signatureType);
-    const procedure =  new Procedure(d[2], [new Equation(patternList, d[3][8])])
+    const procedure =  new Procedure(d[2], [new Equation(patternList, new UnguardedBody(d[3][6]))])
     return [signature, procedure]
 }%}
 
@@ -72,7 +79,6 @@ param_list -> param (_ "," _ param):* {% d => [d[0], ...d[1].map(x => x[3])] %}
 
 param -> type __ variable {% d => [d[0], new VariablePattern(d[2])] %}
 
-body -> statement:* {% (d) => new UnguardedBody(new Sequence(d[0])) %}
 
 # Expressions
 
@@ -93,8 +99,7 @@ multiplication ->
     | primary {% (d) => d[0] %}
 
 primary -> 
-    variable {% (d) => d[0] %}
-    | "(" _ expression _ ")" {% (d) => d[2] %}
+    "(" _ expression _ ")" {% (d) => d[2] %}
     | primitive {% (d) => d[0] %}
 
 primitive -> 
@@ -111,7 +116,7 @@ type ->
 
 list_primitive -> "[" _ expression_list _ "]" {% (d) => new ListPrimitive(d[2]) %}
 
-expression_list -> expression _ ("," _ expression _):* {% (d) => ([d[0], ...d[2].map(x => x[2])]) %}
+expression_list -> expression _ ("," _ expression):* {% (d) => ([d[0], ...d[2].map(x => x[2])]) %}
 
 variable -> %variable {% (d) => new SymbolPrimitive(d[0].value) %}
 
