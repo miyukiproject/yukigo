@@ -19,12 +19,12 @@ export type Clause = Rule | Fact | Query | Primitive;
  * @category Logic
  */
 export class Rule extends ASTNode {
-    /** @hidden */
-    public expressions: Expression[];
-    /** @hidden */
-    public patterns: Pattern[];
-    /** @hidden */
-    public identifier: SymbolPrimitive;
+  /** @hidden */
+  public expressions: Expression[];
+  /** @hidden */
+  public patterns: Pattern[];
+  /** @hidden */
+  public identifier: SymbolPrimitive;
 
   constructor(
     identifier: SymbolPrimitive,
@@ -33,9 +33,9 @@ export class Rule extends ASTNode {
     loc?: SourceLocation
   ) {
     super(loc);
-      this.identifier = identifier;
-      this.patterns = patterns;
-      this.expressions = expressions;
+    this.identifier = identifier;
+    this.patterns = patterns;
+    this.expressions = expressions;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitRule?.(this);
@@ -54,10 +54,10 @@ export class Rule extends ASTNode {
  * @category Logic
  */
 export class Call extends ASTNode {
-    /** @hidden */
-    public args: Expression[];
-    /** @hidden */
-    public callee: SymbolPrimitive;
+  /** @hidden */
+  public args: Expression[];
+  /** @hidden */
+  public callee: SymbolPrimitive;
 
   constructor(
     callee: SymbolPrimitive,
@@ -65,8 +65,8 @@ export class Call extends ASTNode {
     loc?: SourceLocation
   ) {
     super(loc);
-      this.callee = callee;
-      this.args = args;
+    this.callee = callee;
+    this.args = args;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitCall?.(this);
@@ -88,10 +88,10 @@ export class Call extends ASTNode {
  * @category Logic
  */
 export class Fact extends ASTNode {
-    /** @hidden */
-    public patterns: Pattern[];
-    /** @hidden */
-    public identifier: SymbolPrimitive;
+  /** @hidden */
+  public patterns: Pattern[];
+  /** @hidden */
+  public identifier: SymbolPrimitive;
 
   constructor(
     identifier: SymbolPrimitive,
@@ -99,8 +99,8 @@ export class Fact extends ASTNode {
     loc?: SourceLocation
   ) {
     super(loc);
-      this.identifier = identifier;
-      this.patterns = patterns;
+    this.identifier = identifier;
+    this.patterns = patterns;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitFact?.(this);
@@ -122,12 +122,12 @@ export class Fact extends ASTNode {
  * @category Logic
  */
 export class Query extends ASTNode {
-    /** @hidden */
-    public expression: Expression;
+  /** @hidden */
+  public expressions: Expression[];
 
-  constructor(expression: Expression, loc?: SourceLocation) {
+  constructor(expressions: Expression[], loc?: SourceLocation) {
     super(loc);
-      this.expression = expression;
+    this.expressions = expressions;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitQuery?.(this);
@@ -135,7 +135,7 @@ export class Query extends ASTNode {
   public toJSON() {
     return {
       type: "Query",
-      expression: this.expression.toJSON(),
+      expressions: this.expressions.map((expr) => expr.toJSON()),
     };
   }
 }
@@ -145,10 +145,10 @@ export class Query extends ASTNode {
  * @category Logic
  */
 export class Exist extends ASTNode {
-    /** @hidden */
-    public patterns: Pattern[];
-    /** @hidden */
-    public identifier: SymbolPrimitive;
+  /** @hidden */
+  public patterns: Pattern[];
+  /** @hidden */
+  public identifier: SymbolPrimitive;
 
   constructor(
     identifier: SymbolPrimitive,
@@ -156,8 +156,8 @@ export class Exist extends ASTNode {
     loc?: SourceLocation
   ) {
     super(loc);
-      this.identifier = identifier;
-      this.patterns = patterns;
+    this.identifier = identifier;
+    this.patterns = patterns;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitExist?.(this);
@@ -176,12 +176,12 @@ export class Exist extends ASTNode {
  * @category Logic
  */
 export class Not extends ASTNode {
-    /** @hidden */
-    public expressions: Expression[];
+  /** @hidden */
+  public expressions: Expression[];
 
   constructor(expressions: Expression[], loc?: SourceLocation) {
     super(loc);
-      this.expressions = expressions;
+    this.expressions = expressions;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitNot?.(this);
@@ -198,12 +198,12 @@ export class Not extends ASTNode {
  * @category Logic
  */
 export class Findall extends ASTNode {
-    /** @hidden */
-    public bag: Expression;
-    /** @hidden */
-    public goal: Expression;
-    /** @hidden */
-    public template: Expression;
+  /** @hidden */
+  public bag: Expression;
+  /** @hidden */
+  public goal: Expression;
+  /** @hidden */
+  public template: Expression;
 
   constructor(
     template: Expression,
@@ -212,9 +212,9 @@ export class Findall extends ASTNode {
     loc?: SourceLocation
   ) {
     super(loc);
-      this.template = template;
-      this.goal = goal;
-      this.bag = bag;
+    this.template = template;
+    this.goal = goal;
+    this.bag = bag;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitFindall?.(this);
@@ -233,19 +233,15 @@ export class Findall extends ASTNode {
  * @category Logic
  */
 export class Forall extends ASTNode {
-    /** @hidden */
-    public action: Expression;
-    /** @hidden */
-    public condition: Expression;
+  /** @hidden */
+  public action: Expression;
+  /** @hidden */
+  public condition: Expression;
 
-  constructor(
-    condition: Expression,
-    action: Expression,
-    loc?: SourceLocation
-  ) {
+  constructor(condition: Expression, action: Expression, loc?: SourceLocation) {
     super(loc);
-      this.condition = condition;
-      this.action = action;
+    this.condition = condition;
+    this.action = action;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitForall?.(this);
@@ -264,10 +260,10 @@ export class Forall extends ASTNode {
  * @category Logic
  */
 export class Goal extends ASTNode {
-    /** @hidden */
-    public args: Pattern[];
-    /** @hidden */
-    public identifier: SymbolPrimitive;
+  /** @hidden */
+  public args: Pattern[];
+  /** @hidden */
+  public identifier: SymbolPrimitive;
 
   constructor(
     identifier: SymbolPrimitive,
@@ -275,8 +271,8 @@ export class Goal extends ASTNode {
     loc?: SourceLocation
   ) {
     super(loc);
-      this.identifier = identifier;
-      this.args = args;
+    this.identifier = identifier;
+    this.args = args;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitGoal?.(this);
@@ -294,7 +290,9 @@ export class Goal extends ASTNode {
 
 export type RuntimePredicate = RuntimeFact | RuntimeRule;
 
-export const isRuntimePredicate = (prim: PrimitiveValue): prim is RuntimePredicate => {
+export const isRuntimePredicate = (
+  prim: PrimitiveValue
+): prim is RuntimePredicate => {
   return (
     typeof prim === "object" &&
     "kind" in prim &&

@@ -39,7 +39,8 @@ export class LogicEngine {
     return resultSubsts !== null;
   }
   public solveQuery(node: Query): PrimitiveValue {
-    return this.evaluator.evaluate(node.expression);
+    const generator = this.solveConjunction(node.expressions, new Map());
+    return this.handleOutputMode(generator);
   }
 
   public solveGoal(node: Goal): PrimitiveValue {

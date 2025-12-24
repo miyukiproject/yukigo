@@ -578,7 +578,7 @@ export class TraverseVisitor implements StrictVisitor<void> {
     this.traverseCollection(node.patterns);
   }
   visitQuery(node: Query): void {
-    node.expression.accept(this);
+    node.expressions.forEach((expr) => expr.accept(this));
   }
   visitMethod(node: Method): void {
     node.identifier.accept(this);
