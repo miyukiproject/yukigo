@@ -7,9 +7,9 @@ type MulangInspection = {
 };
 
 const isValidFormat = (inspection: any): inspection is MulangInspection =>
-  !inspection ||
-  typeof inspection.inspection !== "string" ||
-  typeof inspection.binding !== "string";
+  typeof inspection === "object" &&
+  typeof inspection.inspection === "string" &&
+  typeof inspection.binding === "string";
 
 /**
  * Translates Mulang inspections (YAML format) to an array of `InspectionRule` objects.
@@ -20,7 +20,9 @@ export class MulangAdapter {
   public translateMulangInspection(mulangInspection: any): InspectionRule {
     if (!isValidFormat(mulangInspection))
       throw new Error(
-        `Skipping malformed Mulang inspection entry: ${mulangInspection}`
+        `Skipping malformed Mulang inspection entry: ${JSON.stringify(
+          mulangInspection
+        )}`
       );
 
     const inspection: string[] = mulangInspection.inspection.split(":");

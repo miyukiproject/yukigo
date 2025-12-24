@@ -1,4 +1,5 @@
 import {
+  Application,
   ArithmeticBinaryOperation,
   ArithmeticUnaryOperation,
   Assignment,
@@ -6,13 +7,17 @@ import {
   Attribute,
   Call,
   Catch,
+  Class,
   EntryPoint,
+  Equation,
   Fact,
   Function,
   If,
+  isUnguardedBody,
   LogicalBinaryOperation,
   LogicalUnaryOperation,
   Method,
+  Object,
   ParameterizedType,
   Print,
   Procedure,
@@ -30,89 +35,13 @@ import {
   Variable,
   VariablePattern,
 } from "yukigo-ast";
-import { VisitorConstructor } from "../utils.js";
-
-// sexy af
-export function AutoScoped<T extends { new (...args: any[]): any }>(
-  constructor: T
-) {
-  const proto = constructor.prototype;
-  const methodNames = Object.getOwnPropertyNames(proto);
-
-  const isValidVisitMethod = (name: string) =>
-    name.startsWith("visit") &&
-    name !== "constructor" &&
-    !isScopeBoundary(name);
-
-  for (const name of methodNames) {
-    if (isValidVisitMethod) {
-      const originalMethod = proto[name];
-      proto[name] = function (this: any, node: any) {
-        if (!this.inScope) return;
-        return originalMethod.call(this, node);
-      };
-    }
-  }
-}
-
-// avoid double wrap on these
-function isScopeBoundary(name: string): boolean {
-  return [
-    "visitFunction",
-    "visitMethod",
-    "visitProcedure",
-    "visitRule",
-    "visitFact",
-  ].includes(name);
-}
-
-export class ScopedVisitor extends TraverseVisitor {
-  protected readonly targetScopeName?: string;
-  public inScope: boolean;
-
-  constructor(scopeName?: string) {
-    super();
-    this.targetScopeName = scopeName;
-    this.inScope = !scopeName;
-  }
-
-  protected isInsideScope(): boolean {
-    return this.inScope;
-  }
-
-  visitFunction(node: Function): void {
-    this.manageScope(node, () => super.visitFunction(node));
-  }
-
-  visitMethod(node: Method): void {
-    this.manageScope(node, () => super.visitMethod(node));
-  }
-
-  visitProcedure(node: Procedure): void {
-    this.manageScope(node, () => super.visitProcedure(node));
-  }
-
-  visitRule(node: Rule): void {
-    this.manageScope(node, () => super.visitRule(node));
-  }
-
-  visitFact(node: Fact): void {
-    this.manageScope(node, () => super.visitFact(node));
-  }
-
-  private manageScope(node: any, traverse: () => void) {
-    const isTarget = node.identifier.value === this.targetScopeName;
-    if (isTarget) this.inScope = true;
-    traverse();
-    if (isTarget) this.inScope = false;
-  }
-}
+import { VisitorConstructor, ScopedVisitor, AutoScoped } from "../../utils.js";
 
 @AutoScoped
 export class Assigns extends ScopedVisitor {
   private readonly targetIdentifier: string;
-  constructor(targetIdentifier: string, scopeName?: string) {
-    super(scopeName);
+  constructor(targetIdentifier: string, scope?: string) {
+    super(scope);
     this.targetIdentifier = targetIdentifier;
   }
   visitVariable(node: Variable): void {
@@ -131,8 +60,8 @@ export class Assigns extends ScopedVisitor {
 @AutoScoped
 export class Calls extends ScopedVisitor {
   private readonly targetCallee: string;
-  constructor(targetCallee: string, scopeName?: string) {
-    super(scopeName);
+  constructor(targetCallee: string, scope?: string) {
+    super(scope);
     this.targetCallee = targetCallee;
   }
   visitCall(node: Call): void {
@@ -143,24 +72,63 @@ export class Calls extends ScopedVisitor {
 @AutoScoped
 export class Declares extends ScopedVisitor {
   private readonly targetIdentifier: string;
+
   constructor(targetIdentifier: string, scopeName?: string) {
     super(scopeName);
     this.targetIdentifier = targetIdentifier;
   }
-  visit(node: ASTNode): void {
-    if (
-      "identifier" in node &&
-      node.identifier instanceof SymbolPrimitive &&
-      node.identifier.value === this.targetIdentifier
-    )
+
+  private check(node: { identifier: SymbolPrimitive }): void {
+    if (node.identifier.value === this.targetIdentifier)
       throw new StopTraversalException();
+  }
+
+  visitFunction(node: Function): void {
+    if (this.inScope) this.check(node);
+    super.visitFunction(node);
+  }
+
+  visitMethod(node: Method): void {
+    if (this.inScope) this.check(node);
+    super.visitMethod(node);
+  }
+
+  visitProcedure(node: Procedure): void {
+    if (this.inScope) this.check(node);
+    super.visitProcedure(node);
+  }
+
+  visitRule(node: Rule): void {
+    if (this.inScope) this.check(node);
+    super.visitRule(node);
+  }
+
+  visitFact(node: Fact): void {
+    if (this.inScope) this.check(node);
+    super.visitFact(node);
+  }
+
+  visitVariable(node: Variable): void {
+    this.check(node);
+  }
+
+  visitAttribute(node: Attribute): void {
+    this.check(node);
+  }
+
+  visitTypeAlias(node: TypeAlias): void {
+    this.check(node);
+  }
+
+  visitTypeSignature(node: TypeSignature): void {
+    this.check(node);
   }
 }
 @AutoScoped
 export class DeclaresComputation extends ScopedVisitor {
   private readonly callName: string;
-  constructor(callName: string, scopeName?: string) {
-    super();
+  constructor(callName: string, scope?: string) {
+    super(scope);
     this.callName = callName;
   }
   visitFunction(node: Function): void {
@@ -188,8 +156,8 @@ export class DeclaresComputation extends ScopedVisitor {
 export class DeclaresComputationWithArity extends ScopedVisitor {
   private readonly targetBinding: string;
   private readonly targetArity: number;
-  constructor(targetBinding: string, targetArity: number, scopeName?: string) {
-    super();
+  constructor(targetBinding: string, targetArity: number, scope?: string) {
+    super(scope);
     this.targetBinding = targetBinding;
     this.targetArity = targetArity;
   }
@@ -237,7 +205,7 @@ export class DeclaresEntryPoint extends TraverseVisitor {
 @AutoScoped
 export class DeclaresFunction extends ScopedVisitor {
   private readonly targetBinding: string;
-  constructor(targetBinding: string, scope: string) {
+  constructor(targetBinding: string, scope?: string) {
     super(scope);
     this.targetBinding = targetBinding;
   }
@@ -250,7 +218,7 @@ export class DeclaresFunction extends ScopedVisitor {
 @AutoScoped
 export class DeclaresRecursively extends ScopedVisitor {
   private readonly targetBinding: string;
-  constructor(targetBinding: string, scope: string) {
+  constructor(targetBinding: string, scope?: string) {
     super(scope);
     this.targetBinding = targetBinding;
   }
@@ -283,6 +251,36 @@ export class DeclaresRecursively extends ScopedVisitor {
       throw new StopTraversalException();
   }
 }
+export class HasDirectRecursion extends TraverseVisitor {
+  private isInsideBody: boolean = false;
+  constructor(private readonly binding: string) {
+    super();
+  }
+
+  override visitFunction(node: Function): void {
+    if (node.identifier.value !== this.binding) return;
+    this.traverseCollection(node.equations);
+  }
+
+  override visitEquation(node: Equation): void {
+    this.isInsideBody = true;
+    try {
+      if (isUnguardedBody(node.body)) {
+        node.body.accept(this);
+      } else {
+        this.traverseCollection(node.body);
+      }
+    } finally {
+      this.isInsideBody = false;
+    }
+  }
+
+  visitSymbolPrimitive(node: SymbolPrimitive): void {
+    if (this.isInsideBody && node.value === this.binding)
+      throw new StopTraversalException();
+  }
+}
+
 export class DeclaresTypeAlias extends TraverseVisitor {
   private readonly typeAliasName: string;
   constructor(typeAliasName: string) {
@@ -308,7 +306,7 @@ export class DeclaresTypeSignature extends TraverseVisitor {
 @AutoScoped
 export class DeclaresVariable extends ScopedVisitor {
   private readonly targetBinding: string;
-  constructor(targetBinding: string, scope: string) {
+  constructor(targetBinding: string, scope?: string) {
     super(scope);
     this.targetBinding = targetBinding;
   }
@@ -329,7 +327,7 @@ export class Raises extends ScopedVisitor {
 @AutoScoped
 export class Uses extends ScopedVisitor {
   private readonly targetBinding: string;
-  constructor(targetBinding: string, scope: string) {
+  constructor(targetBinding: string, scope?: string) {
     super(scope);
     this.targetBinding = targetBinding;
   }
@@ -339,7 +337,7 @@ export class Uses extends ScopedVisitor {
 }
 @AutoScoped
 export class UsesArithmetic extends ScopedVisitor {
-  constructor(scope: string) {
+  constructor(scope?: string) {
     super(scope);
   }
   visitArithmeticBinaryOperation(node: ArithmeticBinaryOperation): void {
@@ -357,7 +355,7 @@ export class UsesConditional extends ScopedVisitor {
 }
 @AutoScoped
 export class UsesLogic extends ScopedVisitor {
-  constructor(scope: string) {
+  constructor(scope?: string) {
     super(scope);
   }
   visitLogicalBinaryOperation(node: LogicalBinaryOperation): void {
@@ -369,7 +367,7 @@ export class UsesLogic extends ScopedVisitor {
 }
 @AutoScoped
 export class UsesPrint extends ScopedVisitor {
-  constructor(scope: string) {
+  constructor(scope?: string) {
     super(scope);
   }
   visitPrint(node: Print): void {
@@ -379,7 +377,7 @@ export class UsesPrint extends ScopedVisitor {
 @AutoScoped
 export class UsesType extends ScopedVisitor {
   private readonly targetBinding: string;
-  constructor(targetBinding: string, scope: string) {
+  constructor(targetBinding: string, scope?: string) {
     super(scope);
     this.targetBinding = targetBinding;
   }
@@ -396,11 +394,27 @@ export class UsesType extends ScopedVisitor {
 @AutoScoped
 export class HasBinding extends ScopedVisitor {
   private readonly targetBinding: string;
-  constructor(targetBinding: string, scope: string) {
+  constructor(scope?: string) {
     super(scope);
-    this.targetBinding = targetBinding;
+    this.targetBinding = scope;
   }
   visitFunction(node: Function): void {
+    if (node.identifier.value === this.targetBinding)
+      throw new StopTraversalException();
+  }
+  visitObject(node: Object): void {
+    if (node.identifier.value === this.targetBinding)
+      throw new StopTraversalException();
+  }
+  visitClass(node: Class): void {
+    if (node.identifier.value === this.targetBinding)
+      throw new StopTraversalException();
+  }
+  visitRule(node: Rule): void {
+    if (node.identifier.value === this.targetBinding)
+      throw new StopTraversalException();
+  }
+  visitFact(node: Fact): void {
     if (node.identifier.value === this.targetBinding)
       throw new StopTraversalException();
   }
@@ -511,7 +525,7 @@ export class TypesReturnAs extends TraverseVisitor {
 
 @AutoScoped
 export class Rescues extends ScopedVisitor {
-  constructor(private exceptionName: string, scope: string) {
+  constructor(private exceptionName: string, scope?: string) {
     super(scope);
   }
   visitCatch(node: Catch): void {
@@ -528,7 +542,7 @@ export class Rescues extends ScopedVisitor {
 
 @AutoScoped
 export class UsesExceptionHandling extends ScopedVisitor {
-  constructor(scope: string) {
+  constructor(scope?: string) {
     super(scope);
   }
   visitTry(node: Try): void {
@@ -537,11 +551,11 @@ export class UsesExceptionHandling extends ScopedVisitor {
 }
 @AutoScoped
 export class UsesExceptions extends ScopedVisitor {
-  constructor(scope: string) {
+  constructor(scope?: string) {
     super(scope);
   }
   visitTry(node: Try): void {
-    return new UsesExceptionHandling(this.targetScopeName).visitTry(node);
+    return new UsesExceptionHandling(this.binding).visitTry(node);
   }
   visitRaise(node: Raise): void {
     throw new StopTraversalException();
@@ -557,11 +571,14 @@ export const genericInspections: Record<string, VisitorConstructor> = {
   DeclaresEntryPoint: DeclaresEntryPoint,
   DeclaresFunction: DeclaresFunction,
   DeclaresRecursively: DeclaresRecursively,
+  HasDirectRecursion: HasDirectRecursion,
   DeclaresTypeAlias: DeclaresTypeAlias,
   DeclaresTypeSignature: DeclaresTypeSignature,
+  HasTypeSignature: DeclaresTypeSignature,
   DeclaresVariable: DeclaresVariable,
   Raises: Raises,
   Uses: Uses,
+  HasUsage: Uses,
   UsesArithmetic: UsesArithmetic,
   SubordinatesDeclarationsTo: SubordinatesDeclarationsTo,
   SubordinatesDeclarationsToEntryPoint: SubordinatesDeclarationsToEntryPoint,
@@ -569,6 +586,7 @@ export const genericInspections: Record<string, VisitorConstructor> = {
   TypesParameterAs: TypesParameterAs,
   TypesReturnAs: TypesReturnAs,
   UsesConditional: UsesConditional,
+  HasConditional: UsesConditional,
   Rescues: Rescues,
   UsesExceptionHandling: UsesExceptionHandling,
   UsesExceptions: UsesExceptions,

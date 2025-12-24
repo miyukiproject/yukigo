@@ -5,7 +5,7 @@ import {
   GuardedBody,
   Visitor,
   Return,
-  LetInExpression,
+  isUnguardedBody,
   Sequence,
 } from "yukigo-ast";
 import { typeMappings } from "../utils/types.js";
@@ -72,6 +72,11 @@ export const numberType: TypeConstructor = {
 export const stringType: TypeConstructor = {
   type: "TypeConstructor",
   name: "YuString",
+  args: [],
+};
+export const charType: TypeConstructor = {
+  type: "TypeConstructor",
+  name: "YuChar",
   args: [],
 };
 
@@ -385,12 +390,6 @@ export function getArgumentTypes(type: Type): Type[] {
 }
 export function getArity(type: Type): number {
   return getArgumentTypes(type).length;
-}
-
-export function isUnguardedBody(
-  body: UnguardedBody | GuardedBody[]
-): body is UnguardedBody {
-  return !Array.isArray(body);
 }
 
 export function isFunctionType(t: Type): t is FunctionType {

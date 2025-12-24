@@ -14,6 +14,7 @@ import {
   ArithmeticUnaryOperation,
   LogicalUnaryOperation,
   SymbolPrimitive,
+  Case,
   ListPrimitive,
   Switch,
   CompositionExpression,
@@ -183,7 +184,9 @@ operator ->
     | ","
     | "*"
     | "/"
-    | ":") {% (d) => d[0][0].value %}
+    | ":"
+    | "$"
+    | ".") {% (d) => d[0][0].value %}
 
 left_section -> "(" _ expression _ operator _ ")" {% (d) => new Application(new SymbolPrimitive(d[4]), d[2]) %}
 
@@ -250,7 +253,7 @@ case_expression -> "case" _ expression _ "of" (_ "{" _) case_arms (_ "}" _) {% (
 
 case_arms -> case_arm ((_ ";" _) case_arm):* {% (d) => [d[0], ...d[1].map(x => x[1])] %}
 
-case_arm -> pattern _ "->" _ expression {% (d) => ({condition: d[0], body: d[4] }) %}
+case_arm -> pattern _ "->" _ expression {% (d) => new Case(d[0], d[4]) %}
 
 # Data rules
 

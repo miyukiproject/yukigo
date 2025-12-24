@@ -1,10 +1,16 @@
 import { AST, TraverseVisitor, StopTraversalException } from "yukigo-ast";
-import { genericInspections } from "./inspections/generic.js";
-import { functionalInspections } from "./inspections/functional.js";
-import { logicInspections } from "./inspections/logic.js";
-import { objectInspections } from "./inspections/object.js";
-import { imperativeInspections } from "./inspections/imperative.js";
+import { genericInspections } from "./inspections/generic/generic.js";
+import { functionalInspections } from "./inspections/functional/functional.js";
+import { logicInspections } from "./inspections/logic/logic.js";
+import { objectInspections } from "./inspections/object/object.js";
+import { imperativeInspections } from "./inspections/imperative/imperative.js";
 import { InspectionMap, VisitorConstructor } from "./utils.js";
+import { functionalSmells } from "./inspections/functional/smells.js";
+import { logicSmells } from "./inspections/logic/smells.js";
+import { objectSmells } from "./inspections/object/smells.js";
+import { imperativeSmells } from "./inspections/imperative/smells.js";
+import { genericSmells } from "./inspections/generic/smells.js";
+import { inspect } from "util";
 
 export type AnalysisResult = {
   rule: InspectionRule;
@@ -20,12 +26,19 @@ export type InspectionRule = {
   expected: boolean;
 };
 
-export const defaultInspectionSet: InspectionMap = {
+export const DefaultInspectionSet: InspectionMap = {
   ...genericInspections,
   ...functionalInspections,
   ...logicInspections,
   ...objectInspections,
   ...imperativeInspections,
+};
+export const DefaultSmellsSet: InspectionMap = {
+  ...genericSmells,
+  ...functionalSmells,
+  ...logicSmells,
+  ...objectSmells,
+  ...imperativeSmells,
 };
 
 /**
@@ -40,8 +53,10 @@ export class Analyzer {
    * @defaultValue a default set of inspections for each supported paradigm
    */
   private inspectionConstructors: InspectionMap = {};
-  constructor(inspectionSet?: InspectionMap) {
-    this.inspectionConstructors = inspectionSet ?? defaultInspectionSet;
+  private smellsConstructors: InspectionMap = {};
+  constructor(inspectionSet?: InspectionMap, smellsSet?: InspectionMap) {
+    this.inspectionConstructors = inspectionSet ?? DefaultInspectionSet;
+    this.smellsConstructors = smellsSet ?? DefaultSmellsSet;
   }
 
   /**
@@ -92,9 +107,10 @@ export class Analyzer {
         });
         continue;
       }
-      const visitorArgs = rule.binding
-        ? [...rule.args, rule.binding]
-        : rule.args;
+      const visitorArgs =
+        rule.binding && rule.binding !== "*"
+          ? [...rule.args, rule.binding]
+          : rule.args;
       activeVisitors.set(rule, new VisitorClass(...visitorArgs));
     }
 
@@ -112,12 +128,14 @@ export class Analyzer {
               actual: true,
             });
           } else {
+            console.log(inspect(node, false, null, true));
+            console.log(e);
             // unexpected error during traversal
             ruleResults.set(rule, {
               rule,
               passed: false,
               actual: false,
-              error: (e as Error).message,
+              error: e.message,
             });
           }
         }

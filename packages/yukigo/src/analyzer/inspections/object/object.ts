@@ -12,21 +12,21 @@ import {
   SymbolPrimitive,
   TraverseVisitor,
 } from "yukigo-ast";
-import { VisitorConstructor } from "../utils.js";
-
-export class DeclaresAttribute extends TraverseVisitor {
-  constructor(private attributeName: string) {
-    super();
+import { AutoScoped, ScopedVisitor, VisitorConstructor } from "../../utils.js";
+@AutoScoped
+export class DeclaresAttribute extends ScopedVisitor {
+  constructor(private attributeName: string, scope?: string) {
+    super(scope);
   }
   visitAttribute(node: Attribute): void {
     if (node.identifier.value === this.attributeName)
       throw new StopTraversalException();
   }
 }
-
-export class DeclaresClass extends TraverseVisitor {
-  constructor(private className: string) {
-    super();
+@AutoScoped
+export class DeclaresClass extends ScopedVisitor {
+  constructor(private className: string, scope?: string) {
+    super(scope);
   }
   visitClass(node: Class): void {
     if (node.identifier.value === this.className)
@@ -43,10 +43,10 @@ export class DeclaresInterface extends TraverseVisitor {
       throw new StopTraversalException();
   }
 }
-
-export class DeclaresMethod extends TraverseVisitor {
-  constructor(private methodName: string) {
-    super();
+@AutoScoped
+export class DeclaresMethod extends ScopedVisitor {
+  constructor(private methodName: string, scope?: string) {
+    super(scope);
   }
   visitMethod(node: Method): void {
     if (node.identifier.value === this.methodName)
@@ -63,29 +63,29 @@ export class DeclaresObject extends TraverseVisitor {
       throw new StopTraversalException();
   }
 }
-
-export class DeclaresPrimitive extends TraverseVisitor {
-  constructor(private operatorName: string) {
-    super();
+@AutoScoped
+export class DeclaresPrimitive extends ScopedVisitor {
+  constructor(private operatorName: string, scope?: string) {
+    super(scope);
   }
   visitPrimitiveMethod(node: PrimitiveMethod): void {
     if (node.operator === this.operatorName) throw new StopTraversalException();
   }
 }
-
-export class DeclaresSuperclass extends TraverseVisitor {
-  constructor(private superclassName: string) {
-    super();
+@AutoScoped
+export class DeclaresSuperclass extends ScopedVisitor {
+  constructor(private superclassName: string, scope?: string) {
+    super(scope);
   }
   visitClass(node: Class): void {
     if (node.extendsSymbol && node.extendsSymbol.value === this.superclassName)
       throw new StopTraversalException();
   }
 }
-
-export class Implements extends TraverseVisitor {
-  constructor(private interfaceName: string) {
-    super();
+@AutoScoped
+export class Implements extends ScopedVisitor {
+  constructor(private interfaceName: string, scope?: string) {
+    super(scope);
   }
   visitClass(node: Class): void {
     if (
@@ -95,32 +95,32 @@ export class Implements extends TraverseVisitor {
       throw new StopTraversalException();
   }
 }
-
-export class IncludeMixin extends TraverseVisitor {
-  constructor(private mixinsName: string) {
-    super();
+@AutoScoped
+export class IncludeMixin extends ScopedVisitor {
+  constructor(private mixinsName: string, scope?: string) {
+    super(scope);
   }
   visitClass(node: Class): void {
     if (node.includes.some((sym) => sym.value === this.mixinsName))
       throw new StopTraversalException();
   }
 }
-
-export class Instantiates extends TraverseVisitor {
-  constructor(private className: string) {
-    super();
+@AutoScoped
+export class Instantiates extends ScopedVisitor {
+  constructor(private className: string, scope?: string) {
+    super(scope);
   }
   visitNew(node: New): void {
     if (node.identifier.value === this.className)
       throw new StopTraversalException();
   }
 }
-
-export class UsesDynamicPolymorphism extends TraverseVisitor {
+@AutoScoped
+export class UsesDynamicPolymorphism extends ScopedVisitor {
   private count = 0;
 
-  constructor(private selectorName: string) {
-    super();
+  constructor(private selectorName: string, scope?: string) {
+    super(scope);
   }
 
   visitMethod(node: Method): void {
@@ -130,8 +130,11 @@ export class UsesDynamicPolymorphism extends TraverseVisitor {
     }
   }
 }
-
-export class UsesInheritance extends TraverseVisitor {
+@AutoScoped
+export class UsesInheritance extends ScopedVisitor {
+  constructor(scope?: string) {
+    super(scope);
+  }
   visitClass(node: Class): void {
     if (node.extendsSymbol) throw new StopTraversalException();
   }
@@ -140,14 +143,20 @@ export class UsesInheritance extends TraverseVisitor {
       throw new StopTraversalException();
   }
 }
-
-export class UsesMixins extends TraverseVisitor {
+@AutoScoped
+export class UsesMixins extends ScopedVisitor {
+  constructor(scope?: string) {
+    super(scope);
+  }
   visitClass(node: Class): void {
     if (node.includes.length > 0) throw new StopTraversalException();
   }
 }
-
-export class UsesObjectComposition extends TraverseVisitor {
+@AutoScoped
+export class UsesObjectComposition extends ScopedVisitor {
+  constructor(scope?: string) {
+    super(scope);
+  }
   visitAttribute(node: Attribute): void {
     if (node.expression instanceof New) throw new StopTraversalException();
   }
@@ -155,13 +164,11 @@ export class UsesObjectComposition extends TraverseVisitor {
 
 export class UsesStaticMethodOverload extends TraverseVisitor {
   private scopes: Set<string>[] = [];
-
   visitClass(node: Class): void {
     this.scopes.push(new Set());
     node.expression.accept(this);
     this.scopes.pop();
   }
-
   visitObject(node: Object): void {
     this.scopes.push(new Set());
     node.expression.accept(this);
@@ -176,16 +183,22 @@ export class UsesStaticMethodOverload extends TraverseVisitor {
     currentScope.add(methodName);
   }
 }
+@AutoScoped
+export class UsesDynamicMethodOverload extends ScopedVisitor {
+  constructor(scope?: string) {
+    super(scope);
+  }
 
-export class UsesDynamicMethodOverload extends TraverseVisitor {
   visitMethod(node: Method): void {
     if (node.equations.length > 1) throw new StopTraversalException();
   }
 }
-
-class AbstractMethodCollector extends TraverseVisitor {
+@AutoScoped
+class AbstractMethodCollector extends ScopedVisitor {
   public abstractMethods: Set<string> = new Set();
-
+  constructor(scope?: string) {
+    super(scope);
+  }
   visitMethod(node: Method): void {
     if (node.getMetadata<boolean>("isAbstract") === true)
       this.abstractMethods.add(node.identifier.value);
@@ -198,12 +211,14 @@ class AbstractMethodCollector extends TraverseVisitor {
     return;
   }
 }
-
-export class UsesTemplateMethod extends TraverseVisitor {
+@AutoScoped
+export class UsesTemplateMethod extends ScopedVisitor {
   private abstractMethodsStack: Set<string>[] = [];
-
+  constructor(scope?: string) {
+    super(scope);
+  }
   visitClass(node: Class): void {
-    const collector = new AbstractMethodCollector();
+    const collector = new AbstractMethodCollector(this.binding);
     if (node.expression) node.expression.accept(collector);
     this.abstractMethodsStack.push(collector.abstractMethods);
     node.expression.accept(this);

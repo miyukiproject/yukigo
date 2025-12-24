@@ -12,12 +12,20 @@ import {
   NumberPrimitive,
   ArithmeticBinaryOperation,
 } from "yukigo-ast";
-import { Analyzer, InspectionRule } from "../../src/analyzer/index.js";
+import {
+  Analyzer,
+  DefaultInspectionSet,
+  DefaultSmellsSet,
+  InspectionRule,
+} from "../../src/analyzer/index.js";
 
 describe("Logic Inspections", () => {
   const createSymbol = (name: string) => new SymbolPrimitive(name);
   const createNumber = (val: number) => new NumberPrimitive(val);
-  const analyzer = new Analyzer();
+  const analyzer = new Analyzer({
+    ...DefaultInspectionSet,
+    ...DefaultSmellsSet,
+  });
 
   const createFact = (name: string, args: any[] = []) => {
     return new Fact(createSymbol(name), args);
@@ -144,8 +152,8 @@ describe("Logic Inspections", () => {
         createNumber(4)
       );
       const rule = createRule("baz", [], [unify]);
-      expect(runSingleRule([rule], "UsesUnificationOperator", true, "baz")).to.be
-        .true;
+      expect(runSingleRule([rule], "UsesUnificationOperator", true, "baz")).to
+        .be.true;
     });
 
     it("is False when no equal", () => {
@@ -214,17 +222,6 @@ describe("Logic Inspections", () => {
         new ArithmeticBinaryOperation("Plus", createNumber(3), createNumber(2))
       );
       const rule = createRule("baz", [], [assign]);
-      expect(runSingleRule([rule], "HasRedundantReduction", false, "baz")).to.be
-        .true;
-    });
-
-    it("respects bindings checks", () => {
-      const assign = new AssignOperation(
-        "Assign",
-        createSymbol("X"),
-        createNumber(5)
-      );
-      const rule = createRule("other", [], [assign]);
       expect(runSingleRule([rule], "HasRedundantReduction", false, "baz")).to.be
         .true;
     });

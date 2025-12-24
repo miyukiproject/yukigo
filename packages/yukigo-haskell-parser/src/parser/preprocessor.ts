@@ -130,6 +130,8 @@ const grammar: Grammar = {
     {"name": "operator$subexpression$1", "symbols": [{"literal":"*"}]},
     {"name": "operator$subexpression$1", "symbols": [{"literal":"/"}]},
     {"name": "operator$subexpression$1", "symbols": [{"literal":":"}]},
+    {"name": "operator$subexpression$1", "symbols": [{"literal":"$"}]},
+    {"name": "operator$subexpression$1", "symbols": [{"literal":"."}]},
     {"name": "operator", "symbols": ["operator$subexpression$1"], "postprocess": (d) => d[0][0].value},
     {"name": "left_section", "symbols": [{"literal":"("}, "_", "expression", "_", "operator", "_", {"literal":")"}], "postprocess": (d) => `(${d[2]} ${d[4]})`},
     {"name": "right_section", "symbols": [{"literal":"("}, "_", "operator", "_", "expression", "_", {"literal":")"}], "postprocess": (d) => `(${d[2]} ${d[4]})`},

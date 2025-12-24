@@ -37,7 +37,12 @@ import {
 import { Visitor } from "../visitor.js";
 import { Operation } from "./operators.js";
 import { Pattern } from "./patterns.js";
-import { LazyList, RuntimeClass, RuntimeFunction, RuntimeObject } from "./runtime.js";
+import {
+  LazyList,
+  RuntimeClass,
+  RuntimeFunction,
+  RuntimeObject,
+} from "./runtime.js";
 import { Type, TypeAlias, TypeCast, TypeSignature } from "./types.js";
 
 export type Modify<T, R> = Omit<T, keyof R> & R;
@@ -871,6 +876,12 @@ export class UnguardedBody extends ASTNode {
       sequence: this.sequence.toJSON(),
     };
   }
+}
+
+export function isUnguardedBody(
+  body: UnguardedBody | GuardedBody[]
+): body is UnguardedBody {
+  return !Array.isArray(body);
 }
 
 /**

@@ -107,7 +107,9 @@ operator ->
     | ","
     | "*"
     | "/"
-    | ":") {% (d) => d[0][0].value %}
+    | ":"
+    | "$"
+    | ".") {% (d) => d[0][0].value %}
 
 left_section -> "(" _ expression _ operator _ ")" {% (d) => `(${d[2]} ${d[4]})`%}
 
