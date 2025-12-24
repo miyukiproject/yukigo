@@ -7,9 +7,9 @@ type MulangInspection = {
 };
 
 const isValidFormat = (inspection: any): inspection is MulangInspection =>
-  !inspection ||
-  typeof inspection.inspection !== "string" ||
-  typeof inspection.binding !== "string";
+  typeof inspection === "object" &&
+  "inspection" in inspection &&
+  "binding" in inspection;
 
 /**
  * Translates Mulang inspections (YAML format) to an array of `InspectionRule` objects.

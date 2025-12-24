@@ -102,7 +102,7 @@ describe("Parser Tests", () => {
     ]);
   });
   it("should parse if statement", () => {
-    const code = `if(a != b) { c := a + b; } else { c := a * 2; };`;
+    const code = `if (a != b) { c := a + b; } else { c := a * 2; };`;
     assert.deepEqual(parser.parse(code), [
       new If(
         new ComparisonOperation(
@@ -129,12 +129,12 @@ describe("Parser Tests", () => {
               new NumberPrimitive(2)
             )
           ),
-        ]),
+        ])
       ),
     ]);
   });
   it("should parse while loop statement", () => {
-    const code = `while(a < 10) { a := a + 1; };`;
+    const code = `while (a < 10) { a := a + 1; };`;
     assert.deepEqual(parser.parse(code), [
       new While(
         new ComparisonOperation(
@@ -151,7 +151,7 @@ describe("Parser Tests", () => {
               new NumberPrimitive(1)
             )
           ),
-        ]),
+        ])
       ),
     ]);
   });

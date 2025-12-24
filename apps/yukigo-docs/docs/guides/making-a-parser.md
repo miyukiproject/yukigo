@@ -30,16 +30,42 @@ We will be using [nearley.js](https://nearley.js.org/) as our parser generator, 
 Let's start a new Yukigo Parser project with `create-yukigo-parser`.
 
 ```sh
-> mkdir yukigo-mini-parser
-> cd yukigo-mini-parser
-> npx create-yukigo-parser
+mkdir yukigo-mini-parser
+cd yukigo-mini-parser
+npx create-yukigo-parser
 ```
+```
+Need to install the following packages:
+create-yukigo-parser@0.1.1
+Ok to proceed? (y)
+
+✔ Project Name: mini
+
+✨ Starting project setup for: yukigo-mini-parser
+
+📁 Setting up project in ~/yukigo-mini-parser...
+✅ Initial project setted up correctly.
+✔ Do you want to initialize a git repository with the name 'yukigo-mini-parser'? No
+✔ Do you want to install dependencies automatically? Yes
+
+-----------------------------------------------------------------------------------
+Success! Project yukigo-mini-parser is ready.
+-----------------------------------------------------------------------------------
+
+Next steps:
+1. cd yukigo-mini-parser
+2. Start coding: npm start (or npm run build)
+
+Happy parsing! :)
+```
+
+You can choose to initialize the repository or install dependencies as you like.
 
 ## Lexer
 
-Great! We have a base to work on. Now let's work on the lexer, this is the component reponsible for lexical tokenization, the process where a string is converted to meaningful tokens.
+Great! We have a base to work on. Now let's work on the lexer, this is the component reponsible for lexical tokenization, the process where a set of characters is grouped and converted into meaningful tokens.
 
-IN the `src/lexer.ts` file, let's define the meaningful tokens in our language:
+In the `src/lexer.ts` file, let's define the meaningful tokens in our language:
 ```ts
 import moo from "moo";
 import { makeLexer } from "moo-ignore";
