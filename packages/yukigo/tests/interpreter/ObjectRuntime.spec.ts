@@ -90,6 +90,7 @@ describe("ObjectRuntime", () => {
   beforeEach(() => {
     objectInstance = ObjectRuntime.instantiate(
       className,
+      "obj",
       initialFields,
       methods
     );
@@ -103,7 +104,7 @@ describe("ObjectRuntime", () => {
 
     it("debe clonar el mapa de campos (no usar la referencia original)", () => {
       const fieldsDef = new Map([["x", 1]]);
-      const obj = ObjectRuntime.instantiate("A", fieldsDef, new Map());
+      const obj = ObjectRuntime.instantiate("A", "objA", fieldsDef, new Map());
 
       fieldsDef.set("x", 2);
 
@@ -235,7 +236,12 @@ describe("ObjectRuntime", () => {
       );
       env.head.set("Perro", createClass("Perro", "Animal"));
 
-      const perro = ObjectRuntime.instantiate("Perro", new Map(), new Map());
+      const perro = ObjectRuntime.instantiate(
+        "Perro",
+        "dogObj",
+        new Map(),
+        new Map()
+      );
 
       const res = ObjectRuntime.dispatch(perro, "speak", [], env, dummyFactory);
       expect(res).to.equal("Guau");
@@ -253,7 +259,7 @@ describe("ObjectRuntime", () => {
       env.head.set("B", createClass("B", "A"));
       env.head.set("C", createClass("C", "B"));
 
-      const objC = ObjectRuntime.instantiate("C", new Map(), new Map());
+      const objC = ObjectRuntime.instantiate("C", "objC", new Map(), new Map());
       expect(
         ObjectRuntime.dispatch(objC, "id", [], env, dummyFactory)
       ).to.equal(1);
@@ -273,7 +279,12 @@ describe("ObjectRuntime", () => {
         createClass("Ave", undefined, undefined, ["Volador"])
       );
 
-      const pepita = ObjectRuntime.instantiate("Ave", new Map(), new Map());
+      const pepita = ObjectRuntime.instantiate(
+        "Ave",
+        "birdObj",
+        new Map(),
+        new Map()
+      );
       expect(
         ObjectRuntime.dispatch(pepita, "volar", [], env, dummyFactory)
       ).to.equal("Wosh");
@@ -297,7 +308,12 @@ describe("ObjectRuntime", () => {
         createClass("Heroe", undefined, undefined, ["HabilidadB"])
       );
 
-      const heroe = ObjectRuntime.instantiate("Heroe", new Map(), new Map());
+      const heroe = ObjectRuntime.instantiate(
+        "Heroe",
+        "heroObj",
+        new Map(),
+        new Map()
+      );
       expect(
         ObjectRuntime.dispatch(heroe, "skill", [], env, dummyFactory)
       ).to.equal("Fire");
@@ -331,7 +347,12 @@ describe("ObjectRuntime", () => {
         )
       );
 
-      const child = ObjectRuntime.instantiate("Child", new Map(), new Map());
+      const child = ObjectRuntime.instantiate(
+        "Child",
+        "childObj",
+        new Map(),
+        new Map()
+      );
       expect(
         ObjectRuntime.dispatch(child, "val", [], env, dummyFactory)
       ).to.equal(3);
@@ -359,7 +380,12 @@ describe("ObjectRuntime", () => {
         createClass("Child", "Super", undefined, ["Mixin"])
       );
 
-      const child = ObjectRuntime.instantiate("Child", new Map(), new Map());
+      const child = ObjectRuntime.instantiate(
+        "Child",
+        "childObj",
+        new Map(),
+        new Map()
+      );
       expect(
         ObjectRuntime.dispatch(child, "val", [], env, dummyFactory)
       ).to.equal(2);
@@ -388,7 +414,12 @@ describe("ObjectRuntime", () => {
         createClass("Clase", undefined, undefined, ["MixinA", "MixinB"])
       );
 
-      const obj = ObjectRuntime.instantiate("Clase", new Map(), new Map());
+      const obj = ObjectRuntime.instantiate(
+        "Clase",
+        "objC",
+        new Map(),
+        new Map()
+      );
       expect(
         ObjectRuntime.dispatch(obj, "val", [], env, dummyFactory)
       ).to.equal(20);
@@ -417,7 +448,12 @@ describe("ObjectRuntime", () => {
         createClass("Clase", undefined, undefined, ["MixinB", "MixinA"])
       );
 
-      const obj = ObjectRuntime.instantiate("Clase", new Map(), new Map());
+      const obj = ObjectRuntime.instantiate(
+        "Clase",
+        "obj",
+        new Map(),
+        new Map()
+      );
       expect(
         ObjectRuntime.dispatch(obj, "val", [], env, dummyFactory)
       ).to.equal(10);
@@ -466,6 +502,7 @@ describe("ObjectRuntime", () => {
 
       const hijoInstance = ObjectRuntime.instantiate(
         "Hijo",
+        "childObj",
         new Map(),
         new Map()
       );
