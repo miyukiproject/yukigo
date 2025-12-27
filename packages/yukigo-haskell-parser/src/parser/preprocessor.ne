@@ -1,13 +1,10 @@
-@{%
-import { HSLexer } from "./lexer.js"
+@{% import { PreprocessorLexer } from "./lexer.js"
 
 const filter = d => {
     return d.filter((token) => token !== null);
 };
 
-%}
-@preprocessor typescript
-@lexer HSLexer
+%} @preprocessor typescript @lexer PreprocessorLexer
 
 program -> 
   declaration:* {% (d) => d[0].filter(x => x !== null).join("\n") %}
@@ -163,13 +160,13 @@ field_exp -> variable _ "=" _ expression {% (d) => d[0] + ` = ` + d[4] %}
 
 if_expression -> 
   "if" (__ | (_ %NL _)) expression (__ | (_ %NL _)) "then" (__ | (_ %NL __)) expression (__ | (_ %NL _)) "else" (__ | (_ %NL __)) expression {% 
-  (d) => `if ` + d[2] + ` then ` + d[6] + ` else ` + d[10]
+  (d) => `if ` + d[2] + ` then ` + d[6] + ` else ` + d[10] 
 %}
 
-letin_expression -> "let" (_ | (_ "{" _) | (_ %NL __)) bindings_list:? (_ | (_ "}" _) | (_ %NL __)) "in" ((_ %NL __) | _) expression {% (d) => `let { ${(d[2] ?? ``)} }` + ` in ` +  d[6] %}
+letin_expression -> "let" block_start bindings_list:? block_end "in" ((_ %NL __) | _) expression {% (d) => `let { ${(d[2] ?? ``)} }` + ` in ` +  d[6] %}
 
 case_expression -> 
-    "case" ((_ %NL __) | _) expression ((_ %NL __) | _) "of" (_ | (_ "{" _) | (_ %NL __)) case_arms (_ "}" _):? {% (d) => `case ${d[2]} of { ${d[6]} }` %}
+    "case" ((_ %NL __) | _) expression ((_ %NL __) | _) "of" block_start case_arms block_end:? {% (d) => `case ${d[2]} of { ${d[6]} }` %}
 
 case_arms -> 
     case_arm (((_ %NL __) | (_ ";" _)) case_arm):* {% (d) => [d[0], ...d[1].map(x => x[1])].join("; ") %}
@@ -216,24 +213,35 @@ function_declaration ->
 
 return_expression -> expression {% d => d[0] %}
 
-where_clause -> "where" (_ | (_ "{" _) | (_ %NL __)) bindings_list (_ | (_ "}" _)) {% d => `where { ${d[2]} }` %}
+where_clause -> "where" block_start bindings_list block_end {% d => `where { ${d[2]} }` %}
 
-bindings_list -> function_declaration (((_ ";" _) | (_ %NL __)) function_declaration):* {% d => [d[0], ...d[1].map(x => x[1])].join('; ') %}
+bindings_list -> function_declaration (((_ ";" _) | (_ %NL indent:? __)) function_declaration):* {% d => [d[0], ...d[1].map(x => x[1])].join('; ') %}
 
 equation -> 
-  params (%NL __):? guarded_rhs (((_ %NL __) | _) where_clause):? {% (d) => {
-      const body = d[2];
-      const whereClause = d[3] ? ` ` + d[3][1] : ``;
+  params guarded_rhs equation_where:? {% (d) => {
+      const body = d[1];
+      const whereClause = d[3] ? ` ` + d[3] : ``;
       return d[0] + ` ` + body + whereClause;
     } %}
-  | params %assign ((_ %NL __) | _) return_expression (((_ %NL __) | _) where_clause):? {% d => d[0] + ` = ` + d[3] + (d[4] ? ` ` + d[4][1] : ``) %}
+  | params (_ %NL indent __) guarded_rhs (_ %NL _):? (equation_where:? | dedent) {% (d) => {
+      const body = d[2];
+      const whereClause = d[3] ? ` ` + d[3] : ``;
+      return d[0] + ` ` + body + whereClause;
+    } %}
+  | params %assign _ return_expression equation_where:? {% d => d[0] + ` = ` + d[3] + (d[4] ? ` ` + d[4] : ``) %}
+  | params %assign (_ %NL indent __) return_expression (equation_where:? | dedent) {% d => d[0] + ` = ` + d[3] + (d[4] ? ` ` + d[4] : ``) %}
+
+equation_where -> 
+    (_ %NL) indent __ where_clause dedent {% d => d[3] %}
+  | where_clause {% d => d[1] %}
 
 params ->
   __ parameter_list _ {% d => ` ${d[1]}` %}
   | _ {% d => `` %}
 
 guarded_rhs -> 
-  guarded_branch ((_ %NL __) | _) guarded_rhs {% (d) => `${d[0]} ${d[2]}` %}
+  guarded_branch (_ %NL indent __) guarded_rhs (_ %NL _):? dedent {% (d) => `${d[0]} ${d[2]}` %}
+  | guarded_branch ((_ %NL __) | _) guarded_rhs {% (d) => `${d[0]} ${d[2]}` %}
   | guarded_branch {% (d) => d[0] %}
 
 guarded_branch -> 
@@ -375,3 +383,9 @@ primitive ->
 _ -> %WS:*
 
 __ -> %WS:+
+
+indent -> %indent {% d => "" %}
+dedent -> %dedent {% d => "" %}
+
+block_start -> _ "{" _ | _ indent _ | _ %NL __ | _
+block_end -> _ "}" _ | _ dedent _ | _ %NL _ dedent _ | _ %NL __ | _

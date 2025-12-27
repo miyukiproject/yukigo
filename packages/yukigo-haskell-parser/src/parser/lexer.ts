@@ -25,13 +25,19 @@ export const HaskellLexerConfig = {
   typeArrow: "->",
   leftArrow: "<-",
   typeEquals: "::",
-  question: "?",
   arrow: "=>",
+  op: {
+    match: /,|>>=|>>|\\\\|\\|\.|\+\+|\+|\-|\*\*|\*|===|!==|==|\/=|<=|>=|<|>|&&|\/|\|\||\.\.|\$|\^\^|\^|#|@|~|!!|!|%|\?|:|&|`/,
+    lineBreaks: false,
+  },
+  assign: "=",
+  backslash: "\\",
+  pipe: "|",
+  at: "@",
+  tilde: "~",
   bool: {
     match: ["True", "False"],
   },
-  op: /,|>>=|>>|\\\\|\\|\.|\+\+|\+|\-|\*\*|\*|===|!==|==|\/=|<=|>=|<|>|&&|\/|\|\||\.\.|\$|\^\^|\^|#|@|~|!!|!|%|\?|:|&|\||`/,
-  assign: "=",
   constructor: {
     match: /[A-Z][a-zA-Z0-9']*/,
     type: moo.keywords({
@@ -67,6 +73,8 @@ export const HaskellLexerConfig = {
       keyword: keywords,
     }),
   },
+  indent: { match: /(?!)/, lineBreaks: false },
+  dedent: { match: /(?!)/, lineBreaks: false },
 };
 
 export const HSLexer: Lexer = makeLexer(HaskellLexerConfig, []);
