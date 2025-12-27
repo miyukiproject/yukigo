@@ -16,6 +16,7 @@ import {
   StopTraversalException,
   SymbolPrimitive,
   Variable,
+  VariablePattern,
 } from "yukigo-ast";
 import { AutoScoped, ScopedVisitor, VisitorConstructor } from "../../utils.js";
 
@@ -280,7 +281,7 @@ export class HasUsageTypos extends ScopedVisitor {
 }
 
 @AutoScoped
-export class HasWrongCaseIdentifiers extends ScopedVisitor {
+export class UsesWrongCaseBindings extends ScopedVisitor {
   private readonly caseType: "camel" | "snake" | "pascal";
 
   constructor(caseType: string = "camel", scopeName?: string) {
@@ -288,15 +289,14 @@ export class HasWrongCaseIdentifiers extends ScopedVisitor {
     this.caseType = caseType as any;
   }
 
-  visitVariable(node: Variable): void {
-    this.checkCase(node.identifier.value);
-  }
-
-  visitFunction(node: Function): void {
-    this.checkCase(node.identifier.value);
+  visitSymbolPrimitive(node: SymbolPrimitive): void {
+    this.checkCase(node.value);
   }
 
   private checkCase(name: string): void {
+    // Ignore operators (names not starting with a letter or underscore)
+    if (!/^[a-zA-Z_]/.test(name)) return;
+
     let regex: RegExp;
 
     switch (this.caseType) {
@@ -358,7 +358,8 @@ export const genericSmells: Record<string, VisitorConstructor> = {
   HasRedundantLocalVariableReturn: HasRedundantLocalVariableReturn,
   HasTooShortIdentifiers: HasTooShortIdentifiers,
   HasUsageTypos: HasUsageTypos,
-  HasWrongCaseIdentifiers: HasWrongCaseIdentifiers,
+  HasWrongCaseIdentifiers: UsesWrongCaseBindings,
+  UsesWrongCaseBindings: UsesWrongCaseBindings,
   IsLongCode: IsLongCode,
   ShouldInvertIfCondition: ShouldInvertIfCondition,
 };
