@@ -7,10 +7,12 @@ import {
   Procedure,
   Rule,
   TraverseVisitor,
+  Variable,
 } from "yukigo-ast";
 
 export interface VisitorConstructor {
   new (...args: any[]): TraverseVisitor;
+  IS_INTRANSITIVE?: boolean;
 }
 export type InspectionMap = Record<string, VisitorConstructor>;
 
@@ -24,6 +26,9 @@ export class ScopedVisitor extends TraverseVisitor {
     this.inScope = !binding; // global (inScope always true) if no binding is provided
   }
 
+  visitVariable(node: Variable): void {
+    this.manageScope(node, () => super.visitVariable(node));
+  }
   visitFunction(node: Function): void {
     this.manageScope(node, () => super.visitFunction(node));
   }
@@ -73,7 +78,6 @@ export function AutoScoped<T extends { new (...args: any[]): any }>(
     }
   }
 }
-
 function isScopeBoundary(name: string): boolean {
   return [
     "visitFunction",
@@ -81,6 +85,9 @@ function isScopeBoundary(name: string): boolean {
     "visitProcedure",
     "visitRule",
     "visitFact",
+    "visitVariable",
+    "visitClass",
+    "visitObject",
   ].includes(name);
 }
 const isValidVisitMethod = (name: string) =>

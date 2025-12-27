@@ -19,6 +19,7 @@ import {
   Statement,
   Print,
   StringPrimitive,
+  Variable,
 } from "yukigo-ast";
 import { Analyzer, InspectionRule } from "../../src/analyzer/index.js";
 
@@ -35,7 +36,7 @@ describe("OOP Inspections", () => {
   ) => {
     const rule: InspectionRule = { inspection, binding, args, expected };
     const results = analyzer.analyze(ast, [rule]);
-    const result = results[0]; // Assuming only one rule is passed
+    const result = results[0];
     return result.passed;
   };
 
@@ -104,13 +105,17 @@ describe("OOP Inspections", () => {
     it("should detect if an attribute with the specific name is declared", () => {
       const attr = createAttribute("energy");
       const ast = [createClass("A", [attr])];
-      expect(runSingleRule(ast, "DeclaresAttribute", true, undefined, ["energy"])).to.be.true;
+      expect(
+        runSingleRule(ast, "DeclaresAttribute", true, undefined, ["energy"])
+      ).to.be.true;
     });
 
     it("should ignore attributes with different names", () => {
       const attr = createAttribute("life");
       const ast = [createClass("A", [attr])];
-      expect(runSingleRule(ast, "DeclaresAttribute", false, undefined, ["energy"])).to.be.true;
+      expect(
+        runSingleRule(ast, "DeclaresAttribute", false, undefined, ["energy"])
+      ).to.be.true;
     });
   });
 
@@ -123,8 +128,11 @@ describe("OOP Inspections", () => {
 
   describe("DeclaresInterface", () => {
     it("should detect specific interface declaration", () => {
-      const ast = [new Interface(createSymbol("Flyable"), [], {} as any)];
-      expect(runSingleRule(ast, "DeclaresInterface", true, "Flyable")).to.be.true;
+      const ast = [
+        new Interface(createSymbol("Flyable"), [], new Sequence([])),
+      ];
+      expect(runSingleRule(ast, "DeclaresInterface", true, "Flyable")).to.be
+        .true;
     });
   });
 
@@ -145,36 +153,44 @@ describe("OOP Inspections", () => {
   describe("DeclaresPrimitive", () => {
     it("should detect primitive operator override", () => {
       const op: any = "==";
-      const ast = [new PrimitiveMethod(op, [], undefined as any)];
-      expect(runSingleRule(ast, "DeclaresPrimitive", true, "==")).to.be.true;
+      const ast = [new PrimitiveMethod(op, [], undefined)];
+      expect(runSingleRule(ast, "DeclaresPrimitive", true, undefined, ["=="]))
+        .to.be.true;
     });
   });
 
   describe("DeclaresSuperclass", () => {
     it("should detect if a class extends a specific superclass", () => {
       const ast = [createClass("Sparrow", [], "Bird")];
-      expect(runSingleRule(ast, "DeclaresSuperclass", true, "Bird")).to.be.true;
+      expect(
+        runSingleRule(ast, "DeclaresSuperclass", true, undefined, ["Bird"])
+      ).to.be.true;
     });
   });
 
   describe("Implements", () => {
     it("should detect if a class implements a specific interface", () => {
       const ast = [createClass("Pigeon", [], undefined, "Messenger")];
-      expect(runSingleRule(ast, "Implements", true, "Messenger")).to.be.true;
+      expect(runSingleRule(ast, "Implements", true, undefined, ["Messenger"]))
+        .to.be.true;
     });
   });
 
   describe("IncludeMixin", () => {
     it("should detect usage of a specific mixin", () => {
-      const ast = [createClass("ClassWithMixin", [], undefined, undefined, ["Walking"])];
-      expect(runSingleRule(ast, "IncludeMixin", true, "Walking")).to.be.true;
+      const ast = [
+        createClass("ClassWithMixin", [], undefined, undefined, ["Walking"]),
+      ];
+      expect(runSingleRule(ast, "IncludeMixin", true, undefined, ["Walking"]))
+        .to.be.true;
     });
   });
 
   describe("Instantiates", () => {
     it("should detect instantiation of a specific class", () => {
-      const ast = [createNew("Engine")];
-      expect(runSingleRule(ast, "Instantiates", true, "Engine")).to.be.true;
+      const ast = [new Variable(new SymbolPrimitive("a"), createNew("Engine"))];
+      expect(runSingleRule(ast, "Instantiates", true, undefined, ["Engine"])).to
+        .be.true;
     });
   });
 
@@ -185,14 +201,16 @@ describe("OOP Inspections", () => {
       const class1 = createClass("Bird", [method1]);
       const class2 = createClass("Airplane", [method2]);
       const ast = [class1, class2];
-      expect(runSingleRule(ast, "UsesDynamicPolymorphism", true, "fly")).to.be.true;
+      expect(runSingleRule(ast, "UsesDynamicPolymorphism", true, undefined, ["fly"]))
+        .to.be.true;
     });
 
     it("should not throw if only one method is found", () => {
       const method1 = createMethod("fly");
       const class1 = createClass("Bird", [method1]);
       const ast = [class1];
-      expect(runSingleRule(ast, "UsesDynamicPolymorphism", false, "fly")).to.be.true;
+      expect(runSingleRule(ast, "UsesDynamicPolymorphism", false, "fly")).to.be
+        .true;
     });
   });
 
@@ -203,7 +221,13 @@ describe("OOP Inspections", () => {
     });
 
     it("should detect inheritance in interfaces", () => {
-      const ast = [new Interface(createSymbol("IChild"), [createSymbol("IParent")], {} as any)];
+      const ast = [
+        new Interface(
+          createSymbol("IChild"),
+          [createSymbol("IParent")],
+          new Sequence([])
+        ),
+      ];
       expect(runSingleRule(ast, "UsesInheritance", true)).to.be.true;
     });
 
@@ -215,7 +239,9 @@ describe("OOP Inspections", () => {
 
   describe("UsesMixins", () => {
     it("should detect any mixin usage", () => {
-      const ast = [createClass("ClassWithMixin", [], undefined, undefined, ["AnyMixin"])];
+      const ast = [
+        createClass("ClassWithMixin", [], undefined, undefined, ["AnyMixin"]),
+      ];
       expect(runSingleRule(ast, "UsesMixins", true)).to.be.true;
     });
   });
@@ -229,7 +255,10 @@ describe("OOP Inspections", () => {
     });
 
     it("should ignore attributes initialized with literals", () => {
-      const attr = createAttribute("energy", new StringPrimitive("Initialized with string!"));
+      const attr = createAttribute(
+        "energy",
+        new StringPrimitive("Initialized with string!")
+      );
       const ast = [createClass("A", [attr])];
       expect(runSingleRule(ast, "UsesObjectComposition", false)).to.be.true;
     });
@@ -268,7 +297,11 @@ describe("OOP Inspections", () => {
   describe("UsesTemplateMethod", () => {
     it("should detect template method usage (call to undeclared method on self)", () => {
       const declaredMethod = createMethod("abstractMethod", 1, true);
-      const sendToSelf = new Send(new Self(), createSymbol("abstractMethod"), []);
+      const sendToSelf = new Send(
+        new Self(),
+        createSymbol("abstractMethod"),
+        []
+      );
       const templateMethod = createMethod("process", 1, false, sendToSelf);
       const ast = [createClass("MyClass", [declaredMethod, templateMethod])];
       expect(runSingleRule(ast, "UsesTemplateMethod", true)).to.be.true;
