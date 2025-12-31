@@ -3,8 +3,6 @@ import nearley from "nearley";
 import { groupFunctionDeclarations } from "./utils/helpers.js";
 import { TypeChecker } from "./typechecker/checker.js";
 import { AST, Expression, YukigoParser } from "yukigo-ast";
-import { inspect } from "util";
-import { preprocessor } from "./parser/layoutPreprocessor.js";
 import { preludeCode } from "./prelude.js";
 import { Token } from "moo";
 
@@ -50,8 +48,8 @@ export class YukigoHaskellParser implements YukigoParser {
   }
 
   public parse(code: string): AST {
-    const processedCode = preprocessor(code);
-    const result = this.feedParser(processedCode);
+    //const processedCode = preprocessor(code);
+    const result = this.feedParser(code);
     const ast = groupFunctionDeclarations(this.prelude.concat(result));
     if (this.config.typecheck) {
       const typeChecker = new TypeChecker();
@@ -64,8 +62,8 @@ export class YukigoHaskellParser implements YukigoParser {
     return ast;
   }
   public parseExpression(code: string): Expression {
-    const processedCode = preprocessor(code);
-    const expr = this.feedParser(processedCode)[0];
+    //const processedCode = preprocessor(code);
+    const expr = this.feedParser(code)[0];
     return expr;
   }
   private feedParser(code: string): any {
