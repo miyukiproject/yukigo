@@ -1,34 +1,30 @@
-import moo, { Lexer, Token } from "moo";
+import moo, { Lexer, LexerState, Token } from "moo";
 import { keywords } from "../utils/types.js";
-
-// --- 1. Definición de Tipos y Estado ---
+declare module "moo" {
+  interface Lexer {
+    index: number; // Add the missing property to the type definition
+  }
+}
 
 interface LayoutState {
-  stack: number[]; // Pila de indentación (ej: [0, 4, 8])
-  tokenBuffer: Token[]; // Tokens pendientes de entregar
-  expectingBlock: boolean; // ¿El último token fue 'where', 'do', etc?
+  stack: number[]; // indentation stack (follows moo naming)
+  tokenBuffer: Token[];
+  expectingBlock: boolean;
   firstTokenProcessed: boolean;
 }
-
-// Necesario para save/restore
-interface FullState {
-  mooState: any;
+type FullState = {
   layoutState: LayoutState;
-}
+  mooIndex?: number;
+} & LexerState;
 
-// --- 2. Configuración de Moo (Sin cambios mayores) ---
-// Es importante capturar WS y NL para calcular posiciones, pero no emitirlos al parser.
 export const HaskellLexerConfig = {
-  // Comentarios: consumirlos o emitirlos según prefieras (aquí se emiten pero el lexer wrapper los filtra)
   comment: { match: /--.*?$|{-[\s\S]*?-}/, lineBreaks: true },
 
-  // Literales
   number:
     /0[xX][0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+|(?:\d*\.\d+|\d+)(?:[eE][+-]?\d+)?/,
   char: /'(?:\\['\\bfnrtv0]|\\u[0-9a-fA-F]{4}|[^'\\\n\r])?'/,
   string: /"(?:\\["\\bfnrtv0]|\\u[0-9a-fA-F]{4}|[^"\\\n\r])*"/,
 
-  // Estructura
   lparen: "(",
   rparen: ")",
   lbracket: "{",
@@ -36,7 +32,7 @@ export const HaskellLexerConfig = {
   lsquare: "[",
   rsquare: "]",
   semicolon: ";",
-  // Operadores y resto
+
   typeArrow: "->",
   leftArrow: "<-",
   typeEquals: "::",
@@ -61,21 +57,17 @@ export const HaskellLexerConfig = {
   variable: {
     match: /[a-z_][a-zA-Z0-9_']*/,
     type: moo.keywords({ otherwise: "otherwise", keyword: keywords }),
-  }, // 'in' ya está arriba
+  },
 
-  // Espacios
   NL: { match: /\r?\n/, lineBreaks: true },
   WS: { match: /[ \t]+/, lineBreaks: false },
-  any: { match: /.+/, lineBreaks: true },
 };
 
-// --- 3. La Clase Wrapper (Tu "Yulex" ligero) ---
-
 export class HaskellLayoutLexer implements Lexer {
+  public index: number;
   private mooLexer: Lexer;
   private state: LayoutState;
 
-  // Estos tokens activan la búsqueda de un nuevo bloque
   private readonly layoutTriggers = new Set(["where", "let", "do", "of"]);
   private readonly noSemicolonKeywords = new Set(["in", "then", "else", "of"]);
 
@@ -89,7 +81,6 @@ export class HaskellLayoutLexer implements Lexer {
     };
   }
 
-  // --- Implementación de Iterator (para for..of) ---
   [Symbol.iterator](): Iterator<Token> {
     return {
       next: () => {
@@ -101,20 +92,18 @@ export class HaskellLayoutLexer implements Lexer {
     };
   }
 
-  // --- Reset y Save (Vital para Nearley) ---
-
-  reset(chunk?: string, state?: any): this {
+  reset(chunk?: string, state?: FullState): this {
     if (state && state.layoutState) {
-      const fullState = state as FullState & { mooIndex?: number };
+      const fullState = state;
       this.state = {
         stack: [...fullState.layoutState.stack],
         tokenBuffer: [...fullState.layoutState.tokenBuffer],
         expectingBlock: fullState.layoutState.expectingBlock,
         firstTokenProcessed: fullState.layoutState.firstTokenProcessed,
       };
-      this.mooLexer.reset(chunk, fullState.mooState);
+      this.mooLexer.reset(chunk, fullState);
       if (typeof fullState.mooIndex === "number") {
-        (this.mooLexer as any).index = fullState.mooIndex;
+        this.mooLexer.index = fullState.mooIndex;
       }
     } else {
       this.state = {
@@ -128,10 +117,10 @@ export class HaskellLayoutLexer implements Lexer {
     return this;
   }
 
-  save(): any {
+  save(): FullState {
     return {
-      mooState: this.mooLexer.save(),
-      mooIndex: (this.mooLexer as any).index,
+      ...this.mooLexer.save(),
+      mooIndex: this.mooLexer.index,
       layoutState: {
         stack: [...this.state.stack],
         tokenBuffer: [...this.state.tokenBuffer],
@@ -141,7 +130,6 @@ export class HaskellLayoutLexer implements Lexer {
     };
   }
 
-  // --- Métodos Delegados ---
   pushState(state: string) {
     this.mooLexer.pushState(state);
   }
@@ -155,100 +143,41 @@ export class HaskellLayoutLexer implements Lexer {
     return this.mooLexer.formatError(token, message);
   }
   has(tokenType: string) {
-    return true;
+    return true; // deprecated in moo but Lexer interface requires it.
   }
 
-  // --- EL CORAZÓN DE LA LÓGICA (next) ---
-
   next(): Token | undefined {
-    let tokenToReturn: Token | undefined;
+    let token: Token | undefined;
 
-    // 1. Intentar sacar del buffer
     if (this.state.tokenBuffer.length > 0) {
-      tokenToReturn = this.state.tokenBuffer.shift();
+      token = this.state.tokenBuffer.shift();
     } else {
-      // 2. Si no, leer siguiente token real (saltando WS)
-      const { token, crossedNewline } = this.advanceSkippingWhitespace();
-      if (!token) return this.emitEOF();
-
-      // Lógica A: Iniciar bloque pendiente (ej: después de do/let/where)
-      // Si esperamos bloque, el SIGUIENTE token define la indentación.
-      if (this.state.expectingBlock) {
-        this.state.expectingBlock = false;
-        if (token.type === "lbracket") {
-          // Bloque explícito '{', no hacemos magia
-          tokenToReturn = token;
-        } else {
-          // Bloque implícito: inyectamos '{' y apilamos indentación
-          this.state.stack.push(token.col);
-          this.enqueue(token);
-          tokenToReturn = this.createVirtualToken("lbracket", "{", token);
-        }
-      }
-      // Lógica D: Caso especial 'in' (dedent explícito o cierre inline)
-      else if (token.value === "in") {
-        const stackTop = this.state.stack[this.state.stack.length - 1];
-        if (token.col < stackTop) {
-          this.enqueue(token);
-          tokenToReturn = this.closeBlocksUntil(token.col, token);
-        } else {
-          // Inline o Aligned: 'in' siempre cierra el bloque actual
-          if (this.state.stack.length > 1) {
-            this.state.stack.pop();
-            this.enqueue(token);
-            tokenToReturn = this.createVirtualToken("rbracket", "}", token);
-          } else {
-            tokenToReturn = token;
-          }
-        }
-      }
-      // Lógica B: Manejo de indentación tras salto de línea
-      else if (crossedNewline) {
-        const currentIndent = token.col;
-        const stackTop = this.state.stack[this.state.stack.length - 1];
-
-        if (currentIndent === stackTop) {
-          // Misma indentación -> separador ';'
-          // EVITAR ';' si es el primer token del archivo
-          const isContinuationKeyword =
-            token.value && this.noSemicolonKeywords.has(token.value);
-          if (this.state.firstTokenProcessed && !isContinuationKeyword) {
-            this.enqueue(token);
-            tokenToReturn = this.createVirtualToken("semicolon", ";", token);
-          } else {
-            tokenToReturn = token;
-          }
-        } else if (currentIndent < stackTop) {
-          // Menos indentación -> cerrar bloques '}'
-          this.enqueue(token);
-          tokenToReturn = this.closeBlocksUntil(currentIndent, token);
-        } else {
-          // Mayor indentación -> continuación de línea, nada especial
-          tokenToReturn = token;
-        }
-      } else {
-        // Token normal
-        tokenToReturn = token;
-      }
+      token = this.fetchAndProcessNextToken();
     }
 
-    // Lógica C (FIX): Detectar Triggers SIEMPRE antes de retornar
-    // Verificamos si el token que VAMOS a entregar es un trigger.
-    if (tokenToReturn && tokenToReturn.value && this.layoutTriggers.has(tokenToReturn.value)) {
-      this.state.expectingBlock = true;
-    }
-
-    if (tokenToReturn) {
+    if (token) {
+      this.checkLayoutTrigger(token);
       this.state.firstTokenProcessed = true;
     }
 
-    return tokenToReturn;
+    return token;
   }
 
-  // --- Helpers Privados ---
+  private fetchAndProcessNextToken(): Token | undefined {
+    const { token: rawToken, crossedNewline } =
+      this.advanceSkippingWhitespace();
 
-  // Avanza el lexer interno consumiendo WS y Comments.
-  // Devuelve el siguiente token REAL y un flag si cruzamos algún NL.
+    if (!rawToken) return this.emitEOF();
+
+    if (this.state.expectingBlock) return this.handleBlockStart(rawToken);
+
+    if (this.isInToken(rawToken)) return this.handleInKeyword(rawToken);
+
+    if (crossedNewline) return this.handleIndentationChange(rawToken);
+
+    return rawToken;
+  }
+
   private advanceSkippingWhitespace(): {
     token: Token | undefined;
     crossedNewline: boolean;
@@ -256,25 +185,14 @@ export class HaskellLayoutLexer implements Lexer {
     let token = this.mooLexer.next();
     let crossedNewline = false;
 
-    while (
-      token &&
-      (token.type === "WS" || token.type === "NL" || token.type === "comment")
-    ) {
-      if (token.type === "NL") {
-        crossedNewline = true;
-      }
+    while (token && this.isSkippableToken(token)) {
+      if (this.isNewlineToken(token)) crossedNewline = true;
       token = this.mooLexer.next();
     }
-
     return { token, crossedNewline };
   }
 
-  // Cierra bloques hasta llegar al nivel deseado
   private closeBlocksUntil(targetIndent: number, sourceToken: Token): Token {
-    // Sacamos items del buffer temporalmente porque queremos inyectar los '}' PRIMERO
-    // Nota: en la lógica de next() ya hicimos enqueue(token), así que el buffer tiene [tokenReal]
-    // Queremos que quede: [}, }, ;, tokenReal]
-
     const ops: Token[] = [];
 
     while (
@@ -285,20 +203,13 @@ export class HaskellLayoutLexer implements Lexer {
       ops.push(this.createVirtualToken("rbracket", "}", sourceToken));
     }
 
-    // Opcional: Si al terminar de cerrar quedamos alineados, metemos un ';'
-    // Esto es estilo Haskell:
-    //   do a
-    //      b
-    //   c  <-- Cierra bloque de b, Y añade ; antes de c
-    // EXCEPCIÓN: Palabras clave que continúan una expresión (in, then, else, of) no llevan ; antes
     const shouldInjectSemicolon =
       !sourceToken.value || !this.noSemicolonKeywords.has(sourceToken.value);
 
-    // Si es 'in' y estamos alineados, cerramos el bloque en lugar de poner ;
     if (
       this.state.stack.length > 1 &&
       this.state.stack[this.state.stack.length - 1] === targetIndent &&
-      sourceToken.value === "in"
+      this.isInToken(sourceToken)
     ) {
       this.state.stack.pop();
       ops.push(this.createVirtualToken("rbracket", "}", sourceToken));
@@ -310,15 +221,13 @@ export class HaskellLayoutLexer implements Lexer {
       ops.push(this.createVirtualToken("semicolon", ";", sourceToken));
     }
 
-    // Inyectamos los tokens generados AL PRINCIPIO del buffer
     this.state.tokenBuffer.unshift(...ops);
 
-    return this.state.tokenBuffer.shift()!; // Devolvemos el primero
+    return this.state.tokenBuffer.shift();
   }
 
   private emitEOF(): Token | undefined {
     if (this.state.stack.length > 1) {
-      // Crear token dummy para EOF
       const dummy = {
         line: 0,
         col: 0,
@@ -326,8 +235,7 @@ export class HaskellLayoutLexer implements Lexer {
         value: "",
         offset: 0,
         lineBreaks: 0,
-      } as Token;
-      // Cerrar todo lo que quede
+      };
       const ops: Token[] = [];
       while (this.state.stack.length > 1) {
         this.state.stack.pop();
@@ -341,6 +249,64 @@ export class HaskellLayoutLexer implements Lexer {
 
   private enqueue(token: Token) {
     this.state.tokenBuffer.push(token);
+  }
+
+  private handleBlockStart(token: Token) {
+    this.state.expectingBlock = false;
+    if (token.type === "lbracket") return token;
+
+    this.state.stack.push(token.col);
+    this.enqueue(token);
+    return this.createVirtualToken("lbracket", "{", token);
+  }
+  private handleInKeyword(token: Token) {
+    const stackTop = this.state.stack[this.state.stack.length - 1];
+    if (token.col < stackTop) {
+      this.enqueue(token);
+      return this.closeBlocksUntil(token.col, token);
+    }
+    if (this.state.stack.length > 1) {
+      this.state.stack.pop();
+      this.enqueue(token);
+      return this.createVirtualToken("rbracket", "}", token);
+    }
+    return token;
+  }
+  private handleIndentationChange(token: Token) {
+    const currentIndent = token.col;
+    const stackTop = this.state.stack[this.state.stack.length - 1];
+
+    if (currentIndent === stackTop) {
+      const isContinuationKeyword =
+        token.value && this.noSemicolonKeywords.has(token.value);
+      if (this.state.firstTokenProcessed && !isContinuationKeyword) {
+        this.enqueue(token);
+        return this.createVirtualToken("semicolon", ";", token);
+      }
+      return token;
+    } else if (currentIndent < stackTop) {
+      this.enqueue(token);
+      return this.closeBlocksUntil(currentIndent, token);
+    }
+    return token;
+  }
+
+  private checkLayoutTrigger(token: Token) {
+    if (token && token.value && this.layoutTriggers.has(token.value))
+      this.state.expectingBlock = true;
+  }
+  private isSkippableToken(token: Token) {
+    return (
+      token.type === "WS" ||
+      this.isNewlineToken(token) ||
+      token.type === "comment"
+    );
+  }
+  private isNewlineToken(token: Token) {
+    return token.type === "NL";
+  }
+  private isInToken(token: Token) {
+    return token.type === "keyword" && token.value === "in";
   }
 
   private createVirtualToken(
@@ -360,5 +326,3 @@ export class HaskellLayoutLexer implements Lexer {
     };
   }
 }
-
-export const HSLexer = new HaskellLayoutLexer();

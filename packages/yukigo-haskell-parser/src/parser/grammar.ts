@@ -15,7 +15,7 @@ declare var char: any;
 declare var string: any;
 declare var bool: any;
 
-import { HSLexer } from "./lexer.js"
+import { HaskellLayoutLexer } from "./lexer.js"
 import {
   TypeCast,
   Application,
@@ -82,6 +82,7 @@ const filter = d => {
 };
 
 const loc = (token) => new SourceLocation(token.line, token.col);
+const HSLexer = new HaskellLayoutLexer();
 
 
 interface NearleyToken {
