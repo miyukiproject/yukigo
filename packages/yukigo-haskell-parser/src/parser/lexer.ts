@@ -52,6 +52,8 @@ export const HaskellLexerConfig = {
   at: "@",
   tilde: "~",
 
+  anonymousVariable: "_",
+
   constructor: {
     match: /[A-Z][a-zA-Z0-9']*/,
     type: moo.keywords({ bool: ["True", "False"] }),
