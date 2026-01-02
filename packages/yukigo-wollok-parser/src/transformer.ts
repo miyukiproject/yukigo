@@ -16,6 +16,7 @@ import {
   Parameter,
   Reference,
   Return,
+  Self,
   Send,
   Singleton,
   Super,
@@ -80,14 +81,15 @@ export class WollokToYukigoTransformer {
   }
   public transformExpr(root: Node): Yu.Expression {
     const result = this.visit(root);
-    return result
+    return result;
   }
 
   private visit(node: Node): any {
-    console.log(node)
     const nodeType = node.constructor ? node.constructor.name : "Unknown";
     // Remove prefix like _ and trailing numbers (e.g., Variable3 -> Variable)
-    const nodeTypeWithoutPrefix = nodeType.replace(/^_/, '').replace(/\d+$/, '');
+    const nodeTypeWithoutPrefix = nodeType
+      .replace(/^_/, "")
+      .replace(/\d+$/, "");
     switch (nodeTypeWithoutPrefix) {
       case "Package":
         return this.visitPackage(node as Package);
@@ -126,6 +128,8 @@ export class WollokToYukigoTransformer {
         return this.visitTry(node as Try);
       case "Catch":
         return this.visitCatch(node as Catch);
+      case "Self":
+        return this.visitSelf(node as Self);
       case "Super":
         return this.visitSuper(node as Super);
       default:
@@ -333,6 +337,9 @@ export class WollokToYukigoTransformer {
   private visitReference(node: Reference<any>): Yu.SymbolPrimitive | Yu.Self {
     if (node.name === "self") return new Yu.Self(mapLocation(node));
     return new Yu.SymbolPrimitive(node.name, mapLocation(node));
+  }
+  private visitSelf(node: Self): Yu.Self {
+    return new Yu.Self(mapLocation(node));
   }
 
   private visitLiteral(node: Literal): Yu.Primitive {
