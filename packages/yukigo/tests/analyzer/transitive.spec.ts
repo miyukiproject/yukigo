@@ -7,6 +7,8 @@ import {
   UnguardedBody,
   Sequence,
   AST,
+  Rule,
+  Exist,
 } from "yukigo-ast";
 import { Analyzer, InspectionRule } from "../../src/analyzer/index.js";
 import { AutoScoped, ScopedVisitor } from "../../src/analyzer/utils.js";
@@ -21,6 +23,10 @@ class SpyVisitor extends ScopedVisitor {
   }
 
   visitFunction(node: Function): void {
+    SpyVisitor.visited.push(node.identifier.value);
+  }
+
+  visitRule(node: Rule): void {
     SpyVisitor.visited.push(node.identifier.value);
   }
 }
@@ -47,6 +53,15 @@ describe("Analyzer Transitive Behavior", () => {
     );
     const equation = new Equation([], new UnguardedBody(body));
     return new Function(identifier, [equation]);
+  };
+
+  const createRule = (name: string, calls: string[] = []) => {
+    const identifier = new SymbolPrimitive(name);
+    const body = new Sequence(
+      calls.map((callee) => new Exist(new SymbolPrimitive(callee), []))
+    );
+    const equation = new Equation([], new UnguardedBody(body));
+    return new Rule(identifier, [equation]);
   };
 
   const runInspection = (
@@ -136,5 +151,16 @@ describe("Analyzer Transitive Behavior", () => {
 
     // Ensure no duplicates
     expect(SpyVisitor.visited.length).to.equal(4);
+  });
+
+  it("should traverse dependencies in Logic Rules (Exist nodes)", () => {
+    // ruleA :- ruleB.
+    const ruleA = createRule("ruleA", ["ruleB"]);
+    const ruleB = createRule("ruleB", []);
+    const ast = [ruleA, ruleB];
+
+    runInspection(ast, "ruleA", "Spy");
+
+    expect(SpyVisitor.visited).to.include.members(["ruleA", "ruleB"]);
   });
 });

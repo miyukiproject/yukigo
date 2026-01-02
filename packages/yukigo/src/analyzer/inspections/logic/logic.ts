@@ -82,6 +82,9 @@ export const logicInspections: Record<string, VisitorConstructor> = {
   DeclaresRule: DeclaresRule,
   DeclaresPredicate: DeclaresPredicate,
   UsesFindall: UsesFindall,
+  HasFindall: UsesFindall,
   UsesForall: UsesForall,
+  HasForall: UsesForall,
   UsesNot: UsesNot,
+  HasNot: UsesNot,
 };

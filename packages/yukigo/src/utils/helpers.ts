@@ -18,7 +18,6 @@ const isValidFormat = (inspection: any): inspection is MulangInspection =>
  */
 export class MulangAdapter {
   public translateMulangInspection(mulangInspection: any): InspectionRule {
-    console.log(mulangInspection);
     if (!isValidFormat(mulangInspection))
       throw new Error(
         `Skipping malformed Mulang inspection entry: ${mulangInspection}`

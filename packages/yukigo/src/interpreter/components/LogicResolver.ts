@@ -10,6 +10,7 @@ import {
   VariablePattern,
   WildcardPattern,
   isRuntimePredicate,
+  UnguardedBody,
 } from "yukigo-ast";
 import { lookup } from "../utils.js";
 import { InterpreterError } from "../errors.js";
@@ -50,19 +51,30 @@ export function* solveGoal(
   if (!pred || !isRuntimePredicate(pred)) return;
 
   for (const clause of pred.equations) {
-    if (clause.patterns.length !== args.length) continue;
+    const arity =
+      clause instanceof Fact
+        ? clause.patterns.length
+        : clause.equations[0].patterns.length;
 
-    const [substs, matches] = unifyParameters(clause.patterns, args);
-    if (!matches) continue;
+    if (arity !== args.length) continue;
 
     if (clause instanceof Fact) {
+      const [substs, matches] = unifyParameters(clause.patterns, args);
+      if (!matches) continue;
       yield success(substs);
       continue;
     }
     if (clause instanceof Rule) {
-      const bodyGenerator = solveBody(clause.expressions, substs);
-      for (const finalResult of bodyGenerator)
-        yield success(finalResult.substs);
+      for (const eq of clause.equations) {
+        const [substs, matches] = unifyParameters(eq.patterns, args);
+        if (!matches) continue;
+
+        if (eq.body instanceof UnguardedBody) {
+          const bodyGenerator = solveBody(eq.body.sequence.statements, substs);
+          for (const finalResult of bodyGenerator)
+            yield success(finalResult.substs);
+        }
+      }
       continue;
     }
     throw new InterpreterError(

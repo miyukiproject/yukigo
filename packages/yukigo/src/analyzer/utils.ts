@@ -8,6 +8,7 @@ import {
   Rule,
   TraverseVisitor,
   Variable,
+  ASTNode,
 } from "yukigo-ast";
 
 export interface VisitorConstructor {
@@ -16,6 +17,15 @@ export interface VisitorConstructor {
 }
 export type InspectionMap = Record<string, VisitorConstructor>;
 
+type TopNode =
+  | Variable
+  | Function
+  | Class
+  | YuObject
+  | Method
+  | Rule
+  | Fact
+  | Procedure;
 export class ScopedVisitor extends TraverseVisitor {
   protected readonly binding?: string;
   public inScope: boolean;
@@ -51,7 +61,7 @@ export class ScopedVisitor extends TraverseVisitor {
     this.manageScope(node, () => super.visitProcedure(node));
   }
 
-  private manageScope(node: any, traverse: () => void) {
+  private manageScope(node: TopNode, traverse: () => void) {
     const isTarget = node.identifier.value === this.binding;
     if (isTarget) this.inScope = true;
     traverse();
@@ -70,7 +80,7 @@ export function AutoScoped<T extends { new (...args: any[]): any }>(
       const originalMethod = proto[name];
 
       // replace the method on the prototype
-      proto[name] = function (this: any, node: any) {
+      proto[name] = function (this: any, node: ASTNode) {
         if (!this.inScope) return;
         // run the inspection logic if in scope
         return originalMethod.call(this, node);

@@ -11,23 +11,19 @@ import { AutoScoped, ScopedVisitor, VisitorConstructor } from "../../utils.js";
 
 @AutoScoped
 export class HasRedundantReduction extends ScopedVisitor {
-  visitRule(node: Rule): void {
-    for (const bodyElement of node.expressions) {
-      if (bodyElement instanceof AssignOperation) {
-        const left = bodyElement.left;
-        const right = bodyElement.right;
+  visitAssignOperation(node: AssignOperation): void {
+    const left = node.left;
+    const right = node.right;
 
-        if (!(left instanceof SymbolPrimitive)) continue;
+    if (!(left instanceof SymbolPrimitive)) return;
 
-        const redundantReductionParameters = isYukigoPrimitive(right);
-        const redundantReductionFunctors = right instanceof Exist;
+    const redundantReductionParameters = isYukigoPrimitive(right);
+    const redundantReductionFunctors = right instanceof Exist;
 
-        const isRedundant =
-          redundantReductionParameters || redundantReductionFunctors;
+    const isRedundant =
+      redundantReductionParameters || redundantReductionFunctors;
 
-        if (isRedundant) throw new StopTraversalException();
-      }
-    }
+    if (isRedundant) throw new StopTraversalException();
   }
 }
 

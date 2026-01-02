@@ -11,6 +11,9 @@ import {
   UnifyOperation,
   NumberPrimitive,
   ArithmeticBinaryOperation,
+  Equation,
+  UnguardedBody,
+  Sequence,
 } from "yukigo-ast";
 import {
   Analyzer,
@@ -36,7 +39,11 @@ describe("Logic Inspections", () => {
     patterns: any[] = [],
     bodyExprs: any[] = []
   ) => {
-    return new Rule(createSymbol(name), patterns, bodyExprs);
+    const equation = new Equation(
+      patterns,
+      new UnguardedBody(new Sequence(bodyExprs))
+    );
+    return new Rule(createSymbol(name), [equation]);
   };
 
   const createCall = (name: string, args: any[] = []) => {

@@ -154,46 +154,29 @@ export class DeclaresComputation extends ScopedVisitor {
 }
 @AutoScoped
 export class DeclaresComputationWithArity extends ScopedVisitor {
-  private readonly targetBinding: string;
   private readonly targetArity: number;
-  constructor(targetBinding: string, targetArity: number, scope?: string) {
+  constructor(targetArity: string, scope?: string) {
     super(scope);
-    this.targetBinding = targetBinding;
-    this.targetArity = targetArity;
+    this.targetArity = Number(targetArity);
   }
   visitFunction(node: Function): void {
-    if (
-      node.identifier.value === this.targetBinding &&
-      node.equations.some((eq) => eq.patterns.length === this.targetArity)
-    )
+    if (node.equations.some((eq) => eq.patterns.length === this.targetArity))
       throw new StopTraversalException();
   }
   visitMethod(node: Method): void {
-    if (
-      node.identifier.value === this.targetBinding &&
-      node.equations.some((eq) => eq.patterns.length === this.targetArity)
-    )
+    if (node.equations.some((eq) => eq.patterns.length === this.targetArity))
       throw new StopTraversalException();
   }
   visitProcedure(node: Procedure): void {
-    if (
-      node.identifier.value === this.targetBinding &&
-      node.equations.some((eq) => eq.patterns.length === this.targetArity)
-    )
+    if (node.equations.some((eq) => eq.patterns.length === this.targetArity))
       throw new StopTraversalException();
   }
   visitFact(node: Fact): void {
-    if (
-      node.identifier.value === this.targetBinding &&
-      node.patterns.length === this.targetArity
-    )
+    if (node.patterns.length === this.targetArity)
       throw new StopTraversalException();
   }
   visitRule(node: Rule): void {
-    if (
-      node.identifier.value === this.targetBinding &&
-      node.patterns.length === this.targetArity
-    )
+    if (node.equations.some((eq) => eq.patterns.length === this.targetArity))
       throw new StopTraversalException();
   }
 }
@@ -261,7 +244,18 @@ export class HasDirectRecursion extends TraverseVisitor {
     if (node.identifier.value !== this.binding) return;
     this.traverseCollection(node.equations);
   }
-
+  override visitRule(node: Rule): void {
+    if (node.identifier.value !== this.binding) return;
+    this.traverseCollection(node.equations);
+  }
+  override visitProcedure(node: Procedure): void {
+    if (node.identifier.value !== this.binding) return;
+    this.traverseCollection(node.equations);
+  }
+  override visitMethod(node: Method): void {
+    if (node.identifier.value !== this.binding) return;
+    this.traverseCollection(node.equations);
+  }
   override visitEquation(node: Equation): void {
     this.isInsideBody = true;
     try {
@@ -393,42 +387,29 @@ export class UsesType extends ScopedVisitor {
 }
 @AutoScoped
 export class HasBinding extends ScopedVisitor {
-  private readonly targetBinding: string;
-  constructor(scope?: string) {
-    super(scope);
-    this.targetBinding = scope;
-  }
   visitFunction(node: Function): void {
-    if (node.identifier.value === this.targetBinding)
-      throw new StopTraversalException();
+    throw new StopTraversalException();
   }
   visitObject(node: Object): void {
-    if (node.identifier.value === this.targetBinding)
-      throw new StopTraversalException();
+    throw new StopTraversalException();
   }
   visitClass(node: Class): void {
-    if (node.identifier.value === this.targetBinding)
-      throw new StopTraversalException();
+    throw new StopTraversalException();
   }
   visitRule(node: Rule): void {
-    if (node.identifier.value === this.targetBinding)
-      throw new StopTraversalException();
+    throw new StopTraversalException();
   }
   visitFact(node: Fact): void {
-    if (node.identifier.value === this.targetBinding)
-      throw new StopTraversalException();
+    throw new StopTraversalException();
   }
   visitTypeAlias(node: TypeAlias): void {
-    if (node.identifier.value === this.targetBinding)
-      throw new StopTraversalException();
+    throw new StopTraversalException();
   }
   visitTypeSignature(node: TypeSignature): void {
-    if (node.identifier.value === this.targetBinding)
-      throw new StopTraversalException();
+    throw new StopTraversalException();
   }
   visitRecord(node: RecordNode): void {
-    if (node.name.value === this.targetBinding)
-      throw new StopTraversalException();
+    throw new StopTraversalException();
   }
 }
 
@@ -568,6 +549,7 @@ export const genericInspections: Record<string, VisitorConstructor> = {
   Declares: Declares,
   DeclaresComputation: DeclaresComputation,
   DeclaresComputationWithArity: DeclaresComputationWithArity,
+  HasArity: DeclaresComputationWithArity,
   DeclaresEntryPoint: DeclaresEntryPoint,
   DeclaresFunction: DeclaresFunction,
   DeclaresRecursively: DeclaresRecursively,
