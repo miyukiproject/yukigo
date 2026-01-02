@@ -10,6 +10,7 @@ import {
   Literal,
   Method,
   Mixin,
+  NamedArgument,
   New,
   Node,
   Package,
@@ -132,6 +133,8 @@ export class WollokToYukigoTransformer {
         return this.visitSelf(node as Self);
       case "Super":
         return this.visitSuper(node as Super);
+      case "NamedArgument":
+        return this.visitNamedArgument(node as NamedArgument);
       default:
         throw new Error(`Nodo Wollok desconocido o no soportado: ${nodeType}`);
     }
@@ -207,6 +210,15 @@ export class WollokToYukigoTransformer {
     }
 
     return new Yu.If(condition, thenExpr, elseExpr, mapLocation(node));
+  }
+
+  private visitNamedArgument(node: NamedArgument): Yu.NamedArgument {
+    const expr = this.visit(node.value);
+    return new Yu.NamedArgument(
+      new Yu.SymbolPrimitive(node.name),
+      expr,
+      mapLocation(node)
+    );
   }
 
   private visitThrow(node: Throw): Yu.Raise {
