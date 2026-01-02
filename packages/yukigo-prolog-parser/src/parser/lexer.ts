@@ -8,8 +8,8 @@ export const PrologLexerConfig = {
   findallRule: "findall",
   comment: /%.*|\/\*[\s\S]*?\*\//,
   number:
-    /-?\b(?:[0-9]+(?:\.[0-9]+(?:e[+-]?[0-9]+)?)?|0o[0-7]+|0x[0-9a-fA-F]+|0b[01]+)\b/,
-  string: /(?:'(?:[^']|'')*')/,
+    /\b(?:[0-9]+(?:\.[0-9]+(?:e[+-]?[0-9]+)?)?|0o[0-7]+|0x[0-9a-fA-F]+|0b[01]+)\b/,
+  string: /(?:'(?:[^']|'')*'|"(?:[^"]|"")*")/,
   backtick: "`",
   lparen: "(",
   rparen: ")",
@@ -26,9 +26,9 @@ export const PrologLexerConfig = {
   queryOp: "?-",
   comparisonOp: /@<|@=<|@>=|@>|<|=<|>=|>|=@=|\\=@=|=:=|=\\=|==|\\==|\\=|=/,
   op: /\+|-|\*|\/|\/\/|~|\^|\?|\$|''|\.\./,
-  variable: /[A-Z][a-zA-Z0-9_]*/,
+  variable: /[A-Z][a-zA-Z0-9_\u00C0-\u00FF]*/,
   atom: {
-    match: /[a-z!][a-zA-Z0-9_]*/,
+    match: /[a-z!][a-zA-Z0-9_\u00C0-\u00FF]*/,
     type: moo.keywords({
       primitiveOperator: ["round", "abs", "sqrt", "call"],
     }),
