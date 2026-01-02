@@ -570,8 +570,7 @@ export class TraverseVisitor implements StrictVisitor<void> {
   }
   visitRule(node: Rule): void {
     node.identifier.accept(this);
-    this.traverseCollection(node.expressions);
-    this.traverseCollection(node.patterns);
+    this.traverseCollection(node.equations);
   }
   visitFact(node: Fact): void {
     node.identifier.accept(this);
