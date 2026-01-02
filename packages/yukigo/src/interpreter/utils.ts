@@ -82,13 +82,15 @@ export function pushEnv(env: EnvStack, frame?: Environment): EnvStack {
 export function replace(
   env: EnvStack,
   name: string,
-  value: PrimitiveValue
+  value: PrimitiveValue,
+  onReplace?: (env: Environment) => void
 ): boolean {
   let current: EnvStack | null = env;
 
   while (current !== null) {
     if (current.head.has(name)) {
       current.head.set(name, value);
+      if (onReplace) onReplace(current.head);
       return true;
     }
     current = current.tail;

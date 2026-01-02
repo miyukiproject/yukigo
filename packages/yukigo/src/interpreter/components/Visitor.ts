@@ -60,6 +60,7 @@ import {
   isRuntimeClass,
   Super,
   EnvStack,
+  Environment,
   If,
   isRuntimeFunction,
 } from "yukigo-ast";
@@ -164,16 +165,22 @@ export class InterpreterVisitor
   visitAssignment(node: Assignment): PrimitiveValue {
     const name = node.identifier.value;
     const value = node.expression.accept(this);
-    
-    // Use replace to update existing variable in the env stack
-    const replaced = replace(this.env, name, value);
-    if (!replaced) {
+
+    const onReplace = (scope: Environment) => {
+      if (scope.has("self")) {
+        const self = scope.get("self");
+        if (isRuntimeObject(self) && self.fields.has(name))
+          self.fields.set(name, value);
+      }
+    };
+
+    if (!replace(this.env, name, value, onReplace))
       throw new InterpreterError(
         "Assignment",
         `Cannot assign to undefined variable: ${name}`,
         this.frames
       );
-    }
+
     return value;
   }
   visitArithmeticUnaryOperation(
@@ -300,16 +307,35 @@ export class InterpreterVisitor
         "Left side must be a Variable"
       );
     const identifier = node.left.identifier;
+    const name = identifier.value;
     const value = node.right.accept(this);
 
-    // check if the value to change is a member from an obj
-    const obj = identifier.accept(this);
-    if (isRuntimeObject(obj)) {
-      const val = node.right.accept(this);
-      return ObjectRuntime.setField(obj, identifier.value, val);
+    try {
+      // check if the value to change is a member from an obj
+      const obj = identifier.accept(this);
+      if (isRuntimeObject(obj)) {
+        return ObjectRuntime.setField(obj, identifier.value, value);
+      }
+    } catch (e) {
+      // Ignore lookup errors
     }
-    const succed = replace(this.env, identifier.value, value);
-    if (!succed) define(this.env, identifier.value, value);
+
+    const onReplace = (scope: Environment) => {
+      if (scope.has("self")) {
+        const self = scope.get("self");
+        if (isRuntimeObject(self) && self.fields.has(name)) {
+          self.fields.set(name, value);
+        }
+      }
+    };
+
+    if (!replace(this.env, name, value, onReplace))
+      throw new InterpreterError(
+        "Assignment",
+        `Cannot assign to undefined variable: ${name}`,
+        this.frames
+      );
+
     return true;
   }
   visitTupleExpr(node: TupleExpression): PrimitiveValue {
@@ -326,7 +352,12 @@ export class InterpreterVisitor
       const value = field.expression.accept(this);
       fieldValues.set(field.name.value, value);
     }
-    return ObjectRuntime.instantiate(node.name.value,node.name.value, fieldValues, new Map());
+    return ObjectRuntime.instantiate(
+      node.name.value,
+      node.name.value,
+      fieldValues,
+      new Map()
+    );
   }
   visitConsExpr(node: ConsExpression): PrimitiveValue {
     try {
