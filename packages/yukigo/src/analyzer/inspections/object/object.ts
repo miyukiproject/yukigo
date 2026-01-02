@@ -78,7 +78,6 @@ export class DeclaresSuperclass extends ScopedVisitor {
     super(scope);
   }
   visitClass(node: Class): void {
-    console.log(node.extendsSymbol, this.superclassName)
     if (node.extendsSymbol && node.extendsSymbol.value === this.superclassName)
       throw new StopTraversalException();
   }

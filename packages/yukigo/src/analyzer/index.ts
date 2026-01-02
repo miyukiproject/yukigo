@@ -179,7 +179,7 @@ export class Analyzer {
         rule,
         passed: actual === rule.expected,
         actual,
-        error: actual === rule.expected ? undefined : "Failed",
+        error,
       });
     }
     return [...ruleResults.values()];
