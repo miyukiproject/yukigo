@@ -273,11 +273,15 @@ export class WollokToYukigoTransformer {
   private visitClass(node: Class | Mixin): Yu.Class {
     const identifier = new Yu.SymbolPrimitive(node.name, mapLocation(node));
 
+    const superclass = node.supertypes[0]
+      ? new Yu.SymbolPrimitive(node.supertypes[0].reference.name, mapLocation(node.supertypes[0]))
+      : undefined;
+
     const members = node.members.map((m: any) => this.visit(m));
     const bodyExpression = new Yu.Sequence(members, mapLocation(node));
     const classInstance = new Yu.Class(
       identifier,
-      undefined,
+      superclass,
       undefined,
       [],
       bodyExpression,
