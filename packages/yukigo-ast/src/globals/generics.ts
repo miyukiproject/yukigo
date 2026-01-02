@@ -643,6 +643,30 @@ export class RangeExpression extends ASTNode {
   }
 }
 
+export class NamedArgument extends ASTNode {
+  public identifier: SymbolPrimitive;
+  public expression: Expression;
+  constructor(
+    identifier: SymbolPrimitive,
+    expression: Expression,
+    loc?: SourceLocation
+  ) {
+    super(loc);
+    this.identifier = identifier;
+    this.expression = expression;
+  }
+  public accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitNamedArgument?.(this);
+  }
+  public toJSON() {
+    return {
+      type: "NamedArgument",
+      identifier: this.identifier.toJSON(),
+      expression: this.expression.toJSON(),
+    };
+  }
+}
+
 export type Expression =
   | Primitive
   | Operation

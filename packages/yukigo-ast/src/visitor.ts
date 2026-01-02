@@ -38,6 +38,7 @@ import {
   Case,
   Catch,
   Input,
+  NamedArgument,
 } from "./globals/generics.js";
 import {
   ArithmeticUnaryOperation,
@@ -179,6 +180,7 @@ export interface StrictVisitor<TReturn> {
   visitListComprehension(node: ListComprehension): TReturn;
   visitGenerator(node: Generator): TReturn;
   visitRangeExpression(node: RangeExpression): TReturn;
+  visitNamedArgument(node: NamedArgument): TReturn;
   // Statements
   visitSelf(node: Self): TReturn;
   visitSuper(node: Super): TReturn;
@@ -452,6 +454,10 @@ export class TraverseVisitor implements StrictVisitor<void> {
     node.start.accept(this);
     node.step?.accept(this);
     node.end?.accept(this);
+  }
+  visitNamedArgument(node: NamedArgument): void {
+    node.identifier.accept(this);
+    node.expression.accept(this);
   }
   visitYield(node: Yield): void {
     node.expression.accept(this);
