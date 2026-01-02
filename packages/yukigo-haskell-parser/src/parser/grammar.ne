@@ -166,6 +166,10 @@ application ->
   } %}
 
 operator -> 
+    operator_no_minus {% id %}
+    | "-" {% (d) => d[0].value %}
+
+operator_no_minus ->
     ("==" 
     | "/="
     | "<"
@@ -176,7 +180,6 @@ operator ->
     | ">="
     | "++"
     | "+"
-    | "-"
     | ","
     | "^^"
     | "^"
@@ -190,7 +193,7 @@ operator ->
 
 left_section -> "(" expression operator ")" {% (d) => new Application(new SymbolPrimitive(d[2]), d[1]) %}
 
-right_section -> "(" operator expression ")" {% (d) => {
+right_section -> "(" operator_no_minus expression ")" {% (d) => {
     const flipBody = new SymbolPrimitive("flip");
     const op = new SymbolPrimitive(d[1]);
     const expr = d[2];
