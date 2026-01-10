@@ -12,7 +12,7 @@ import {
 } from "yukigo-ast";
 
 export interface VisitorConstructor {
-  new (...args: any[]): TraverseVisitor;
+  new (...args: any[]): TraverseVisitor & { setBinding?(binding: string): void };
   IS_INTRANSITIVE?: boolean;
 }
 export type InspectionMap = Record<string, VisitorConstructor>;
@@ -27,14 +27,19 @@ type TopNode =
   | Fact
   | Procedure;
 export class ScopedVisitor extends TraverseVisitor {
-  protected readonly binding?: string;
+  protected binding?: string;
   public inScope: boolean;
 
   constructor(binding?: string) {
     super();
-    this.binding = binding;
-    this.inScope = !binding; // global (inScope always true) if no binding is provided
+    this.setBinding(binding)
   }
+
+  setBinding(binding?: string) {
+    this.binding = binding;
+    this.inScope = !binding;
+  }
+  
 
   visitVariable(node: Variable): void {
     this.manageScope(node, () => super.visitVariable(node));
