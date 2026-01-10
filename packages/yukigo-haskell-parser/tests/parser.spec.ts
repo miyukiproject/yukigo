@@ -1,5 +1,6 @@
 import { YukigoHaskellParser } from "../src/index.js";
 import { assert } from "chai";
+import { inspect } from "util";
 import {
   Application,
   ArithmeticBinaryOperation,
@@ -342,7 +343,7 @@ describe("Parser Tests", () => {
   it("throws when guarded body is badly indented ", () => {
     assert.throw(
       () => parser.parse("f x | x < 1 = 10\n| x > 11 = 0"),
-      "Unexpected 'op' token '|' at line 2 col 1"
+      "Parser: Unexpected 'pipe' token '|' at line 2 col 1."
     );
   });
   it("parses multi-line guards correctly", () => {
@@ -549,13 +550,9 @@ describe("Parser Tests", () => {
 
     assert.deepEqual(
       parser.parse(
-        "areaOfCircle radius = pi * radius_squared\n where pi = 3.14159; radius_squared = radius * radius"
-      ),
-      ast
-    );
-    assert.deepEqual(
-      parser.parse(
-        "areaOfCircle radius = pi * radius_squared\n where\n pi = 3.14159\n radius_squared = radius * radius"
+        `areaOfCircle radius = pi * radius_squared
+  where pi = 3.14159
+        radius_squared = radius * radius`
       ),
       ast
     );

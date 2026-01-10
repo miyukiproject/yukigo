@@ -12,9 +12,16 @@ import {
   RuntimeFact,
   RuntimeRule,
   LogicResult,
-  EnvStack
+  EnvStack,
+  Equation,
+  Sequence,
+  UnguardedBody,
+  Statement,
 } from "yukigo-ast";
-import { createGlobalEnv, ExpressionEvaluator } from "../../src/interpreter/utils.js";
+import {
+  createGlobalEnv,
+  ExpressionEvaluator,
+} from "../../src/interpreter/utils.js";
 import { LogicEngine } from "../../src/interpreter/components/LogicEngine.js";
 import { InterpreterConfig } from "../../src/interpreter/index.js";
 import { unify } from "../../src/interpreter/components/LogicResolver.js";
@@ -26,9 +33,10 @@ const lit = (val: string | number) =>
   new LiteralPattern(typeof val === "string" ? s(val) : n(val));
 const varPat = (name: string) => new VariablePattern(s(name));
 
+const makeEq = (args: Pattern[], stmts: Statement[]) =>
+  new Equation(args, new UnguardedBody(new Sequence(stmts)));
 const makeFact = (id: string, args: Pattern[]) => new Fact(s(id), args);
-const makeRule = (id: string, args: Pattern[], body: Goal[]) =>
-  new Rule(s(id), args, body);
+const makeRule = (id: string, body: Equation[]) => new Rule(s(id), body);
 const makeGoal = (id: string, args: Pattern[]) => new Goal(s(id), args);
 
 class MockEvaluator implements ExpressionEvaluator {
@@ -111,14 +119,15 @@ describe("Logic Engine & Unification", () => {
         kind: "Rule",
         identifier: "sibling",
         equations: [
-          makeRule(
-            "sibling",
-            [varPat("X"), varPat("Y")],
-            [
-              makeGoal("parent", [varPat("Z"), varPat("X")]),
-              makeGoal("parent", [varPat("Z"), varPat("Y")]),
-            ]
-          ),
+          makeRule("sibling", [
+            makeEq(
+              [varPat("X"), varPat("Y")],
+              [
+                makeGoal("parent", [varPat("Z"), varPat("X")]),
+                makeGoal("parent", [varPat("Z"), varPat("Y")]),
+              ]
+            ),
+          ]),
         ],
       };
       globalEnv.set("sibling", rulesSibling);

@@ -17,6 +17,8 @@ import {
   BooleanPrimitive,
   NumberPrimitive,
   If,
+  TypeSignature,
+  SimpleType,
 } from "yukigo-ast";
 import { Analyzer, InspectionRule } from "../../src/analyzer/index.js";
 
@@ -191,6 +193,15 @@ describe("Functional Inspections", () => {
       const yieldNode = new Yield(mockExpr);
       const func = createFunction("gen", [createEquation([], yieldNode)]);
       expect(runSingleRule([func], "UsesYield", true, "gen")).to.be.true;
+    });
+  });
+  describe("HasTypeSignature", () => {
+    it("is True when signature exists", () => {
+      const signature = new TypeSignature(
+        new SymbolPrimitive("MockType"),
+        new SimpleType("simple", [])
+      );
+      expect(runSingleRule([signature], "HasTypeSignature", true, "MockType")).to.be.true;
     });
   });
 });

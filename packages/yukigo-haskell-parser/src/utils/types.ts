@@ -9,6 +9,7 @@ export const keywords = [
   "then",
   "data",
   "case",
+  "error",
   "class",
   "do",
   "default",

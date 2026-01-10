@@ -67,7 +67,6 @@ export class LazyRuntime {
       result.push(current);
       current += step;
     }
-    console.log("result", result);
     return result;
   }
   static evaluateCons(

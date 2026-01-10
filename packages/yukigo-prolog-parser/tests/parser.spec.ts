@@ -14,6 +14,10 @@ import {
   Forall,
   FunctorPattern,
   If,
+  ListPrimitive,
+  ListPattern,
+  ConsExpression,
+  ConsPattern,
   LiteralPattern,
   Not,
   NumberPrimitive,
@@ -26,6 +30,8 @@ import {
   VariablePattern,
   WildcardPattern,
   YukigoParser,
+  Equation,
+  UnguardedBody,
 } from "yukigo-ast";
 import { stdCode } from "../src/std.js";
 const _deepEqual = assert.deepEqual;
@@ -49,9 +55,7 @@ describe("Parser Test", () => {
     parser = new YukigoPrologParser("");
   });
   it("std.pl", () => {
-    assert.doesNotThrow(() =>
-      parser.parse(stdCode)
-    );
+    assert.doesNotThrow(() => parser.parse(stdCode));
   });
   it("simplest fact/0", () => {
     assert.deepEqual(parser.parse("foo."), [
@@ -124,20 +128,26 @@ describe("Parser Test", () => {
   });
   it("simplest rule/1", () => {
     assert.deepEqual(parser.parse("baz(bar):-foo."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [new LiteralPattern(new SymbolPrimitive("bar"))],
-        [new Exist(new SymbolPrimitive("foo"), [])]
-      ),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [new LiteralPattern(new SymbolPrimitive("bar"))],
+          new UnguardedBody(
+            new Sequence([new Exist(new SymbolPrimitive("foo"), [])])
+          )
+        ),
+      ]),
     ]);
   });
   it("simplest rule/0", () => {
     assert.deepEqual(parser.parse("baz:-foo."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [],
-        [new Exist(new SymbolPrimitive("foo"), [])]
-      ),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [],
+          new UnguardedBody(
+            new Sequence([new Exist(new SymbolPrimitive("foo"), [])])
+          )
+        ),
+      ]),
     ]);
   });
   it("rules with withiespaces", () => {
@@ -148,27 +158,33 @@ describe("Parser Test", () => {
   });
   it("rules with bang", () => {
     assert.deepEqual(parser.parse("baz:-fail,!."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [],
-        [
-          new Exist(new SymbolPrimitive("fail"), []),
-          new Exist(new SymbolPrimitive("!"), []),
-        ]
-      ),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [],
+          new UnguardedBody(
+            new Sequence([
+              new Exist(new SymbolPrimitive("fail"), []),
+              new Exist(new SymbolPrimitive("!"), []),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("simplest rule/1 with condition/1", () => {
     assert.deepEqual(parser.parse("baz(bar):-foo(bar)."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [new LiteralPattern(new SymbolPrimitive("bar"))],
-        [
-          new Exist(new SymbolPrimitive("foo"), [
-            new LiteralPattern(new SymbolPrimitive("bar")),
-          ]),
-        ]
-      ),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [new LiteralPattern(new SymbolPrimitive("bar"))],
+          new UnguardedBody(
+            new Sequence([
+              new Exist(new SymbolPrimitive("foo"), [
+                new LiteralPattern(new SymbolPrimitive("bar")),
+              ]),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("fact with functors", () => {
@@ -201,249 +217,297 @@ describe("Parser Test", () => {
     assert.deepEqual(
       parser.parse("baz(bar) :- foo(bar).foo(bar) :- bar(bar)."),
       [
-        new Rule(
-          new SymbolPrimitive("baz"),
-          [new LiteralPattern(new SymbolPrimitive("bar"))],
-          [
-            new Exist(new SymbolPrimitive("foo"), [
-              new LiteralPattern(new SymbolPrimitive("bar")),
-            ]),
-          ]
-        ),
-        new Rule(
-          new SymbolPrimitive("foo"),
-          [new LiteralPattern(new SymbolPrimitive("bar"))],
-          [
-            new Exist(new SymbolPrimitive("bar"), [
-              new LiteralPattern(new SymbolPrimitive("bar")),
-            ]),
-          ]
-        ),
+        new Rule(new SymbolPrimitive("baz"), [
+          new Equation(
+            [new LiteralPattern(new SymbolPrimitive("bar"))],
+            new UnguardedBody(
+              new Sequence([
+                new Exist(new SymbolPrimitive("foo"), [
+                  new LiteralPattern(new SymbolPrimitive("bar")),
+                ]),
+              ])
+            )
+          ),
+        ]),
+        new Rule(new SymbolPrimitive("foo"), [
+          new Equation(
+            [new LiteralPattern(new SymbolPrimitive("bar"))],
+            new UnguardedBody(
+              new Sequence([
+                new Exist(new SymbolPrimitive("bar"), [
+                  new LiteralPattern(new SymbolPrimitive("bar")),
+                ]),
+              ])
+            )
+          ),
+        ]),
       ]
     );
   });
   it("simplest rule/2 with condition/2", () => {
     assert.deepEqual(parser.parse("baz(bar,fux):-foo(bar,goo)."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [
-          new LiteralPattern(new SymbolPrimitive("bar")),
-          new LiteralPattern(new SymbolPrimitive("fux")),
-        ],
-        [
-          new Exist(new SymbolPrimitive("foo"), [
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [
             new LiteralPattern(new SymbolPrimitive("bar")),
-            new LiteralPattern(new SymbolPrimitive("goo")),
-          ]),
-        ]
-      ),
+            new LiteralPattern(new SymbolPrimitive("fux")),
+          ],
+          new UnguardedBody(
+            new Sequence([
+              new Exist(new SymbolPrimitive("foo"), [
+                new LiteralPattern(new SymbolPrimitive("bar")),
+                new LiteralPattern(new SymbolPrimitive("goo")),
+              ]),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("rule/1 with not", () => {
     assert.deepEqual(parser.parse("baz(X):-not(bar(X))."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [new VariablePattern(new SymbolPrimitive("X"))],
-        [
-          new Not([
-            new Exist(new SymbolPrimitive("bar"), [
-              new VariablePattern(new SymbolPrimitive("X")),
-            ]),
-          ]),
-        ]
-      ),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [new VariablePattern(new SymbolPrimitive("X"))],
+          new UnguardedBody(
+            new Sequence([
+              new Not([
+                new Exist(new SymbolPrimitive("bar"), [
+                  new VariablePattern(new SymbolPrimitive("X")),
+                ]),
+              ]),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("rules with infix not", () => {
     assert.deepEqual(parser.parse("baz(X):-\\+ bar(X)."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [new VariablePattern(new SymbolPrimitive("X"))],
-        [
-          new Not([
-            new Exist(new SymbolPrimitive("bar"), [
-              new VariablePattern(new SymbolPrimitive("X")),
-            ]),
-          ]),
-        ]
-      ),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [new VariablePattern(new SymbolPrimitive("X"))],
+          new UnguardedBody(
+            new Sequence([
+              new Not([
+                new Exist(new SymbolPrimitive("bar"), [
+                  new VariablePattern(new SymbolPrimitive("X")),
+                ]),
+              ]),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("rule/1 with complex not", () => {
     assert.deepEqual(parser.parse("baz(X):-not((bar(X), baz(Y)))."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [new VariablePattern(new SymbolPrimitive("X"))],
-        [
-          new Not([
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [new VariablePattern(new SymbolPrimitive("X"))],
+          new UnguardedBody(
             new Sequence([
-              new Exist(new SymbolPrimitive("bar"), [
-                new VariablePattern(new SymbolPrimitive("X")),
+              new Not([
+                new Sequence([
+                  new Exist(new SymbolPrimitive("bar"), [
+                    new VariablePattern(new SymbolPrimitive("X")),
+                  ]),
+                  new Exist(new SymbolPrimitive("baz"), [
+                    new VariablePattern(new SymbolPrimitive("Y")),
+                  ]),
+                ]),
               ]),
-              new Exist(new SymbolPrimitive("baz"), [
-                new VariablePattern(new SymbolPrimitive("Y")),
-              ]),
-            ]),
-          ]),
-        ]
-      ),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("rule/1 with forall", () => {
     assert.deepEqual(parser.parse("baz(X):- forall(bar(X), bar(X))."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [new VariablePattern(new SymbolPrimitive("X"))],
-        [
-          new Forall(
-            new Exist(new SymbolPrimitive("bar"), [
-              new VariablePattern(new SymbolPrimitive("X")),
-            ]),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [new VariablePattern(new SymbolPrimitive("X"))],
+          new UnguardedBody(
+            new Sequence([
+              new Forall(
+                new Exist(new SymbolPrimitive("bar"), [
+                  new VariablePattern(new SymbolPrimitive("X")),
+                ]),
 
-            new Exist(new SymbolPrimitive("bar"), [
-              new VariablePattern(new SymbolPrimitive("X")),
+                new Exist(new SymbolPrimitive("bar"), [
+                  new VariablePattern(new SymbolPrimitive("X")),
+                ])
+              ),
             ])
-          ),
-        ]
-      ),
+          )
+        ),
+      ]),
     ]);
   });
   it("rule/1 with findall", () => {
     assert.deepEqual(parser.parse("baz(X):- findall(Y, bar(X, Y), Z)."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [new VariablePattern(new SymbolPrimitive("X"))],
-        [
-          new Findall(
-            new Exist(new SymbolPrimitive("Y"), []),
-            new Exist(new SymbolPrimitive("bar"), [
-              new VariablePattern(new SymbolPrimitive("X")),
-              new VariablePattern(new SymbolPrimitive("Y")),
-            ]),
-            new Exist(new SymbolPrimitive("Z"), [])
-          ),
-        ]
-      ),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [new VariablePattern(new SymbolPrimitive("X"))],
+          new UnguardedBody(
+            new Sequence([
+              new Findall(
+                new Exist(new SymbolPrimitive("Y"), []),
+                new Exist(new SymbolPrimitive("bar"), [
+                  new VariablePattern(new SymbolPrimitive("X")),
+                  new VariablePattern(new SymbolPrimitive("Y")),
+                ]),
+                new Exist(new SymbolPrimitive("Z"), [])
+              ),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("rule/1 with major", () => {
     assert.deepEqual(parser.parse("baz(X):- X > 4."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [new VariablePattern(new SymbolPrimitive("X"))],
-        [
-          new ComparisonOperation(
-            "GreaterThan",
-            new SymbolPrimitive("X"),
-            new NumberPrimitive(4)
-          ),
-        ]
-      ),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [new VariablePattern(new SymbolPrimitive("X"))],
+          new UnguardedBody(
+            new Sequence([
+              new ComparisonOperation(
+                "GreaterThan",
+                new SymbolPrimitive("X"),
+                new NumberPrimitive(4)
+              ),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("rule/1 with minor", () => {
     assert.deepEqual(parser.parse("baz(X):- X < 4."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [new VariablePattern(new SymbolPrimitive("X"))],
-        [
-          new ComparisonOperation(
-            "LessThan",
-            new SymbolPrimitive("X"),
-            new NumberPrimitive(4)
-          ),
-        ]
-      ),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [new VariablePattern(new SymbolPrimitive("X"))],
+          new UnguardedBody(
+            new Sequence([
+              new ComparisonOperation(
+                "LessThan",
+                new SymbolPrimitive("X"),
+                new NumberPrimitive(4)
+              ),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("rule/1 with greater or equal", () => {
     assert.deepEqual(parser.parse("baz(X):- X >= 4."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [new VariablePattern(new SymbolPrimitive("X"))],
-        [
-          new ComparisonOperation(
-            "GreaterOrEqualThan",
-            new SymbolPrimitive("X"),
-            new NumberPrimitive(4)
-          ),
-        ]
-      ),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [new VariablePattern(new SymbolPrimitive("X"))],
+          new UnguardedBody(
+            new Sequence([
+              new ComparisonOperation(
+                "GreaterOrEqualThan",
+                new SymbolPrimitive("X"),
+                new NumberPrimitive(4)
+              ),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("rule/1 with minor or equal", () => {
     assert.deepEqual(parser.parse("baz(X):- X =< 4."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [new VariablePattern(new SymbolPrimitive("X"))],
-        [
-          new ComparisonOperation(
-            "LessOrEqualThan",
-            new SymbolPrimitive("X"),
-            new NumberPrimitive(4)
-          ),
-        ]
-      ),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [new VariablePattern(new SymbolPrimitive("X"))],
+          new UnguardedBody(
+            new Sequence([
+              new ComparisonOperation(
+                "LessOrEqualThan",
+                new SymbolPrimitive("X"),
+                new NumberPrimitive(4)
+              ),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("rule/1 with distinct", () => {
     assert.deepEqual(parser.parse("baz(X):- X \\= 4."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [new VariablePattern(new SymbolPrimitive("X"))],
-        [
-          new ComparisonOperation(
-            "NotSame",
-            new SymbolPrimitive("X"),
-            new NumberPrimitive(4)
-          ),
-        ]
-      ),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [new VariablePattern(new SymbolPrimitive("X"))],
+          new UnguardedBody(
+            new Sequence([
+              new ComparisonOperation(
+                "NotSame",
+                new SymbolPrimitive("X"),
+                new NumberPrimitive(4)
+              ),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("rule/1 with unify operator", () => {
     assert.deepEqual(parser.parse("baz(X):- X = 4."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [new VariablePattern(new SymbolPrimitive("X"))],
-        [
-          new UnifyOperation(
-            "Unify",
-            new SymbolPrimitive("X"),
-            new NumberPrimitive(4)
-          ),
-        ]
-      ),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [new VariablePattern(new SymbolPrimitive("X"))],
+          new UnguardedBody(
+            new Sequence([
+              new UnifyOperation(
+                "Unify",
+                new SymbolPrimitive("X"),
+                new NumberPrimitive(4)
+              ),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("rule/1 with simple is", () => {
     assert.deepEqual(parser.parse("baz(X):- X is 4."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [new VariablePattern(new SymbolPrimitive("X"))],
-        [
-          new AssignOperation(
-            "Assign",
-            new SymbolPrimitive("X"),
-            new NumberPrimitive(4)
-          ),
-        ]
-      ),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [new VariablePattern(new SymbolPrimitive("X"))],
+          new UnguardedBody(
+            new Sequence([
+              new AssignOperation(
+                "Assign",
+                new SymbolPrimitive("X"),
+                new NumberPrimitive(4)
+              ),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("rule/1 with is with parenthesis", () => {
     assert.deepEqual(parser.parse("baz(X):- X is (4)."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [new VariablePattern(new SymbolPrimitive("X"))],
-        [
-          new AssignOperation(
-            "Assign",
-            new SymbolPrimitive("X"),
-            new NumberPrimitive(4)
-          ),
-        ]
-      ),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [new VariablePattern(new SymbolPrimitive("X"))],
+          new UnguardedBody(
+            new Sequence([
+              new AssignOperation(
+                "Assign",
+                new SymbolPrimitive("X"),
+                new NumberPrimitive(4)
+              ),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("fact/1 with tuples", () => {
@@ -458,272 +522,320 @@ describe("Parser Test", () => {
   });
   it("rule/1 with is and -", () => {
     assert.deepEqual(parser.parse("baz(X, Y):- X is Y - 5  ."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [
-          new VariablePattern(new SymbolPrimitive("X")),
-          new VariablePattern(new SymbolPrimitive("Y")),
-        ],
-        [
-          new AssignOperation(
-            "Assign",
-            new SymbolPrimitive("X"),
-            new ArithmeticBinaryOperation(
-              "Minus",
-              new SymbolPrimitive("Y"),
-              new NumberPrimitive(5)
-            )
-          ),
-        ]
-      ),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [
+            new VariablePattern(new SymbolPrimitive("X")),
+            new VariablePattern(new SymbolPrimitive("Y")),
+          ],
+          new UnguardedBody(
+            new Sequence([
+              new AssignOperation(
+                "Assign",
+                new SymbolPrimitive("X"),
+                new ArithmeticBinaryOperation(
+                  "Minus",
+                  new SymbolPrimitive("Y"),
+                  new NumberPrimitive(5)
+                )
+              ),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("rule/1 with is and +", () => {
     assert.deepEqual(parser.parse("baz(X, Y):- X is Y + 5."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [
-          new VariablePattern(new SymbolPrimitive("X")),
-          new VariablePattern(new SymbolPrimitive("Y")),
-        ],
-        [
-          new AssignOperation(
-            "Assign",
-            new SymbolPrimitive("X"),
-            new ArithmeticBinaryOperation(
-              "Plus",
-              new SymbolPrimitive("Y"),
-              new NumberPrimitive(5)
-            )
-          ),
-        ]
-      ),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [
+            new VariablePattern(new SymbolPrimitive("X")),
+            new VariablePattern(new SymbolPrimitive("Y")),
+          ],
+          new UnguardedBody(
+            new Sequence([
+              new AssignOperation(
+                "Assign",
+                new SymbolPrimitive("X"),
+                new ArithmeticBinaryOperation(
+                  "Plus",
+                  new SymbolPrimitive("Y"),
+                  new NumberPrimitive(5)
+                )
+              ),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("rule/1 with =:=", () => {
     assert.deepEqual(parser.parse("baz(X, Y):- X =:= Y."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [
-          new VariablePattern(new SymbolPrimitive("X")),
-          new VariablePattern(new SymbolPrimitive("Y")),
-        ],
-        [
-          new ComparisonOperation(
-            "Equal",
-            new SymbolPrimitive("X"),
-            new SymbolPrimitive("Y")
-          ),
-        ]
-      ),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [
+            new VariablePattern(new SymbolPrimitive("X")),
+            new VariablePattern(new SymbolPrimitive("Y")),
+          ],
+          new UnguardedBody(
+            new Sequence([
+              new ComparisonOperation(
+                "Equal",
+                new SymbolPrimitive("X"),
+                new SymbolPrimitive("Y")
+              ),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("rule/1 with ==", () => {
     assert.deepEqual(parser.parse("baz(X, Y):- X == Y."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [
-          new VariablePattern(new SymbolPrimitive("X")),
-          new VariablePattern(new SymbolPrimitive("Y")),
-        ],
-        [
-          new ComparisonOperation(
-            "Same",
-            new SymbolPrimitive("X"),
-            new SymbolPrimitive("Y")
-          ),
-        ]
-      ),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [
+            new VariablePattern(new SymbolPrimitive("X")),
+            new VariablePattern(new SymbolPrimitive("Y")),
+          ],
+          new UnguardedBody(
+            new Sequence([
+              new ComparisonOperation(
+                "Same",
+                new SymbolPrimitive("X"),
+                new SymbolPrimitive("Y")
+              ),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("rule/1 with is and parenthesis", () => {
     assert.deepEqual(parser.parse("baz(X, Y):- X is (Y / 5) + 20."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [
-          new VariablePattern(new SymbolPrimitive("X")),
-          new VariablePattern(new SymbolPrimitive("Y")),
-        ],
-        [
-          new AssignOperation(
-            "Assign",
-            new SymbolPrimitive("X"),
-            new ArithmeticBinaryOperation(
-              "Plus",
-              new ArithmeticBinaryOperation(
-                "Divide",
-                new SymbolPrimitive("Y"),
-                new NumberPrimitive(5)
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [
+            new VariablePattern(new SymbolPrimitive("X")),
+            new VariablePattern(new SymbolPrimitive("Y")),
+          ],
+          new UnguardedBody(
+            new Sequence([
+              new AssignOperation(
+                "Assign",
+                new SymbolPrimitive("X"),
+                new ArithmeticBinaryOperation(
+                  "Plus",
+                  new ArithmeticBinaryOperation(
+                    "Divide",
+                    new SymbolPrimitive("Y"),
+                    new NumberPrimitive(5)
+                  ),
+                  new NumberPrimitive(20)
+                )
               ),
-              new NumberPrimitive(20)
-            )
-          ),
-        ]
-      ),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("rule/1 with is and functions", () => {
     assert.deepEqual(parser.parse("baz(X, Y):- X is f(Y)."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [
-          new VariablePattern(new SymbolPrimitive("X")),
-          new VariablePattern(new SymbolPrimitive("Y")),
-        ],
-        [
-          new AssignOperation(
-            "Assign",
-            new SymbolPrimitive("X"),
-            new Exist(new SymbolPrimitive("f"), [
-              new VariablePattern(new SymbolPrimitive("Y")),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [
+            new VariablePattern(new SymbolPrimitive("X")),
+            new VariablePattern(new SymbolPrimitive("Y")),
+          ],
+          new UnguardedBody(
+            new Sequence([
+              new AssignOperation(
+                "Assign",
+                new SymbolPrimitive("X"),
+                new Exist(new SymbolPrimitive("f"), [
+                  new VariablePattern(new SymbolPrimitive("Y")),
+                ])
+              ),
             ])
-          ),
-        ]
-      ),
+          )
+        ),
+      ]),
     ]);
   });
   it("rule/1 with round function", () => {
     assert.deepEqual(parser.parse("baz(X, Y):- X is round(3.5)."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [
-          new VariablePattern(new SymbolPrimitive("X")),
-          new VariablePattern(new SymbolPrimitive("Y")),
-        ],
-        [
-          new AssignOperation(
-            "Assign",
-            new SymbolPrimitive("X"),
-            new ArithmeticUnaryOperation("Round", new NumberPrimitive(3.5))
-          ),
-        ]
-      ),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [
+            new VariablePattern(new SymbolPrimitive("X")),
+            new VariablePattern(new SymbolPrimitive("Y")),
+          ],
+          new UnguardedBody(
+            new Sequence([
+              new AssignOperation(
+                "Assign",
+                new SymbolPrimitive("X"),
+                new ArithmeticUnaryOperation("Round", new NumberPrimitive(3.5))
+              ),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("rule/1 with abs function", () => {
     assert.deepEqual(parser.parse("baz(X, Y):- X is abs(-3.5)."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [
-          new VariablePattern(new SymbolPrimitive("X")),
-          new VariablePattern(new SymbolPrimitive("Y")),
-        ],
-        [
-          new AssignOperation(
-            "Assign",
-            new SymbolPrimitive("X"),
-            new ArithmeticUnaryOperation("Absolute", new NumberPrimitive(-3.5))
-          ),
-        ]
-      ),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [
+            new VariablePattern(new SymbolPrimitive("X")),
+            new VariablePattern(new SymbolPrimitive("Y")),
+          ],
+          new UnguardedBody(
+            new Sequence([
+              new AssignOperation(
+                "Assign",
+                new SymbolPrimitive("X"),
+                new ArithmeticUnaryOperation(
+                  "Absolute",
+                  new ArithmeticUnaryOperation(
+                    "Negation",
+                    new NumberPrimitive(3.5)
+                  )
+                )
+              ),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("rule/1 with sqrt function", () => {
     assert.deepEqual(parser.parse("baz(X, Y):- X is sqrt(3.5)."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [
-          new VariablePattern(new SymbolPrimitive("X")),
-          new VariablePattern(new SymbolPrimitive("Y")),
-        ],
-        [
-          new AssignOperation(
-            "Assign",
-            new SymbolPrimitive("X"),
-            new ArithmeticUnaryOperation("Sqrt", new NumberPrimitive(3.5))
-          ),
-        ]
-      ),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [
+            new VariablePattern(new SymbolPrimitive("X")),
+            new VariablePattern(new SymbolPrimitive("Y")),
+          ],
+          new UnguardedBody(
+            new Sequence([
+              new AssignOperation(
+                "Assign",
+                new SymbolPrimitive("X"),
+                new ArithmeticUnaryOperation("Sqrt", new NumberPrimitive(3.5))
+              ),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("rule/1 with > and math", () => {
     assert.deepEqual(parser.parse("baz(X):- X + 50 > x * 2."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [new VariablePattern(new SymbolPrimitive("X"))],
-        [
-          new ComparisonOperation(
-            "GreaterThan",
-            new ArithmeticBinaryOperation(
-              "Plus",
-              new SymbolPrimitive("X"),
-              new NumberPrimitive(50)
-            ),
-            new ArithmeticBinaryOperation(
-              "Multiply",
-              new SymbolPrimitive("x"),
-              new NumberPrimitive(2)
-            )
-          ),
-        ]
-      ),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [new VariablePattern(new SymbolPrimitive("X"))],
+          new UnguardedBody(
+            new Sequence([
+              new ComparisonOperation(
+                "GreaterThan",
+                new ArithmeticBinaryOperation(
+                  "Plus",
+                  new SymbolPrimitive("X"),
+                  new NumberPrimitive(50)
+                ),
+                new ArithmeticBinaryOperation(
+                  "Multiply",
+                  new SymbolPrimitive("x"),
+                  new NumberPrimitive(2)
+                )
+              ),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("rule/1 with multiple conditions", () => {
     assert.deepEqual(parser.parse("baz(bar):-foo(bar),goo(bar)."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [new LiteralPattern(new SymbolPrimitive("bar"))],
-        [
-          new Exist(new SymbolPrimitive("foo"), [
-            new LiteralPattern(new SymbolPrimitive("bar")),
-          ]),
-          new Exist(new SymbolPrimitive("goo"), [
-            new LiteralPattern(new SymbolPrimitive("bar")),
-          ]),
-        ]
-      ),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [new LiteralPattern(new SymbolPrimitive("bar"))],
+          new UnguardedBody(
+            new Sequence([
+              new Exist(new SymbolPrimitive("foo"), [
+                new LiteralPattern(new SymbolPrimitive("bar")),
+              ]),
+              new Exist(new SymbolPrimitive("goo"), [
+                new LiteralPattern(new SymbolPrimitive("bar")),
+              ]),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("rule/1 with multiple conditions", () => {
     assert.deepEqual(parser.parse("baz(bar):-foo(bar) ; goo(bar)."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [new LiteralPattern(new SymbolPrimitive("bar"))],
-        [
-          new Exist(new SymbolPrimitive("foo"), [
-            new LiteralPattern(new SymbolPrimitive("bar")),
-          ]),
-          new Exist(new SymbolPrimitive("goo"), [
-            new LiteralPattern(new SymbolPrimitive("bar")),
-          ]),
-        ]
-      ),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [new LiteralPattern(new SymbolPrimitive("bar"))],
+          new UnguardedBody(
+            new Sequence([
+              new Exist(new SymbolPrimitive("foo"), [
+                new LiteralPattern(new SymbolPrimitive("bar")),
+              ]),
+              new Exist(new SymbolPrimitive("goo"), [
+                new LiteralPattern(new SymbolPrimitive("bar")),
+              ]),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("rule/1 with multiple mixed conditions", () => {
     assert.deepEqual(parser.parse("baz(bar):-foo(bar),goo(bar),baz."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [new LiteralPattern(new SymbolPrimitive("bar"))],
-        [
-          new Exist(new SymbolPrimitive("foo"), [
-            new LiteralPattern(new SymbolPrimitive("bar")),
-          ]),
-          new Exist(new SymbolPrimitive("goo"), [
-            new LiteralPattern(new SymbolPrimitive("bar")),
-          ]),
-          new Exist(new SymbolPrimitive("baz"), []),
-        ]
-      ),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [new LiteralPattern(new SymbolPrimitive("bar"))],
+          new UnguardedBody(
+            new Sequence([
+              new Exist(new SymbolPrimitive("foo"), [
+                new LiteralPattern(new SymbolPrimitive("bar")),
+              ]),
+              new Exist(new SymbolPrimitive("goo"), [
+                new LiteralPattern(new SymbolPrimitive("bar")),
+              ]),
+              new Exist(new SymbolPrimitive("baz"), []),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("rule/1 with whitespaces among individuals", () => {
     assert.deepEqual(parser.parse("baz(bar):-foo(bar, baz) , goo(bar), baz."), [
-      new Rule(
-        new SymbolPrimitive("baz"),
-        [new LiteralPattern(new SymbolPrimitive("bar"))],
-        [
-          new Exist(new SymbolPrimitive("foo"), [
-            new LiteralPattern(new SymbolPrimitive("bar")),
-            new LiteralPattern(new SymbolPrimitive("baz")),
-          ]),
-          new Exist(new SymbolPrimitive("goo"), [
-            new LiteralPattern(new SymbolPrimitive("bar")),
-          ]),
-          new Exist(new SymbolPrimitive("baz"), []),
-        ]
-      ),
+      new Rule(new SymbolPrimitive("baz"), [
+        new Equation(
+          [new LiteralPattern(new SymbolPrimitive("bar"))],
+          new UnguardedBody(
+            new Sequence([
+              new Exist(new SymbolPrimitive("foo"), [
+                new LiteralPattern(new SymbolPrimitive("bar")),
+                new LiteralPattern(new SymbolPrimitive("baz")),
+              ]),
+              new Exist(new SymbolPrimitive("goo"), [
+                new LiteralPattern(new SymbolPrimitive("bar")),
+              ]),
+              new Exist(new SymbolPrimitive("baz"), []),
+            ])
+          )
+        ),
+      ]),
     ]);
   });
   it("rule/1 with if-then-else construct", () => {
@@ -732,44 +844,47 @@ describe("Parser Test", () => {
         `classify_number(X, Classification) :- ( X > 0 -> Classification = positive ; ( X < 0 -> Classification = negative ; Classification = zero )).`
       ),
       [
-        new Rule(
-          new SymbolPrimitive("classify_number"),
-          [
-            new VariablePattern(new SymbolPrimitive("X")),
-            new VariablePattern(new SymbolPrimitive("Classification")),
-          ],
-          [
-            new If(
-              new ComparisonOperation(
-                "GreaterThan",
-                new SymbolPrimitive("X"),
-                new NumberPrimitive(0)
-              ),
-              new UnifyOperation(
-                "Unify",
-                new SymbolPrimitive("Classification"),
-                new SymbolPrimitive("positive")
-              ),
-              new If(
-                new ComparisonOperation(
-                  "LessThan",
-                  new SymbolPrimitive("X"),
-                  new NumberPrimitive(0)
+        new Rule(new SymbolPrimitive("classify_number"), [
+          new Equation(
+            [
+              new VariablePattern(new SymbolPrimitive("X")),
+              new VariablePattern(new SymbolPrimitive("Classification")),
+            ],
+            new UnguardedBody(
+              new Sequence([
+                new If(
+                  new ComparisonOperation(
+                    "GreaterThan",
+                    new SymbolPrimitive("X"),
+                    new NumberPrimitive(0)
+                  ),
+                  new UnifyOperation(
+                    "Unify",
+                    new SymbolPrimitive("Classification"),
+                    new SymbolPrimitive("positive")
+                  ),
+                  new If(
+                    new ComparisonOperation(
+                      "LessThan",
+                      new SymbolPrimitive("X"),
+                      new NumberPrimitive(0)
+                    ),
+                    new UnifyOperation(
+                      "Unify",
+                      new SymbolPrimitive("Classification"),
+                      new SymbolPrimitive("negative")
+                    ),
+                    new UnifyOperation(
+                      "Unify",
+                      new SymbolPrimitive("Classification"),
+                      new SymbolPrimitive("zero")
+                    )
+                  )
                 ),
-                new UnifyOperation(
-                  "Unify",
-                  new SymbolPrimitive("Classification"),
-                  new SymbolPrimitive("negative")
-                ),
-                new UnifyOperation(
-                  "Unify",
-                  new SymbolPrimitive("Classification"),
-                  new SymbolPrimitive("zero")
-                )
-              )
-            ),
-          ]
-        ),
+              ])
+            )
+          ),
+        ]),
       ]
     );
   });
@@ -827,5 +942,88 @@ foo.`;
     assert.deepEqual(parser.parse(code), [
       new Fact(new SymbolPrimitive("foo"), []),
     ]);
+  });
+  describe("List and Cons", () => {
+    it("list pattern [1, 2, 3]", () => {
+      assert.deepEqual(parser.parse("foo([1, 2, 3])."), [
+        new Fact(new SymbolPrimitive("foo"), [
+          new ListPattern([
+            new LiteralPattern(new NumberPrimitive(1)),
+            new LiteralPattern(new NumberPrimitive(2)),
+            new LiteralPattern(new NumberPrimitive(3)),
+          ]),
+        ]),
+      ]);
+    });
+    it("cons pattern [H|T]", () => {
+      assert.deepEqual(parser.parse("foo([H|T])."), [
+        new Fact(new SymbolPrimitive("foo"), [
+          new ConsPattern(
+            new VariablePattern(new SymbolPrimitive("H")),
+            new VariablePattern(new SymbolPrimitive("T"))
+          ),
+        ]),
+      ]);
+    });
+    it("complex cons pattern [H1, H2 | T]", () => {
+      assert.deepEqual(parser.parse("foo([H1, H2 | T])."), [
+        new Fact(new SymbolPrimitive("foo"), [
+          new ConsPattern(
+            new VariablePattern(new SymbolPrimitive("H1")),
+            new ConsPattern(
+              new VariablePattern(new SymbolPrimitive("H2")),
+              new VariablePattern(new SymbolPrimitive("T"))
+            )
+          ),
+        ]),
+      ]);
+    });
+    it("list expression [1, 2, 3]", () => {
+      assert.deepEqual(parser.parse("foo :- X = [1, 2, 3]."), [
+        new Rule(new SymbolPrimitive("foo"), [
+          new Equation(
+            [],
+            new UnguardedBody(
+              new Sequence([
+                new UnifyOperation(
+                  "Unify",
+                  new SymbolPrimitive("X"),
+                  new ListPrimitive([
+                    new NumberPrimitive(1),
+                    new NumberPrimitive(2),
+                    new NumberPrimitive(3),
+                  ])
+                ),
+              ])
+            )
+          ),
+        ]),
+      ]);
+    });
+    it("cons expression [1, 2 | T]", () => {
+      assert.deepEqual(parser.parse("foo :- X = [1, 2 | T]."), [
+        new Rule(new SymbolPrimitive("foo"), [
+          new Equation(
+            [],
+
+            new UnguardedBody(
+              new Sequence([
+                new UnifyOperation(
+                  "Unify",
+                  new SymbolPrimitive("X"),
+                  new ConsExpression(
+                    new NumberPrimitive(1),
+                    new ConsExpression(
+                      new NumberPrimitive(2),
+                      new SymbolPrimitive("T")
+                    )
+                  )
+                ),
+              ])
+            )
+          ),
+        ]),
+      ]);
+    });
   });
 });

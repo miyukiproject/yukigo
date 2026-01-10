@@ -1,10 +1,16 @@
 import { AST, TraverseVisitor, StopTraversalException } from "yukigo-ast";
-import { genericInspections } from "./inspections/generic.js";
-import { functionalInspections } from "./inspections/functional.js";
-import { logicInspections } from "./inspections/logic.js";
-import { objectInspections } from "./inspections/object.js";
-import { imperativeInspections } from "./inspections/imperative.js";
+import { genericInspections } from "./inspections/generic/generic.js";
+import { functionalInspections } from "./inspections/functional/functional.js";
+import { logicInspections } from "./inspections/logic/logic.js";
+import { objectInspections } from "./inspections/object/object.js";
+import { imperativeInspections } from "./inspections/imperative/imperative.js";
 import { InspectionMap, VisitorConstructor } from "./utils.js";
+import { functionalSmells } from "./inspections/functional/smells.js";
+import { logicSmells } from "./inspections/logic/smells.js";
+import { objectSmells } from "./inspections/object/smells.js";
+import { imperativeSmells } from "./inspections/imperative/smells.js";
+import { genericSmells } from "./inspections/generic/smells.js";
+import { GraphBuilder } from "./GraphBuilder.js";
 
 export type AnalysisResult = {
   rule: InspectionRule;
@@ -20,12 +26,19 @@ export type InspectionRule = {
   expected: boolean;
 };
 
-export const defaultInspectionSet: InspectionMap = {
+export const DefaultInspectionSet: InspectionMap = {
   ...genericInspections,
   ...functionalInspections,
   ...logicInspections,
   ...objectInspections,
   ...imperativeInspections,
+};
+export const DefaultSmellsSet: InspectionMap = {
+  ...genericSmells,
+  ...functionalSmells,
+  ...logicSmells,
+  ...objectSmells,
+  ...imperativeSmells,
 };
 
 /**
@@ -40,8 +53,10 @@ export class Analyzer {
    * @defaultValue a default set of inspections for each supported paradigm
    */
   private inspectionConstructors: InspectionMap = {};
-  constructor(inspectionSet?: InspectionMap) {
-    this.inspectionConstructors = inspectionSet ?? defaultInspectionSet;
+  private smellsConstructors: InspectionMap = {};
+  constructor(inspectionSet?: InspectionMap, smellsSet?: InspectionMap) {
+    this.inspectionConstructors = inspectionSet ?? DefaultInspectionSet;
+    this.smellsConstructors = smellsSet ?? DefaultSmellsSet;
   }
 
   /**
@@ -79,61 +94,94 @@ export class Analyzer {
    */
   public analyze(ast: AST, rules: InspectionRule[]): AnalysisResult[] {
     const ruleResults: Map<InspectionRule, AnalysisResult> = new Map();
-    const activeVisitors: Map<InspectionRule, TraverseVisitor> = new Map();
+    const graphBuilder = new GraphBuilder();
+    const { defs, calls } = graphBuilder.build(ast);
 
     for (const rule of rules) {
-      const VisitorClass = this.inspectionConstructors[rule.inspection];
+      let inspectionName = rule.inspection;
+      let isTransitive = true;
+
+      if (inspectionName.startsWith("Intransitive:")) {
+        isTransitive = false;
+        inspectionName = inspectionName.replace("Intransitive:", "");
+      }
+
+      const VisitorClass = this.inspectionConstructors[inspectionName];
       if (!VisitorClass) {
         ruleResults.set(rule, {
           rule,
           passed: false,
           actual: false,
-          error: "Unknown inspection: " + rule.inspection,
+          error: "Unknown inspection: " + inspectionName,
         });
         continue;
       }
-      const visitorArgs = rule.binding
-        ? [rule.binding, ...rule.args]
-        : rule.args;
-      activeVisitors.set(rule, new VisitorClass(...visitorArgs));
-    }
 
-    for (const node of ast) {
-      for (const [rule, visitor] of activeVisitors.entries()) {
-        if (ruleResults.has(rule)) continue;
+      if (VisitorClass.IS_INTRANSITIVE) isTransitive = false;
 
-        try {
-          node.accept(visitor);
-        } catch (e) {
-          if (e instanceof StopTraversalException) {
-            ruleResults.set(rule, {
-              rule,
-              passed: rule.expected === true,
-              actual: true,
-            });
-          } else {
-            // unexpected error during traversal
-            ruleResults.set(rule, {
-              rule,
-              passed: false,
-              actual: false,
-              error: (e as Error).message,
-            });
+      let targets: { node: any; binding?: string }[] = [];
+
+      // Case 1: Global Inspection (No binding or wildcard)
+      if (!rule.binding || rule.binding === "*") {
+        targets = ast.map((n) => ({ node: n, binding: undefined }));
+      }
+      // Case 2: Directed Inspection (Specific binding)
+      else {
+        const workList = [rule.binding];
+        const visited = new Set<string>();
+
+        while (workList.length > 0) {
+          const currentBinding = workList.shift();
+          if (visited.has(currentBinding)) continue;
+          visited.add(currentBinding);
+
+          const node = defs.get(currentBinding);
+          if (node)
+            node.forEach((n) =>
+              targets.push({ node: n, binding: currentBinding })
+            );
+
+          if (isTransitive) {
+            const deps = calls.get(currentBinding) || [];
+            workList.push(...deps);
           }
         }
       }
-    }
 
-    for (const rule of rules) {
-      if (!ruleResults.has(rule)) {
-        ruleResults.set(rule, {
-          rule,
-          passed: rule.expected === false,
-          actual: false,
-        });
+      let actual = false;
+      let error: string;
+
+      // Execution Loop
+      let globalVisitor: TraverseVisitor;
+      if (!rule.binding || rule.binding === "*")
+        globalVisitor = new VisitorClass(...rule.args);
+      for (const { node, binding } of targets) {
+        try {
+          let visitor: TraverseVisitor;
+          if (globalVisitor) {
+            visitor = globalVisitor;
+          } else {
+            const args = [...rule.args, binding];
+            visitor = new VisitorClass(...args);
+          }
+          node.accept(visitor);
+        } catch (e) {
+          if (e instanceof StopTraversalException) {
+            actual = true;
+            break; // Short-circuit: Rule passed
+          } else {
+            error = (e as Error).message;
+          }
+        }
       }
-    }
 
+      ruleResults.set(rule, {
+        rule,
+        passed: actual === rule.expected,
+        actual,
+        error,
+      });
+    }
     return [...ruleResults.values()];
   }
 }

@@ -2,6 +2,7 @@ import { AST, Expression, YukigoParser } from "yukigo-ast";
 import { parse } from "wollok-ts";
 import { WollokToYukigoTransformer } from "./transformer.js";
 import { Token } from "moo";
+import { inspect } from "util";
 
 class UnexpectedToken extends Error {
   constructor(line, column, expectation) {
@@ -25,7 +26,6 @@ export class YukigoWollokParser implements YukigoParser {
       throw new UnexpectedToken(index.line, index.column, expectation);
     }
     const resultAST = parserResult.value;
-
     const transformer = new WollokToYukigoTransformer();
     const yukigoAst = transformer.transform(resultAST);
 

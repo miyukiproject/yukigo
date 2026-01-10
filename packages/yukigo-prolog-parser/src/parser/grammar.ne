@@ -1,10 +1,10 @@
-@{%
-import { 
+@{% import { 
     NumberPrimitive, 
     StringPrimitive, 
     Rule, 
     Fact, 
     Query,
+    ListPrimitive,
     ConsExpression,
     ArithmeticBinaryOperation,
     ArithmeticUnaryOperation,
@@ -13,6 +13,8 @@ import {
     Not, 
     Findall, 
     Sequence,
+    UnguardedBody,
+    Equation,
     If,
     Call,
     Forall, 
@@ -42,7 +44,9 @@ clause -> (fact | rule | query) {% (d) => d[0][0] %}
 
 fact -> any_atom arguments:? _ %period {% (d) => new Fact(d[0], d[1] ?? []) %}
 
-rule -> any_atom arguments:? _ %colonDash _ body _ %period {% (d) => new Rule(d[0], d[1] ?? [], d[5]) %}
+rule -> any_atom equation _ %period {% (d) => new Rule(d[0], [d[1]]) %}
+
+equation -> arguments:? _ %colonDash _ body {% (d) => new Equation(d[0] || [], new UnguardedBody(new Sequence(d[4])))%}
 
 query -> %queryOp _ body _ %period {% (d) => new Query(d[2]) %}
 
@@ -50,7 +54,7 @@ body -> expression (_ (%comma | %semicolon) _ expression):* {% (d) => [d[0], ...
 
 expression -> 
     (conditional | forall | findall | unification | assignment | comparison | not | exist) {% (d) => d[0][0] %}
-    | "(" _ expression _ ")" {% (d) => d[2] %}
+    | "(" _ body _ ")" {% (d) => asSequence(d[2]) %}
 
 conditional -> "(" _ body _ "->" _ body _ %semicolon _ body _ ")"  {% (d) => 
     new If(
@@ -66,7 +70,6 @@ findall -> %findallRule "(" _ expression _ %comma _ expression _ %comma _ expres
 
 not -> 
     %notOperator _ expression {% (d) => new Not([d[2]]) %}
-    | %notOperator _ "(" _ "(" _ body _  ")" _ ")" {% (d) => new Not([asSequence(d[6])]) %}
 
 exist -> 
     "call" %lparen _ pattern_list _ %rparen {% (d) => {
@@ -75,7 +78,7 @@ exist ->
     } %}
     | any_atom arguments:? {% (d, l, reject) => {
         const val = d[0].value; 
-        if (val === "not" || val === "\\+") return reject;
+        if (val === "not" || val === "\\+" || val === "call") return reject;
         return new Exist(d[0], d[1] ?? []) 
     } %}
     | variable {% (d) => new Exist(d[0], []) %}
@@ -101,12 +104,28 @@ multiplication ->
 primary -> 
     arithmetic_literal {% id %}
     | variable {% id %}
-    | strict_atom arguments  {% d => new Exist(d[0], d[1] ?? []) %}
+    | "-" _ primary {% (d) => new ArithmeticUnaryOperation("Negation", d[2]) %}
+    | strict_atom arguments  {% (d, l, reject) => {
+        const val = d[0].value;
+        if (["abs", "round", "sqrt"].includes(val)) return reject;
+        return new Exist(d[0], d[1] ?? [])
+    } %}
     | primitiveOperation  {% id %}
     | cons_expr  {% id %}
+    | list_expr {% id %}
     | "(" _ addition _ ")"  {% d => d[2] %}
 
-cons_expr -> "[" _ primary_list _ %consOp _ expression _ "]" {% (d) => new ConsExpression(d[2], d[6]) %}
+list_expr -> "[" _ primary_list:? _ "]" {% (d) => new ListPrimitive(d[2] || []) %}
+
+cons_expr -> "[" _ primary_list _ %consOp _ addition _ "]" {% (d) => {
+    const heads = d[2];
+    const tail = d[6];
+    let current = tail;
+    for (let i = heads.length - 1; i >= 0; i--) {
+        current = new ConsExpression(heads[i], current);
+    }
+    return current;
+} %}
 
 primitiveOperation -> 
     "round" __ addition {% d => new ArithmeticUnaryOperation("Round", d[2]) %}
@@ -126,14 +145,24 @@ pattern ->
     | %wildcard {% (d) => new WildcardPattern() %}
     | any_atom arguments {% (d) => new FunctorPattern(d[0], d[1]) %}
     | "(" _ pattern_list _ ")" {% (d) => new TuplePattern(d[2]) %}
-    | "[" _ pattern_list _ %consOp _ pattern _ "]" {% (d) => new ConsPattern(d[2].length > 1 ? new ListPattern(d[2]) : d[2][0], new VariablePattern(d[6])) %}
+    | "[" _ pattern_list _ %consOp _ pattern _ "]" {% (d) => {
+        const heads = d[2];
+        const tail = d[6];
+        let current = tail;
+        for (let i = heads.length - 1; i >= 0; i--) {
+            current = new ConsPattern(heads[i], current);
+        }
+        return current;
+    } %}
     | "[" _ pattern_list:? _ "]"  {% (d) => new ListPattern(d[2] ? d[2] : []) %}
 
 variable -> %variable {% (d) => new SymbolPrimitive(d[0].value) %}
 
 strict_atom -> %atom {% (d) => new SymbolPrimitive(d[0].value) %}
+             | %primitiveOperator {% (d) => new SymbolPrimitive(d[0].value) %}
 
-any_atom -> (%atom | %op | %comparisonOp) {% (d) => new SymbolPrimitive(d[0][0].value) %}
+any_atom -> strict_atom {% id %}
+          | (%op | %comparisonOp) {% (d) => new SymbolPrimitive(d[0][0].value) %}
 
 arithmetic_literal -> 
     strict_atom {% id %}

@@ -1,5 +1,6 @@
 import { typeClasses } from "../utils/types.js";
 import {
+  charType,
   Environment,
   Result,
   showType,
@@ -100,6 +101,15 @@ export class CoreHM {
     if (rt1.type === "TypeVar") return this.unifyVar(rt1, rt2);
     if (rt2.type === "TypeVar") return this.unifyVar(rt2, rt1);
     if (rt1.type === "TypeConstructor" && rt2.type === "TypeConstructor") {
+      const isStringList = (a: TypeConstructor, b: TypeConstructor) =>
+        (a.name === "YuString" && b.name === "List") ||
+        (b.name === "YuString" && a.name === "List");
+
+      if (isStringList(rt1, rt2)) {
+        const listType = rt1.name === "List" ? rt1 : rt2;
+        return this.unify(listType.args[0], charType);
+      }
+
       if (rt1.name !== rt2.name || rt1.args.length !== rt2.args.length) {
         return {
           success: false,

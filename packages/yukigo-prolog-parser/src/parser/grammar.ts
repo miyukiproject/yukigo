@@ -17,18 +17,19 @@ declare var consOp: any;
 declare var wildcard: any;
 declare var variable: any;
 declare var atom: any;
+declare var primitiveOperator: any;
 declare var op: any;
 declare var comparisonOp: any;
 declare var number: any;
 declare var string: any;
 declare var WS: any;
-
-import { 
+ import { 
     NumberPrimitive, 
     StringPrimitive, 
     Rule, 
     Fact, 
     Query,
+    ListPrimitive,
     ConsExpression,
     ArithmeticBinaryOperation,
     ArithmeticUnaryOperation,
@@ -37,6 +38,8 @@ import {
     Not, 
     Findall, 
     Sequence,
+    UnguardedBody,
+    Equation,
     If,
     Call,
     Forall, 
@@ -98,9 +101,10 @@ const grammar: Grammar = {
     {"name": "fact$ebnf$1", "symbols": ["arguments"], "postprocess": id},
     {"name": "fact$ebnf$1", "symbols": [], "postprocess": () => null},
     {"name": "fact", "symbols": ["any_atom", "fact$ebnf$1", "_", (PrologLexer.has("period") ? {type: "period"} : period)], "postprocess": (d) => new Fact(d[0], d[1] ?? [])},
-    {"name": "rule$ebnf$1", "symbols": ["arguments"], "postprocess": id},
-    {"name": "rule$ebnf$1", "symbols": [], "postprocess": () => null},
-    {"name": "rule", "symbols": ["any_atom", "rule$ebnf$1", "_", (PrologLexer.has("colonDash") ? {type: "colonDash"} : colonDash), "_", "body", "_", (PrologLexer.has("period") ? {type: "period"} : period)], "postprocess": (d) => new Rule(d[0], d[1] ?? [], d[5])},
+    {"name": "rule", "symbols": ["any_atom", "equation", "_", (PrologLexer.has("period") ? {type: "period"} : period)], "postprocess": (d) => new Rule(d[0], [d[1]])},
+    {"name": "equation$ebnf$1", "symbols": ["arguments"], "postprocess": id},
+    {"name": "equation$ebnf$1", "symbols": [], "postprocess": () => null},
+    {"name": "equation", "symbols": ["equation$ebnf$1", "_", (PrologLexer.has("colonDash") ? {type: "colonDash"} : colonDash), "_", "body"], "postprocess": (d) => new Equation(d[0] || [], new UnguardedBody(new Sequence(d[4])))},
     {"name": "query", "symbols": [(PrologLexer.has("queryOp") ? {type: "queryOp"} : queryOp), "_", "body", "_", (PrologLexer.has("period") ? {type: "period"} : period)], "postprocess": (d) => new Query(d[2])},
     {"name": "body$ebnf$1", "symbols": []},
     {"name": "body$ebnf$1$subexpression$1$subexpression$1", "symbols": [(PrologLexer.has("comma") ? {type: "comma"} : comma)]},
@@ -117,7 +121,7 @@ const grammar: Grammar = {
     {"name": "expression$subexpression$1", "symbols": ["not"]},
     {"name": "expression$subexpression$1", "symbols": ["exist"]},
     {"name": "expression", "symbols": ["expression$subexpression$1"], "postprocess": (d) => d[0][0]},
-    {"name": "expression", "symbols": [{"literal":"("}, "_", "expression", "_", {"literal":")"}], "postprocess": (d) => d[2]},
+    {"name": "expression", "symbols": [{"literal":"("}, "_", "body", "_", {"literal":")"}], "postprocess": (d) => asSequence(d[2])},
     {"name": "conditional", "symbols": [{"literal":"("}, "_", "body", "_", {"literal":"->"}, "_", "body", "_", (PrologLexer.has("semicolon") ? {type: "semicolon"} : semicolon), "_", "body", "_", {"literal":")"}], "postprocess":  (d) => 
         new If(
             asSequence(d[2]),  
@@ -128,7 +132,6 @@ const grammar: Grammar = {
     {"name": "forall", "symbols": [(PrologLexer.has("forallRule") ? {type: "forallRule"} : forallRule), {"literal":"("}, "_", "expression", "_", (PrologLexer.has("comma") ? {type: "comma"} : comma), "_", "expression", "_", {"literal":")"}], "postprocess": (d) => new Forall(d[3], d[7])},
     {"name": "findall", "symbols": [(PrologLexer.has("findallRule") ? {type: "findallRule"} : findallRule), {"literal":"("}, "_", "expression", "_", (PrologLexer.has("comma") ? {type: "comma"} : comma), "_", "expression", "_", (PrologLexer.has("comma") ? {type: "comma"} : comma), "_", "expression", "_", {"literal":")"}], "postprocess": (d) => new Findall(d[3], d[7], d[11])},
     {"name": "not", "symbols": [(PrologLexer.has("notOperator") ? {type: "notOperator"} : notOperator), "_", "expression"], "postprocess": (d) => new Not([d[2]])},
-    {"name": "not", "symbols": [(PrologLexer.has("notOperator") ? {type: "notOperator"} : notOperator), "_", {"literal":"("}, "_", {"literal":"("}, "_", "body", "_", {"literal":")"}, "_", {"literal":")"}], "postprocess": (d) => new Not([asSequence(d[6])])},
     {"name": "exist", "symbols": [{"literal":"call"}, (PrologLexer.has("lparen") ? {type: "lparen"} : lparen), "_", "pattern_list", "_", (PrologLexer.has("rparen") ? {type: "rparen"} : rparen)], "postprocess":  (d) => {
             const [callee, ...rest] = d[3]
             return new Call(callee.name, rest)
@@ -137,7 +140,7 @@ const grammar: Grammar = {
     {"name": "exist$ebnf$1", "symbols": [], "postprocess": () => null},
     {"name": "exist", "symbols": ["any_atom", "exist$ebnf$1"], "postprocess":  (d, l, reject) => {
             const val = d[0].value; 
-            if (val === "not" || val === "\\+") return reject;
+            if (val === "not" || val === "\\+" || val === "call") return reject;
             return new Exist(d[0], d[1] ?? []) 
         } },
     {"name": "exist", "symbols": ["variable"], "postprocess": (d) => new Exist(d[0], [])},
@@ -152,11 +155,28 @@ const grammar: Grammar = {
     {"name": "multiplication", "symbols": ["primary"], "postprocess": id},
     {"name": "primary", "symbols": ["arithmetic_literal"], "postprocess": id},
     {"name": "primary", "symbols": ["variable"], "postprocess": id},
-    {"name": "primary", "symbols": ["strict_atom", "arguments"], "postprocess": d => new Exist(d[0], d[1] ?? [])},
+    {"name": "primary", "symbols": [{"literal":"-"}, "_", "primary"], "postprocess": (d) => new ArithmeticUnaryOperation("Negation", d[2])},
+    {"name": "primary", "symbols": ["strict_atom", "arguments"], "postprocess":  (d, l, reject) => {
+            const val = d[0].value;
+            if (["abs", "round", "sqrt"].includes(val)) return reject;
+            return new Exist(d[0], d[1] ?? [])
+        } },
     {"name": "primary", "symbols": ["primitiveOperation"], "postprocess": id},
     {"name": "primary", "symbols": ["cons_expr"], "postprocess": id},
+    {"name": "primary", "symbols": ["list_expr"], "postprocess": id},
     {"name": "primary", "symbols": [{"literal":"("}, "_", "addition", "_", {"literal":")"}], "postprocess": d => d[2]},
-    {"name": "cons_expr", "symbols": [{"literal":"["}, "_", "primary_list", "_", (PrologLexer.has("consOp") ? {type: "consOp"} : consOp), "_", "expression", "_", {"literal":"]"}], "postprocess": (d) => new ConsExpression(d[2], d[6])},
+    {"name": "list_expr$ebnf$1", "symbols": ["primary_list"], "postprocess": id},
+    {"name": "list_expr$ebnf$1", "symbols": [], "postprocess": () => null},
+    {"name": "list_expr", "symbols": [{"literal":"["}, "_", "list_expr$ebnf$1", "_", {"literal":"]"}], "postprocess": (d) => new ListPrimitive(d[2] || [])},
+    {"name": "cons_expr", "symbols": [{"literal":"["}, "_", "primary_list", "_", (PrologLexer.has("consOp") ? {type: "consOp"} : consOp), "_", "addition", "_", {"literal":"]"}], "postprocess":  (d) => {
+            const heads = d[2];
+            const tail = d[6];
+            let current = tail;
+            for (let i = heads.length - 1; i >= 0; i--) {
+                current = new ConsExpression(heads[i], current);
+            }
+            return current;
+        } },
     {"name": "primitiveOperation", "symbols": [{"literal":"round"}, "__", "addition"], "postprocess": d => new ArithmeticUnaryOperation("Round", d[2])},
     {"name": "primitiveOperation", "symbols": [{"literal":"abs"}, "__", "addition"], "postprocess": d => new ArithmeticUnaryOperation("Absolute", d[2])},
     {"name": "primitiveOperation", "symbols": [{"literal":"sqrt"}, "__", "addition"], "postprocess": d => new ArithmeticUnaryOperation("Sqrt", d[2])},
@@ -175,13 +195,22 @@ const grammar: Grammar = {
     {"name": "pattern", "symbols": [(PrologLexer.has("wildcard") ? {type: "wildcard"} : wildcard)], "postprocess": (d) => new WildcardPattern()},
     {"name": "pattern", "symbols": ["any_atom", "arguments"], "postprocess": (d) => new FunctorPattern(d[0], d[1])},
     {"name": "pattern", "symbols": [{"literal":"("}, "_", "pattern_list", "_", {"literal":")"}], "postprocess": (d) => new TuplePattern(d[2])},
-    {"name": "pattern", "symbols": [{"literal":"["}, "_", "pattern_list", "_", (PrologLexer.has("consOp") ? {type: "consOp"} : consOp), "_", "pattern", "_", {"literal":"]"}], "postprocess": (d) => new ConsPattern(d[2].length > 1 ? new ListPattern(d[2]) : d[2][0], new VariablePattern(d[6]))},
+    {"name": "pattern", "symbols": [{"literal":"["}, "_", "pattern_list", "_", (PrologLexer.has("consOp") ? {type: "consOp"} : consOp), "_", "pattern", "_", {"literal":"]"}], "postprocess":  (d) => {
+            const heads = d[2];
+            const tail = d[6];
+            let current = tail;
+            for (let i = heads.length - 1; i >= 0; i--) {
+                current = new ConsPattern(heads[i], current);
+            }
+            return current;
+        } },
     {"name": "pattern$ebnf$1", "symbols": ["pattern_list"], "postprocess": id},
     {"name": "pattern$ebnf$1", "symbols": [], "postprocess": () => null},
     {"name": "pattern", "symbols": [{"literal":"["}, "_", "pattern$ebnf$1", "_", {"literal":"]"}], "postprocess": (d) => new ListPattern(d[2] ? d[2] : [])},
     {"name": "variable", "symbols": [(PrologLexer.has("variable") ? {type: "variable"} : variable)], "postprocess": (d) => new SymbolPrimitive(d[0].value)},
     {"name": "strict_atom", "symbols": [(PrologLexer.has("atom") ? {type: "atom"} : atom)], "postprocess": (d) => new SymbolPrimitive(d[0].value)},
-    {"name": "any_atom$subexpression$1", "symbols": [(PrologLexer.has("atom") ? {type: "atom"} : atom)]},
+    {"name": "strict_atom", "symbols": [(PrologLexer.has("primitiveOperator") ? {type: "primitiveOperator"} : primitiveOperator)], "postprocess": (d) => new SymbolPrimitive(d[0].value)},
+    {"name": "any_atom", "symbols": ["strict_atom"], "postprocess": id},
     {"name": "any_atom$subexpression$1", "symbols": [(PrologLexer.has("op") ? {type: "op"} : op)]},
     {"name": "any_atom$subexpression$1", "symbols": [(PrologLexer.has("comparisonOp") ? {type: "comparisonOp"} : comparisonOp)]},
     {"name": "any_atom", "symbols": ["any_atom$subexpression$1"], "postprocess": (d) => new SymbolPrimitive(d[0][0].value)},

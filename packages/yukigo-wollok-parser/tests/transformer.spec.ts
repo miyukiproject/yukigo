@@ -44,7 +44,8 @@ describe("WollokToYukigoTransformer", () => {
   const param = (name) => new Parameter({ name });
   const unguardedBody = (sentences) => new Body({ sentences });
   const singleton = (name, members) => new Singleton({ name, members });
-  const wollokClass = (name, members) => new Class({ name, members });
+  const wollokClass = (name, members, supertypes) =>
+    new Class({ name, members, supertypes });
   const ret = (value) => new Return({ value });
   const imp = (name) => new Import({ entity: ref(name) });
   const mixin = (name, members) => new Mixin({ name, members });
@@ -176,7 +177,7 @@ describe("WollokToYukigoTransformer", () => {
     });
 
     it("should transform a Class", () => {
-      const input = wollokClass("MyClass", []);
+      const input = wollokClass("MyClass", [], undefined);
       const result = transformNode(input) as Yu.Class;
       expect(result).to.be.instanceOf(Yu.Class);
       expect(result.identifier.value).to.equal("MyClass");
@@ -201,7 +202,7 @@ describe("WollokToYukigoTransformer", () => {
 
   describe("Package", () => {
     it("should return an array of Statements from a Package", () => {
-      const pkg = p([wollokClass("A", []), singleton("B", [])]);
+      const pkg = p([wollokClass("A", [], undefined), singleton("B", [])]);
 
       const result = transformer.transform(pkg);
 

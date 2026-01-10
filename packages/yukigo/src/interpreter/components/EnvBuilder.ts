@@ -108,7 +108,7 @@ export class EnvBuilderVisitor extends TraverseVisitor {
       identifier,
       className: "",
       fields,
-      methods
+      methods,
     };
 
     define(this.env, identifier, runtimeObject);
@@ -152,8 +152,8 @@ export class EnvBuilderVisitor extends TraverseVisitor {
   }
   visitVariable(node: Variable): void {
     const identifier = node.identifier.value;
-    const interpreter = new InterpreterVisitor(this.env,{})
-    define(this.env,identifier,node.expression.accept(interpreter))
+    const interpreter = new InterpreterVisitor(this.env, {});
+    define(this.env, identifier, node.expression.accept(interpreter));
   }
   visit(node: ASTNode): void {
     return node.accept(this);

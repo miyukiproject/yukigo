@@ -1,5 +1,6 @@
 import {
   ASTNode,
+  Equation,
   Expression,
   Primitive,
   PrimitiveValue,
@@ -20,22 +21,18 @@ export type Clause = Rule | Fact | Query | Primitive;
  */
 export class Rule extends ASTNode {
   /** @hidden */
-  public expressions: Expression[];
-  /** @hidden */
-  public patterns: Pattern[];
+  public equations: Equation[];
   /** @hidden */
   public identifier: SymbolPrimitive;
 
   constructor(
     identifier: SymbolPrimitive,
-    patterns: Pattern[],
-    expressions: Expression[],
+    equations: Equation[],
     loc?: SourceLocation
   ) {
     super(loc);
     this.identifier = identifier;
-    this.patterns = patterns;
-    this.expressions = expressions;
+    this.equations = equations;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitRule?.(this);
@@ -44,8 +41,7 @@ export class Rule extends ASTNode {
     return {
       type: "Rule",
       identifier: this.identifier.toJSON(),
-      patterns: this.patterns.map((p) => p.toJSON()),
-      expressions: this.expressions.map((expr) => expr.toJSON()),
+      equations: this.equations.map((expr) => expr.toJSON()),
     };
   }
 }

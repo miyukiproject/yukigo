@@ -18,9 +18,6 @@ type OOPMatch = {
   holder: RuntimeObject | RuntimeClass;
 };
 
-const __CONTEXT_CLASS__ = Symbol("CONTEXT_CLASS");
-const __METHOD_NAME__ = Symbol("METHOD_NAME");
-
 export class ObjectRuntime {
   /**
    * Creates a new instance of an Object.
@@ -76,7 +73,7 @@ export class ObjectRuntime {
   }
 
   /**
-   * Maneja llamadas a super() o super.metodo()
+   * Handles calls to super() or super.method()
    */
   static dispatchSuper(
     currentEnv: EnvStack,

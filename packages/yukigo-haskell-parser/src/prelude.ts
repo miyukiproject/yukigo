@@ -223,4 +223,22 @@ negate n = 0 - n
 ceiling :: (Num a, Integral b) => a -> b
 ceiling x = negate (floor (negate x))
 round :: (Num a, Integral b) => a -> b
-round x | r < 0.5 = n | r > 0.5 = n + 1 | even n = n | otherwise = n + 1 where { n = floor x; r = x - n }`
+round x | r < 0.5 = n | r > 0.5 = n + 1 | even n = n | otherwise = n + 1 where { n = floor x; r = x - n }
+dropWhile :: (a -> Bool) -> [a] -> [a]
+dropWhile _ [] = []
+dropWhile p xs@(x:xs') | p x = dropWhile p xs' | otherwise = xs
+break :: (a -> Bool) -> [a] -> ([a], [a])
+break _ [] = ([], [])
+break p (x:xs) | p x = ([], x:xs) | otherwise = (x : fst (break p xs), snd (break p xs))
+words :: String -> [String]
+words s = let { sTrim = dropWhile (\\c -> c == ' ') s } in if null sTrim then [] else fst (break (\\c -> c == ' ') sTrim) : words (snd (break (\\c -> c == ' ') sTrim))
+intersperse :: a -> [a] -> [a]
+intersperse _ [] = []
+intersperse _ [x] = [x]
+intersperse sep (x:xs) = x : sep : intersperse sep xs
+intercalate :: [a] -> [[a]] -> [a]
+intercalate xs xss = concat (intersperse xs xss)
+fromIntegral :: (Integral a, Num b) => a -> b
+fromIntegral x = x 
+show :: a -> String
+show x = x`

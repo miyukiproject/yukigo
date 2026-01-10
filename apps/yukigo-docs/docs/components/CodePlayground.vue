@@ -78,7 +78,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from "vue";
+import { ref, shallowRef, computed, onMounted, nextTick, watch } from "vue";
 import Editor from "./Editor.vue";
 import { YukigoHaskellParser } from "yukigo-haskell-parser";
 import { YukigoPrologParser } from "yukigo-prolog-parser";
@@ -146,24 +146,51 @@ const historyIndex = ref(-1);
 
 const inputRef = ref(null);
 const terminalBodyRef = ref(null);
+const compilationError = ref(null);
 
-let parser = new YukigoHaskellParser();
-let interpreterConfig = {
+const currentParser = shallowRef(new YukigoHaskellParser());
+const currentInterpreterConfig = shallowRef({
   lazyLoading: true,
   outputMode: "first",
-};
-
-
-const currentPlaceholder = computed(() => {
-  return languageExamples[selectedLanguage.value]?.placeholder || "doble 4";
 });
+const interpreterInstance = shallowRef(null);
+
+watch(
+  [code, currentParser],
+  ([newCode, parser]) => {
+    try {
+      // Intentamos parsear el programa completo
+      const programAst = parser.parse(newCode);
+
+      // Si el parseo es exitoso, instanciamos el interpreter
+      interpreterInstance.value = new Interpreter(
+        programAst,
+        currentInterpreterConfig.value
+      );
+
+      // Limpiamos errores previos si la compilación tuvo éxito
+      compilationError.value = null;
+
+      console.log("[Yukigo] Interpreter rebuilt successfully.");
+    } catch (err) {
+      // Si hay error de sintaxis en el editor, invalidamos el interpreter
+      // y mostramos el error sin romper la UI
+      interpreterInstance.value = null;
+      compilationError.value = err.message;
+      console.warn("[Yukigo] Compilation error:", err.message);
+    }
+  },
+  { immediate: true }
+);
 
 function switchLanguage(lang) {
   selectedLanguage.value = lang;
   const example = languageExamples[lang];
-  parser = example.parser;
-  interpreterConfig = example.interpreterConfig;
+
+  currentParser.value = example.parser;
+  currentInterpreterConfig.value = example.interpreterConfig;
   code.value = example.code;
+
   commandHistory.value = [
     {
       type: "output",
@@ -174,6 +201,7 @@ function switchLanguage(lang) {
   ];
   currentCommand.value = "";
   historyIndex.value = -1;
+  compilationError.value = null;
 }
 
 function formatOutput(value) {
@@ -226,14 +254,21 @@ function executeCommand() {
   if (commandText === ":help") {
     output = `Commands:\n  parse     → Generate Mulang AST\n  query     → Run structural queries\n  metrics   → Compute complexity`;
   } else {
-    try {
-      const programAst = parser.parse(code.value);
-      const interpreter = new Interpreter(programAst, interpreterConfig);
-      const expression = parser.parseExpression(commandText);
-      const result = interpreter.evaluate(expression);
-      output = formatOutput(result);
-    } catch (err) {
-      output = err.toString();
+    if (!interpreterInstance.value) {
+      if (compilationError.value) {
+        output = `Error: Cannot execute command. The source code has syntax errors.\n${compilationError.value}`;
+      } else {
+        output = "Error: Interpreter not initialized.";
+      }
+    } else {
+      try {
+        const expression = currentParser.value.parseExpression(commandText);
+
+        const result = interpreterInstance.value.evaluate(expression);
+        output = formatOutput(result);
+      } catch (err) {
+        output = err.toString();
+      }
     }
   }
 
