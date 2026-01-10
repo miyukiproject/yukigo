@@ -106,8 +106,8 @@ export class Analyzer {
         inspectionName = inspectionName.replace("Intransitive:", "");
       }
 
-      const VisitorClass = this.inspectionConstructors[inspectionName];
-      if (!VisitorClass) {
+      const InspectionClass = this.inspectionConstructors[inspectionName];
+      if (!InspectionClass) {
         ruleResults.set(rule, {
           rule,
           passed: false,
@@ -117,7 +117,7 @@ export class Analyzer {
         continue;
       }
 
-      if (VisitorClass.IS_INTRANSITIVE) isTransitive = false;
+      if (InspectionClass.IS_INTRANSITIVE) isTransitive = false;
 
       let targets: { node: any; binding?: string }[] = [];
 
@@ -152,17 +152,14 @@ export class Analyzer {
       let error: string;
 
       // Execution Loop
-      let globalVisitor: TraverseVisitor;
-      if (!rule.binding || rule.binding === "*")
-        globalVisitor = new VisitorClass(...rule.args);
+      const isGlobalVisitor = !rule.binding || rule.binding === "*";
+      const normalizedBinding = isGlobalVisitor ? undefined : rule.binding;
+      const visitor = new InspectionClass(...rule.args, normalizedBinding);
+
       for (const { node, binding } of targets) {
         try {
-          let visitor: TraverseVisitor;
-          if (globalVisitor) {
-            visitor = globalVisitor;
-          } else {
-            const args = [...rule.args, binding];
-            visitor = new VisitorClass(...args);
+          if (!isGlobalVisitor && visitor.setBinding) {
+            visitor.setBinding(binding);
           }
           node.accept(visitor);
         } catch (e) {
