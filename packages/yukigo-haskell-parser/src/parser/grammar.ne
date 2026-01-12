@@ -361,8 +361,8 @@ literal_pattern -> primitive {% (d) => new LiteralPattern(d[0]) %}
 as_pattern -> (variable_pattern | wildcard_pattern) "@" pattern {% (d) => new AsPattern(d[0][0], d[2]) %}
 
 constructor_pattern -> 
-  "(" constr pattern:+ ")" {% (d) => new ConstructorPattern(d[1].value, d[2]) %}
-  | constr {% (d) => new ConstructorPattern(d[0].value, []) %}
+  "(" constr pattern:+ ")" {% (d) => new ConstructorPattern(d[1], d[2]) %}
+  | constr {% (d) => new ConstructorPattern(d[0], []) %}
 
 # record_pattern -> 
 #   constr:? _ %lbracket _ field_pattern_list _ %rbracket {% (d) => ({
