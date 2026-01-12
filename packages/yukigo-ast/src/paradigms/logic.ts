@@ -194,10 +194,10 @@ export class Findall extends ASTNode {
   /** @hidden */
   public goal: Expression;
   /** @hidden */
-  public template: Expression;
+  public template: Pattern;
 
   constructor(
-    template: Expression,
+    template: Pattern,
     goal: Expression,
     bag: Expression,
     loc?: SourceLocation
