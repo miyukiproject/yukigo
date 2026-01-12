@@ -1,8 +1,7 @@
+import { Expression } from "../globals/expressions.js";
 import {
   ASTNode,
-  Expression,
   SourceLocation,
-  SymbolPrimitive,
 } from "../globals/generics.js";
 import { Pattern } from "../globals/patterns.js";
 import { Visitor } from "../visitor.js";

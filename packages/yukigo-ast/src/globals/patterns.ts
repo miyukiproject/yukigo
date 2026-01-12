@@ -1,10 +1,102 @@
 import { Visitor } from "../visitor.js";
-import {
-  ASTNode,
-  Primitive,
-  SourceLocation,
-  SymbolPrimitive,
-} from "./generics.js";
+import { ASTNode, SourceLocation } from "./generics.js";
+import { Primitive, SymbolPrimitive } from "./primitives.js";
+
+type NamedPatternKind = "VariablePattern" | "LiteralPattern";
+type ArgsPatternKind =
+  | "ApplicationPattern"
+  | "FunctorPattern"
+  | "ConstructorPattern";
+type ListBasedPatternKind = "TuplePattern" | "ListPattern" | "UnionPattern";
+type BinaryPatternKind = "AsPattern" | "ConsPattern";
+
+type YukigoPattern =
+  | NamedPatternKind
+  | ArgsPatternKind
+  | ListBasedPatternKind
+  | BinaryPatternKind
+  | "WildcardPattern";
+
+abstract class BasePattern extends ASTNode {
+  constructor(loc?: SourceLocation) {
+    super(loc);
+  }
+  protected abstract get jsonType(): YukigoPattern;
+}
+
+abstract class NamedPattern<
+  T extends Primitive | SymbolPrimitive
+> extends BasePattern {
+  public name: T;
+  constructor(name: T, loc?: SourceLocation) {
+    super(loc);
+    this.name = name;
+  }
+  protected abstract get jsonType(): NamedPatternKind;
+  public toJSON() {
+    return {
+      type: this.jsonType,
+      name: this.name.toJSON(),
+    };
+  }
+}
+abstract class ArgsPattern extends BasePattern {
+  /** @hidden */
+  public identifier: SymbolPrimitive;
+  /** @hidden */
+  public args: Pattern[];
+  constructor(
+    identifier: SymbolPrimitive,
+    args: Pattern[],
+    loc?: SourceLocation
+  ) {
+    super(loc);
+    this.identifier = identifier;
+    this.args = args;
+  }
+  protected abstract get jsonType(): ArgsPatternKind;
+  public toJSON() {
+    return {
+      type: this.jsonType,
+      identifier: this.identifier.toJSON(),
+      args: this.args.map((arg) => arg.toJSON()),
+    };
+  }
+}
+abstract class ListBasedPattern extends BasePattern {
+  /** @hidden */
+  public elements: Pattern[];
+  constructor(elements: Pattern[], loc?: SourceLocation) {
+    super(loc);
+    this.elements = elements;
+  }
+  protected abstract get jsonType(): ListBasedPatternKind;
+  public toJSON() {
+    return {
+      type: this.jsonType,
+      elements: this.elements.map((arg) => arg.toJSON()),
+    };
+  }
+}
+abstract class BinaryPattern extends BasePattern {
+  /** @hidden */
+  public left: Pattern;
+  /** @hidden */
+  public right: Pattern;
+  constructor(left: Pattern, right: Pattern, loc?: SourceLocation) {
+    super(loc);
+    this.left = left;
+    this.right = right;
+  }
+  protected abstract get jsonType(): BinaryPatternKind;
+  public toJSON() {
+    return {
+      type: this.jsonType,
+      left: this.left.toJSON(),
+      right: this.right.toJSON(),
+    };
+  }
+}
 
 /**
  * Represents a pattern that matches any value and binds it to a variable.
@@ -13,22 +105,15 @@ import {
  * map (\x -> x + 1)
  * @category Patterns
  */
-export class VariablePattern extends ASTNode {
-    /** @hidden */
-    public name: SymbolPrimitive;
-
+export class VariablePattern extends NamedPattern<SymbolPrimitive> {
+  protected get jsonType(): NamedPatternKind {
+    return "VariablePattern";
+  }
   constructor(name: SymbolPrimitive, loc?: SourceLocation) {
-    super(loc);
-      this.name = name;
+    super(name, loc);
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitVariablePattern?.(this);
-  }
-  public toJSON() {
-    return {
-      type: "VariablePattern",
-      name: this.name.toJSON(),
-    };
   }
 }
 
@@ -36,52 +121,30 @@ export class VariablePattern extends ASTNode {
  * Represents a pattern that matches an exact literal value.
  * @category Patterns
  */
-export class LiteralPattern extends ASTNode {
-    /** @hidden */
-    public name: Primitive;
-
+export class LiteralPattern extends NamedPattern<Primitive> {
+  protected get jsonType(): NamedPatternKind {
+    return "LiteralPattern";
+  }
   constructor(name: Primitive, loc?: SourceLocation) {
-    super(loc);
-      this.name = name;
+    super(name, loc);
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitLiteralPattern?.(this);
-  }
-  public toJSON() {
-    return {
-      type: "LiteralPattern",
-      name: this.name.toJSON(),
-    };
   }
 }
 /**
  * Represents a pattern matching a function application or constructor with arguments.
  * @category Patterns
  */
-export class ApplicationPattern extends ASTNode {
-    /** @hidden */
-    public args: Pattern[];
-    /** @hidden */
-    public symbol: SymbolPrimitive;
-
-  constructor(
-    symbol: SymbolPrimitive,
-    args: Pattern[],
-    loc?: SourceLocation
-  ) {
-    super(loc);
-      this.symbol = symbol;
-      this.args = args;
+export class ApplicationPattern extends ArgsPattern {
+  protected get jsonType(): ArgsPatternKind {
+    return "ApplicationPattern";
+  }
+  constructor(symbol: SymbolPrimitive, args: Pattern[], loc?: SourceLocation) {
+    super(symbol, args, loc);
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitApplicationPattern?.(this);
-  }
-  public toJSON() {
-    return {
-      type: "ApplicationPattern",
-      symbol: this.symbol.toJSON(),
-      args: this.args.map((arg) => arg.toJSON()),
-    };
   }
 }
 
@@ -89,22 +152,15 @@ export class ApplicationPattern extends ASTNode {
  * Represents a pattern matching a tuple structure.
  * @category Patterns
  */
-export class TuplePattern extends ASTNode {
-    /** @hidden */
-    public elements: Pattern[];
-
+export class TuplePattern extends ListBasedPattern {
+  protected get jsonType(): ListBasedPatternKind {
+    return "TuplePattern";
+  }
   constructor(elements: Pattern[], loc?: SourceLocation) {
-    super(loc);
-      this.elements = elements;
+    super(elements, loc);
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitTuplePattern?.(this);
-  }
-  public toJSON() {
-    return {
-      type: "TuplePattern",
-      elements: this.elements.map((elem) => elem.toJSON()),
-    };
   }
 }
 
@@ -115,22 +171,15 @@ export class TuplePattern extends ASTNode {
  * sum (x:xs) = x + sum xs
  * @category Patterns
  */
-export class ListPattern extends ASTNode {
-    /** @hidden */
-    public elements: Pattern[];
-
+export class ListPattern extends ListBasedPattern {
+  protected get jsonType(): ListBasedPatternKind {
+    return "ListPattern";
+  }
   constructor(elements: Pattern[], loc?: SourceLocation) {
-    super(loc);
-      this.elements = elements;
+    super(elements, loc);
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitListPattern?.(this);
-  }
-  public toJSON() {
-    return {
-      type: "ListPattern",
-      elements: this.elements.map((elem) => elem.toJSON()),
-    };
   }
 }
 
@@ -138,31 +187,15 @@ export class ListPattern extends ASTNode {
  * Represents a pattern matching a functor or compound term.
  * @category Patterns
  */
-export class FunctorPattern extends ASTNode {
-    /** @hidden */
-    public args: Pattern[];
-    /** @hidden */
-    public identifier: SymbolPrimitive;
-
-  constructor(
-    identifier: SymbolPrimitive,
-    args: Pattern[],
-    loc?: SourceLocation
-  ) {
-    super(loc);
-      this.identifier = identifier;
-      this.args = args;
+export class FunctorPattern extends ArgsPattern {
+  protected get jsonType(): ArgsPatternKind {
+    return "FunctorPattern";
   }
-
+  constructor(symbol: SymbolPrimitive, args: Pattern[], loc?: SourceLocation) {
+    super(symbol, args, loc);
+  }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitFunctorPattern?.(this);
-  }
-  public toJSON() {
-    return {
-      type: "FunctorPattern",
-      identifier: this.identifier.toJSON(),
-      args: this.args.map((arg) => arg.toJSON()),
-    };
   }
 }
 
@@ -173,30 +206,19 @@ export class FunctorPattern extends ASTNode {
  * f p@(x, y) = ...
  * @category Patterns
  */
-export class AsPattern extends ASTNode {
-    /** @hidden */
-    public pattern: Pattern;
-    /** @hidden */
-    public alias: VariablePattern | WildcardPattern;
-
+export class AsPattern extends BinaryPattern {
+  protected get jsonType(): BinaryPatternKind {
+    return "AsPattern";
+  }
   constructor(
-    alias: VariablePattern | WildcardPattern,
-    pattern: Pattern,
+    left: VariablePattern | WildcardPattern,
+    right: Pattern,
     loc?: SourceLocation
   ) {
-    super(loc);
-      this.alias = alias;
-      this.pattern = pattern;
+    super(left, right, loc);
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitAsPattern?.(this);
-  }
-  public toJSON() {
-    return {
-      type: "AsPattern",
-      alias: this.alias.toJSON(),
-      pattern: this.pattern.toJSON(),
-    };
   }
 }
 
@@ -207,7 +229,10 @@ export class AsPattern extends ASTNode {
  * const _ x = x
  * @category Patterns
  */
-export class WildcardPattern extends ASTNode {
+export class WildcardPattern extends BasePattern {
+  protected get jsonType(): YukigoPattern {
+    return "WildcardPattern";
+  }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitWildcardPattern?.(this);
   }
@@ -223,22 +248,15 @@ export class WildcardPattern extends ASTNode {
  * Represents a union of patterns, matching if any of the sub-patterns match.
  * @category Patterns
  */
-export class UnionPattern extends ASTNode {
-    /** @hidden */
-    public patterns: Pattern[];
-
+export class UnionPattern extends ListBasedPattern {
+  protected get jsonType(): ListBasedPatternKind {
+    return "UnionPattern";
+  }
   constructor(patterns: Pattern[], loc?: SourceLocation) {
-    super(loc);
-      this.patterns = patterns;
+    super(patterns, loc);
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitUnionPattern?.(this);
-  }
-  public toJSON() {
-    return {
-      type: "UnionPattern",
-      patterns: this.patterns.map((pattern) => pattern.toJSON()),
-    };
   }
 }
 
@@ -249,30 +267,15 @@ export class UnionPattern extends ASTNode {
  * safeDiv (Just x) y = x / y
  * @category Patterns
  */
-export class ConstructorPattern extends ASTNode {
-    /** @hidden */
-    public patterns: Pattern[];
-    /** @hidden */
-    public constr: string;
-
-  constructor(
-    constr: string,
-    patterns: Pattern[],
-    loc?: SourceLocation
-  ) {
-    super(loc);
-      this.constr = constr;
-      this.patterns = patterns;
+export class ConstructorPattern extends ArgsPattern {
+  protected get jsonType(): ArgsPatternKind {
+    return "ConstructorPattern";
+  }
+  constructor(symbol: SymbolPrimitive, args: Pattern[], loc?: SourceLocation) {
+    super(symbol, args, loc);
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitConstructorPattern?.(this);
-  }
-  public toJSON() {
-    return {
-      type: "ConstructorPattern",
-      constructor: this.constr,
-      patterns: this.patterns.map((pattern) => pattern.toJSON()),
-    };
   }
 }
 
@@ -280,30 +283,15 @@ export class ConstructorPattern extends ASTNode {
  * Represents a pattern matching the head and tail of a list (x:xs).
  * @category Patterns
  */
-export class ConsPattern extends ASTNode {
-    /** @hidden */
-    public tail: Pattern;
-    /** @hidden */
-    public head: Pattern;
-
-  constructor(
-    head: Pattern,
-    tail: Pattern,
-    loc?: SourceLocation
-  ) {
-    super(loc);
-      this.head = head;
-      this.tail = tail;
+export class ConsPattern extends BinaryPattern {
+  protected get jsonType(): BinaryPatternKind {
+    return "ConsPattern";
+  }
+  constructor(left: Pattern, right: Pattern, loc?: SourceLocation) {
+    super(left, right, loc);
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitConsPattern?.(this);
-  }
-  public toJSON() {
-    return {
-      type: "ConsPattern",
-      head: this.head.toJSON(),
-      tail: this.tail.toJSON(),
-    };
   }
 }
 
@@ -319,3 +307,7 @@ export type Pattern =
   | ConstructorPattern
   | UnionPattern
   | ConsPattern;
+
+export function isPattern(node: ASTNode): node is Primitive {
+  return node instanceof BasePattern;
+}

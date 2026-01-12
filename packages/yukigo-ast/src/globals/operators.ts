@@ -1,5 +1,6 @@
 import { Visitor } from "../visitor.js";
-import { ASTNode, Expression, SourceLocation } from "./generics.js";
+import { Expression } from "./expressions.js";
+import { ASTNode, SourceLocation } from "./generics.js";
 
 export type ArithmeticBinaryOperator =
   | "Plus"

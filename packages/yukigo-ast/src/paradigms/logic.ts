@@ -1,13 +1,8 @@
-import {
-  ASTNode,
-  Equation,
-  Expression,
-  Primitive,
-  PrimitiveValue,
-  SourceLocation,
-  SymbolPrimitive,
-} from "../globals/generics.js";
+import { Expression } from "../globals/expressions.js";
+import { ASTNode, SourceLocation } from "../globals/generics.js";
 import { Pattern } from "../globals/patterns.js";
+import { Primitive, SymbolPrimitive } from "../globals/primitives.js";
+import { Equation } from "../globals/statements.js";
 import { Visitor } from "../visitor.js";
 
 export type Clause = Rule | Fact | Query | Primitive;
@@ -280,29 +275,4 @@ export class Goal extends ASTNode {
       arguments: this.args.map((arg) => arg.toJSON()),
     };
   }
-}
-
-// Runtime Types
-
-export type RuntimePredicate = RuntimeFact | RuntimeRule;
-
-export const isRuntimePredicate = (
-  prim: PrimitiveValue
-): prim is RuntimePredicate => {
-  return (
-    typeof prim === "object" &&
-    "kind" in prim &&
-    (prim.kind === "Fact" || prim.kind === "Rule")
-  );
-};
-
-export interface RuntimeFact {
-  kind: "Fact";
-  identifier: string;
-  equations: Fact[];
-}
-export interface RuntimeRule {
-  kind: "Rule";
-  identifier: string;
-  equations: Rule[];
 }

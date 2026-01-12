@@ -1,12 +1,11 @@
+import { Expression } from "../globals/expressions.js";
 import {
   ASTNode,
-  Equation,
-  Expression,
   SourceLocation,
-  SymbolPrimitive,
 } from "../globals/generics.js";
 import { Operator } from "../globals/operators.js";
-import { Pattern } from "../globals/patterns.js";
+import { SymbolPrimitive } from "../globals/primitives.js";
+import { Equation } from "../globals/statements.js";
 import { Visitor } from "../visitor.js";
 
 /**

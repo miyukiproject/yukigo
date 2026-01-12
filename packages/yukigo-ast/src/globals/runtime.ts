@@ -1,5 +1,41 @@
-import { GuardedBody, PrimitiveValue, UnguardedBody } from "./generics.js";
+import { Fact, Rule } from "../paradigms/logic.js";
 import { Pattern } from "./patterns.js";
+import { GuardedBody, UnguardedBody } from "./statements.js";
+
+export type SuccessLogicResult = {
+  success: true;
+  solutions: Map<string, string>;
+};
+export type FailedLogicResult = {
+  success: false;
+};
+export type LogicResult = SuccessLogicResult | FailedLogicResult;
+
+export type PrimitiveValue =
+  | number
+  | boolean
+  | string
+  | RuntimeFunction
+  | RuntimePredicate
+  | LogicResult
+  | LazyList
+  | null
+  | void
+  | PrimitiveValue[]
+  | RuntimeObject
+  | RuntimeClass
+  | undefined;
+
+export function isLogicResult(value: PrimitiveValue): value is LogicResult {
+  return (
+    value &&
+    typeof value === "object" &&
+    "success" in value &&
+    typeof value.success === "boolean" &&
+    "solutions" in value &&
+    value.solutions instanceof Map
+  );
+}
 
 export type PrimitiveThunk = () => PrimitiveValue;
 
@@ -8,6 +44,31 @@ export type EnvStack = {
   head: Environment;
   tail: EnvStack | null;
 };
+
+// Runtime Types
+
+export type RuntimePredicate = RuntimeFact | RuntimeRule;
+
+export const isRuntimePredicate = (
+  prim: PrimitiveValue
+): prim is RuntimePredicate => {
+  return (
+    typeof prim === "object" &&
+    "kind" in prim &&
+    (prim.kind === "Fact" || prim.kind === "Rule")
+  );
+};
+
+export interface RuntimeFact {
+  kind: "Fact";
+  identifier: string;
+  equations: Fact[];
+}
+export interface RuntimeRule {
+  kind: "Rule";
+  identifier: string;
+  equations: Rule[];
+}
 
 export interface EquationRuntime {
   patterns: Pattern[];
@@ -50,7 +111,7 @@ export function isRuntimeClass(val: PrimitiveValue): val is RuntimeClass {
 
 export interface RuntimeObject {
   type: "Object";
-  identifier: string,
+  identifier: string;
   className: string;
   fields: Map<string, PrimitiveValue>;
   methods: Map<string, RuntimeFunction>;

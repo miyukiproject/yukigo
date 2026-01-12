@@ -1,12 +1,4 @@
 import {
-  Sequence,
-  NumberPrimitive,
-  BooleanPrimitive,
-  StringPrimitive,
-  ListPrimitive,
-  NilPrimitive,
-  SymbolPrimitive,
-  CharPrimitive,
   TupleExpression,
   FieldExpression,
   DataExpression,
@@ -15,31 +7,10 @@ import {
   Otherwise,
   ListComprehension,
   RangeExpression,
-  If,
-  Return,
-  Field,
-  Constructor,
-  UnguardedBody,
-  GuardedBody,
-  Equation,
-  Switch,
-  Try,
-  Raise,
-  Print,
-  Function,
-  Generator,
-  For,
-  Break,
-  Continue,
-  Variable,
-  Assignment,
-  ASTNode,
-  Record,
-  Case,
-  Catch,
-  Input,
   NamedArgument,
-} from "./globals/generics.js";
+  Generator,
+} from "./globals/expressions.js";
+import { ASTNode } from "./globals/generics.js";
 import {
   ArithmeticUnaryOperation,
   ArithmeticBinaryOperation,
@@ -68,6 +39,39 @@ import {
   ConsPattern,
 } from "./globals/patterns.js";
 import {
+  BooleanPrimitive,
+  CharPrimitive,
+  ListPrimitive,
+  NilPrimitive,
+  NumberPrimitive,
+  StringPrimitive,
+  SymbolPrimitive,
+} from "./globals/primitives.js";
+import {
+  Sequence,
+  If,
+  Return,
+  Field,
+  UnguardedBody,
+  GuardedBody,
+  Equation,
+  Switch,
+  Case,
+  Try,
+  Catch,
+  Raise,
+  Print,
+  Input,
+  For,
+  Break,
+  Continue,
+  Variable,
+  Assignment,
+  Constructor,
+  Record,
+  Function,
+} from "./globals/statements.js";
+import {
   SimpleType,
   TypeVar,
   TypeApplication,
@@ -80,21 +84,6 @@ import {
   TypeSignature,
   TypeCast,
 } from "./globals/types.js";
-import {
-  AlterDatabase,
-  AlterTable,
-  Commit,
-  CreateDatabase,
-  CreateIndex,
-  CreateTable,
-  Delete,
-  DropIndex,
-  DropTable,
-  InsertInto,
-  Rollback,
-  Select,
-  Update,
-} from "./paradigms/data.js";
 import {
   CompositionExpression,
   Lambda,
@@ -246,20 +235,6 @@ export interface StrictVisitor<TReturn> {
   visitTypeAlias(node: TypeAlias): TReturn;
   visitTypeSignature(node: TypeSignature): TReturn;
   visitTypeCast(node: TypeCast): TReturn;
-  // Data Manipulation Nodes
-  visitSelect(node: Select): TReturn;
-  visitUpdate(node: Update): TReturn;
-  visitDelete(node: Delete): TReturn;
-  visitInsertInto(node: InsertInto): TReturn;
-  visitCreateDatabase(node: CreateDatabase): TReturn;
-  visitAlterDatabase(node: AlterDatabase): TReturn;
-  visitCreateTable(node: CreateTable): TReturn;
-  visitAlterTable(node: AlterTable): TReturn;
-  visitDropTable(node: DropTable): TReturn;
-  visitCreateIndex(node: CreateIndex): TReturn;
-  visitDropIndex(node: DropIndex): TReturn;
-  visitCommit(node: Commit): TReturn;
-  visitRollback(node: Rollback): TReturn;
   visit(node: ASTNode): TReturn;
 }
 
@@ -272,47 +247,16 @@ export class StopTraversalException extends Error {
 }
 
 export class TraverseVisitor implements StrictVisitor<void> {
-  visitSelect(node: Select): void {
-    this.traverseCollection(node.columns);
-    node.where?.accept(this);
-  }
-  visitUpdate(node: Update): void {
-    this.traverseCollection(node.assignments);
-    node.where?.accept(this);
-  }
-  visitDelete(node: Delete): void {
-    node.where?.accept(this);
-  }
-  visitInsertInto(node: InsertInto): void {
-    node.values.forEach((val) => this.traverseCollection(val));
-  }
-  visitCreateDatabase(node: CreateDatabase): void {}
-  visitAlterDatabase(node: AlterDatabase): void {}
-  visitCreateTable(node: CreateTable): void {
-    this.traverseCollection(node.columns);
-  }
-  visitAlterTable(node: AlterTable): void {
-    node.action.accept(this);
-  }
-  visitDropTable(node: DropTable): void {}
-  visitCreateIndex(node: CreateIndex): void {}
-  visitDropIndex(node: DropIndex): void {}
-  visitCommit(node: Commit): void {
-    node.name.accept(this);
-  }
-  visitRollback(node: Rollback): void {
-    node.name.accept(this);
-  }
   protected traverseCollection(nodes: ASTNode[]): void {
-    for (const node of nodes) {
-      try {
-        node.accept(this);
-      } catch (e) {
-        throw e;
-      }
-    }
+    nodes.forEach((node) => node.accept(this));
   }
-
+  protected traverseBinary(node: { left: ASTNode; right: ASTNode }): void {
+    node.left.accept(this);
+    node.right.accept(this);
+  }
+  protected traverseUnary(node: { operand: ASTNode }): void {
+    node.operand.accept(this);
+  }
   visitSequence(node: Sequence): void {
     this.traverseCollection(node.statements);
   }
@@ -323,54 +267,46 @@ export class TraverseVisitor implements StrictVisitor<void> {
   visitBooleanPrimitive(node: BooleanPrimitive): void {}
   visitStringPrimitive(node: StringPrimitive): void {}
   visitListPrimitive(node: ListPrimitive): void {
-    this.traverseCollection(node.elements);
+    this.traverseCollection(node.value);
   }
   visitNilPrimitive(node: NilPrimitive): void {}
   visitSymbolPrimitive(node: SymbolPrimitive): void {}
   visitCharPrimitive(node: CharPrimitive): void {}
   visitArithmeticUnaryOperation(node: ArithmeticUnaryOperation): void {
-    node.operand.accept(this);
+    this.traverseUnary(node);
   }
   visitArithmeticBinaryOperation(node: ArithmeticBinaryOperation): void {
-    node.left.accept(this);
-    node.right.accept(this);
+    this.traverseBinary(node);
   }
   visitListUnaryOperation(node: ListUnaryOperation): void {
-    node.operand.accept(this);
+    this.traverseUnary(node);
   }
   visitListBinaryOperation(node: ListBinaryOperation): void {
-    node.left.accept(this);
-    node.right.accept(this);
+    this.traverseBinary(node);
   }
   visitComparisonOperation(node: ComparisonOperation): void {
-    node.left.accept(this);
-    node.right.accept(this);
+    this.traverseBinary(node);
   }
   visitLogicalBinaryOperation(node: LogicalBinaryOperation): void {
-    node.left.accept(this);
-    node.right.accept(this);
+    this.traverseBinary(node);
   }
   visitLogicalUnaryOperation(node: LogicalUnaryOperation): void {
-    node.operand.accept(this);
+    this.traverseUnary(node);
   }
   visitBitwiseBinaryOperation(node: BitwiseBinaryOperation): void {
-    node.left.accept(this);
-    node.right.accept(this);
+    this.traverseBinary(node);
   }
   visitBitwiseUnaryOperation(node: BitwiseUnaryOperation): void {
-    node.operand.accept(this);
+    this.traverseUnary(node);
   }
   visitStringOperation(node: StringOperation): void {
-    node.left.accept(this);
-    node.right.accept(this);
+    this.traverseBinary(node);
   }
   visitUnifyOperation(node: UnifyOperation): void {
-    node.left.accept(this);
-    node.right.accept(this);
+    this.traverseBinary(node);
   }
   visitAssignOperation(node: AssignOperation): void {
-    node.left.accept(this);
-    node.right.accept(this);
+    this.traverseBinary(node);
   }
   visitTupleExpr(node: TupleExpression): void {
     this.traverseCollection(node.elements);
@@ -397,8 +333,7 @@ export class TraverseVisitor implements StrictVisitor<void> {
   }
   visitOtherwise(node: Otherwise): void {}
   visitCompositionExpression(node: CompositionExpression): void {
-    node.left.accept(this);
-    node.right.accept(this);
+    this.traverseBinary(node);
   }
   visitLambda(node: Lambda): void {
     node.body.accept(this);
@@ -618,7 +553,7 @@ export class TraverseVisitor implements StrictVisitor<void> {
     node.name.accept(this);
   }
   visitApplicationPattern(node: ApplicationPattern): void {
-    node.symbol.accept(this);
+    node.identifier.accept(this);
     this.traverseCollection(node.args);
   }
   visitTuplePattern(node: TuplePattern): void {
@@ -632,19 +567,17 @@ export class TraverseVisitor implements StrictVisitor<void> {
     this.traverseCollection(node.args);
   }
   visitAsPattern(node: AsPattern): void {
-    node.alias.accept(this);
-    node.pattern.accept(this);
+    this.traverseBinary(node);
   }
   visitWildcardPattern(node: WildcardPattern): void {}
   visitUnionPattern(node: UnionPattern): void {
-    this.traverseCollection(node.patterns);
+    this.traverseCollection(node.elements);
   }
   visitConstructorPattern(node: ConstructorPattern): void {
-    this.traverseCollection(node.patterns);
+    this.traverseCollection(node.args);
   }
   visitConsPattern(node: ConsPattern): void {
-    node.head.accept(this);
-    node.tail.accept(this);
+    this.traverseBinary(node);
   }
   visitSimpleType(node: SimpleType): void {
     this.traverseCollection(node.constraints);
