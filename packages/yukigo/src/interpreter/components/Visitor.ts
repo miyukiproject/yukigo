@@ -129,7 +129,7 @@ export class InterpreterVisitor
     return node.value;
   }
   visitListPrimitive(node: ListPrimitive): PrimitiveValue {
-    return node.elements.map((elem) => elem.accept(this));
+    return node.value.map((elem) => elem.accept(this));
   }
   visitNilPrimitive(node: NilPrimitive): PrimitiveValue {
     return node.value;

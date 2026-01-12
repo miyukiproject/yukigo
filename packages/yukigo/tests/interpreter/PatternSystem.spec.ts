@@ -56,7 +56,7 @@ describe("Pattern System", () => {
 
     it("should resolve a constructor pattern", () => {
       // Just(X)
-      const p = new ConstructorPattern("Just", [variable("X")]);
+      const p = new ConstructorPattern(new SymbolPrimitive("Just"), [variable("X")]);
       expect(p.accept(resolver)).to.equal("Just X");
     });
 
@@ -127,7 +127,7 @@ describe("Pattern System", () => {
     });
 
     it("should match a Constructor pattern", () => {
-      const p = new ConstructorPattern("Just", [variable("X")]);
+      const p = new ConstructorPattern(new SymbolPrimitive("Just"), [variable("X")]);
       const val = ["Just", 10];
 
       const { success, bindings } = match(p, val);
