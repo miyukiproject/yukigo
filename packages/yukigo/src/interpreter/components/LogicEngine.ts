@@ -4,6 +4,7 @@ import {
   Findall,
   Forall,
   Goal,
+  ListPattern,
   LiteralPattern,
   Not,
   Pattern,
@@ -14,6 +15,8 @@ import {
   VariablePattern,
   EnvStack,
   LogicResult,
+  ConsPattern,
+  isLazyList,
 } from "yukigo-ast";
 import {
   InternalLogicResult,
@@ -26,6 +29,25 @@ import { PatternResolver } from "./PatternMatcher.js";
 import { InterpreterConfig } from "../index.js";
 import { createStream, ExpressionEvaluator, isDefined } from "../utils.js";
 import { InterpreterError } from "../errors.js";
+
+class LazyConsPattern extends ConsPattern {
+  private tailThunk: () => Pattern;
+  private resolvedTail: Pattern | null = null;
+
+  constructor(head: Pattern, tailThunk: () => Pattern) {
+    // we pass a empty list pattern to super because we override access to it.
+    super(head, new ListPattern([]));
+    this.tailThunk = tailThunk;
+    // lol
+    Object.defineProperty(this, "tail", {
+      get: () => {
+        if (!this.resolvedTail) this.resolvedTail = this.tailThunk();
+        return this.resolvedTail;
+      },
+      configurable: true,
+    });
+  }
+}
 
 export class LogicEngine {
   constructor(
@@ -118,9 +140,7 @@ export class LogicEngine {
     let headGen: Generator<InternalLogicResult> | null = null;
 
     if (head instanceof Goal) {
-      const args = head.args.map((arg) =>
-        this.instantiateExpressionAsPattern(arg, substs)
-      );
+      const args = head.args.map((arg) => this.substitutePattern(arg, substs));
       headGen = solveGoal(this.env, head.identifier.value, args, (b, s) =>
         this.solveConjunction(b, s)
       );
@@ -147,24 +167,14 @@ export class LogicEngine {
   }
 
   private expressionToPattern(expr: Expression): Pattern {
-    // 1. Si ya es explícitamente un patrón (ej. sintaxis especial si tuvieras), devolverlo.
-    if (expr instanceof VariablePattern) return expr; // 2. Si es una variable, tenemos un dilema: ¿Es valor o incógnita?
-
     if (expr instanceof Variable) {
       const name = expr.identifier.value;
-
-      // A. ¿Existe definida en el entorno actual?
-      // Usamos una función auxiliar para no lanzar excepción
       if (isDefined(this.env, name)) {
         const val = this.evaluator.evaluate(expr);
-        return this.primitiveToPattern(val); // Es un VALOR (ej: 42)
+        return this.primitiveToPattern(val);
       }
-
-      // B. No existe en el entorno -> Es una INCÓGNITA LÓGICA nueva
       return new VariablePattern(expr.identifier);
     }
-
-    // 3. Cualquier otra expresión (números, strings, operaciones 1+1) se evalúa
     const val = this.evaluator.evaluate(expr);
     return this.primitiveToPattern(val);
   }
@@ -177,10 +187,24 @@ export class LogicEngine {
     )
       return new LiteralPattern(new SymbolPrimitive(String(val)));
 
-    // TODO: Manejar arrays/listas complejas si es necesario
+    if (Array.isArray(val))
+      return new ListPattern(val.map((v) => this.primitiveToPattern(v)));
+
+    if (isLazyList(val)) return this.iteratorToPattern(val.generator());
+
     throw new InterpreterError(
       "primitiveToPattern",
       `Cannot convert value ${val} to Logic Pattern`
+    );
+  }
+
+  private iteratorToPattern(
+    iter: Generator<PrimitiveValue, void, unknown>
+  ): Pattern {
+    const next = iter.next();
+    if (next.done) return new ListPattern([]);
+    return new LazyConsPattern(this.primitiveToPattern(next.value), () =>
+      this.iteratorToPattern(iter)
     );
   }
 
@@ -212,10 +236,10 @@ export class LogicEngine {
   }
 
   private instantiateTemplate(
-    template: Expression,
+    template: Pattern,
     substs: Substitution
   ): PrimitiveValue {
-    const pat = this.instantiateExpressionAsPattern(template, substs);
+    const pat = this.substitutePattern(template, substs);
     if (pat instanceof LiteralPattern) return this.evaluator.evaluate(pat.name);
 
     throw new Error("Complex template instantiation not fully implemented");
