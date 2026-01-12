@@ -86,12 +86,8 @@ export class WollokToYukigoTransformer {
   }
 
   private visit(node: Node): any {
-    const nodeType = node.constructor ? node.constructor.name : "Unknown";
-    // Remove prefix like _ and trailing numbers (e.g., Variable3 -> Variable)
-    const nodeTypeWithoutPrefix = nodeType
-      .replace(/^_/, "")
-      .replace(/\d+$/, "");
-    switch (nodeTypeWithoutPrefix) {
+    const kind = node.kind;
+    switch (kind) {
       case "Package":
         return this.visitPackage(node as Package);
       case "Singleton":
@@ -136,7 +132,7 @@ export class WollokToYukigoTransformer {
       case "NamedArgument":
         return this.visitNamedArgument(node as NamedArgument);
       default:
-        throw new Error(`Nodo Wollok desconocido o no soportado: ${nodeType}`);
+        throw new Error(`Nodo Wollok desconocido o no soportado: ${kind}`);
     }
   }
 
@@ -274,7 +270,10 @@ export class WollokToYukigoTransformer {
     const identifier = new Yu.SymbolPrimitive(node.name, mapLocation(node));
 
     const superclass = node.supertypes[0]
-      ? new Yu.SymbolPrimitive(node.supertypes[0].reference.name, mapLocation(node.supertypes[0]))
+      ? new Yu.SymbolPrimitive(
+          node.supertypes[0].reference.name,
+          mapLocation(node.supertypes[0])
+        )
       : undefined;
 
     const members = node.members.map((m: any) => this.visit(m));
