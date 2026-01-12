@@ -36,7 +36,7 @@ export class YukigoPrologParser implements YukigoParser {
     return ast;
   }
   public parseExpression(code: string): Expression {
-    const expr = this.feedParser(code);
+    const expr = this.feedParser(code)[0];
     return expr;
   }
   private feedParser(code: string): any {

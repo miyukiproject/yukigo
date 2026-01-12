@@ -318,10 +318,25 @@ export type YukigoPrimitive =
   | "YuObject"
   | "YuSymbol";
 
-export type LogicResult = {
-  success: boolean;
-  solutions: Map<string, string>;
-};
+export type LogicResult =
+  | {
+      success: true;
+      solutions: Map<string, string>;
+    }
+  | {
+      success: false;
+    };
+
+export function isLogicResult(value: PrimitiveValue): value is LogicResult {
+  return (
+    value &&
+    typeof value === "object" &&
+    "success" in value &&
+    typeof value.success === "boolean" &&
+    "solutions" in value &&
+    value.solutions instanceof Map
+  );
+}
 
 export type PrimitiveValue =
   | number

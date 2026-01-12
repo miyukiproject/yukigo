@@ -13,6 +13,7 @@ import {
   Variable,
   VariablePattern,
   EnvStack,
+  LogicResult,
 } from "yukigo-ast";
 import {
   InternalLogicResult,
@@ -232,7 +233,7 @@ export class LogicEngine {
         });
       }
       case "all": {
-        const res = [];
+        const res: LogicResult[] = [];
         for (const r of gen) res.push(this.formatLogicResult(r.substs));
         return res;
       }
@@ -250,7 +251,7 @@ export class LogicEngine {
     }
   }
 
-  private formatLogicResult(substs: Substitution): any {
+  private formatLogicResult(substs: Substitution): LogicResult {
     const solutions = new Map<string, string>();
     const resolver = new PatternResolver();
     substs.forEach((pattern, key) => {

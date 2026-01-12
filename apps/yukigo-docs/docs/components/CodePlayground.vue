@@ -59,7 +59,9 @@
             </div>
 
             <div class="flex items-center mt-2">
-              <span class="text-primary mr-2 select-none">$</span>
+              <span class="text-primary mr-2 select-none text-nowrap">{{
+                terminalPrefix || "$"
+              }}</span>
               <input
                 ref="inputRef"
                 v-model="currentCommand"
@@ -85,6 +87,14 @@ import { YukigoPrologParser } from "yukigo-prolog-parser";
 import { YukigoWollokParser } from "yukigo-wollok-parser";
 
 import { Interpreter } from "yukigo";
+import {
+  isLazyList,
+  isRuntimeClass,
+  isRuntimeFunction,
+  isRuntimeObject,
+} from "../../../../packages/yukigo-ast/dist/globals/runtime";
+import { isRuntimePredicate } from "../../../../packages/yukigo-ast/dist/paradigms/logic";
+import { isLogicResult } from "../../../../packages/yukigo-ast/dist/globals/generics";
 
 const props = defineProps({
   initialCode: {
@@ -108,6 +118,7 @@ const languageExamples = {
       lazyLoading: true,
       outputMode: "first",
     },
+    prefix: null,
     placeholder: "doble 4",
   },
   prolog: {
@@ -117,6 +128,7 @@ const languageExamples = {
       lazyLoading: true,
       outputMode: "all",
     },
+    prefix: "?-",
     placeholder: "padre(tom, X)",
   },
   wollok: {
@@ -132,6 +144,7 @@ const languageExamples = {
       lazyLoading: false,
       outputMode: "first",
     },
+    prefix: null,
     placeholder: "pepita.energy()",
   },
 };
@@ -147,6 +160,7 @@ const historyIndex = ref(-1);
 const inputRef = ref(null);
 const terminalBodyRef = ref(null);
 const compilationError = ref(null);
+const terminalPrefix = ref(null);
 
 const currentParser = shallowRef(new YukigoHaskellParser());
 const currentInterpreterConfig = shallowRef({
@@ -159,22 +173,20 @@ watch(
   [code, currentParser],
   ([newCode, parser]) => {
     try {
-      // Intentamos parsear el programa completo
       const programAst = parser.parse(newCode);
 
-      // Si el parseo es exitoso, instanciamos el interpreter
       interpreterInstance.value = new Interpreter(
         programAst,
         currentInterpreterConfig.value
       );
 
-      // Limpiamos errores previos si la compilación tuvo éxito
       compilationError.value = null;
 
-      console.log("[Yukigo] Interpreter rebuilt successfully.");
+      console.log(
+        "[Yukigo] Interpreter rebuilt successfully.",
+        currentInterpreterConfig.value
+      );
     } catch (err) {
-      // Si hay error de sintaxis en el editor, invalidamos el interpreter
-      // y mostramos el error sin romper la UI
       interpreterInstance.value = null;
       compilationError.value = err.message;
       console.warn("[Yukigo] Compilation error:", err.message);
@@ -190,6 +202,7 @@ function switchLanguage(lang) {
   currentParser.value = example.parser;
   currentInterpreterConfig.value = example.interpreterConfig;
   code.value = example.code;
+  terminalPrefix.value = example.prefix;
 
   commandHistory.value = [
     {
@@ -205,28 +218,41 @@ function switchLanguage(lang) {
 }
 
 function formatOutput(value) {
+  // format PrimitiveValue to output in terminal container
   if (value === null || value === undefined) return "nil";
-  if (typeof value === "boolean") return value ? "True" : "False";
   if (typeof value === "number") return String(value);
+  if (typeof value === "boolean") return value ? "True" : "False";
   if (typeof value === "string") return `"${value}"`;
-  if (typeof value === "function") return "<function>";
-  if (value instanceof Map) {
-    // Formatear objetos Wollok (que se almacenan como Maps)
-    const attrs = [];
-    for (const [key, val] of value.entries()) {
-      if (!key.startsWith("__method_")) {
-        attrs.push(`${key} = ${formatOutput(val)}`);
-      }
-    }
-    return attrs.length > 0 ? `{ ${attrs.join(", ")} }` : "<object>";
+  if (isRuntimeFunction(value)) return `Function ${value.identifier}`;
+  if (isRuntimePredicate(value)) return `Predicate ${value.identifier}`;
+
+  if (Array.isArray(value) && value.length > 0 && isLogicResult(value[0])) {
+    if (value[0].solutions.size === 0)
+      return value[0].success ? "true." : "false.";
+    return value.map((res) => formatSingleLogicResult(res)).join(",\n") + ".";
   }
+  if (isLogicResult(value)) {
+    return Array.from(value.solutions)
+      .map(([key, value]) => `${key} => ${value}`)
+      .join("\n");
+  }
+
+  if (isRuntimeClass(value)) return `Class ${value.identifier}`;
+  if (isRuntimeObject(value)) return `Object ${value.identifier}`;
+  if (isLazyList(value)) return `LazyList`;
   if (Array.isArray(value)) {
     return "[" + value.map(formatOutput).join(", ") + "]";
   }
-  if (typeof value === "object") {
-    return JSON.stringify(value, null, 2);
-  }
   return String(value);
+}
+
+function formatSingleLogicResult(res) {
+  if (!res.success) return "false";
+  if (res.solutions.size === 0) return "true";
+
+  return Array.from(res.solutions)
+    .map(([key, val]) => `${key} => ${val}`)
+    .join(", ");
 }
 
 function scrollToBottom() {
@@ -248,7 +274,10 @@ function executeCommand() {
   const commandText = currentCommand.value.trim();
   if (!commandText) return;
 
-  commandHistory.value.push({ type: "input", text: `$ ${commandText}` });
+  commandHistory.value.push({
+    type: "input",
+    text: `${terminalPrefix.value || "$"} ${commandText}`,
+  });
 
   let output;
   if (commandText === ":help") {
@@ -262,8 +291,9 @@ function executeCommand() {
       }
     } else {
       try {
-        const expression = currentParser.value.parseExpression(commandText);
-
+        const expression = currentParser.value.parseExpression(
+          `${terminalPrefix.value || ""} ${commandText}`
+        );
         const result = interpreterInstance.value.evaluate(expression);
         output = formatOutput(result);
       } catch (err) {
