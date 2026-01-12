@@ -255,7 +255,7 @@ We access the `%variable` symbol with `d[0]` and then it's value from the `moo` 
 
 Yukigo provides a collection of AST nodes to build your parser quicker and yukigo compatible. `SymbolPrimitive` is the node that represents symbols like variables.
 
-> You can check the Yukigo's AST reference here: TODO DOCS 
+> You can check the Yukigo's AST reference [here](https://miyukiproject.github.io/yukigo/ast/README) 
 
 The output that the rule returns will be available for other rules that use the non-terminal. For example:
 
