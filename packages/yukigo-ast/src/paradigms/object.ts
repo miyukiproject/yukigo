@@ -6,7 +6,7 @@ import {
 import { Operator } from "../globals/operators.js";
 import { SymbolPrimitive } from "../globals/primitives.js";
 import { Equation } from "../globals/statements.js";
-import { Visitor } from "../visitor.js";
+import { Visitor } from "../visitor/index.js";
 
 /**
  * Represents a method definition within a class or object.

@@ -2,7 +2,7 @@ import { Expression } from "../globals/expressions.js";
 import { ASTNode, SourceLocation } from "../globals/generics.js";
 import { SymbolPrimitive } from "../globals/primitives.js";
 import { Sequence, Equation, Variable } from "../globals/statements.js";
-import { Visitor } from "../visitor.js";
+import { Visitor } from "../visitor/index.js";
 
 /**
  * Represents the main entry point of a program.

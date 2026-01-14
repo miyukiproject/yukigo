@@ -1,7 +1,7 @@
 import { CompositionExpression, Lambda, Application } from "../paradigms/functional.js";
 import { Exist, Forall, Findall, Not } from "../paradigms/logic.js";
 import { Self, New, Implement } from "../paradigms/object.js";
-import { Visitor } from "../visitor.js";
+import { Visitor } from "../visitor/index.js";
 import { ASTNode, SourceLocation } from "./generics.js";
 import { Operation } from "./operators.js";
 import { SymbolPrimitive, Primitive } from "./primitives.js";

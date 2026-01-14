@@ -3,7 +3,7 @@ import { ASTNode, SourceLocation } from "../globals/generics.js";
 import { Pattern } from "../globals/patterns.js";
 import { Primitive, SymbolPrimitive } from "../globals/primitives.js";
 import { Equation } from "../globals/statements.js";
-import { Visitor } from "../visitor.js";
+import { Visitor } from "../visitor/index.js";
 
 export type Clause = Rule | Fact | Query | Primitive;
 

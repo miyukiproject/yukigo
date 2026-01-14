@@ -1,4 +1,4 @@
-import { Visitor } from "../visitor.js";
+import { Visitor } from "../visitor/index.js";
 import { Expression } from "./expressions.js";
 import { ASTNode, SourceLocation } from "./generics.js";
 

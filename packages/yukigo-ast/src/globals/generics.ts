@@ -1,4 +1,4 @@
-import { Visitor } from "../visitor.js";
+import { Visitor } from "../visitor/index.js";
 import { Expression } from "./expressions.js";
 import { Statement } from "./statements.js";
 
@@ -42,7 +42,7 @@ export abstract class ASTNode {
  * Source location information
  */
 export class SourceLocation {
-  constructor(public line: number, public column: number) {}
+  constructor(public line: number, public column: number) { }
   public toJSON() {
     return {
       type: "SourceLocation",

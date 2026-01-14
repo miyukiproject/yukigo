@@ -1,5 +1,5 @@
 import { ASTNode, SourceLocation } from "./generics.js";
-import { Visitor } from "../visitor.js";
+import { Visitor } from "../visitor/index.js";
 import { Expression } from "./expressions.js";
 import { NilPrimitive, SymbolPrimitive } from "./primitives.js";
 import { Type, TypeAlias, TypeSignature } from "./types.js";
