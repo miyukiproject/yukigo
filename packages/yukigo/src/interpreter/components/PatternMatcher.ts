@@ -116,7 +116,7 @@ export class PatternResolver implements Visitor<string> {
   visitLiteralPattern(node: LiteralPattern): string {
     const { name } = node;
     if (name instanceof ListPrimitive)
-      return String(name.elements.map((elem) => elem.accept(this)));
+      return String(name.value.map((elem) => elem.accept(this)));
     return String(name.value);
   }
 
@@ -132,34 +132,34 @@ export class PatternResolver implements Visitor<string> {
   }
 
   visitConsPattern(node: ConsPattern): string {
-    const head = node.head.accept(this);
-    const tail = node.tail.accept(this);
+    const head = node.left.accept(this);
+    const tail = node.right.accept(this);
     return `(${head}:${tail})`;
   }
 
   visitConstructorPattern(node: ConstructorPattern): string {
-    const constr = node.constr;
-    const args = node.patterns.map((pat) => pat.accept(this)).join(" ");
+    const constr = node.identifier.value;
+    const args = node.args.map((pat) => pat.accept(this)).join(" ");
     return `${constr} ${args}`;
   }
 
   visitFunctorPattern(node: FunctorPattern): string {
     // Same as ConstructorPattern (alias)
     return this.visitConstructorPattern(
-      new ConstructorPattern(node.identifier.value, node.args)
+      new ConstructorPattern(node.identifier, node.args)
     );
   }
 
   visitApplicationPattern(node: ApplicationPattern): string {
     // Same as FunctorPattern
     return this.visitConstructorPattern(
-      new ConstructorPattern(node.symbol.value, node.args)
+      new ConstructorPattern(node.identifier, node.args)
     );
   }
 
   visitAsPattern(node: AsPattern): string {
-    const pattern = node.pattern.accept(this);
-    const alias = node.alias.accept(this);
+    const alias = node.left.accept(this);
+    const pattern = node.right.accept(this);
     return `${alias}@${pattern}`;
   }
 
@@ -257,11 +257,11 @@ export class PatternMatcher implements Visitor<boolean> {
     const [head, tail] = this.resolveCons(this.value);
     if (!head || !tail) return false;
     const headMatcher = new PatternMatcher(head, this.bindings);
-    const headMatches = node.head.accept(headMatcher);
+    const headMatches = node.left.accept(headMatcher);
     if (!headMatches) return false;
 
     const tailMatcher = new PatternMatcher(tail, this.bindings);
-    return node.tail.accept(tailMatcher);
+    return node.right.accept(tailMatcher);
   }
   private resolveCons(list: PrimitiveValue): [PrimitiveValue, PrimitiveValue] {
     if (Array.isArray(list))
@@ -294,35 +294,35 @@ export class PatternMatcher implements Visitor<boolean> {
 
   visitConstructorPattern(node: ConstructorPattern): boolean {
     if (!Array.isArray(this.value) || this.value.length === 0) return false;
-    if (this.value[0] !== node.constr) return false;
+    if (this.value[0] !== node.identifier.value) return false;
 
     const args = this.value.slice(1);
-    return this.matchList(node.patterns, args);
+    return this.matchList(node.args, args);
   }
 
   visitFunctorPattern(node: FunctorPattern): boolean {
     return this.visitConstructorPattern(
-      new ConstructorPattern(node.identifier.value, node.args)
+      new ConstructorPattern(node.identifier, node.args)
     );
   }
 
   visitApplicationPattern(node: ApplicationPattern): boolean {
     return this.visitConstructorPattern(
-      new ConstructorPattern(node.symbol.value, node.args)
+      new ConstructorPattern(node.identifier, node.args)
     );
   }
 
   visitAsPattern(node: AsPattern): boolean {
     const innerMatcher = new PatternMatcher(this.value, this.bindings);
-    const innerMatches = node.pattern.accept(innerMatcher);
+    const innerMatches = node.right.accept(innerMatcher);
     if (!innerMatches) return false;
 
     const aliasMatcher = new PatternMatcher(this.value, this.bindings);
-    return node.alias.accept(aliasMatcher);
+    return node.left.accept(aliasMatcher);
   }
 
   visitUnionPattern(node: UnionPattern): boolean {
-    for (const pattern of node.patterns) {
+    for (const pattern of node.elements) {
       const trialBindings: Bindings = [];
       const matcher = new PatternMatcher(this.value, trialBindings);
       if (pattern.accept(matcher)) {

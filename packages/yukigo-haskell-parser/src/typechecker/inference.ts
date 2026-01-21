@@ -117,9 +117,9 @@ export class PatternVisitor implements Visitor<void> {
       );
   }
   visitApplicationPattern(node: ApplicationPattern) {
-    const appCtorScheme = this.signatureMap.get(node.symbol.value);
+    const appCtorScheme = this.signatureMap.get(node.identifier.value);
     if (!appCtorScheme)
-      throw new Error(`Unknown constructor: ${node.symbol.value}`);
+      throw new Error(`Unknown constructor: ${node.identifier.value}`);
 
     const appCtorType = this.coreHM.instantiate(appCtorScheme);
 
@@ -144,7 +144,7 @@ export class PatternVisitor implements Visitor<void> {
     const unifyResult = this.coreHM.unify(currentType, this.expectedType);
     if (unifyResult.success === false)
       throw new Error(
-        `Constructor ${node.symbol.value} arguments don't match expected type: ${unifyResult.error}`
+        `Constructor ${node.identifier.value} arguments don't match expected type: ${unifyResult.error}`
       );
   }
   visitTuplePattern(node: TuplePattern) {
@@ -219,11 +219,11 @@ export class PatternVisitor implements Visitor<void> {
       this.expectedType,
       this.envs,
       this.inferenceEngine
-    ).visit(node.pattern);
+    ).visit(node.right);
 
     // Process the alias if it's a variable
-    if (node.alias instanceof VariablePattern) {
-      const varName = node.alias.name.value.toString();
+    if (node.left instanceof VariablePattern) {
+      const varName = node.left.name.value.toString();
       if (this.envs[0].has(varName))
         throw new Error(`Duplicate variable name: ${varName}`);
 
@@ -245,24 +245,24 @@ export class PatternVisitor implements Visitor<void> {
     throw new Error("Method not implemented.");
   }
   visitConstructorPattern(node: ConstructorPattern) {
-    const ctorScheme = this.signatureMap.get(node.constr);
-    if (!ctorScheme) throw new Error(`Unknown constructor: ${node.constr}`);
+    const ctorScheme = this.signatureMap.get(node.identifier.value);
+    if (!ctorScheme) throw new Error(`Unknown constructor: ${node.identifier.value}`);
 
     const ctorType = this.coreHM.instantiate(ctorScheme);
     // Extract argument types and return type from constructor
     const argTypes = getArgumentTypes(ctorType);
     const returnType = getReturnType(ctorType);
 
-    if (argTypes.length !== node.patterns.length)
+    if (argTypes.length !== node.args.length)
       throw new Error(
-        `Constructor ${node.constr} expects ${argTypes.length} arguments but pattern has ${node.patterns.length}`
+        `Constructor ${node.identifier.value} expects ${argTypes.length} arguments but pattern has ${node.args.length}`
       );
 
     // Unify the constructor's return type with expected pattern type
     const unifyResult = this.coreHM.unify(returnType, this.expectedType);
     if (!unifyResult.success)
       throw new Error(
-        `Constructor ${node.constr} return type ${showType(
+        `Constructor ${node.identifier.value} return type ${showType(
           returnType
         )} doesn't match expected type ${showType(this.expectedType)}`
       );
@@ -274,7 +274,7 @@ export class PatternVisitor implements Visitor<void> {
     );
 
     // Process each argument pattern with its correct type
-    node.patterns.forEach((pattern, i) => {
+    node.args.forEach((pattern, i) => {
       new PatternVisitor(
         this.coreHM,
         this.signatureMap,
@@ -303,7 +303,7 @@ export class PatternVisitor implements Visitor<void> {
       unifiedElemType,
       this.envs,
       this.inferenceEngine
-    ).visit(node.head);
+    ).visit(node.left);
     // Process tail pattern with a list of the same element type
     const tailType = listType(unifiedElemType);
     new PatternVisitor(
@@ -312,7 +312,7 @@ export class PatternVisitor implements Visitor<void> {
       tailType,
       this.envs,
       this.inferenceEngine
-    ).visit(node.tail);
+    ).visit(node.right);
   }
   visit(node: Pattern): void {
     node.accept(this);
@@ -344,7 +344,7 @@ export class InferenceEngine implements Visitor<Result<Type>> {
     };
   }
   visitListPrimitive(node: ListPrimitive): Result<Type> {
-    if (node.elements.length === 0) {
+    if (node.value.length === 0) {
       // Empty list - polymorphic
       const elemType = this.coreHM.freshVar();
       return {
@@ -354,11 +354,11 @@ export class InferenceEngine implements Visitor<Result<Type>> {
     }
 
     // Infer type of first element
-    const firstResult = node.elements[0].accept(this);
+    const firstResult = node.value[0].accept(this);
     if (firstResult.success === false) return firstResult;
 
     // Check all elements match first element's type
-    for (const element of node.elements.slice(1)) {
+    for (const element of node.value.slice(1)) {
       const elemResult = element.accept(this);
       if (elemResult.success === false) return elemResult;
       const unifyResult = this.coreHM.unify(

@@ -353,7 +353,7 @@ describe("Parser Test", () => {
           new UnguardedBody(
             new Sequence([
               new Findall(
-                new Exist(new SymbolPrimitive("Y"), []),
+                new VariablePattern(new SymbolPrimitive("Y")),
                 new Exist(new SymbolPrimitive("bar"), [
                   new VariablePattern(new SymbolPrimitive("X")),
                   new VariablePattern(new SymbolPrimitive("Y")),
