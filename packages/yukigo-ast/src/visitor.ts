@@ -67,7 +67,14 @@ import {
   ConstructorPattern,
   ConsPattern,
 } from "./globals/patterns.js";
-import { Assert, Test, TestGroup } from "./globals/testing.js";
+import {
+  Assert,
+  Equality,
+  Failure,
+  Test,
+  TestGroup,
+  Truth,
+} from "./globals/testing.js";
 import {
   SimpleType,
   TypeVar,
@@ -226,6 +233,9 @@ export interface StrictVisitor<TReturn> {
   visitTestGroup(node: TestGroup): TReturn;
   visitTest(node: Test): TReturn;
   visitAssert(node: Assert): TReturn;
+  visitTruth(node: Truth): TReturn;
+  visitEquality(node: Equality): TReturn;
+  visitFailure(node: Failure): TReturn;
   // Patterns
   visitVariablePattern(node: VariablePattern): TReturn;
   visitLiteralPattern(node: LiteralPattern): TReturn;
@@ -699,8 +709,19 @@ export class TraverseVisitor implements StrictVisitor<void> {
     node.body.accept(this);
   }
   visitAssert(node: Assert): void {
-    node.expected.accept(this);
+    node.negated.accept(this);
     node.body.accept(this);
+  }
+  visitTruth(node: Truth): void {
+    node.body.accept(this);
+  }
+  visitEquality(node: Equality): void {
+    node.expected.accept(this);
+    node.value.accept(this);
+  }
+  visitFailure(node: Failure): void {
+    node.func.accept(this);
+    node.message.accept(this);
   }
   visit(node: ASTNode): void {
     node.accept(this);

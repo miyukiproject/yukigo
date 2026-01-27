@@ -43,6 +43,7 @@ import {
   RuntimeFunction,
   RuntimeObject,
 } from "./runtime.js";
+import { Assert } from "./testing.js";
 import { Type, TypeAlias, TypeCast, TypeSignature } from "./types.js";
 
 export type Modify<T, R> = Omit<T, keyof R> & R;
@@ -1448,7 +1449,8 @@ export type Statement =
   | If
   | Repeat
   | ForLoop
-  | While;
+  | While
+  | Assert;
 
 export type AST = Statement[];
 
