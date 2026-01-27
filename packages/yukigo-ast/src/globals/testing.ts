@@ -1,8 +1,6 @@
 import { Visitor } from "../visitor.js";
 import { ASTNode, Expression, Sequence, SourceLocation } from "./generics.js";
 
-
-
 export class TestGroup extends ASTNode {
   public name: Expression;
   public group: Sequence;
@@ -43,12 +41,15 @@ export class Test extends ASTNode {
     };
   }
 }
+
+export type Assertion = Truth | Equality | Failure;
+
 export class Assert extends ASTNode {
-  public expected: Expression;
-  public body: Expression;
-  constructor(expected: Expression, body: Expression, loc?: SourceLocation) {
+  public negated: Expression;
+  public body: Assertion;
+  constructor(negated: Expression, body: Assertion, loc?: SourceLocation) {
     super(loc);
-    this.expected = expected;
+    this.negated = negated;
     this.body = body;
   }
 
@@ -58,8 +59,67 @@ export class Assert extends ASTNode {
   toJSON(): object {
     return {
       type: "Assert",
-      expected: this.expected,
+      negated: this.negated,
       body: this.body,
+    };
+  }
+}
+
+export class Truth extends ASTNode {
+  public body: Expression;
+  constructor(body: Expression, loc?: SourceLocation) {
+    super(loc);
+    this.body = body;
+  }
+
+  accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitTruth(this);
+  }
+  toJSON(): object {
+    return {
+      type: "Truth",
+      body: this.body,
+    };
+  }
+}
+export class Equality extends ASTNode {
+  public expected: Expression;
+  public value: Expression;
+  constructor(expected: Expression, value: Expression, loc?: SourceLocation) {
+    super(loc);
+    this.expected = expected;
+    this.value = value;
+  }
+
+  accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitEquality(this);
+  }
+  toJSON(): object {
+    return {
+      type: "Equality",
+      expected: this.expected,
+      value: this.value,
+    };
+  }
+}
+
+export class Failure extends ASTNode {
+  public func: Expression;
+  public message: Expression;
+  constructor(func: Expression, message: Expression, loc?: SourceLocation) {
+    super(loc);
+    this.func = func;
+    this.message = message;
+  }
+
+  accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitFailure(this);
+  }
+  toJSON(): object {
+    return {
+      type: "Failure",
+      func: this.func,
+      message: this.message,
     };
   }
 }
