@@ -4,11 +4,12 @@ import {
   PrimitiveValue,
   Environment,
   EnvStack,
+  ASTNode,
 } from "yukigo-ast";
 import { UnboundVariable } from "./errors.js";
 
 export interface ExpressionEvaluator {
-  evaluate(node: Expression): PrimitiveValue;
+  evaluate(node: ASTNode): PrimitiveValue;
 }
 
 export function createStream(

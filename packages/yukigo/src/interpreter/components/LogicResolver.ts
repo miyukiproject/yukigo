@@ -11,6 +11,7 @@ import {
   WildcardPattern,
   isRuntimePredicate,
   UnguardedBody,
+  Statement,
 } from "yukigo-ast";
 import { lookup } from "../utils.js";
 import { InterpreterError } from "../errors.js";
@@ -20,7 +21,7 @@ export type Substitution = Map<string, Pattern>;
 export type InternalLogicResult = { success: true; substs: Substitution };
 
 export type BodySolver = (
-  expressions: Expression[],
+  expressions: Statement[],
   env: Substitution
 ) => Generator<InternalLogicResult>;
 
