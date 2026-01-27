@@ -14,6 +14,7 @@ import {
   VariablePattern,
   EnvStack,
   LogicResult,
+  Statement,
 } from "yukigo-ast";
 import {
   InternalLogicResult,
@@ -106,7 +107,7 @@ export class LogicEngine {
   }
 
   private *solveConjunction(
-    expressions: Expression[],
+    expressions: Statement[],
     substs: Substitution
   ): Generator<InternalLogicResult> {
     if (expressions.length === 0) {
@@ -147,24 +148,16 @@ export class LogicEngine {
   }
 
   private expressionToPattern(expr: Expression): Pattern {
-    // 1. Si ya es explícitamente un patrón (ej. sintaxis especial si tuvieras), devolverlo.
-    if (expr instanceof VariablePattern) return expr; // 2. Si es una variable, tenemos un dilema: ¿Es valor o incógnita?
+    if (expr instanceof VariablePattern) return expr;
 
     if (expr instanceof Variable) {
       const name = expr.identifier.value;
-
-      // A. ¿Existe definida en el entorno actual?
-      // Usamos una función auxiliar para no lanzar excepción
       if (isDefined(this.env, name)) {
         const val = this.evaluator.evaluate(expr);
-        return this.primitiveToPattern(val); // Es un VALOR (ej: 42)
+        return this.primitiveToPattern(val);
       }
-
-      // B. No existe en el entorno -> Es una INCÓGNITA LÓGICA nueva
       return new VariablePattern(expr.identifier);
     }
-
-    // 3. Cualquier otra expresión (números, strings, operaciones 1+1) se evalúa
     const val = this.evaluator.evaluate(expr);
     return this.primitiveToPattern(val);
   }

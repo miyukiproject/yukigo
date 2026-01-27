@@ -63,6 +63,9 @@ import {
   Environment,
   If,
   isRuntimeFunction,
+  Assert,
+  Test,
+  TestGroup,
 } from "yukigo-ast";
 import { InterpreterConfig } from "../index.js";
 import {
@@ -98,6 +101,7 @@ import { LazyRuntime } from "./LazyRuntime.js";
 import { FunctionRuntime } from "./FunctionRuntime.js";
 import { ObjectRuntime } from "./ObjectRuntime.js";
 import { EnvBuilderVisitor } from "./EnvBuilder.js";
+import { TestRunner } from "./TestRunner.js";
 
 export class InterpreterVisitor
   implements Visitor<PrimitiveValue>, ExpressionEvaluator
@@ -116,8 +120,27 @@ export class InterpreterVisitor
     this.config = config;
   }
 
-  evaluate(node: Expression): PrimitiveValue {
+  evaluate(node: ASTNode): PrimitiveValue {
     return node.accept(this);
+  }
+  visitSequence(node: Sequence): PrimitiveValue {
+    let result: PrimitiveValue;
+    for (const stmt of node.statements) {
+      result = stmt.accept(this);
+    }
+    return result;
+  }
+  visitAssert(node: Assert): PrimitiveValue {
+    new TestRunner(this).visitAssert(node);
+    return true;
+  }
+  visitTest(node: Test): PrimitiveValue {
+    new TestRunner(this).visitTest(node);
+    return true;
+  }
+  visitTestGroup(node: TestGroup): PrimitiveValue {
+    new TestRunner(this).visitTestGroup(node);
+    return true;
   }
   visitNumberPrimitive(node: NumberPrimitive): PrimitiveValue {
     return node.value;
