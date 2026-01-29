@@ -163,6 +163,14 @@ export class InterpreterVisitor
     return true;
   }
   visitAssignment(node: Assignment): PrimitiveValue {
+    if (!this.config.mutability) {
+      throw new InterpreterError(
+        "Assignment",
+        `Cannot reassign variable '${node.identifier.value}': mutability is disabled`,
+        this.frames
+      );
+    }
+
     const name = node.identifier.value;
     const value = node.expression.accept(this);
 
@@ -301,6 +309,14 @@ export class InterpreterVisitor
     return this.getLogicEngine().unifyExpr(node.left, node.right);
   }
   visitAssignOperation(node: AssignOperation): PrimitiveValue {
+    if (!this.config.mutability) {
+      throw new InterpreterError(
+        "AssignOperation",
+        `Cannot perform assignment operation: mutability is disabled`,
+        this.frames
+      );
+    }
+
     if (!(node.left instanceof Variable))
       throw new InterpreterError(
         "AssignOperation",
@@ -314,7 +330,7 @@ export class InterpreterVisitor
       // check if the value to change is a member from an obj
       const obj = identifier.accept(this);
       if (isRuntimeObject(obj)) {
-        return ObjectRuntime.setField(obj, identifier.value, value);
+        return ObjectRuntime.setField(obj, identifier.value, value, this.config);
       }
     } catch (e) {
       // Ignore lookup errors

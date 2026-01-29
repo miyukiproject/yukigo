@@ -10,12 +10,14 @@ export type InterpreterConfig = {
   lazyLoading?: boolean;
   debug?: boolean;
   outputMode?: LogicSearchMode;
+  mutability?: boolean;
 };
 
 const DefaultConfiguration: Required<InterpreterConfig> = {
   lazyLoading: false,
   debug: false,
   outputMode: "first",
+  mutability: true,
 };
 
 /**

@@ -10,6 +10,7 @@ import {
 import { FunctionRuntime } from "./FunctionRuntime.js";
 import { ExpressionEvaluator, lookup, pushEnv } from "../utils.js";
 import { InterpreterError } from "../errors.js";
+import { InterpreterConfig } from "../index.js";
 
 type OOPEntity = RuntimeClass | RuntimeObject;
 
@@ -211,8 +212,16 @@ export class ObjectRuntime {
   static setField(
     receiver: PrimitiveValue,
     fieldName: string,
-    value: PrimitiveValue
+    value: PrimitiveValue,
+    config: InterpreterConfig
   ): PrimitiveValue {
+    if (!config.mutability) {
+      throw new InterpreterError(
+        "FieldAssignment",
+        `Cannot mutate field '${fieldName}': mutability is disabled`
+      );
+    }
+
     if (!isRuntimeObject(receiver))
       throw new InterpreterError("FieldAssignment", "Target is not an object");
 
