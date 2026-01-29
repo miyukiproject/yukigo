@@ -17,6 +17,11 @@ import {
   Sequence,
   UnguardedBody,
   Statement,
+  Variable,
+  ConsPattern,
+  ListPattern,
+  NilPrimitive,
+  LazyList
 } from "yukigo-ast";
 import {
   createGlobalEnv,
@@ -41,10 +46,15 @@ const makeGoal = (id: string, args: Pattern[]) => new Goal(s(id), args);
 
 class MockEvaluator implements ExpressionEvaluator {
   evaluate(node: any): any {
+    if (node instanceof Variable && node.identifier.value === "myList") {
+      return [1, 2, 3];
+    }
     if (node instanceof SymbolPrimitive) return node.value;
     if (node instanceof NumberPrimitive) return node.value;
     if (node instanceof LiteralPattern) return this.evaluate(node.name);
-    return null;
+    
+    // Throw error for debugging
+    throw new Error(`MockEvaluator: Cannot evaluate node: ${node.constructor.name} ${JSON.stringify(node)}`);
   }
 }
 
@@ -98,6 +108,85 @@ describe("Logic Engine & Unification", () => {
       const result = unify(v1, v2);
       expect(result).to.not.be.null;
       expect(result!.has("X")).to.be.true;
+    });
+
+    describe("ConsPattern Unification", () => {
+      it("should unify two identical ConsPatterns", () => {
+          const p1 = new ConsPattern(lit(1), new ListPattern([]));
+          const p2 = new ConsPattern(lit(1), new ListPattern([]));
+          const result = unify(p1, p2);
+          expect(result).to.not.be.null;
+      });
+
+      it("should unify ConsPattern with equivalent ListPattern", () => {
+          const cons = new ConsPattern(lit(1), new ListPattern([lit(2)]));
+          const list = new ListPattern([lit(1), lit(2)]);
+          const result = unify(cons, list);
+          expect(result).to.not.be.null;
+      });
+
+      it("should unify ListPattern with equivalent ConsPattern", () => {
+          const list = new ListPattern([lit(1), lit(2)]);
+          const cons = new ConsPattern(lit(1), new ListPattern([lit(2)]));
+          const result = unify(list, cons);
+          expect(result).to.not.be.null;
+      });
+
+      it("should fail if heads do not match", () => {
+          const cons = new ConsPattern(lit(1), new ListPattern([lit(2)]));
+          const list = new ListPattern([lit(3), lit(2)]);
+          const result = unify(cons, list);
+          expect(result).to.be.null;
+      });
+      
+      it("should fail if ListPattern is empty and ConsPattern expects head", () => {
+          const list = new ListPattern([]);
+          const cons = new ConsPattern(varPat("H"), varPat("T"));
+          const result = unify(list, cons);
+          expect(result).to.be.null;
+      });
+
+      it("should bind variables in ConsPattern", () => {
+          const cons = new ConsPattern(varPat("H"), varPat("T"));
+          const list = new ListPattern([lit(1), lit(2)]);
+          const result = unify(cons, list);
+          expect(result).to.not.be.null;
+          
+          const h = result!.get("H");
+          expect(h).to.be.instanceOf(LiteralPattern);
+          
+          const t = result!.get("T");
+          expect(t).to.be.instanceOf(ListPattern);
+          expect((t as ListPattern).elements).to.have.lengthOf(1);
+      });
+
+      it("should unify infinite LazyList with Variable lazily", () => {
+         // Create infinite generator
+         const gen = function*() {
+             let i = 1;
+             while(true) yield i++;
+         };
+         const lazyList: LazyList = {
+             type: "LazyList",
+             generator: gen
+         };
+
+         // Mock evaluator to return this lazy list for variable "Infinite"
+         evaluator.evaluate = (node: any) => {
+             if (node instanceof Variable && node.identifier.value === "Infinite") {
+                 return lazyList;
+             }
+             if (node instanceof SymbolPrimitive) return node.value;
+             return null;
+         };
+         
+         // Unify X = Infinite
+         const infiniteVar = new Variable(s("Infinite"), new NilPrimitive(null));
+         const xVar = new Variable(s("X"), new NilPrimitive(null));
+         
+         const result = engine.unifyExpr(xVar, infiniteVar) as boolean;
+         expect(result).to.be.true;
+      });
     });
   });
 
@@ -197,6 +286,16 @@ describe("Logic Engine & Unification", () => {
         expect(result).to.have.lengthOf(2);
         expect(result).to.include("ares");
         expect(result).to.include("athena");
+      });
+    });
+
+    describe("Expression Unification", () => {
+      it("should successfully unify a variable with an array expression", () => {
+        env.head.set("myList", "dummy");
+        const X = new Variable(s("X"), new NilPrimitive(null));
+        const myList = new Variable(s("myList"), new NilPrimitive(null));
+        const result = engine.unifyExpr(X, myList);
+        expect(result).to.be.true;
       });
     });
   });
