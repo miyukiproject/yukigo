@@ -2,6 +2,8 @@ import {
   Application,
   ArithmeticBinaryOperation,
   ArithmeticUnaryOperation,
+  Assignment,
+  AssignOperation,
   BitwiseBinaryOperation,
   BitwiseUnaryOperation,
   BooleanPrimitive,
@@ -32,6 +34,7 @@ import {
   StringPrimitive,
   SymbolPrimitive,
   UnguardedBody,
+  Variable,
   VariablePattern,
   WildcardPattern,
 } from "yukigo-ast";
@@ -933,6 +936,65 @@ describe("Interpreter Spec", () => {
       const iter = evaluatedList.generator();
       assert.equal(iter.next().value, 1);
       assert.equal(iter.next().value, 2);
+    });
+  });
+
+  describe("Immutability Configuration", () => {
+    it("Should allow variable reassignment when mutability is enabled (default)", () => {
+      const ast = [
+        new Variable(new SymbolPrimitive("x"), new NumberPrimitive(5)),
+        new Assignment(new SymbolPrimitive("x"), new NumberPrimitive(10)),
+      ];
+      interpreter = new Interpreter(ast, { mutability: true });
+      
+      // Should not throw
+      assert.doesNotThrow(() => {
+        interpreter.evaluate(new SymbolPrimitive("x"));
+      });
+    });
+
+    it("Should throw when attempting variable reassignment with mutability disabled", () => {
+      const ast = [
+        new Variable(new SymbolPrimitive("x"), new NumberPrimitive(5)),
+      ];
+      interpreter = new Interpreter(ast, { mutability: false });
+      
+      // Attempting reassignment should throw
+      assert.throws(
+        () => {
+          interpreter.evaluate(
+            new Assignment(
+              new SymbolPrimitive("x"),
+              new NumberPrimitive(10)
+            )
+          );
+        },
+        /Cannot reassign variable 'x': mutability is disabled/
+      );
+    });
+
+    it("Should throw when attempting assignment operation with mutability disabled", () => {
+      const ast = [
+        new Variable(new SymbolPrimitive("x"), new NumberPrimitive(5)),
+      ];
+      interpreter = new Interpreter(ast, { mutability: false });
+      
+      // Attempting assignment operation should throw
+      assert.throws(
+        () => {
+          interpreter.evaluate(
+            new AssignOperation(
+              "PlusAssign",
+              new Variable(
+                new SymbolPrimitive("x"),
+                new NumberPrimitive(5)
+              ),
+              new NumberPrimitive(3)
+            )
+          );
+        },
+        /Cannot perform assignment operation: mutability is disabled/
+      );
     });
   });
 });
