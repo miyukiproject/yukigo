@@ -3,5 +3,16 @@
   "compilerOptions": {
     "noEmit": false
   },
-  "exclude": ["dist/**/*", "tests/**/*"]
+  "exclude": [
+    "dist/**/*",
+    "tests/**/*"
+  ],
+  "references": [
+    {
+      "path": "../yukigo-prolog-parser"
+    },
+    {
+      "path": "../yukigo-ast"
+    }
+  ],
 }

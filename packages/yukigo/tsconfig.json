@@ -14,5 +14,15 @@
     "noEmit": true
   },
   "include": ["**/*"],
-  "exclude": ["dist/**/*"]
+  "exclude": [
+    "dist/**/*"
+  ],
+  "references": [
+    {
+      "path": "../yukigo-prolog-parser"
+    },
+    {
+      "path": "../yukigo-ast"
+    }
+  ]
 }

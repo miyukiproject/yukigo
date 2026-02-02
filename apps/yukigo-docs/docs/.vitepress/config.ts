@@ -53,7 +53,7 @@ export default defineConfig({
   description:
     "An universal, multi-paradigm, multi-language static code analyzer & interpreter",
   vite: {
-    plugins: [tailwindcss()],
+    plugins: [tailwindcss() as any],
   },
   themeConfig: {
     nav: [

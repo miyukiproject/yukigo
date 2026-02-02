@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {} 
+  },
+  "files": [],
+  "include": [],
+  "exclude": [
+    "node_modules",
+    "tmp"
+  ],
+  "references": [
+    {
+      "path": "./packages/yukigo-prolog-parser"
+    },
+    {
+      "path": "./packages/yukigo-ast"
+    }
+  ]
+}

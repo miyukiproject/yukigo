@@ -1,6 +1,6 @@
 import grammar from "./grammar.js";
 import nearley from "nearley";
-import { AST, YukigoParser } from "yukigo-ast";
+import { AST, Expression, YukigoParser } from "yukigo-ast";
 
 export class YukigoParserPlaceholder implements YukigoParser {
   public errors: string[] = [];
@@ -9,6 +9,12 @@ export class YukigoParserPlaceholder implements YukigoParser {
   }
 
   public parse(code: string): AST {
+    return this.feedParser(code);
+  }
+  public parseExpression(code: string): Expression {
+    return this.feedParser(code);
+  }
+  private feedParser(code: string) {
     const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar));
     try {
       parser.feed(code);

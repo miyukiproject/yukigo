@@ -64,6 +64,10 @@ export const createProject = async (projectName: string) => {
   console.log(`\n📁 Setting up project in ${targetDir}...`);
   try {
     await fse.copy(TEMPLATE_DIR, targetDir);
+    await fse.move(
+      path.join(targetDir, "_package.json"),
+      path.join(targetDir, "package.json")
+    );
   } catch (error) {
     console.error("\n❌ Failed to copy template files:", error);
     process.exit(1);
