@@ -13,7 +13,7 @@ export type InterpreterConfig = {
   mutability?: boolean;
 };
 
-const DefaultConfiguration: Required<InterpreterConfig> = {
+export const DefaultConfiguration: Required<InterpreterConfig> = {
   lazyLoading: false,
   debug: false,
   outputMode: "first",
@@ -29,14 +29,14 @@ const DefaultConfiguration: Required<InterpreterConfig> = {
  */
 export class Interpreter {
   private globalEnv: EnvStack;
-  private readonly config: InterpreterConfig;
+  private readonly config: Required<InterpreterConfig>;
 
   /**
    * @param ast The Abstract Syntax Tree (AST) of the program to be interpreted.
    */
   constructor(ast: AST, config?: InterpreterConfig) {
     this.globalEnv = new EnvBuilderVisitor().build(ast);
-    this.config = config ?? DefaultConfiguration;
+    this.config = { ...DefaultConfiguration, ...config };
   }
 
   /**
