@@ -31,6 +31,7 @@ export const PrologLexerConfig = {
     match: /[a-z!][a-zA-Z0-9_\u00C0-\u00FF]*/,
     type: moo.keywords({
       primitiveOperator: ["round", "abs", "sqrt", "call"],
+      testKeyword: ["test"],
     }),
   },
   NL: { match: /\r?\n/, lineBreaks: true },

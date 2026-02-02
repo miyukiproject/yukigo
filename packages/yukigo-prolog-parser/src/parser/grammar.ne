@@ -27,7 +27,8 @@
     ListPattern, 
     LiteralPattern,
     WildcardPattern,
-    TuplePattern
+    TuplePattern,
+    Test
  } from "yukigo-ast"
 
 import { PrologLexer } from "./lexer.js"
@@ -40,11 +41,13 @@ const asSequence = (d) => d.length === 1 ? d[0] : new Sequence(d);
 
 program -> (clause _):* {% (d) => d[0].map(x => x[0]).filter(x => x !== null).flat(Infinity) %}
 
-clause -> (fact | rule | query) {% (d) => d[0][0] %}
+clause -> (fact | rule | query | test_rule) {% (d) => d[0][0] %}
 
 fact -> any_atom arguments:? _ %period {% (d) => new Fact(d[0], d[1] ?? []) %}
 
 rule -> any_atom equation _ %period {% (d) => new Rule(d[0], [d[1]]) %}
+
+test_rule -> %testKeyword %lparen _ structural_literal _ %rparen equation _ %period {% (d) => new Test(d[3], d[6].body.sequence) %}
 
 equation -> arguments:? _ %colonDash _ body {% (d) => new Equation(d[0] || [], new UnguardedBody(new Sequence(d[4])))%}
 
