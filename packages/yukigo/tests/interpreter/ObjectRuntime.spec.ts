@@ -20,6 +20,7 @@ import {
 import { ObjectRuntime } from "../../src/interpreter/components/ObjectRuntime.js";
 import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
 import { createGlobalEnv, lookup } from "../../src/interpreter/utils.js";
+import { DefaultConfiguration } from "../../src/index.js";
 
 const createEmptyEnv = () => ({ head: new Map(), tail: null });
 
@@ -131,13 +132,13 @@ describe("ObjectRuntime", () => {
     });
 
     it("setField debe actualizar el valor de un campo existente", () => {
-      ObjectRuntime.setField(objectInstance, "count", 20);
+      ObjectRuntime.setField(objectInstance, "count", 20, DefaultConfiguration);
       expect(objectInstance.fields.get("count")).to.equal(20);
     });
 
     it("setField debe lanzar error si intentas crear un campo nuevo (strict mode)", () => {
       expect(() => {
-        ObjectRuntime.setField(objectInstance, "newProp", 99);
+        ObjectRuntime.setField(objectInstance, "newProp", 99, DefaultConfiguration);
       }).to.throw(/Cannot set unknown field/);
     });
   });
