@@ -132,15 +132,12 @@ export class InterpreterVisitor
   }
   visitAssert(node: Assert): PrimitiveValue {
     new TestRunner(this).visitAssert(node);
-    return true;
   }
   visitTest(node: Test): PrimitiveValue {
     new TestRunner(this).visitTest(node);
-    return true;
   }
   visitTestGroup(node: TestGroup): PrimitiveValue {
     new TestRunner(this).visitTestGroup(node);
-    return true;
   }
   visitNumberPrimitive(node: NumberPrimitive): PrimitiveValue {
     return node.value;

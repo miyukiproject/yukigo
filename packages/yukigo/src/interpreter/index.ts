@@ -1,4 +1,4 @@
-import { PrimitiveValue, Expression, AST, EnvStack } from "yukigo-ast";
+import { PrimitiveValue, Expression, AST, EnvStack, ASTNode } from "yukigo-ast";
 import { InterpreterVisitor } from "./components/Visitor.js";
 import { EnvBuilderVisitor } from "./components/EnvBuilder.js";
 import { InterpreterError } from "./errors.js";
@@ -45,7 +45,7 @@ export class Interpreter {
    * @param expr The root Expression node to be evaluated.
    * @returns The resulting primitive value (number, string, boolean, etc.) after evaluation.
    */
-  public evaluate(expr: Expression): PrimitiveValue {
+  public evaluate(expr: ASTNode): PrimitiveValue {
     try {
       const visitor = new InterpreterVisitor(this.globalEnv, this.config);
       const evaluatedExpr = expr.accept(visitor);
