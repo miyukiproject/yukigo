@@ -125,7 +125,7 @@ describe("Logic Engine & Unification", () => {
               [
                 makeGoal("parent", [varPat("Z"), varPat("X")]),
                 makeGoal("parent", [varPat("Z"), varPat("Y")]),
-              ]
+              ],
             ),
           ]),
         ],
@@ -149,10 +149,17 @@ describe("Logic Engine & Unification", () => {
     it("should solve a goal with a variable", () => {
       const query = makeGoal("parent", [lit("zeus"), varPat("Child")]);
       const results = engine.solveGoal(query) as LogicResult[];
-      results.forEach((res) => expect(res.success).to.be.true);
-      results.forEach((res) => expect(res.solutions.has("Child")).to.be.true);
 
-      const names = results.map((r) => r.solutions.get("Child"));
+      results.forEach((res) => {
+        if (!res.success) expect.fail("Result should be successful");
+        expect(res.solutions.has("Child")).to.be.true;
+      });
+
+      const names = results.map((r) => {
+        if (!r.success) throw new Error("Unexpected failure");
+        return r.solutions.get("Child");
+      });
+
       expect(names).to.include("ares");
       expect(names).to.include("athena");
     });
@@ -165,8 +172,14 @@ describe("Logic Engine & Unification", () => {
     it("should solve a rule using backtracking with variable", () => {
       const query = makeGoal("sibling", [lit("ares"), varPat("Child")]);
       const results = engine.solveGoal(query) as LogicResult[];
-      results.forEach((res) => expect(res.success).to.be.true);
-      const names = results.map((r) => r.solutions.get("Child"));
+      results.forEach((res) => {
+        if (!res.success) expect.fail("Result should be successful");
+        expect(res.solutions.has("Child")).to.be.true;
+      });
+      const names = results.map((r) => {
+        if (!r.success) throw new Error("Unexpected failure");
+        return r.solutions.get("Child");
+      });
       expect(names).to.include("ares");
       expect(names).to.include("athena");
     });
@@ -179,7 +192,10 @@ describe("Logic Engine & Unification", () => {
         expect(results).to.be.an("array");
         expect(results).to.have.lengthOf(2);
 
-        const names = results.map((r) => r.solutions.get("X"));
+        const names = results.map((r) => {
+          if (!r.success) throw new Error("Unexpected failure");
+          return r.solutions.get("X");
+        });
         expect(names).to.include("ares");
         expect(names).to.include("athena");
       });
@@ -190,7 +206,7 @@ describe("Logic Engine & Unification", () => {
         const findallNode = new Findall(
           varPat("X"), // Template
           makeGoal("parent", [lit("zeus"), varPat("X")]), // Goal
-          varPat("List") // Bag variable
+          varPat("List"), // Bag variable
         );
         const result = engine.solveFindall(findallNode) as LogicResult[];
         expect(Array.isArray(result)).to.be.true;
