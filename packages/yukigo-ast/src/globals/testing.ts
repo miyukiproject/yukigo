@@ -1,5 +1,6 @@
 import { Visitor } from "../visitor.js";
 import { ASTNode, Expression, Sequence, SourceLocation } from "./generics.js";
+import { Pattern } from "./patterns.js";
 
 export class TestGroup extends ASTNode {
   public name: Expression;
@@ -24,10 +25,12 @@ export class TestGroup extends ASTNode {
 export class Test extends ASTNode {
   public name: Expression;
   public body: Sequence;
-  constructor(name: Expression, body: Sequence, loc?: SourceLocation) {
+  public args?: Pattern;
+  constructor(name: Expression, body: Sequence, args?: Pattern, loc?: SourceLocation) {
     super(loc);
     this.name = name;
     this.body = body;
+    this.args = args;
   }
 
   accept<R>(visitor: Visitor<R>): R {
@@ -38,6 +41,7 @@ export class Test extends ASTNode {
       type: "Test",
       name: this.name,
       body: this.body,
+      args: this.args,
     };
   }
 }

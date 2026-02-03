@@ -47,7 +47,9 @@ fact -> any_atom arguments:? _ %period {% (d) => new Fact(d[0], d[1] ?? []) %}
 
 rule -> any_atom equation _ %period {% (d) => new Rule(d[0], [d[1]]) %}
 
-test_rule -> %testKeyword %lparen _ structural_literal _ %rparen equation _ %period {% (d) => new Test(d[3], d[6].body.sequence) %}
+test_rule -> %testKeyword %lparen _ structural_literal test_args:? _ %rparen equation _ %period {% (d) => new Test(d[3], d[7].body.sequence, d[4] ?? undefined) %}
+
+test_args -> _ %comma _ pattern {% (d) => d[3] %}
 
 equation -> arguments:? _ %colonDash _ body {% (d) => new Equation(d[0] || [], new UnguardedBody(new Sequence(d[4])))%}
 
@@ -143,6 +145,10 @@ arguments -> %lparen _ pattern_list _ %rparen {% (d) => d[2] %}
 pattern_list -> pattern (_ %comma _ pattern):* {% (d) => [d[0], ...d[1].map(x => x[3])] %}
 
 pattern -> 
+    infix_pattern {% id %}
+    | primary_pattern {% id %}
+
+primary_pattern ->
     variable {% (d) => new VariablePattern(d[0]) %}
     | structural_literal {% (d) => new LiteralPattern(d[0]) %}
     | %wildcard {% (d) => new WildcardPattern() %}
@@ -158,6 +164,8 @@ pattern ->
         return current;
     } %}
     | "[" _ pattern_list:? _ "]"  {% (d) => new ListPattern(d[2] ? d[2] : []) %}
+
+infix_pattern -> primary_pattern _ any_atom _ pattern {% (d) => new FunctorPattern(d[2], [d[0], d[4]]) %}
 
 variable -> %variable {% (d) => new SymbolPrimitive(d[0].value) %}
 
