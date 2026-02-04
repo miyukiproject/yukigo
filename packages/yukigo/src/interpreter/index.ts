@@ -2,6 +2,7 @@ import { PrimitiveValue, Expression, AST, EnvStack, ASTNode } from "yukigo-ast";
 import { InterpreterVisitor } from "./components/Visitor.js";
 import { EnvBuilderVisitor } from "./components/EnvBuilder.js";
 import { InterpreterError } from "./errors.js";
+import { define } from "./utils.js";
 
 export type Bindings = [string, PrimitiveValue][];
 
@@ -37,6 +38,10 @@ export class Interpreter {
   constructor(ast: AST, config?: InterpreterConfig) {
     this.globalEnv = new EnvBuilderVisitor().build(ast);
     this.config = { ...DefaultConfiguration, ...config };
+  }
+
+  public define(name: string, value: PrimitiveValue): void {
+    define(this.globalEnv, name, value);
   }
 
   /**

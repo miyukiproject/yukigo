@@ -1,4 +1,4 @@
-import { AST, Expression, Test, TestGroup, TraverseVisitor } from "yukigo-ast";
+import { AST, Expression, Test, TestGroup, TraverseVisitor, VariablePattern } from "yukigo-ast";
 import { Interpreter, InterpreterConfig } from "../interpreter/index.js";
 import { FailedAssert } from "../interpreter/components/TestRunner.js";
 
@@ -23,6 +23,7 @@ class TestExecutor extends TraverseVisitor {
     const start = Date.now();
 
     try {
+      this.bindParameters(node);
       this.interpreter.evaluate(node);
       this.report = {
         name,
@@ -31,6 +32,16 @@ class TestExecutor extends TraverseVisitor {
       };
     } catch (error) {
       this.report = this.handleError(name, start, error);
+    }
+  }
+
+  private bindParameters(node: Test): void {
+    if (!node.args || node.args.length === 0) return;
+
+    for (const pattern of node.args) {
+      if (pattern instanceof VariablePattern) {
+        this.interpreter.define(pattern.name.value, null);
+      }
     }
   }
 
