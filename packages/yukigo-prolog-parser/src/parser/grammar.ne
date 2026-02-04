@@ -39,7 +39,7 @@ const asSequence = (d) => d.length === 1 ? d[0] : new Sequence(d);
 @preprocessor typescript
 @lexer PrologLexer
 
-program -> (clause _):* {% (d) => d[0].map(x => x[0]).filter(x => x !== null).flat(Infinity) %}
+program -> _ (clause _):* {% (d) => d[1].map(x => x[0]).filter(x => x !== null).flat(Infinity) %}
 
 clause -> (fact | rule | query | test_rule) {% (d) => d[0][0] %}
 
@@ -47,7 +47,7 @@ fact -> any_atom arguments:? _ %period {% (d) => new Fact(d[0], d[1] ?? []) %}
 
 rule -> any_atom equation _ %period {% (d) => new Rule(d[0], [d[1]]) %}
 
-test_rule -> %testKeyword %lparen _ structural_literal test_args:? _ %rparen equation _ %period {% (d) => new Test(d[3], d[7].body.sequence, d[4] ?? undefined) %}
+test_rule -> %testKeyword %lparen _ structural_literal test_args:? _ %rparen equation _ %period {% (d) => new Test(d[3], d[7].body.sequence, d[7].patterns) %}
 
 test_args -> _ %comma _ pattern {% (d) => d[3] %}
 

@@ -25,8 +25,8 @@ export class TestGroup extends ASTNode {
 export class Test extends ASTNode {
   public name: Expression;
   public body: Sequence;
-  public args?: Pattern;
-  constructor(name: Expression, body: Sequence, args?: Pattern, loc?: SourceLocation) {
+  public args: Pattern[];
+  constructor(name: Expression, body: Sequence, args: Pattern[] = [], loc?: SourceLocation) {
     super(loc);
     this.name = name;
     this.body = body;
