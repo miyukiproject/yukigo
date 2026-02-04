@@ -107,7 +107,7 @@ export class LogicEngine {
   }
 
   private *solveConjunction(
-    expressions: Statement[],
+    expressions: (Goal | Exist)[],
     substs: Substitution
   ): Generator<InternalLogicResult> {
     if (expressions.length === 0) {
