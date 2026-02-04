@@ -98,7 +98,9 @@ expression ->
 
 test_declaration -> 
     "describe" expression "do" %lbracket test_body %rbracket {% (d) => new TestGroup(d[1], new Sequence(d[4])) %}
+    | "describe" expression "$" "do" %lbracket test_body %rbracket {% (d) => new TestGroup(d[1], new Sequence(d[5])) %}
     | "it" expression "do" %lbracket test_body %rbracket {% (d) => new Test(d[1], new Sequence(d[4])) %}
+    | "it" expression "$" "do" %lbracket test_body %rbracket {% (d) => new Test(d[1], new Sequence(d[5])) %}
     | assertion {% id %}
 
 test_body -> 
@@ -106,8 +108,11 @@ test_body ->
 
 assertion ->
     expression "shouldBe" expression {% (d) => new Assert(new BooleanPrimitive(false), new Equality(d[2], d[0])) %}
+    | expression "`" "shouldBe" "`" expression {% (d) => new Assert(new BooleanPrimitive(false), new Equality(d[4], d[0])) %}
     | expression "shouldNotBe" expression {% (d) => new Assert(new BooleanPrimitive(true), new Equality(d[2], d[0])) %}
+    | expression "`" "shouldNotBe" "`" expression {% (d) => new Assert(new BooleanPrimitive(true), new Equality(d[4], d[0])) %}
     | expression "shouldSatisfy" expression {% (d) => new Assert(new BooleanPrimitive(false), new Truth(new Application(d[2], d[0]))) %}
+    | expression "`" "shouldSatisfy" "`" expression {% (d) => new Assert(new BooleanPrimitive(false), new Truth(new Application(d[4], d[0]))) %}
 
 
 type_cast -> apply_operator "::" type {% (d) => new TypeCast(d[0], d[2]) %}
