@@ -28,11 +28,17 @@ import { InterpreterConfig } from "../index.js";
 import { createStream, ExpressionEvaluator, isDefined } from "../utils.js";
 import { InterpreterError } from "../errors.js";
 
+type LogicExecutable = Expression | Statement | Goal | Exist;
+type LogicTarget = {
+  id: string;
+  patterns: Pattern[];
+};
+
 export class LogicEngine {
   constructor(
     private env: EnvStack,
     private config: InterpreterConfig,
-    private evaluator: ExpressionEvaluator
+    private evaluator: ExpressionEvaluator,
   ) {}
   public unifyExpr(left: Expression, right: Expression): PrimitiveValue {
     const p1 = this.instantiateExpressionAsPattern(left, new Map());
@@ -51,7 +57,8 @@ export class LogicEngine {
       this.env,
       node.identifier.value,
       patterns,
-      (body, substs) => this.solveConjunction(body, substs)
+      (body: LogicExecutable[], substs: Substitution) =>
+        this.solveConjunction(body, substs),
     );
     return this.handleOutputMode(generator);
   }
@@ -70,7 +77,7 @@ export class LogicEngine {
       this.env,
       node.goal.identifier.value,
       goalPatterns,
-      (b, s) => this.solveConjunction(b, s)
+      (b, s) => this.solveConjunction(b, s),
     );
 
     const results: PrimitiveValue[] = [];
@@ -82,13 +89,13 @@ export class LogicEngine {
   public solveForall(node: Forall): PrimitiveValue {
     const conditionGenerator = this.solveConjunction(
       [node.condition],
-      new Map()
+      new Map(),
     );
 
     for (const condResult of conditionGenerator) {
       const actionGenerator = this.solveConjunction(
         [node.action],
-        condResult.substs
+        condResult.substs,
       );
       const actionResult = actionGenerator.next();
 
@@ -101,50 +108,65 @@ export class LogicEngine {
       this.env,
       node.identifier.value,
       node.patterns,
-      (body, substs) => this.solveConjunction(body, substs)
+      (body, substs) => this.solveConjunction(body, substs),
     );
     return this.handleOutputMode(generator);
   }
 
   private *solveConjunction(
-    expressions: (Goal | Exist)[],
-    substs: Substitution
+    nodes: LogicExecutable[],
+    substs: Substitution,
   ): Generator<InternalLogicResult> {
-    if (expressions.length === 0) {
+    if (nodes.length === 0) {
       yield success(substs);
       return;
     }
 
-    const [head, ...tail] = expressions;
-    let headGen: Generator<InternalLogicResult> | null = null;
+    const [head, ...tail] = nodes;
 
-    if (head instanceof Goal) {
-      const args = head.args.map((arg) =>
-        this.instantiateExpressionAsPattern(arg, substs)
-      );
-      headGen = solveGoal(this.env, head.identifier.value, args, (b, s) =>
-        this.solveConjunction(b, s)
-      );
-    } else if (head instanceof Exist) {
-      const patterns = head.patterns.map((pat) =>
-        this.substitutePattern(pat, substs)
-      );
-      headGen = solveGoal(this.env, head.identifier.value, patterns, (b, s) =>
-        this.solveConjunction(b, s)
-      );
-    }
+    // backtracking case
+    if (head instanceof Goal || head instanceof Exist) {
+      const { id, patterns } = this.prepareLogicTarget(head, substs);
 
-    if (headGen) {
-      // backtracking
+      const headGen = solveGoal(this.env, id, patterns, (body, s) =>
+        this.solveConjunction(body, s),
+      );
+
       for (const headResult of headGen) {
         const newSubsts = new Map([...substs, ...headResult.substs]);
         yield* this.solveConjunction(tail, newSubsts);
       }
-    } else {
-      // imperative
-      const result = this.evaluator.evaluate(head);
-      if (result) yield* this.solveConjunction(tail, substs);
+      return;
     }
+
+    // imperative case
+    const result = this.evaluator.evaluate(head as Expression | Statement);
+    if (this.isTruthy(result)) yield* this.solveConjunction(tail, substs);
+  }
+  private isTruthy(val: PrimitiveValue): boolean {
+    if (val === false) return false;
+    if (val === null || val === undefined) return false;
+    return true;
+  }
+
+  private prepareLogicTarget(
+    node: Goal | Exist,
+    substs: Substitution,
+  ): LogicTarget {
+    const id = node.identifier.value;
+
+    if (node instanceof Goal)
+      return {
+        id,
+        patterns: node.args.map((arg) =>
+          this.instantiateExpressionAsPattern(arg, substs),
+        ),
+      };
+
+    return {
+      id,
+      patterns: node.patterns.map((pat) => this.substitutePattern(pat, substs)),
+    };
   }
 
   private expressionToPattern(expr: Expression): Pattern {
@@ -173,13 +195,13 @@ export class LogicEngine {
     // TODO: Manejar arrays/listas complejas si es necesario
     throw new InterpreterError(
       "primitiveToPattern",
-      `Cannot convert value ${val} to Logic Pattern`
+      `Cannot convert value ${val} to Logic Pattern`,
     );
   }
 
   private instantiateExpressionAsPattern(
     expr: Expression,
-    substs: Substitution
+    substs: Substitution,
   ): Pattern {
     const patternBase = this.expressionToPattern(expr);
     return this.substitutePattern(patternBase, substs);
@@ -188,7 +210,7 @@ export class LogicEngine {
   private substitutePattern(
     pat: Pattern,
     substs: Substitution,
-    visited: Set<string> = new Set()
+    visited: Set<string> = new Set(),
   ): Pattern {
     if (pat instanceof VariablePattern) {
       const name = pat.name.value;
@@ -206,16 +228,16 @@ export class LogicEngine {
 
   private instantiateTemplate(
     template: Expression,
-    substs: Substitution
+    substs: Substitution,
   ): PrimitiveValue {
     const pat = this.instantiateExpressionAsPattern(template, substs);
     if (pat instanceof LiteralPattern) return this.evaluator.evaluate(pat.name);
-
+    if (pat instanceof VariablePattern) return null;
     throw new Error("Complex template instantiation not fully implemented");
   }
 
   private handleOutputMode(
-    gen: Generator<InternalLogicResult>
+    gen: Generator<InternalLogicResult>,
   ): PrimitiveValue {
     const mode = this.config.outputMode || "first";
     switch (mode) {
@@ -239,7 +261,7 @@ export class LogicEngine {
       default:
         throw new InterpreterError(
           "handleOutputMode",
-          `Unsupported mode: ${mode}. Supported modes: all | stream | first`
+          `Unsupported mode: ${mode}. Supported modes: all | stream | first`,
         );
     }
   }
