@@ -63,8 +63,8 @@ test('es persona'):- persona(socrates).
     expect(test.name).to.be.instanceOf(SymbolPrimitive);
     expect((test.name as SymbolPrimitive).value).to.equal("caba_esta_decidida_por_plis");
     
-    expect(test.args).to.be.instanceOf(LiteralPattern);
-    const args = test.args as LiteralPattern;
+    expect(test.args[0]).to.be.instanceOf(LiteralPattern);
+    const args = test.args[0] as LiteralPattern;
     expect(args.name).to.be.instanceOf(SymbolPrimitive);
     expect((args.name as SymbolPrimitive).value).to.equal("nondet");
   });
@@ -77,6 +77,6 @@ test('es persona'):- persona(socrates).
     expect(ast[0]).to.be.instanceOf(Test);
     
     const test = ast[0] as Test;
-    expect(test.args).to.be.instanceOf(LiteralPattern);
+    expect(test.args[0]).to.be.instanceOf(LiteralPattern);
   });
 });
