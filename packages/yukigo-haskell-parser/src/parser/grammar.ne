@@ -485,6 +485,6 @@ comparison_operator ->
 
 primitive -> 
     %number {% ([n]) => new NumberPrimitive(Number(n.value), loc(n)) %}
-    | %char {% ([c]) => new CharPrimitive(c.value, loc(c)) %}
+    | %char {% ([c]) => new CharPrimitive(c.value.slice(1, -1), loc(c)) %}
     | %string {% ([s]) => new StringPrimitive(s.value.slice(1, -1), loc(s)) %}
     | %bool {% ([b]) => new BooleanPrimitive(b.value === 'True' ? true : false, loc(b)) %}
