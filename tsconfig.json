@@ -16,6 +16,9 @@
     },
     {
       "path": "./packages/yukigo-ast"
+    },
+    {
+      "path": "./packages/yukigo-haskell-parser"
     }
   ]
 }
