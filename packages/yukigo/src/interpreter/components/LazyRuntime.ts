@@ -10,6 +10,7 @@ import { createMemoizedStream, isMemoizedList } from "./PatternMatcher.js";
 export class LazyRuntime {
   static realizeList(val: PrimitiveValue): PrimitiveValue[] {
     if (Array.isArray(val)) return val;
+    if (typeof val === "string") return val.split("");
     if (isLazyList(val)) {
       const result: PrimitiveValue[] = [];
       const iter = val.generator();
@@ -86,6 +87,11 @@ export class LazyRuntime {
           return;
         }
 
+        if (typeof tail === "string") {
+          for (const char of tail) yield char;
+          return;
+        }
+
         if (isLazyList(tail)) {
           if (isMemoizedList(tail)) {
             const seq = tail._sequence;
@@ -108,6 +114,9 @@ export class LazyRuntime {
 
     // Eager behavior
     const tail = evaluator.evaluate(node.tail);
+    if (typeof tail === "string") {
+      return (head as string) + tail;
+    }
     if (isLazyList(tail) || !Array.isArray(tail))
       throw new Error("Expected Array in eager Cons");
     return [head, ...tail];

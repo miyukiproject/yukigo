@@ -178,7 +178,7 @@ describe("LazyRuntime", () => {
       });
 
       it("should throw if tail is invalid", () => {
-        const node = cons(1, "invalid string");
+        const node = cons(1, 123);
         const result = LazyRuntime.evaluateCons(node, evaluator, true)
         expect(isMemoizedList(result)).to.be.true
         const gen = (result as MemoizedLazyList).generator() 

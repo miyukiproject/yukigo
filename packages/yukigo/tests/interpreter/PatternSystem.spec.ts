@@ -154,6 +154,28 @@ describe("Pattern System", () => {
       expect(match(p, 3).success).to.be.false;
     });
 
+    describe("String Matching as List", () => {
+      it("should match an empty string against an empty list pattern", () => {
+        const p = new ListPattern([]);
+        expect(match(p, "").success).to.be.true;
+      });
+
+      it("should match a string against a cons pattern", () => {
+        const p = new ConsPattern(variable("H"), variable("T"));
+        const { success, bindings } = match(p, "abc");
+
+        expect(success).to.be.true;
+        const map = new Map(bindings);
+        expect(map.get("H")).to.equal("a");
+        expect(map.get("T")).to.equal("bc");
+      });
+
+      it("should fail to match an empty string against a cons pattern", () => {
+        const p = new ConsPattern(variable("H"), variable("T"));
+        expect(match(p, "").success).to.be.false;
+      });
+    });
+
     describe("LazyList Matching", () => {
       const createLazy = (items: number[]): LazyList =>
         createStream(function* () {

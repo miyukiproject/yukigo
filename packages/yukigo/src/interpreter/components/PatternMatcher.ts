@@ -29,7 +29,7 @@ class SharedSequence {
   private isDone: boolean = false;
 
   constructor(
-    generatorFactory: () => Generator<PrimitiveValue, void, unknown>
+    generatorFactory: () => Generator<PrimitiveValue, void, unknown>,
   ) {
     this.source = generatorFactory();
   }
@@ -71,7 +71,7 @@ export function isMemoizedList(list: any): list is MemoizedLazyList {
 export function createMemoizedStream(
   genFactory: () => Generator<PrimitiveValue, void, unknown>,
   sequence?: SharedSequence,
-  offset: number = 0
+  offset: number = 0,
 ): MemoizedLazyList {
   const seq = sequence ?? new SharedSequence(genFactory);
 
@@ -146,14 +146,22 @@ export class PatternResolver implements Visitor<string> {
   visitFunctorPattern(node: FunctorPattern): string {
     // Same as ConstructorPattern (alias)
     return this.visitConstructorPattern(
+<<<<<<< HEAD
       new ConstructorPattern(node.identifier, node.args)
+=======
+      new ConstructorPattern(node.identifier.value, node.args),
+>>>>>>> c518def (fix(yukigo): enhance pattern matching to support strings as lists and update related logic)
     );
   }
 
   visitApplicationPattern(node: ApplicationPattern): string {
     // Same as FunctorPattern
     return this.visitConstructorPattern(
+<<<<<<< HEAD
       new ConstructorPattern(node.identifier, node.args)
+=======
+      new ConstructorPattern(node.symbol.value, node.args),
+>>>>>>> c518def (fix(yukigo): enhance pattern matching to support strings as lists and update related logic)
     );
   }
 
@@ -207,27 +215,35 @@ export class PatternMatcher implements Visitor<boolean> {
   }
 
   visitListPattern(node: ListPattern): boolean {
+    const value = this.value;
     const neededLength = node.elements.length;
     // empty list case
     if (node.elements.length === 0) {
-      if (Array.isArray(this.value)) return this.value.length === 0;
+      if (Array.isArray(value) || typeof value === "string")
+        return value.length === 0;
 
-      if (isLazyList(this.value)) {
-        const iter = this.value.generator();
+      if (isLazyList(value)) {
+        const iter = value.generator();
         return iter.next().done;
       }
       return false;
     }
 
     // finite list case
-    if (Array.isArray(this.value)) {
-      if (this.value.length !== neededLength) return false;
-      return this.matchList(node.elements, this.value);
+    if (Array.isArray(value)) {
+      if (value.length !== neededLength) return false;
+      return this.matchList(node.elements, value);
+    }
+
+    // string case
+    if (typeof value === "string") {
+      if (value.length !== neededLength) return false;
+      return this.matchList(node.elements, value.split(""));
     }
 
     // lazy list case
-    if (isLazyList(this.value)) {
-      const iterator = this.value.generator();
+    if (isLazyList(value)) {
+      const iterator = value.generator();
       const bufferedValues: PrimitiveValue[] = [];
 
       for (let i = 0; i < neededLength; i++) {
@@ -255,7 +271,7 @@ export class PatternMatcher implements Visitor<boolean> {
 
   visitConsPattern(node: ConsPattern): boolean {
     const [head, tail] = this.resolveCons(this.value);
-    if (!head || !tail) return false;
+    if (head === null || tail === null) return false;
     const headMatcher = new PatternMatcher(head, this.bindings);
     const headMatches = node.left.accept(headMatcher);
     if (!headMatches) return false;
@@ -265,6 +281,9 @@ export class PatternMatcher implements Visitor<boolean> {
   }
   private resolveCons(list: PrimitiveValue): [PrimitiveValue, PrimitiveValue] {
     if (Array.isArray(list))
+      return list.length === 0 ? [null, null] : [list[0], list.slice(1)];
+
+    if (typeof list === "string")
       return list.length === 0 ? [null, null] : [list[0], list.slice(1)];
 
     // lazy list case
@@ -283,7 +302,7 @@ export class PatternMatcher implements Visitor<boolean> {
       const tail = createMemoizedStream(
         list.generator,
         memoList._sequence,
-        memoList._offset + 1
+        memoList._offset + 1,
       );
 
       return [currentRes.value!, tail];
@@ -302,13 +321,21 @@ export class PatternMatcher implements Visitor<boolean> {
 
   visitFunctorPattern(node: FunctorPattern): boolean {
     return this.visitConstructorPattern(
+<<<<<<< HEAD
       new ConstructorPattern(node.identifier, node.args)
+=======
+      new ConstructorPattern(node.identifier.value, node.args),
+>>>>>>> c518def (fix(yukigo): enhance pattern matching to support strings as lists and update related logic)
     );
   }
 
   visitApplicationPattern(node: ApplicationPattern): boolean {
     return this.visitConstructorPattern(
+<<<<<<< HEAD
       new ConstructorPattern(node.identifier, node.args)
+=======
+      new ConstructorPattern(node.symbol.value, node.args),
+>>>>>>> c518def (fix(yukigo): enhance pattern matching to support strings as lists and update related logic)
     );
   }
 
@@ -339,6 +366,10 @@ export class PatternMatcher implements Visitor<boolean> {
 
   private deepEqual(a: PrimitiveValue, b: PrimitiveValue): boolean {
     if (a === b) return true;
+
+    // Support comparing char primitives with strings
+    if (typeof a === "string" && typeof b === "string") return a === b;
+
     if (typeof a !== typeof b) return false;
 
     if (Array.isArray(a) && Array.isArray(b)) {

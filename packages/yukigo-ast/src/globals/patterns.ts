@@ -117,6 +117,7 @@ export class VariablePattern extends NamedPattern<SymbolPrimitive> {
   }
 }
 
+type LiteralPrimitive = Exclude<Primitive, ListPrimitive>;
 /**
  * Represents a pattern that matches an exact literal value.
  * @category Patterns

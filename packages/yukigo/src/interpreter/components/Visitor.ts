@@ -233,8 +233,8 @@ export class InterpreterVisitor
   }
   visitListUnaryOperation(node: ListUnaryOperation): PrimitiveValue {
     const operand = node.operand.accept(this);
-    if (!Array.isArray(operand))
-      throw new UnexpectedValue("ListUnaryOperation", "Array", typeof operand);
+    if (typeof operand !== "string" && !Array.isArray(operand))
+      throw new UnexpectedValue("ListUnaryOperation", "Array or String", typeof operand);
 
     const arr = this.realizeList(operand);
     const fn = ListUnaryTable[node.operator];
@@ -249,7 +249,7 @@ export class InterpreterVisitor
     return this.processBinary(
       node,
       ListBinaryTable,
-      (a, b) => Array.isArray(a) && Array.isArray(b),
+      (a, b) => (Array.isArray(a) || typeof a === "string") && (Array.isArray(b) || typeof b === "string"),
       "ListBinaryOperation"
     );
   }

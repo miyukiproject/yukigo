@@ -25,8 +25,15 @@ import {
 } from "./LogicResolver.js";
 import { PatternResolver } from "./PatternMatcher.js";
 import { InterpreterConfig } from "../index.js";
-import { createStream, ExpressionEvaluator, isDefined } from "../utils.js";
+import {
+  createStream,
+  define,
+  ExpressionEvaluator,
+  isDefined,
+  pushEnv,
+} from "../utils.js";
 import { InterpreterError } from "../errors.js";
+import { InterpreterVisitor } from "./Visitor.js";
 
 type LogicExecutable = Expression | Statement | Goal | Exist;
 type LogicTarget = {
@@ -52,7 +59,7 @@ export class LogicEngine {
   }
 
   public solveGoal(node: Goal): PrimitiveValue {
-    const patterns = node.args;
+    const patterns = node.args.map((arg) => this.expressionToPattern(arg));
     const generator = solveGoal(
       this.env,
       node.identifier.value,
@@ -68,18 +75,8 @@ export class LogicEngine {
     return result.done === true;
   }
   public solveFindall(node: Findall): PrimitiveValue {
-    if (!(node.goal instanceof Goal))
-      throw new InterpreterError("solveFindall", "Findall expects a Goal");
-
-    const goalPatterns = node.goal.args;
-
-    const generator = solveGoal(
-      this.env,
-      node.goal.identifier.value,
-      goalPatterns,
-      (b, s) => this.solveConjunction(b, s),
-    );
-
+    const queryNode = node.goal;
+    const generator = this.solveConjunction([queryNode], new Map());
     const results: PrimitiveValue[] = [];
     for (const res of generator)
       results.push(this.instantiateTemplate(node.template, res.substs));
@@ -140,13 +137,18 @@ export class LogicEngine {
     }
 
     // imperative case
-    const result = this.evaluator.evaluate(head as Expression | Statement);
-    if (this.isTruthy(result)) yield* this.solveConjunction(tail, substs);
-  }
-  private isTruthy(val: PrimitiveValue): boolean {
-    if (val === false) return false;
-    if (val === null || val === undefined) return false;
-    return true;
+    const localEnv = pushEnv(this.env, new Map());
+
+    for (const [name, pattern] of substs) {
+      const resolvedPattern = this.substitutePattern(pattern, substs);
+      const value = this.patternToPrimitive(resolvedPattern);
+      if (value !== undefined) define(localEnv, name, value);
+    }
+
+    const localEvaluator = new InterpreterVisitor(localEnv, {});
+    const result = localEvaluator.evaluate(head);
+
+    if (Boolean(result)) yield* this.solveConjunction(tail, substs);
   }
 
   private prepareLogicTarget(
@@ -169,6 +171,13 @@ export class LogicEngine {
     };
   }
 
+  private patternToPrimitive(pat: Pattern): PrimitiveValue | undefined {
+    if (pat instanceof LiteralPattern) {
+      const primitive = pat.name;
+      return primitive.value;
+    }
+    return undefined;
+  }
   private expressionToPattern(expr: Expression): Pattern {
     if (expr instanceof VariablePattern) return expr;
 
@@ -231,8 +240,8 @@ export class LogicEngine {
     substs: Substitution,
   ): PrimitiveValue {
     const pat = this.instantiateExpressionAsPattern(template, substs);
-    if (pat instanceof LiteralPattern) return this.evaluator.evaluate(pat.name);
-    if (pat instanceof VariablePattern) return null;
+    const val = this.patternToPrimitive(pat);
+    if (val !== undefined) return val;
     throw new Error("Complex template instantiation not fully implemented");
   }
 
