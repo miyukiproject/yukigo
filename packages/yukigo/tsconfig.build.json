@@ -9,9 +9,6 @@
   ],
   "references": [
     {
-      "path": "../yukigo-haskell-parser"
-    },
-    {
       "path": "../yukigo-ast"
     }
   ],

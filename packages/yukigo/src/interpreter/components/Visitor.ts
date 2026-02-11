@@ -90,7 +90,7 @@ import {
   remove,
   replace,
 } from "../utils.js";
-import { LogicEngine } from "./LogicEngine.js";
+import { LogicEngine } from "./logic/LogicEngine.js";
 import {
   ErrorFrame,
   InterpreterError,

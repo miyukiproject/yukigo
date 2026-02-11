@@ -2,7 +2,9 @@
   "compilerOptions": {
     "rootDir": ".",
     "baseUrl": ".",
-    "paths": {} 
+    "paths": {} ,
+    "sourceMap": true,
+    "inlineSourceMap": true,
   },
   "files": [],
   "include": [],
