@@ -25,6 +25,7 @@
     FunctorPattern, 
     ConsPattern, 
     ListPattern, 
+    LogicConstraint,
     LiteralPattern,
     WildcardPattern,
     TuplePattern,
@@ -33,7 +34,11 @@
 
 import { PrologLexer } from "./lexer.js"
 
-const asSequence = (d) => d.length === 1 ? d[0] : new Sequence(d);
+const asSequence = (d) => {
+    if (d instanceof Sequence) return d;
+    if (Array.isArray(d)) return d.length === 1 ? d[0] : new Sequence(d);
+    return new Sequence([d]);
+};
 
 %}
 @preprocessor typescript
@@ -59,22 +64,23 @@ body -> expression (_ (%comma | %semicolon) _ expression):* {% (d) => [d[0], ...
 
 expression -> 
     (conditional | forall | findall | unification | assignment | comparison | not | exist) {% (d) => d[0][0] %}
-    | "(" _ body _ ")" {% (d) => asSequence(d[2]) %}
+    | "(" _ body _ ")" {% (d) => new Sequence(d[2]) %}
 
 conditional -> "(" _ body _ "->" _ body _ %semicolon _ body _ ")"  {% (d) => 
     new If(
         asSequence(d[2]),  
         asSequence(d[6]),   
         asSequence(d[10])
-    ) 
+    )
 %}
 
 forall -> %forallRule "(" _ expression _ %comma _ expression _ ")" {% (d) => new Forall(d[3], d[7]) %}
 
-findall -> %findallRule "(" _ expression _ %comma _ expression _ %comma _ expression _ ")" {% (d) => new Findall(d[3], d[7], d[11]) %}
+findall -> %findallRule "(" _ pattern _ %comma _ expression _ %comma _ pattern _ ")" {% (d) => new Findall(d[3], d[7], d[11]) %}
 
 not -> 
-    %notOperator _ expression {% (d) => new Not([d[2]]) %}
+    "not" "(" _ expression _ ")" {% (d) => new Not(asSequence(d[3])) %}
+    | "\\+" _ expression {% (d) => new Not(d[2]) %}
 
 exist -> 
     "call" %lparen _ pattern_list _ %rparen {% (d) => {
@@ -89,12 +95,17 @@ exist ->
     | variable {% (d) => new Exist(d[0], []) %}
     
 
-assignment -> addition _ "is" _ addition {% (d) => new AssignOperation("Assign", d[0], d[4]) %}
+assignment -> 
+    addition _ "is" _ addition {% (d) => 
+        new LogicConstraint(new AssignOperation("Assign", d[0], d[4])) 
+    %}
 
-unification -> addition _ "=" _ addition {% (d) => new UnifyOperation("Unify", d[0], d[4]) %}
+unification -> addition _ "=" _ addition {% (d) => new LogicConstraint(new UnifyOperation("Unify", d[0], d[4])) %}
 
 comparison -> 
-    addition _ comparison_op _ addition {% (d) => new ComparisonOperation(d[2], d[0], d[4]) %}
+    addition _ comparison_op _ addition {% (d) => 
+        new LogicConstraint(new ComparisonOperation(d[2], d[0], d[4])) 
+    %}
 
 addition ->
     multiplication _ "+" _ addition {% (d) => new ArithmeticBinaryOperation("Plus", d[0], d[4]) %}

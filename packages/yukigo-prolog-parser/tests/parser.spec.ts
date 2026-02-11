@@ -32,6 +32,7 @@ import {
   YukigoParser,
   Equation,
   UnguardedBody,
+  LogicConstraint,
 } from "yukigo-ast";
 import { stdCode } from "../src/std.js";
 const _deepEqual = assert.deepEqual;
@@ -41,7 +42,7 @@ assert.deepEqual = function (actual: any, expected: any, ...args: any[]) {
     if (obj && typeof obj === "object") {
       const { loc, ...rest } = obj;
       return Object.fromEntries(
-        Object.entries(rest).map(([k, v]) => [k, stripLoc(v)])
+        Object.entries(rest).map(([k, v]) => [k, stripLoc(v)]),
       );
     }
     return obj;
@@ -132,8 +133,8 @@ describe("Parser Test", () => {
         new Equation(
           [new LiteralPattern(new SymbolPrimitive("bar"))],
           new UnguardedBody(
-            new Sequence([new Exist(new SymbolPrimitive("foo"), [])])
-          )
+            new Sequence([new Exist(new SymbolPrimitive("foo"), [])]),
+          ),
         ),
       ]),
     ]);
@@ -144,8 +145,8 @@ describe("Parser Test", () => {
         new Equation(
           [],
           new UnguardedBody(
-            new Sequence([new Exist(new SymbolPrimitive("foo"), [])])
-          )
+            new Sequence([new Exist(new SymbolPrimitive("foo"), [])]),
+          ),
         ),
       ]),
     ]);
@@ -153,7 +154,7 @@ describe("Parser Test", () => {
   it("rules with withiespaces", () => {
     assert.deepEqual(
       parser.parse("baz:-foo(X), baz(X,Y)."),
-      parser.parse("baz :- foo( X) ,baz( X , Y) .")
+      parser.parse("baz :- foo( X) ,baz( X , Y) ."),
     );
   });
   it("rules with bang", () => {
@@ -165,8 +166,8 @@ describe("Parser Test", () => {
             new Sequence([
               new Exist(new SymbolPrimitive("fail"), []),
               new Exist(new SymbolPrimitive("!"), []),
-            ])
-          )
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -181,8 +182,8 @@ describe("Parser Test", () => {
               new Exist(new SymbolPrimitive("foo"), [
                 new LiteralPattern(new SymbolPrimitive("bar")),
               ]),
-            ])
-          )
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -225,8 +226,8 @@ describe("Parser Test", () => {
                 new Exist(new SymbolPrimitive("foo"), [
                   new LiteralPattern(new SymbolPrimitive("bar")),
                 ]),
-              ])
-            )
+              ]),
+            ),
           ),
         ]),
         new Rule(new SymbolPrimitive("foo"), [
@@ -237,11 +238,11 @@ describe("Parser Test", () => {
                 new Exist(new SymbolPrimitive("bar"), [
                   new LiteralPattern(new SymbolPrimitive("bar")),
                 ]),
-              ])
-            )
+              ]),
+            ),
           ),
         ]),
-      ]
+      ],
     );
   });
   it("simplest rule/2 with condition/2", () => {
@@ -258,8 +259,8 @@ describe("Parser Test", () => {
                 new LiteralPattern(new SymbolPrimitive("bar")),
                 new LiteralPattern(new SymbolPrimitive("goo")),
               ]),
-            ])
-          )
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -271,13 +272,15 @@ describe("Parser Test", () => {
           [new VariablePattern(new SymbolPrimitive("X"))],
           new UnguardedBody(
             new Sequence([
-              new Not([
-                new Exist(new SymbolPrimitive("bar"), [
-                  new VariablePattern(new SymbolPrimitive("X")),
+              new Not(
+                new Sequence([
+                  new Exist(new SymbolPrimitive("bar"), [
+                    new VariablePattern(new SymbolPrimitive("X")),
+                  ]),
                 ]),
-              ]),
-            ])
-          )
+              ),
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -289,13 +292,13 @@ describe("Parser Test", () => {
           [new VariablePattern(new SymbolPrimitive("X"))],
           new UnguardedBody(
             new Sequence([
-              new Not([
+              new Not(
                 new Exist(new SymbolPrimitive("bar"), [
                   new VariablePattern(new SymbolPrimitive("X")),
                 ]),
-              ]),
-            ])
-          )
+              ),
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -307,7 +310,7 @@ describe("Parser Test", () => {
           [new VariablePattern(new SymbolPrimitive("X"))],
           new UnguardedBody(
             new Sequence([
-              new Not([
+              new Not(
                 new Sequence([
                   new Exist(new SymbolPrimitive("bar"), [
                     new VariablePattern(new SymbolPrimitive("X")),
@@ -316,9 +319,9 @@ describe("Parser Test", () => {
                     new VariablePattern(new SymbolPrimitive("Y")),
                   ]),
                 ]),
-              ]),
-            ])
-          )
+              ),
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -337,10 +340,10 @@ describe("Parser Test", () => {
 
                 new Exist(new SymbolPrimitive("bar"), [
                   new VariablePattern(new SymbolPrimitive("X")),
-                ])
+                ]),
               ),
-            ])
-          )
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -358,10 +361,10 @@ describe("Parser Test", () => {
                   new VariablePattern(new SymbolPrimitive("X")),
                   new VariablePattern(new SymbolPrimitive("Y")),
                 ]),
-                new Exist(new SymbolPrimitive("Z"), [])
+                new VariablePattern(new SymbolPrimitive("Z")),
               ),
-            ])
-          )
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -373,13 +376,15 @@ describe("Parser Test", () => {
           [new VariablePattern(new SymbolPrimitive("X"))],
           new UnguardedBody(
             new Sequence([
-              new ComparisonOperation(
-                "GreaterThan",
-                new SymbolPrimitive("X"),
-                new NumberPrimitive(4)
+              new LogicConstraint(
+                new ComparisonOperation(
+                  "GreaterThan",
+                  new SymbolPrimitive("X"),
+                  new NumberPrimitive(4),
+                ),
               ),
-            ])
-          )
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -391,13 +396,15 @@ describe("Parser Test", () => {
           [new VariablePattern(new SymbolPrimitive("X"))],
           new UnguardedBody(
             new Sequence([
-              new ComparisonOperation(
-                "LessThan",
-                new SymbolPrimitive("X"),
-                new NumberPrimitive(4)
+              new LogicConstraint(
+                new ComparisonOperation(
+                  "LessThan",
+                  new SymbolPrimitive("X"),
+                  new NumberPrimitive(4),
+                ),
               ),
-            ])
-          )
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -409,13 +416,15 @@ describe("Parser Test", () => {
           [new VariablePattern(new SymbolPrimitive("X"))],
           new UnguardedBody(
             new Sequence([
-              new ComparisonOperation(
-                "GreaterOrEqualThan",
-                new SymbolPrimitive("X"),
-                new NumberPrimitive(4)
+              new LogicConstraint(
+                new ComparisonOperation(
+                  "GreaterOrEqualThan",
+                  new SymbolPrimitive("X"),
+                  new NumberPrimitive(4),
+                ),
               ),
-            ])
-          )
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -427,13 +436,15 @@ describe("Parser Test", () => {
           [new VariablePattern(new SymbolPrimitive("X"))],
           new UnguardedBody(
             new Sequence([
-              new ComparisonOperation(
-                "LessOrEqualThan",
-                new SymbolPrimitive("X"),
-                new NumberPrimitive(4)
+              new LogicConstraint(
+                new ComparisonOperation(
+                  "LessOrEqualThan",
+                  new SymbolPrimitive("X"),
+                  new NumberPrimitive(4),
+                ),
               ),
-            ])
-          )
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -445,13 +456,15 @@ describe("Parser Test", () => {
           [new VariablePattern(new SymbolPrimitive("X"))],
           new UnguardedBody(
             new Sequence([
-              new ComparisonOperation(
-                "NotSame",
-                new SymbolPrimitive("X"),
-                new NumberPrimitive(4)
+              new LogicConstraint(
+                new ComparisonOperation(
+                  "NotSame",
+                  new SymbolPrimitive("X"),
+                  new NumberPrimitive(4),
+                ),
               ),
-            ])
-          )
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -463,13 +476,15 @@ describe("Parser Test", () => {
           [new VariablePattern(new SymbolPrimitive("X"))],
           new UnguardedBody(
             new Sequence([
-              new UnifyOperation(
-                "Unify",
-                new SymbolPrimitive("X"),
-                new NumberPrimitive(4)
+              new LogicConstraint(
+                new UnifyOperation(
+                  "Unify",
+                  new SymbolPrimitive("X"),
+                  new NumberPrimitive(4),
+                ),
               ),
-            ])
-          )
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -481,13 +496,15 @@ describe("Parser Test", () => {
           [new VariablePattern(new SymbolPrimitive("X"))],
           new UnguardedBody(
             new Sequence([
-              new AssignOperation(
-                "Assign",
-                new SymbolPrimitive("X"),
-                new NumberPrimitive(4)
+              new LogicConstraint(
+                new AssignOperation(
+                  "Assign",
+                  new SymbolPrimitive("X"),
+                  new NumberPrimitive(4),
+                ),
               ),
-            ])
-          )
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -499,13 +516,15 @@ describe("Parser Test", () => {
           [new VariablePattern(new SymbolPrimitive("X"))],
           new UnguardedBody(
             new Sequence([
-              new AssignOperation(
-                "Assign",
-                new SymbolPrimitive("X"),
-                new NumberPrimitive(4)
+              new LogicConstraint(
+                new AssignOperation(
+                  "Assign",
+                  new SymbolPrimitive("X"),
+                  new NumberPrimitive(4),
+                ),
               ),
-            ])
-          )
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -530,17 +549,19 @@ describe("Parser Test", () => {
           ],
           new UnguardedBody(
             new Sequence([
-              new AssignOperation(
-                "Assign",
-                new SymbolPrimitive("X"),
-                new ArithmeticBinaryOperation(
-                  "Minus",
-                  new SymbolPrimitive("Y"),
-                  new NumberPrimitive(5)
-                )
+              new LogicConstraint(
+                new AssignOperation(
+                  "Assign",
+                  new SymbolPrimitive("X"),
+                  new ArithmeticBinaryOperation(
+                    "Minus",
+                    new SymbolPrimitive("Y"),
+                    new NumberPrimitive(5),
+                  ),
+                ),
               ),
-            ])
-          )
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -555,17 +576,19 @@ describe("Parser Test", () => {
           ],
           new UnguardedBody(
             new Sequence([
-              new AssignOperation(
-                "Assign",
-                new SymbolPrimitive("X"),
-                new ArithmeticBinaryOperation(
-                  "Plus",
-                  new SymbolPrimitive("Y"),
-                  new NumberPrimitive(5)
-                )
+              new LogicConstraint(
+                new AssignOperation(
+                  "Assign",
+                  new SymbolPrimitive("X"),
+                  new ArithmeticBinaryOperation(
+                    "Plus",
+                    new SymbolPrimitive("Y"),
+                    new NumberPrimitive(5),
+                  ),
+                ),
               ),
-            ])
-          )
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -580,13 +603,15 @@ describe("Parser Test", () => {
           ],
           new UnguardedBody(
             new Sequence([
-              new ComparisonOperation(
-                "Equal",
-                new SymbolPrimitive("X"),
-                new SymbolPrimitive("Y")
+              new LogicConstraint(
+                new ComparisonOperation(
+                  "Equal",
+                  new SymbolPrimitive("X"),
+                  new SymbolPrimitive("Y"),
+                ),
               ),
-            ])
-          )
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -601,13 +626,15 @@ describe("Parser Test", () => {
           ],
           new UnguardedBody(
             new Sequence([
-              new ComparisonOperation(
-                "Same",
-                new SymbolPrimitive("X"),
-                new SymbolPrimitive("Y")
+              new LogicConstraint(
+                new ComparisonOperation(
+                  "Same",
+                  new SymbolPrimitive("X"),
+                  new SymbolPrimitive("Y"),
+                ),
               ),
-            ])
-          )
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -622,21 +649,23 @@ describe("Parser Test", () => {
           ],
           new UnguardedBody(
             new Sequence([
-              new AssignOperation(
-                "Assign",
-                new SymbolPrimitive("X"),
-                new ArithmeticBinaryOperation(
-                  "Plus",
+              new LogicConstraint(
+                new AssignOperation(
+                  "Assign",
+                  new SymbolPrimitive("X"),
                   new ArithmeticBinaryOperation(
-                    "Divide",
-                    new SymbolPrimitive("Y"),
-                    new NumberPrimitive(5)
+                    "Plus",
+                    new ArithmeticBinaryOperation(
+                      "Divide",
+                      new SymbolPrimitive("Y"),
+                      new NumberPrimitive(5),
+                    ),
+                    new NumberPrimitive(20),
                   ),
-                  new NumberPrimitive(20)
-                )
+                ),
               ),
-            ])
-          )
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -651,15 +680,17 @@ describe("Parser Test", () => {
           ],
           new UnguardedBody(
             new Sequence([
-              new AssignOperation(
-                "Assign",
-                new SymbolPrimitive("X"),
-                new Exist(new SymbolPrimitive("f"), [
-                  new VariablePattern(new SymbolPrimitive("Y")),
-                ])
+              new LogicConstraint(
+                new AssignOperation(
+                  "Assign",
+                  new SymbolPrimitive("X"),
+                  new Exist(new SymbolPrimitive("f"), [
+                    new VariablePattern(new SymbolPrimitive("Y")),
+                  ]),
+                ),
               ),
-            ])
-          )
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -674,13 +705,18 @@ describe("Parser Test", () => {
           ],
           new UnguardedBody(
             new Sequence([
-              new AssignOperation(
-                "Assign",
-                new SymbolPrimitive("X"),
-                new ArithmeticUnaryOperation("Round", new NumberPrimitive(3.5))
+              new LogicConstraint(
+                new AssignOperation(
+                  "Assign",
+                  new SymbolPrimitive("X"),
+                  new ArithmeticUnaryOperation(
+                    "Round",
+                    new NumberPrimitive(3.5),
+                  ),
+                ),
               ),
-            ])
-          )
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -695,19 +731,21 @@ describe("Parser Test", () => {
           ],
           new UnguardedBody(
             new Sequence([
-              new AssignOperation(
-                "Assign",
-                new SymbolPrimitive("X"),
-                new ArithmeticUnaryOperation(
-                  "Absolute",
+              new LogicConstraint(
+                new AssignOperation(
+                  "Assign",
+                  new SymbolPrimitive("X"),
                   new ArithmeticUnaryOperation(
-                    "Negation",
-                    new NumberPrimitive(3.5)
-                  )
-                )
+                    "Absolute",
+                    new ArithmeticUnaryOperation(
+                      "Negation",
+                      new NumberPrimitive(3.5),
+                    ),
+                  ),
+                ),
               ),
-            ])
-          )
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -722,13 +760,18 @@ describe("Parser Test", () => {
           ],
           new UnguardedBody(
             new Sequence([
-              new AssignOperation(
-                "Assign",
-                new SymbolPrimitive("X"),
-                new ArithmeticUnaryOperation("Sqrt", new NumberPrimitive(3.5))
+              new LogicConstraint(
+                new AssignOperation(
+                  "Assign",
+                  new SymbolPrimitive("X"),
+                  new ArithmeticUnaryOperation(
+                    "Sqrt",
+                    new NumberPrimitive(3.5),
+                  ),
+                ),
               ),
-            ])
-          )
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -740,21 +783,23 @@ describe("Parser Test", () => {
           [new VariablePattern(new SymbolPrimitive("X"))],
           new UnguardedBody(
             new Sequence([
-              new ComparisonOperation(
-                "GreaterThan",
-                new ArithmeticBinaryOperation(
-                  "Plus",
-                  new SymbolPrimitive("X"),
-                  new NumberPrimitive(50)
+              new LogicConstraint(
+                new ComparisonOperation(
+                  "GreaterThan",
+                  new ArithmeticBinaryOperation(
+                    "Plus",
+                    new SymbolPrimitive("X"),
+                    new NumberPrimitive(50),
+                  ),
+                  new ArithmeticBinaryOperation(
+                    "Multiply",
+                    new SymbolPrimitive("x"),
+                    new NumberPrimitive(2),
+                  ),
                 ),
-                new ArithmeticBinaryOperation(
-                  "Multiply",
-                  new SymbolPrimitive("x"),
-                  new NumberPrimitive(2)
-                )
               ),
-            ])
-          )
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -772,8 +817,8 @@ describe("Parser Test", () => {
               new Exist(new SymbolPrimitive("goo"), [
                 new LiteralPattern(new SymbolPrimitive("bar")),
               ]),
-            ])
-          )
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -791,8 +836,8 @@ describe("Parser Test", () => {
               new Exist(new SymbolPrimitive("goo"), [
                 new LiteralPattern(new SymbolPrimitive("bar")),
               ]),
-            ])
-          )
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -811,8 +856,8 @@ describe("Parser Test", () => {
                 new LiteralPattern(new SymbolPrimitive("bar")),
               ]),
               new Exist(new SymbolPrimitive("baz"), []),
-            ])
-          )
+            ]),
+          ),
         ),
       ]),
     ]);
@@ -832,94 +877,101 @@ describe("Parser Test", () => {
                 new LiteralPattern(new SymbolPrimitive("bar")),
               ]),
               new Exist(new SymbolPrimitive("baz"), []),
-            ])
-          )
+            ]),
+          ),
         ),
       ]),
     ]);
   });
   it("rule/1 with if-then-else construct", () => {
-    assert.deepEqual(
-      parser.parse(
-        `classify_number(X, Classification) :- ( X > 0 -> Classification = positive ; ( X < 0 -> Classification = negative ; Classification = zero )).`
-      ),
-      [
-        new Rule(new SymbolPrimitive("classify_number"), [
-          new Equation(
-            [
-              new VariablePattern(new SymbolPrimitive("X")),
-              new VariablePattern(new SymbolPrimitive("Classification")),
-            ],
-            new UnguardedBody(
-              new Sequence([
-                new If(
+    const input = `classify_number(X, Classification) :- ( X > 0 -> Classification = positive ; ( X < 0 -> Classification = negative ; Classification = zero )).`;
+
+    assert.deepEqual(parser.parse(input), [
+      new Rule(new SymbolPrimitive("classify_number"), [
+        new Equation(
+          [
+            new VariablePattern(new SymbolPrimitive("X")),
+            new VariablePattern(new SymbolPrimitive("Classification")),
+          ],
+          new UnguardedBody(
+            new Sequence([
+              new If(
+                new LogicConstraint(
                   new ComparisonOperation(
                     "GreaterThan",
                     new SymbolPrimitive("X"),
-                    new NumberPrimitive(0)
+                    new NumberPrimitive(0),
                   ),
+                ),
+                new LogicConstraint(
                   new UnifyOperation(
                     "Unify",
                     new SymbolPrimitive("Classification"),
-                    new SymbolPrimitive("positive")
+                    new SymbolPrimitive("positive"),
                   ),
-                  new If(
+                ),
+                new If(
+                  new LogicConstraint(
                     new ComparisonOperation(
                       "LessThan",
                       new SymbolPrimitive("X"),
-                      new NumberPrimitive(0)
+                      new NumberPrimitive(0),
                     ),
+                  ),
+                  new LogicConstraint(
                     new UnifyOperation(
                       "Unify",
                       new SymbolPrimitive("Classification"),
-                      new SymbolPrimitive("negative")
+                      new SymbolPrimitive("negative"),
                     ),
+                  ),
+                  new LogicConstraint(
                     new UnifyOperation(
                       "Unify",
                       new SymbolPrimitive("Classification"),
-                      new SymbolPrimitive("zero")
-                    )
-                  )
+                      new SymbolPrimitive("zero"),
+                    ),
+                  ),
                 ),
-              ])
-            )
+              ),
+            ]),
           ),
-        ]),
-      ]
-    );
+        ),
+      ]),
+    ]);
   });
   it("rule/1 with multiple whitespaces", () => {
     const expectedAST = parser.parse("baz(bar) :- foo(bar), goo(bar), baz.");
 
     assert.deepEqual(
       parser.parse("baz(bar):-foo(bar) , goo(bar), baz."),
-      expectedAST
+      expectedAST,
     );
     assert.deepEqual(
       parser.parse("baz(bar) :- foo(bar) , goo(bar) , baz."),
-      expectedAST
+      expectedAST,
     );
     assert.deepEqual(
       parser.parse("baz(bar) :- foo( bar ) , goo( bar ) , baz."),
-      expectedAST
+      expectedAST,
     );
     assert.deepEqual(
       parser.parse("baz( bar ) :- foo( bar ) , goo( bar ) , baz."),
-      expectedAST
+      expectedAST,
     );
     assert.deepEqual(
       parser.parse("baz( bar ) :- \n foo( bar ) , \n goo( bar ), \n  baz."),
-      expectedAST
+      expectedAST,
     );
     assert.deepEqual(
       parser.parse("baz(bar) :-\n  foo(bar),\n  goo(bar),\n  baz.\n"),
-      expectedAST
+      expectedAST,
     );
   });
   it("can handle single line comments", () => {
     assert.deepEqual(
       parser.parse("%this is a comment\r\nfoo. %this is another comment"),
-      [new Fact(new SymbolPrimitive("foo"), [])]
+      [new Fact(new SymbolPrimitive("foo"), [])],
     );
   });
   it("can handle multi line comments", () => {
@@ -960,7 +1012,7 @@ foo.`;
         new Fact(new SymbolPrimitive("foo"), [
           new ConsPattern(
             new VariablePattern(new SymbolPrimitive("H")),
-            new VariablePattern(new SymbolPrimitive("T"))
+            new VariablePattern(new SymbolPrimitive("T")),
           ),
         ]),
       ]);
@@ -972,8 +1024,8 @@ foo.`;
             new VariablePattern(new SymbolPrimitive("H1")),
             new ConsPattern(
               new VariablePattern(new SymbolPrimitive("H2")),
-              new VariablePattern(new SymbolPrimitive("T"))
-            )
+              new VariablePattern(new SymbolPrimitive("T")),
+            ),
           ),
         ]),
       ]);
@@ -985,17 +1037,19 @@ foo.`;
             [],
             new UnguardedBody(
               new Sequence([
-                new UnifyOperation(
-                  "Unify",
-                  new SymbolPrimitive("X"),
-                  new ListPrimitive([
-                    new NumberPrimitive(1),
-                    new NumberPrimitive(2),
-                    new NumberPrimitive(3),
-                  ])
+                new LogicConstraint(
+                  new UnifyOperation(
+                    "Unify",
+                    new SymbolPrimitive("X"),
+                    new ListPrimitive([
+                      new NumberPrimitive(1),
+                      new NumberPrimitive(2),
+                      new NumberPrimitive(3),
+                    ]),
+                  ),
                 ),
-              ])
-            )
+              ]),
+            ),
           ),
         ]),
       ]);
@@ -1005,22 +1059,23 @@ foo.`;
         new Rule(new SymbolPrimitive("foo"), [
           new Equation(
             [],
-
             new UnguardedBody(
               new Sequence([
-                new UnifyOperation(
-                  "Unify",
-                  new SymbolPrimitive("X"),
-                  new ConsExpression(
-                    new NumberPrimitive(1),
+                new LogicConstraint(
+                  new UnifyOperation(
+                    "Unify",
+                    new SymbolPrimitive("X"),
                     new ConsExpression(
-                      new NumberPrimitive(2),
-                      new SymbolPrimitive("T")
-                    )
-                  )
+                      new NumberPrimitive(1),
+                      new ConsExpression(
+                        new NumberPrimitive(2),
+                        new SymbolPrimitive("T"),
+                      ),
+                    ),
+                  ),
                 ),
-              ])
-            )
+              ]),
+            ),
           ),
         ]),
       ]);
