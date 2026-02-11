@@ -22,9 +22,9 @@ import {
   createGlobalEnv,
   ExpressionEvaluator,
 } from "../../src/interpreter/utils.js";
-import { LogicEngine } from "../../src/interpreter/components/LogicEngine.js";
+import { LogicEngine } from "../../src/interpreter/components/logic/LogicEngine.js";
 import { InterpreterConfig } from "../../src/interpreter/index.js";
-import { unify } from "../../src/interpreter/components/LogicResolver.js";
+import { unify } from "../../src/interpreter/components/logic/LogicResolver.js";
 import { PatternResolver } from "../../src/interpreter/components/PatternMatcher.js";
 
 const s = (val: string) => new SymbolPrimitive(val);

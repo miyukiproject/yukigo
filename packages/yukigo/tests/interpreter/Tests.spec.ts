@@ -9,12 +9,6 @@ import {
   Test,
   TestGroup,
   Failure,
-  Call,
-  SymbolPrimitive,
-  Function,
-  Equation,
-  UnguardedBody,
-  Return,
   Raise,
   StringPrimitive,
   Truth

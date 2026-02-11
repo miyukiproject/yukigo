@@ -10,7 +10,11 @@ import {
   StringPrimitive,
   Variable,
   SymbolPrimitive,
-  ArithmeticBinaryOperation
+  ArithmeticBinaryOperation,
+  Lambda,
+  Call,
+  Application,
+  VariablePattern,
 } from "yukigo-ast";
 import { Tester } from "../../src/tester/index.js";
 
@@ -21,9 +25,9 @@ describe("Tester class", () => {
       new Sequence([
         new Assert(
           new BooleanPrimitive(false),
-          new Equality(new NumberPrimitive(1), new NumberPrimitive(1))
-        )
-      ])
+          new Equality(new NumberPrimitive(1), new NumberPrimitive(1)),
+        ),
+      ]),
     );
 
     const tester = new Tester([passingTest]);
@@ -40,9 +44,9 @@ describe("Tester class", () => {
       new Sequence([
         new Assert(
           new BooleanPrimitive(false),
-          new Equality(new NumberPrimitive(1), new NumberPrimitive(2))
-        )
-      ])
+          new Equality(new NumberPrimitive(1), new NumberPrimitive(2)),
+        ),
+      ]),
     );
 
     const tester = new Tester([failingTest]);
@@ -59,9 +63,9 @@ describe("Tester class", () => {
       new Sequence([
         new Assert(
           new BooleanPrimitive(false),
-          new Equality(new NumberPrimitive(10), new NumberPrimitive(10))
-        )
-      ])
+          new Equality(new NumberPrimitive(10), new NumberPrimitive(10)),
+        ),
+      ]),
     );
 
     const failingTest = new Test(
@@ -69,14 +73,14 @@ describe("Tester class", () => {
       new Sequence([
         new Assert(
           new BooleanPrimitive(false),
-          new Equality(new NumberPrimitive(1), new NumberPrimitive(0))
-        )
-      ])
+          new Equality(new NumberPrimitive(1), new NumberPrimitive(0)),
+        ),
+      ]),
     );
 
     const group = new TestGroup(
       new StringPrimitive("My Group"),
-      new Sequence([passingTest, failingTest])
+      new Sequence([passingTest, failingTest]),
     );
 
     const tester = new Tester([group]);
@@ -93,22 +97,25 @@ describe("Tester class", () => {
 
   it("should handle setup code inside a TestGroup", () => {
     // var x = 5
-    const setup = new Variable(new SymbolPrimitive("x"), new NumberPrimitive(5));
-    
+    const setup = new Variable(
+      new SymbolPrimitive("x"),
+      new NumberPrimitive(5),
+    );
+
     // test "Check X" { assert x == 5 }
     const checkX = new Test(
       new StringPrimitive("Check X"),
       new Sequence([
         new Assert(
           new BooleanPrimitive(false),
-          new Equality(new SymbolPrimitive("x"), new NumberPrimitive(5))
-        )
-      ])
+          new Equality(new SymbolPrimitive("x"), new NumberPrimitive(5)),
+        ),
+      ]),
     );
 
     const group = new TestGroup(
       new StringPrimitive("Setup Group"),
-      new Sequence([setup, checkX])
+      new Sequence([setup, checkX]),
     );
 
     const tester = new Tester([group]);
@@ -123,12 +130,18 @@ describe("Tester class", () => {
     const errorTest = new Test(
       new StringPrimitive("Error"),
       new Sequence([
-        new ArithmeticBinaryOperation(
-          "Plus",
+        new Application(
+          new Lambda(
+            [new VariablePattern(new SymbolPrimitive("b"))],
+            new ArithmeticBinaryOperation(
+              "Plus",
+              new SymbolPrimitive("b"),
+              new StringPrimitive("a"),
+            ),
+          ),
           new NumberPrimitive(1),
-          new StringPrimitive("a")
-        )
-      ])
+        ),
+      ]),
     );
 
     const tester = new Tester([errorTest]);
