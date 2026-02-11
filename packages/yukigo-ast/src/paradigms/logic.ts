@@ -23,7 +23,7 @@ export class Rule extends ASTNode {
   constructor(
     identifier: SymbolPrimitive,
     equations: Equation[],
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ) {
     super(loc);
     this.identifier = identifier;
@@ -53,7 +53,7 @@ export class Call extends ASTNode {
   constructor(
     callee: SymbolPrimitive,
     args: Expression[],
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ) {
     super(loc);
     this.callee = callee;
@@ -87,7 +87,7 @@ export class Fact extends ASTNode {
   constructor(
     identifier: SymbolPrimitive,
     patterns: Pattern[],
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ) {
     super(loc);
     this.identifier = identifier;
@@ -144,7 +144,7 @@ export class Exist extends ASTNode {
   constructor(
     identifier: SymbolPrimitive,
     patterns: Pattern[],
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ) {
     super(loc);
     this.identifier = identifier;
@@ -168,11 +168,11 @@ export class Exist extends ASTNode {
  */
 export class Not extends ASTNode {
   /** @hidden */
-  public expressions: Expression[];
+  public expression: Expression;
 
-  constructor(expressions: Expression[], loc?: SourceLocation) {
+  constructor(expression: Expression, loc?: SourceLocation) {
     super(loc);
-    this.expressions = expressions;
+    this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitNot?.(this);
@@ -180,7 +180,7 @@ export class Not extends ASTNode {
   public toJSON() {
     return {
       type: "Not",
-      expressions: this.expressions.map((expr) => expr.toJSON()),
+      expression: this.expression.toJSON(),
     };
   }
 }
@@ -190,17 +190,17 @@ export class Not extends ASTNode {
  */
 export class Findall extends ASTNode {
   /** @hidden */
-  public bag: Expression;
+  public bag: Pattern;
   /** @hidden */
   public goal: Expression;
   /** @hidden */
-  public template: Expression;
+  public template: Pattern;
 
   constructor(
-    template: Expression,
+    template: Pattern,
     goal: Expression,
-    bag: Expression,
-    loc?: SourceLocation
+    bag: Pattern,
+    loc?: SourceLocation,
   ) {
     super(loc);
     this.template = template;
@@ -259,7 +259,7 @@ export class Goal extends ASTNode {
   constructor(
     identifier: SymbolPrimitive,
     args: Pattern[],
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ) {
     super(loc);
     this.identifier = identifier;
@@ -275,4 +275,59 @@ export class Goal extends ASTNode {
       arguments: this.args.map((arg) => arg.toJSON()),
     };
   }
+}
+
+/**
+ * Represents a logical constraint or guard that must evaluate to true.
+ * Unlike a Goal/Call, this delegates to the expression evaluator rather
+ * than the predicate resolution engine.
+ *
+ * @example
+ * baz(X) :- X > 4.  // "X > 4" is the Constraint
+ * @category Logic
+ */
+export class LogicConstraint extends ASTNode {
+  /** @hidden */
+  public expression: Expression;
+
+  constructor(expression: Expression, loc?: SourceLocation) {
+    super(loc);
+    this.expression = expression;
+  }
+
+  public accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitLogicConstraint?.(this);
+  }
+
+  public toJSON() {
+    return {
+      type: "LogicConstraint",
+      expression: this.expression.toJSON(),
+    };
+  }
+}
+
+// Runtime Types
+
+export type RuntimePredicate = RuntimeFact | RuntimeRule;
+
+export const isRuntimePredicate = (
+  prim: PrimitiveValue,
+): prim is RuntimePredicate => {
+  return (
+    typeof prim === "object" &&
+    "kind" in prim &&
+    (prim.kind === "Fact" || prim.kind === "Rule")
+  );
+};
+
+export interface RuntimeFact {
+  kind: "Fact";
+  identifier: string;
+  equations: Fact[];
+}
+export interface RuntimeRule {
+  kind: "Rule";
+  identifier: string;
+  equations: Rule[];
 }
