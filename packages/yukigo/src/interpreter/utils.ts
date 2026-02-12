@@ -7,9 +7,10 @@ import {
   ASTNode,
 } from "yukigo-ast";
 import { UnboundVariable } from "./errors.js";
+import { Continuation, Thunk } from "./trampoline.js";
 
 export interface ExpressionEvaluator {
-  evaluate(node: ASTNode): PrimitiveValue;
+  evaluate(node: ASTNode, cont: Continuation<PrimitiveValue>): Thunk<PrimitiveValue>;
 }
 
 export function createStream(

@@ -22,6 +22,8 @@ import {
 import { Bindings } from "../index.js";
 import { InterpreterVisitor } from "./Visitor.js";
 import { createGlobalEnv, createStream } from "../utils.js";
+import { idContinuation } from "../trampoline.js";
+import { LazyRuntime } from "./LazyRuntime.js";
 
 class SharedSequence {
   private cache: PrimitiveValue[] = [];
@@ -146,22 +148,14 @@ export class PatternResolver implements Visitor<string> {
   visitFunctorPattern(node: FunctorPattern): string {
     // Same as ConstructorPattern (alias)
     return this.visitConstructorPattern(
-<<<<<<< HEAD
       new ConstructorPattern(node.identifier, node.args)
-=======
-      new ConstructorPattern(node.identifier.value, node.args),
->>>>>>> c518def (fix(yukigo): enhance pattern matching to support strings as lists and update related logic)
     );
   }
 
   visitApplicationPattern(node: ApplicationPattern): string {
     // Same as FunctorPattern
     return this.visitConstructorPattern(
-<<<<<<< HEAD
       new ConstructorPattern(node.identifier, node.args)
-=======
-      new ConstructorPattern(node.symbol.value, node.args),
->>>>>>> c518def (fix(yukigo): enhance pattern matching to support strings as lists and update related logic)
     );
   }
 
@@ -204,11 +198,12 @@ export class PatternMatcher implements Visitor<boolean> {
   }
 
   visitTuplePattern(node: TuplePattern): boolean {
-    if (!Array.isArray(this.value)) return false;
-    if (this.value.length !== node.elements.length) return false;
+    const val = isLazyList(this.value) ? LazyRuntime.realizeList(this.value) : this.value;
+    if (!Array.isArray(val)) return false;
+    if (val.length !== node.elements.length) return false;
 
     for (let i = 0; i < node.elements.length; i++) {
-      const matcher = new PatternMatcher(this.value[i], this.bindings);
+      const matcher = new PatternMatcher(val[i], this.bindings);
       if (!node.elements[i].accept(matcher)) return false;
     }
     return true;
@@ -321,21 +316,13 @@ export class PatternMatcher implements Visitor<boolean> {
 
   visitFunctorPattern(node: FunctorPattern): boolean {
     return this.visitConstructorPattern(
-<<<<<<< HEAD
       new ConstructorPattern(node.identifier, node.args)
-=======
-      new ConstructorPattern(node.identifier.value, node.args),
->>>>>>> c518def (fix(yukigo): enhance pattern matching to support strings as lists and update related logic)
     );
   }
 
   visitApplicationPattern(node: ApplicationPattern): boolean {
     return this.visitConstructorPattern(
-<<<<<<< HEAD
       new ConstructorPattern(node.identifier, node.args)
-=======
-      new ConstructorPattern(node.symbol.value, node.args),
->>>>>>> c518def (fix(yukigo): enhance pattern matching to support strings as lists and update related logic)
     );
   }
 
@@ -367,15 +354,19 @@ export class PatternMatcher implements Visitor<boolean> {
   private deepEqual(a: PrimitiveValue, b: PrimitiveValue): boolean {
     if (a === b) return true;
 
+    // Realize lazy lists for comparison
+    const valA = isLazyList(a) ? LazyRuntime.realizeList(a) : a;
+    const valB = isLazyList(b) ? LazyRuntime.realizeList(b) : b;
+
     // Support comparing char primitives with strings
-    if (typeof a === "string" && typeof b === "string") return a === b;
+    if (typeof valA === "string" && typeof valB === "string") return valA === valB;
 
-    if (typeof a !== typeof b) return false;
+    if (typeof valA !== typeof valB) return false;
 
-    if (Array.isArray(a) && Array.isArray(b)) {
-      if (a.length !== b.length) return false;
-      for (let i = 0; i < a.length; i++) {
-        if (!this.deepEqual(a[i], b[i])) return false;
+    if (Array.isArray(valA) && Array.isArray(valB)) {
+      if (valA.length !== valB.length) return false;
+      for (let i = 0; i < valA.length; i++) {
+        if (!this.deepEqual(valA[i], valB[i])) return false;
       }
       return true;
     }
@@ -384,6 +375,6 @@ export class PatternMatcher implements Visitor<boolean> {
   }
 
   private realize(value: PrimitiveValue): PrimitiveValue[] {
-    return new InterpreterVisitor(createGlobalEnv(), {}).realizeList(value);
+    return new InterpreterVisitor(createGlobalEnv(), {}).realizeListSync(value);
   }
 }

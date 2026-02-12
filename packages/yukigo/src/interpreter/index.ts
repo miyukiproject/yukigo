@@ -3,6 +3,7 @@ import { InterpreterVisitor } from "./components/Visitor.js";
 import { EnvBuilderVisitor } from "./components/EnvBuilder.js";
 import { InterpreterError } from "./errors.js";
 import { define } from "./utils.js";
+import { idContinuation, trampoline } from "./trampoline.js";
 
 export type Bindings = [string, PrimitiveValue][];
 
@@ -53,8 +54,8 @@ export class Interpreter {
   public evaluate(expr: ASTNode): PrimitiveValue {
     try {
       const visitor = new InterpreterVisitor(this.globalEnv, this.config);
-      const evaluatedExpr = expr.accept(visitor);
-      return evaluatedExpr;
+      const evaluatedCPS = expr.accept(visitor);
+      return trampoline(evaluatedCPS(idContinuation));
     } catch (error) {
       if (error instanceof InterpreterError) console.log(error.formatStack());
       throw error;

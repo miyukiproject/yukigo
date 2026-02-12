@@ -3,9 +3,11 @@ import {
   RangeExpression,
   ConsExpression,
   isLazyList,
+  ListBinaryOperation,
 } from "yukigo-ast";
 import { createStream, ExpressionEvaluator } from "../utils.js";
 import { createMemoizedStream, isMemoizedList } from "./PatternMatcher.js";
+import { idContinuation, trampoline } from "../trampoline.js";
 
 export class LazyRuntime {
   static realizeList(val: PrimitiveValue): PrimitiveValue[] {
@@ -30,7 +32,7 @@ export class LazyRuntime {
     node: RangeExpression,
     evaluator: ExpressionEvaluator
   ): PrimitiveValue {
-    const startVal = evaluator.evaluate(node.start);
+    const startVal = trampoline(evaluator.evaluate(node.start, idContinuation));
     if (typeof startVal !== "number")
       throw new Error("Range start must be a number");
 
@@ -38,7 +40,7 @@ export class LazyRuntime {
 
     let step = 1;
     if (node.step) {
-      const secondVal = evaluator.evaluate(node.step);
+      const secondVal = trampoline(evaluator.evaluate(node.step, idContinuation));
       if (typeof secondVal !== "number")
         throw new Error("Range step must be a number");
       step = secondVal - startVal;
@@ -56,7 +58,7 @@ export class LazyRuntime {
     }
 
     // eager eval
-    const endVal = evaluator.evaluate(node.end);
+    const endVal = trampoline(evaluator.evaluate(node.end, idContinuation));
     if (typeof endVal !== "number")
       throw new Error("Range end must be a number");
 
@@ -70,17 +72,18 @@ export class LazyRuntime {
     }
     return result;
   }
+
   static evaluateCons(
     node: ConsExpression,
     evaluator: ExpressionEvaluator,
     lazy: boolean
   ): PrimitiveValue {
-    const head = evaluator.evaluate(node.head);
+    const head = trampoline(evaluator.evaluate(node.head, idContinuation));
 
     if (lazy) {
       return createMemoizedStream(function* () {
         yield head;
-        const tail = evaluator.evaluate(node.tail);
+        const tail = trampoline(evaluator.evaluate(node.tail, idContinuation));
 
         if (Array.isArray(tail)) {
           for (const item of tail) yield item;
@@ -93,18 +96,7 @@ export class LazyRuntime {
         }
 
         if (isLazyList(tail)) {
-          if (isMemoizedList(tail)) {
-            const seq = tail._sequence;
-            let currentIdx = tail._offset;
-            while (true) {
-              const res = seq.get(currentIdx);
-              if (res.done) break;
-              yield res.value!;
-              currentIdx++;
-            }
-          } else {
-            yield* tail.generator();
-          }
+          yield* tail.generator();
           return;
         }
 
@@ -113,12 +105,55 @@ export class LazyRuntime {
     }
 
     // Eager behavior
-    const tail = evaluator.evaluate(node.tail);
+    const tail = trampoline(evaluator.evaluate(node.tail, idContinuation));
     if (typeof tail === "string") {
       return (head as string) + tail;
     }
     if (isLazyList(tail) || !Array.isArray(tail))
       throw new Error("Expected Array in eager Cons");
     return [head, ...tail];
+  }
+
+  static evaluateConcat(
+    left: PrimitiveValue,
+    right: PrimitiveValue,
+    lazy: boolean
+  ): PrimitiveValue {
+    if (lazy) {
+      return createMemoizedStream(function* () {
+        if (Array.isArray(left)) yield* left;
+        else if (typeof left === "string") yield* left.split("");
+        else if (isLazyList(left)) yield* left.generator();
+        else throw new Error("Invalid left operand for lazy Concat");
+
+        if (Array.isArray(right)) yield* right;
+        else if (typeof right === "string") yield* right.split("");
+        else if (isLazyList(right)) yield* right.generator();
+        else throw new Error("Invalid right operand for lazy Concat");
+      });
+    }
+
+    if (typeof left === "string" && typeof right === "string") return left + right;
+    
+    const lArr = LazyRuntime.realizeList(left);
+    const rArr = LazyRuntime.realizeList(right);
+    return lArr.concat(rArr);
+  }
+
+  static evaluateConcatLazy(
+    node: ListBinaryOperation,
+    evaluator: ExpressionEvaluator
+  ): PrimitiveValue {
+    return createMemoizedStream(function* () {
+      const left = trampoline(evaluator.evaluate(node.left, idContinuation));
+      if (Array.isArray(left)) yield* left;
+      else if (typeof left === "string") yield* left.split("");
+      else if (isLazyList(left)) yield* left.generator();
+
+      const right = trampoline(evaluator.evaluate(node.right, idContinuation));
+      if (Array.isArray(right)) yield* right;
+      else if (typeof right === "string") yield* right.split("");
+      else if (isLazyList(right)) yield* right.generator();
+    });
   }
 }

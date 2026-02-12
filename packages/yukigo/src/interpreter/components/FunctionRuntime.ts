@@ -12,6 +12,7 @@ import { PatternMatcher } from "./PatternMatcher.js";
 import { ExpressionEvaluator, pushEnv } from "../utils.js";
 import { InterpreterError } from "../errors.js";
 import { EnvBuilderVisitor } from "./EnvBuilder.js";
+import { Continuation, Thunk } from "../trampoline.js";
 
 class NonExhaustivePatterns extends InterpreterError {
   constructor(funcName: string) {
@@ -25,43 +26,66 @@ export class FunctionRuntime {
     equations: EquationRuntime[],
     args: PrimitiveValue[],
     currentEnv: EnvStack,
-    evaluatorFactory: (env: EnvStack) => ExpressionEvaluator
-  ): PrimitiveValue {
-    for (const eq of equations) {
-      if (eq.patterns.length !== args.length) continue;
+    evaluatorFactory: (env: EnvStack) => ExpressionEvaluator,
+    k: Continuation<PrimitiveValue>
+  ): Thunk<PrimitiveValue> {
+    const tryNextEquation = (eqIndex: number): Thunk<PrimitiveValue> => {
+      if (eqIndex >= equations.length) {
+        throw new NonExhaustivePatterns(funcName);
+      }
+
+      const eq = equations[eqIndex];
+      if (eq.patterns.length !== args.length) return () => tryNextEquation(eqIndex + 1);
 
       const bindings: Bindings = [];
 
-      if (!FunctionRuntime.patternsMatch(eq, args, bindings)) continue;
+      if (!FunctionRuntime.patternsMatch(eq, args, bindings))
+        return () => tryNextEquation(eqIndex + 1);
+
       const localEnv = new Map<string, PrimitiveValue>(bindings);
       const newStack: EnvStack = pushEnv(currentEnv, localEnv);
 
       const scopeEvaluator = evaluatorFactory(newStack);
+
       // UnguardedBody
       if (eq.body instanceof UnguardedBody)
         return this.evaluateSequence(
           eq.body.sequence,
           scopeEvaluator,
-          newStack
+          newStack,
+          k
         );
-      // GuardedBody
-      if (Array.isArray(eq.body) && eq.body.length > 0) {
-        const prototypeBody = eq.body[0].body;
-        if (prototypeBody instanceof Sequence)
-          this.preloadDefinitions(prototypeBody, scopeEvaluator, newStack);
-      }
 
-      for (const guard of eq.body) {
-        const cond = scopeEvaluator.evaluate(guard.condition);
-        if (cond === true) {
-          if (guard.body instanceof Sequence)
-            return this.evaluateSequence(guard.body, scopeEvaluator, newStack);
-          return scopeEvaluator.evaluate(guard.body)
+      // GuardedBody
+      return () => {
+        if (Array.isArray(eq.body) && eq.body.length > 0) {
+          const prototypeBody = eq.body[0].body;
+          if (prototypeBody instanceof Sequence)
+            this.preloadDefinitions(prototypeBody, scopeEvaluator, newStack);
         }
-      }
-    }
-    throw new NonExhaustivePatterns(funcName);
+
+        const tryNextGuard = (guardIndex: number): Thunk<PrimitiveValue> => {
+          if (guardIndex >= (eq.body as any[]).length) {
+             return () => tryNextEquation(eqIndex + 1);
+          }
+          const guard = (eq.body as any[])[guardIndex];
+          return scopeEvaluator.evaluate(guard.condition, (cond) => {
+            if (cond === true) {
+              if (guard.body instanceof Sequence)
+                return this.evaluateSequence(guard.body, scopeEvaluator, newStack, k);
+              return scopeEvaluator.evaluate(guard.body, k);
+            }
+            return () => tryNextGuard(guardIndex + 1);
+          });
+        };
+
+        return tryNextGuard(0);
+      };
+    };
+
+    return tryNextEquation(0);
   }
+
   private static preloadDefinitions(
     seq: Sequence,
     evaluator: ExpressionEvaluator,
@@ -73,7 +97,7 @@ export class FunctionRuntime {
     }
     for (const stmt of seq.statements) {
       if (stmt instanceof Function || stmt instanceof Return) continue;
-      evaluator.evaluate(stmt);
+      evaluator.evaluate(stmt, (val) => val);
     }
   }
 
@@ -92,23 +116,29 @@ export class FunctionRuntime {
   private static evaluateSequence(
     seq: Sequence,
     evaluator: ExpressionEvaluator,
-    env: EnvStack
-  ): PrimitiveValue {
-    let result: PrimitiveValue = undefined;
+    env: EnvStack,
+    k: Continuation<PrimitiveValue>
+  ): Thunk<PrimitiveValue> {
     const builder = new EnvBuilderVisitor(env);
     for (const stmt of seq.statements) {
       if (stmt instanceof Function) stmt.accept(builder);
     }
 
-    for (const stmt of seq.statements) {
-      if (stmt instanceof Function) continue;
-      if (stmt instanceof Return) {
-        return evaluator.evaluate(stmt.body);
-      } else {
-        result = evaluator.evaluate(stmt);
-      }
-    }
+    const evaluateNext = (index: number, lastResult: PrimitiveValue): Thunk<PrimitiveValue> => {
+      if (index >= seq.statements.length) return k(lastResult);
 
-    return result;
+      const stmt = seq.statements[index];
+      if (stmt instanceof Function) return () => evaluateNext(index + 1, lastResult);
+
+      if (stmt instanceof Return) {
+        return evaluator.evaluate(stmt.body, k);
+      } else {
+        return evaluator.evaluate(stmt, (result) => {
+          return () => evaluateNext(index + 1, result);
+        });
+      }
+    };
+
+    return evaluateNext(0, undefined);
   }
 }

@@ -32,6 +32,7 @@ import {
 import { InterpreterError } from "../../errors.js";
 import { InterpreterVisitor } from "../Visitor.js";
 import { LogicTranslator } from "./LogicTranslator.js";
+import { idContinuation, trampoline } from "../../trampoline.js";
 
 export type LogicExecutable = Expression | Statement | Goal | Exist | Findall;
 
@@ -141,7 +142,11 @@ export class LogicEngine {
 
     for (const result of generator) {
       const combinedSubsts = new Map([...substs, ...result.substs]);
-      yield* this.solveConjunction(tail, combinedSubsts);
+      if (tail.length === 0) {
+        yield success(combinedSubsts);
+      } else {
+        yield* this.solveConjunction(tail, combinedSubsts);
+      }
     }
   }
 
@@ -154,9 +159,14 @@ export class LogicEngine {
     const localEvaluator = new InterpreterVisitor(localEnv, {});
 
     try {
-      const result = localEvaluator.evaluate(expr);
+      const evaluationThunk = localEvaluator.evaluate(expr, idContinuation);
+      const result = trampoline(evaluationThunk);
       if (result) {
-        yield* this.solveConjunction(tail, substs);
+        if (tail.length === 0) {
+          yield success(substs);
+        } else {
+          yield* this.solveConjunction(tail, substs);
+        }
       }
     } catch (e) {
       // Expression failed or errored, this branch of logic fails

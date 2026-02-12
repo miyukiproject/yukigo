@@ -11,6 +11,7 @@ import { FunctionRuntime } from "./FunctionRuntime.js";
 import { ExpressionEvaluator, lookup, pushEnv } from "../utils.js";
 import { InterpreterError } from "../errors.js";
 import { InterpreterConfig } from "../index.js";
+import { Continuation, Thunk } from "../trampoline.js";
 
 type OOPEntity = RuntimeClass | RuntimeObject;
 
@@ -48,8 +49,9 @@ export class ObjectRuntime {
     methodName: string,
     args: PrimitiveValue[],
     env: EnvStack,
-    evaluatorFactory: (env: EnvStack) => ExpressionEvaluator
-  ): PrimitiveValue {
+    evaluatorFactory: (env: EnvStack) => ExpressionEvaluator,
+    k: Continuation<PrimitiveValue>
+  ): Thunk<PrimitiveValue> {
     if (!isRuntimeObject(receiver))
       throw new Error(`${receiver} is not an object`);
 
@@ -69,7 +71,8 @@ export class ObjectRuntime {
       match.method.equations,
       args,
       pushEnv(env, objectScope),
-      evaluatorFactory
+      evaluatorFactory,
+      k
     );
   }
 
@@ -80,8 +83,9 @@ export class ObjectRuntime {
     currentEnv: EnvStack,
     methodName: string,
     args: PrimitiveValue[],
-    evaluatorFactory: (env: EnvStack) => ExpressionEvaluator
-  ): PrimitiveValue {
+    evaluatorFactory: (env: EnvStack) => ExpressionEvaluator,
+    k: Continuation<PrimitiveValue>
+  ): Thunk<PrimitiveValue> {
     const self = lookup(currentEnv, "self") as RuntimeObject;
     const currentHolder = lookup(currentEnv, "__CONTEXT_CLASS__") as OOPEntity;
     const currentMethodName = lookup(currentEnv, "__METHOD_NAME__");
@@ -116,7 +120,8 @@ export class ObjectRuntime {
       match.method.equations,
       args,
       pushEnv(currentEnv, objectScope),
-      evaluatorFactory
+      evaluatorFactory,
+      k
     );
   }
   private static createDispatchScope(

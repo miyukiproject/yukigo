@@ -22,6 +22,8 @@ import {
 import { createGlobalEnv, define } from "../utils.js";
 import { InterpreterVisitor } from "./Visitor.js";
 
+import { idContinuation, trampoline } from "../trampoline.js";
+
 /**
  * Builds the initial environment by collecting all top-level function declarations.
  * Each function captures a closure of the environment at its definition time,
@@ -153,7 +155,8 @@ export class EnvBuilderVisitor extends TraverseVisitor {
   visitVariable(node: Variable): void {
     const identifier = node.identifier.value;
     const interpreter = new InterpreterVisitor(this.env, {});
-    define(this.env, identifier, node.expression.accept(interpreter));
+    const cps = node.expression.accept(interpreter);
+    define(this.env, identifier, trampoline(cps(idContinuation)));
   }
   visit(node: ASTNode): void {
     return node.accept(this);

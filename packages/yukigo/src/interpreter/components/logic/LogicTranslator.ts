@@ -11,6 +11,7 @@ import {
 import { Substitution } from "./LogicResolver.js";
 import { ExpressionEvaluator, isDefined } from "../../utils.js";
 import { InterpreterError } from "../../errors.js";
+import { idContinuation, trampoline } from "../../trampoline.js";
 
 export class LogicTranslator {
   constructor(
@@ -32,12 +33,12 @@ export class LogicTranslator {
     if (expr instanceof Variable) {
       const name = expr.identifier.value;
       if (isDefined(this.env, name)) {
-        const val = this.evaluator.evaluate(expr);
+        const val = trampoline(this.evaluator.evaluate(expr, idContinuation));
         return this.primitiveToPattern(val);
       }
       return new VariablePattern(expr.identifier);
     }
-    const val = this.evaluator.evaluate(expr);
+    const val = trampoline(this.evaluator.evaluate(expr, idContinuation));
     return this.primitiveToPattern(val);
   }
 

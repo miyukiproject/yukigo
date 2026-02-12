@@ -21,6 +21,7 @@ import { ObjectRuntime } from "../../src/interpreter/components/ObjectRuntime.js
 import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
 import { createGlobalEnv, lookup } from "../../src/interpreter/utils.js";
 import { DefaultConfiguration } from "../../src/index.js";
+import { Continuation, idContinuation, Thunk, trampoline } from "../../src/interpreter/trampoline.js";
 
 const createEmptyEnv = () => ({ head: new Map(), tail: null });
 
@@ -61,11 +62,11 @@ const createClass = (
 
 const dummyFactory = (env: EnvStack) => {
   return {
-    evaluate: (n: any) => {
-      if (n instanceof NumberPrimitive) return n.value;
-      if (n instanceof StringPrimitive) return n.value;
-      if (n instanceof SymbolPrimitive) return lookup(env, n.value);
-      throw new Error("Unexpected value in dummyFactory: ", n);
+    evaluate: (n: any, k: Continuation<PrimitiveValue>): Thunk<PrimitiveValue> => {
+      if (n instanceof NumberPrimitive) return k(n.value);
+      if (n instanceof StringPrimitive) return k(n.value);
+      if (n instanceof SymbolPrimitive) return k(lookup(env, n.value));
+      throw new Error("Unexpected value in dummyFactory: " + n);
     },
   };
 };
@@ -162,38 +163,41 @@ describe("ObjectRuntime", () => {
 
       objectInstance.methods.set("getCount", getCountMethod);
 
-      const result = ObjectRuntime.dispatch(
+      const result = trampoline(ObjectRuntime.dispatch(
         objectInstance,
         "getCount",
         [],
         env,
-        dummyFactory
-      );
+        dummyFactory,
+        idContinuation
+      ));
 
       expect(result).to.equal(10);
     });
 
     it("debe fallar si el método no existe", () => {
       expect(() => {
-        ObjectRuntime.dispatch(
+        trampoline(ObjectRuntime.dispatch(
           objectInstance,
           "unknownMethod",
           [],
           env,
-          dummyFactory
-        );
+          dummyFactory,
+          idContinuation
+        ));
       }).to.throw(/does not understand 'unknownMethod'/);
     });
 
     it("debe fallar si el receiver no es un objeto", () => {
       expect(() => {
-        ObjectRuntime.dispatch(
+        trampoline(ObjectRuntime.dispatch(
           "soy un string" as any,
           "toString",
           [],
-          createEmptyEnv(),
-          dummyFactory
-        );
+          createEmptyEnv() as any,
+          dummyFactory,
+          idContinuation
+        ));
       }).to.throw(/is not an object/);
     });
 
@@ -214,13 +218,14 @@ describe("ObjectRuntime", () => {
 
       objectInstance.methods.set("echo", addMethod);
 
-      const result = ObjectRuntime.dispatch(
+      const result = trampoline(ObjectRuntime.dispatch(
         objectInstance,
         "echo",
         [999],
         env,
-        dummyFactory
-      );
+        dummyFactory,
+        idContinuation
+      ));
 
       expect(result).to.equal(999);
     });
@@ -244,7 +249,7 @@ describe("ObjectRuntime", () => {
         new Map()
       );
 
-      const res = ObjectRuntime.dispatch(perro, "speak", [], env, dummyFactory);
+      const res = trampoline(ObjectRuntime.dispatch(perro, "speak", [], env, dummyFactory, idContinuation));
       expect(res).to.equal("Guau");
     });
 
@@ -262,7 +267,7 @@ describe("ObjectRuntime", () => {
 
       const objC = ObjectRuntime.instantiate("C", "objC", new Map(), new Map());
       expect(
-        ObjectRuntime.dispatch(objC, "id", [], env, dummyFactory)
+        trampoline(ObjectRuntime.dispatch(objC, "id", [], env, dummyFactory, idContinuation))
       ).to.equal(1);
     });
 
@@ -287,7 +292,7 @@ describe("ObjectRuntime", () => {
         new Map()
       );
       expect(
-        ObjectRuntime.dispatch(pepita, "volar", [], env, dummyFactory)
+        trampoline(ObjectRuntime.dispatch(pepita, "volar", [], env, dummyFactory, idContinuation))
       ).to.equal("Wosh");
     });
 
@@ -316,7 +321,7 @@ describe("ObjectRuntime", () => {
         new Map()
       );
       expect(
-        ObjectRuntime.dispatch(heroe, "skill", [], env, dummyFactory)
+        trampoline(ObjectRuntime.dispatch(heroe, "skill", [], env, dummyFactory, idContinuation))
       ).to.equal("Fire");
     });
 
@@ -355,7 +360,7 @@ describe("ObjectRuntime", () => {
         new Map()
       );
       expect(
-        ObjectRuntime.dispatch(child, "val", [], env, dummyFactory)
+        trampoline(ObjectRuntime.dispatch(child, "val", [], env, dummyFactory, idContinuation))
       ).to.equal(3);
     });
 
@@ -388,7 +393,7 @@ describe("ObjectRuntime", () => {
         new Map()
       );
       expect(
-        ObjectRuntime.dispatch(child, "val", [], env, dummyFactory)
+        trampoline(ObjectRuntime.dispatch(child, "val", [], env, dummyFactory, idContinuation))
       ).to.equal(2);
     });
 
@@ -422,7 +427,7 @@ describe("ObjectRuntime", () => {
         new Map()
       );
       expect(
-        ObjectRuntime.dispatch(obj, "val", [], env, dummyFactory)
+        trampoline(ObjectRuntime.dispatch(obj, "val", [], env, dummyFactory, idContinuation))
       ).to.equal(20);
     });
 
@@ -456,7 +461,7 @@ describe("ObjectRuntime", () => {
         new Map()
       );
       expect(
-        ObjectRuntime.dispatch(obj, "val", [], env, dummyFactory)
+        trampoline(ObjectRuntime.dispatch(obj, "val", [], env, dummyFactory, idContinuation))
       ).to.equal(10);
     });
   });
@@ -488,7 +493,12 @@ describe("ObjectRuntime", () => {
         identifier: "calc",
         arity: 0,
         pendingArgs: [],
-        equations: [new Equation([], astBody)],
+        equations: [
+          {
+            patterns: [],
+            body: astBody,
+          },
+        ],
       };
 
       const Hijo: RuntimeClass = {
@@ -508,13 +518,14 @@ describe("ObjectRuntime", () => {
         new Map()
       );
 
-      const result = ObjectRuntime.dispatch(
+      const result = trampoline(ObjectRuntime.dispatch(
         hijoInstance,
         "calc",
         [],
         env,
-        (newEnv) => new InterpreterVisitor(newEnv, {}, [])
-      );
+        (newEnv) => new InterpreterVisitor(newEnv, {}, []),
+        idContinuation
+      ));
 
       expect(result).to.equal(15);
     });
