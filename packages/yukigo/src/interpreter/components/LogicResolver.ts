@@ -138,22 +138,22 @@ export function unify(
   }
 
   if (r1 instanceof ConsPattern && r2 instanceof ConsPattern) {
-    if (!unify(r1.head, r2.head, env)) return null;
-    return unify(r1.tail, r2.tail, env);
+    if (!unify(r1.left, r2.left, env)) return null;
+    return unify(r1.right, r2.right, env);
   }
 
   if (r1 instanceof ListPattern && r2 instanceof ConsPattern) {
     if (r1.elements.length === 0) return null;
     const [head, ...tail] = r1.elements;
-    if (!unify(head, r2.head, env)) return null;
-    return unify(new ListPattern(tail), r2.tail, env);
+    if (!unify(head, r2.left, env)) return null;
+    return unify(new ListPattern(tail), r2.right, env);
   }
 
   if (r1 instanceof ConsPattern && r2 instanceof ListPattern) {
     if (r2.elements.length === 0) return null;
     const [head, ...tail] = r2.elements;
-    if (!unify(r1.head, head, env)) return null;
-    return unify(r1.tail, new ListPattern(tail), env);
+    if (!unify(r1.left, head, env)) return null;
+    return unify(r1.right, new ListPattern(tail), env);
   }
 
   return null;

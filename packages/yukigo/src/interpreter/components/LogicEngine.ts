@@ -39,7 +39,7 @@ class LazyConsPattern extends ConsPattern {
     super(head, new ListPattern([]));
     this.tailThunk = tailThunk;
     // lol
-    Object.defineProperty(this, "tail", {
+    Object.defineProperty(this, "right", {
       get: () => {
         if (!this.resolvedTail) this.resolvedTail = this.tailThunk();
         return this.resolvedTail;
