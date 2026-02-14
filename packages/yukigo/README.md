@@ -177,6 +177,7 @@ console.log(results);
 ## Parsers
 - Haskell
 - Prolog
+- Wollok
 
 # How to make a parser
 
@@ -186,7 +187,7 @@ errors: string[];
 parse: (code: string) => AST;
 ```
 
-The package `yukigo-core` has all the current supported AST nodes.
+The package `yukigo-ast` has all the current supported AST nodes.
 For the grammar, you can use a tool like Jison or Nearley.
 
 Here's a [tutorial](https://miyukiproject.github.io/yukigo/guides/making-a-parser.html) for implementing a small custom language.
