@@ -1,10 +1,10 @@
-import { Visitor } from "../visitor.js";
+import { Visitor } from "../visitor/index.js";
+import { Expression } from "./expressions.js";
 import {
   ASTNode,
-  Expression,
   SourceLocation,
-  SymbolPrimitive,
 } from "./generics.js";
+import { SymbolPrimitive } from "./primitives.js";
 
 export type Type =
   | SimpleType

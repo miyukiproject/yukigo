@@ -1,13 +1,12 @@
+import { Expression } from "../globals/expressions.js";
 import {
   ASTNode,
-  Equation,
-  Expression,
   SourceLocation,
-  SymbolPrimitive,
 } from "../globals/generics.js";
 import { Operator } from "../globals/operators.js";
-import { Pattern } from "../globals/patterns.js";
-import { Visitor } from "../visitor.js";
+import { SymbolPrimitive } from "../globals/primitives.js";
+import { Equation } from "../globals/statements.js";
+import { Visitor } from "../visitor/index.js";
 
 /**
  * Represents a method definition within a class or object.

@@ -1,21 +1,20 @@
+import { Expression } from "../globals/expressions.js";
 import {
   ASTNode,
-  Expression,
   SourceLocation,
-  SymbolPrimitive,
 } from "../globals/generics.js";
 import { Pattern } from "../globals/patterns.js";
-import { Visitor } from "../visitor.js";
+import { Visitor } from "../visitor/index.js";
 
 /**
  * Represents function composition (e.g., f . g).
  * @category Expressions
  */
 export class CompositionExpression extends ASTNode {
-    /** @hidden */
-    public right: Expression;
-    /** @hidden */
-    public left: Expression;
+  /** @hidden */
+  public right: Expression;
+  /** @hidden */
+  public left: Expression;
 
   constructor(
     left: Expression,
@@ -23,8 +22,8 @@ export class CompositionExpression extends ASTNode {
     loc?: SourceLocation
   ) {
     super(loc);
-      this.left = left;
-      this.right = right;
+    this.left = left;
+    this.right = right;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitCompositionExpression?.(this);
@@ -46,10 +45,10 @@ export class CompositionExpression extends ASTNode {
  * @category Expressions
  */
 export class Lambda extends ASTNode {
-    /** @hidden */
-    public body: Expression;
-    /** @hidden */
-    public parameters: Pattern[];
+  /** @hidden */
+  public body: Expression;
+  /** @hidden */
+  public parameters: Pattern[];
 
   constructor(
     parameters: Pattern[],
@@ -57,8 +56,8 @@ export class Lambda extends ASTNode {
     loc?: SourceLocation
   ) {
     super(loc);
-      this.parameters = parameters;
-      this.body = body;
+    this.parameters = parameters;
+    this.body = body;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitLambda?.(this);
@@ -76,12 +75,12 @@ export class Lambda extends ASTNode {
  * @category Statements
  */
 export class Yield extends ASTNode {
-    /** @hidden */
-    public expression: Expression;
+  /** @hidden */
+  public expression: Expression;
 
   constructor(expression: Expression, loc?: SourceLocation) {
     super(loc);
-      this.expression = expression;
+    this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitYield?.(this);
@@ -102,10 +101,10 @@ export class Yield extends ASTNode {
  * @category Expressions
  */
 export class Application extends ASTNode {
-    /** @hidden */
-    public parameter: Expression;
-    /** @hidden */
-    public functionExpr: Expression;
+  /** @hidden */
+  public parameter: Expression;
+  /** @hidden */
+  public functionExpr: Expression;
 
   constructor(
     functionExpr: Expression,
@@ -113,8 +112,8 @@ export class Application extends ASTNode {
     loc?: SourceLocation
   ) {
     super(loc);
-      this.functionExpr = functionExpr;
-      this.parameter = parameter;
+    this.functionExpr = functionExpr;
+    this.parameter = parameter;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitApplication?.(this);

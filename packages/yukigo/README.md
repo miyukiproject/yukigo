@@ -1,9 +1,5 @@
-# ❄️ Yukigo (WIP)
+# ❄️ Yukigo
 A universal, multi-language, multi-paradigm code analyzer highly inspired in [mulang](https://github.com/mumuki/mulang)
-
-> [!WARNING]
-> This project is still in a "work in progress" state. Everything is subject to change :)
-
 
 ## Components
 
@@ -11,17 +7,13 @@ A universal, multi-language, multi-paradigm code analyzer highly inspired in [mu
 
 This is the intermediate representation of any language. Allows us to analyse the semantics of the code independently of the paradigm or the language.
 
-### **Inspector:**
+### **Analyzer:**
 
-We provide a set of built-in expectations for analysing code. Also allows to define custom expectations at runtime.
+The Analyzer is the component that traverses the AST and runs the specified inspections.
 
-### **Translator:**
+### **Interpreter:**
 
-Translation AST-to-Typescript, this allows us to have an equivalent code to run input-output tests everywhere.
-
-### **Tester:**
-
-Runs tests for the Typescript translated code on an isolated enviroment.
+The Interpreter is the component that evaluates provided Expression nodes and returns the resultant PrimitiveValue 
 
 # Usage
 
@@ -42,7 +34,7 @@ yarn add yukigo yukigo-haskell-parser
 ## Example
 
 ```ts
-import { ASTAnalyzer } from "yukigo";
+import { Analyzer } from "yukigo";
 import { YukigoHaskellParser } from "yukigo-haskell-parser";
 
 const code = "doble num = num * 2";
@@ -62,8 +54,8 @@ const expectations = [
 const parser = new YukigoHaskellParser();
 const ast = parser.parse(code);
 
-const analyser = new ASTAnalyzer(ast);
-const result = analyser.analyse(expectations);
+const analyzer = new ASTAnalyzer(ast);
+const result = analyzer.analyse(expectations);
 
 console.log(results);
 // [
@@ -91,7 +83,7 @@ console.log(results);
 ## Example with Mulang's Inspections (in a YAML file)
 
 ```ts
-import { ASTAnalyzer, translateMulangToInspectionRules } from "yukigo";
+import { Analyzer, translateMulangToInspectionRules } from "yukigo";
 import { YukigoHaskellParser } from "yukigo-haskell-parser";
 
 const code = `
@@ -133,8 +125,8 @@ const expectations = translateMulangToInspectionRules(mulangInspections);
 const parser = new YukigoHaskellParser();
 const ast = parser.parse(code);
 
-const analyser = new ASTAnalyzer(ast);
-const result = analyser.analyse(expectations);
+const analyzer = new Analyzer(ast);
+const result = analyzer.analyse(expectations);
 
 console.log(results);
 // [
@@ -176,14 +168,16 @@ console.log(results);
 ```
 
 # Relevant tools
-- yukigo-ast: A library of AST's node definitions
+- yukigo-ast: A library of AST node definitions and utilities for making yukigo parsers
   
 ## Tools
 - [CLI](https://github.com/noiseArch/yukigo-cli)
-  
+- create-yukigo-parser: A scaffolding tool to quickstart a yukigo parser with recommended configuration
+
 ## Parsers
 - Haskell
 - Prolog
+- Wollok
 
 # How to make a parser
 
@@ -196,4 +190,4 @@ parse: (code: string) => AST;
 The package `yukigo-ast` has all the current supported AST nodes.
 For the grammar, you can use a tool like Jison or Nearley.
 
-Here's a tutorial for implementing a small custom language.
+Here's a [tutorial](https://miyukiproject.github.io/yukigo/guides/making-a-parser.html) for implementing a small custom language.
