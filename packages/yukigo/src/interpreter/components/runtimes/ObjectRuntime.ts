@@ -7,11 +7,10 @@ import {
   RuntimeClass,
   EnvStack,
 } from "yukigo-ast";
-import { FunctionRuntime } from "./FunctionRuntime.js";
-import { ExpressionEvaluator, lookup, pushEnv } from "../utils.js";
-import { InterpreterError } from "../errors.js";
-import { InterpreterConfig } from "../index.js";
-import { Continuation, Thunk } from "../trampoline.js";
+import { ExpressionEvaluator, lookup, pushEnv } from "../../utils.js";
+import { InterpreterError } from "../../errors.js";
+import { Continuation, Thunk } from "../../trampoline.js";
+import { RuntimeContext } from "../RuntimeContext.js";
 
 type OOPEntity = RuntimeClass | RuntimeObject;
 
@@ -21,15 +20,16 @@ type OOPMatch = {
 };
 
 export class ObjectRuntime {
+  constructor(private context: RuntimeContext) {}
   /**
    * Creates a new instance of an Object.
    * Typically called by visitNew()
    */
-  static instantiate(
+  public instantiate(
     className: string,
     identifier: string,
     fieldDefinitions: Map<string, PrimitiveValue>,
-    methodDefinitions: Map<string, RuntimeFunction>
+    methodDefinitions: Map<string, RuntimeFunction>,
   ): RuntimeObject {
     return {
       type: "Object",
@@ -44,13 +44,13 @@ export class ObjectRuntime {
    * Handles Method Calls (Message Passing).
    * Reuses FunctionRuntime to execute the method body.
    */
-  static dispatch(
+  public dispatch(
     receiver: PrimitiveValue,
     methodName: string,
     args: PrimitiveValue[],
     env: EnvStack,
     evaluatorFactory: (env: EnvStack) => ExpressionEvaluator,
-    k: Continuation<PrimitiveValue>
+    k: Continuation<PrimitiveValue>,
   ): Thunk<PrimitiveValue> {
     if (!isRuntimeObject(receiver))
       throw new Error(`${receiver} is not an object`);
@@ -61,30 +61,30 @@ export class ObjectRuntime {
     if (!match)
       throw new InterpreterError(
         "MethodDispatch",
-        `${receiver.className} does not understand '${methodName}'.`
+        `${receiver.className} does not understand '${methodName}'.`,
       );
 
     const objectScope = this.createDispatchScope(receiver, match, methodName);
 
-    return FunctionRuntime.apply(
+    return this.context.funcRuntime.apply(
       methodName,
       match.method.equations,
       args,
       pushEnv(env, objectScope),
       evaluatorFactory,
-      k
+      k,
     );
   }
 
   /**
    * Handles calls to super() or super.method()
    */
-  static dispatchSuper(
+  public dispatchSuper(
     currentEnv: EnvStack,
     methodName: string,
     args: PrimitiveValue[],
     evaluatorFactory: (env: EnvStack) => ExpressionEvaluator,
-    k: Continuation<PrimitiveValue>
+    k: Continuation<PrimitiveValue>,
   ): Thunk<PrimitiveValue> {
     const self = lookup(currentEnv, "self") as RuntimeObject;
     const currentHolder = lookup(currentEnv, "__CONTEXT_CLASS__") as OOPEntity;
@@ -94,7 +94,7 @@ export class ObjectRuntime {
     if (!self || !currentHolder)
       throw new InterpreterError(
         "SuperError",
-        "'super' used outside of a method context"
+        "'super' used outside of a method context",
       );
 
     const chain = this.getResolutionChain(self, currentEnv);
@@ -110,24 +110,24 @@ export class ObjectRuntime {
     if (!match)
       throw new InterpreterError(
         "Super",
-        `Super method '${methodName}' not found`
+        `Super method '${methodName}' not found`,
       );
 
     const objectScope = this.createDispatchScope(self, match, targetMethodName);
 
-    return FunctionRuntime.apply(
+    return this.context.funcRuntime.apply(
       methodName,
       match.method.equations,
       args,
       pushEnv(currentEnv, objectScope),
       evaluatorFactory,
-      k
+      k,
     );
   }
-  private static createDispatchScope(
+  private createDispatchScope(
     self: RuntimeObject,
     match: OOPMatch,
-    targetName: PrimitiveValue
+    targetName: PrimitiveValue,
   ) {
     const objectScope = new Map<string, PrimitiveValue>();
     objectScope.set("self", self);
@@ -137,9 +137,9 @@ export class ObjectRuntime {
     for (const [key, val] of self.fields) objectScope.set(key, val);
     return objectScope;
   }
-  private static getResolutionChain(
+  private getResolutionChain(
     receiver: RuntimeObject,
-    env: EnvStack
+    env: EnvStack,
   ): Array<RuntimeObject | RuntimeClass> {
     const chain: Array<RuntimeObject | RuntimeClass> = [];
 
@@ -151,16 +151,16 @@ export class ObjectRuntime {
 
     return chain;
   }
-  private static expandClassHierarchy(
+  private expandClassHierarchy(
     className: string,
     env: EnvStack,
-    chain: Array<RuntimeObject | RuntimeClass>
+    chain: Array<RuntimeObject | RuntimeClass>,
   ) {
     const classDef = lookup(env, className);
     if (!isRuntimeClass(classDef))
       throw new InterpreterError(
         "expandClassHierarchy",
-        "classDef was expected to be a RuntimeClass"
+        "classDef was expected to be a RuntimeClass",
       );
 
     chain.push(classDef);
@@ -175,9 +175,9 @@ export class ObjectRuntime {
     if (classDef.superclass)
       this.expandClassHierarchy(classDef.superclass, env, chain);
   }
-  private static findMethodInChain(
+  private findMethodInChain(
     chain: Array<RuntimeObject | RuntimeClass>,
-    methodName: string
+    methodName: string,
   ): OOPMatch | undefined {
     for (const link of chain) {
       if (link.methods.has(methodName))
@@ -193,7 +193,7 @@ export class ObjectRuntime {
    * Field Access (Get)
    * e.g. self.myField
    */
-  static getField(receiver: PrimitiveValue, fieldName: string): PrimitiveValue {
+  public getField(receiver: PrimitiveValue, fieldName: string): PrimitiveValue {
     if (!isRuntimeObject(receiver))
       throw new InterpreterError("FieldAccess", "Target is not an object");
 
@@ -203,7 +203,7 @@ export class ObjectRuntime {
 
       throw new InterpreterError(
         "FieldAccess",
-        `Field '${fieldName}' not found in ${receiver.className}`
+        `Field '${fieldName}' not found in ${receiver.className}`,
       );
     }
 
@@ -214,18 +214,16 @@ export class ObjectRuntime {
    * Field Mutation (Set)
    * e.g. self.myField = 10
    */
-  static setField(
+  public setField(
     receiver: PrimitiveValue,
     fieldName: string,
     value: PrimitiveValue,
-    config: InterpreterConfig
   ): PrimitiveValue {
-    if (!config.mutability) {
+    if (!this.context.config.mutability)
       throw new InterpreterError(
         "FieldAssignment",
-        `Cannot mutate field '${fieldName}': mutability is disabled`
+        `Cannot mutate field '${fieldName}': mutability is disabled`,
       );
-    }
 
     if (!isRuntimeObject(receiver))
       throw new InterpreterError("FieldAssignment", "Target is not an object");
@@ -233,7 +231,7 @@ export class ObjectRuntime {
     if (!receiver.fields.has(fieldName))
       throw new InterpreterError(
         "FieldAssignment",
-        `Cannot set unknown field '${fieldName}'`
+        `Cannot set unknown field '${fieldName}'`,
       );
 
     receiver.fields.set(fieldName, value);
