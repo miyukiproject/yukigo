@@ -29,7 +29,9 @@
     LiteralPattern,
     WildcardPattern,
     TuplePattern,
-    Test
+    Test,
+    Assert,
+    Truth
  } from "yukigo-ast"
 
 import { PrologLexer } from "./lexer.js"
@@ -63,7 +65,7 @@ query -> %queryOp _ body _ %period {% (d) => new Query(d[2]) %}
 body -> expression (_ (%comma | %semicolon) _ expression):* {% (d) => [d[0], ...d[1].map(x => x[3])] %}
 
 expression -> 
-    (conditional | forall | findall | unification | assignment | comparison | not | exist) {% (d) => d[0][0] %}
+    (conditional | forall | findall | unification | assignment | comparison | not | exist | assertion) {% (d) => d[0][0] %}
     | "(" _ body _ ")" {% (d) => new Sequence(d[2]) %}
 
 conditional -> "(" _ body _ "->" _ body _ %semicolon _ body _ ")"  {% (d) => 
@@ -89,11 +91,14 @@ exist ->
     } %}
     | any_atom arguments:? {% (d, l, reject) => {
         const val = d[0].value; 
-        if (val === "not" || val === "\\+" || val === "call") return reject;
+        if (["not", "\\+", "call", "assertion"].includes(val)) return reject;
         return new Exist(d[0], d[1] ?? []) 
     } %}
     | variable {% (d) => new Exist(d[0], []) %}
     
+assertion -> "assertion" %lparen _ expression _ %rparen {% (d) => 
+    new Assert(null, new Truth(asSequence(d[3]))) 
+%}
 
 assignment -> 
     addition _ "is" _ addition {% (d) => 
@@ -123,7 +128,7 @@ primary ->
     | "-" _ primary {% (d) => new ArithmeticUnaryOperation("Negation", d[2]) %}
     | strict_atom arguments  {% (d, l, reject) => {
         const val = d[0].value;
-        if (["abs", "round", "sqrt"].includes(val)) return reject;
+        if (["abs", "round", "sqrt", "max", "assertion"].includes(val)) return reject;
         return new Exist(d[0], d[1] ?? [])
     } %}
     | primitiveOperation  {% id %}
@@ -147,6 +152,7 @@ primitiveOperation ->
     "round" __ addition {% d => new ArithmeticUnaryOperation("Round", d[2]) %}
     | "abs" __ addition {% d => new ArithmeticUnaryOperation("Absolute", d[2]) %}
     | "sqrt" __ addition {% d => new ArithmeticUnaryOperation("Sqrt", d[2]) %}
+    | "max" "(" _ addition _ "," _ addition _ ")" {% d => new ArithmeticBinaryOperation("Max", d[3], d[7]) %}
 
 primitiveArguments -> %lparen _ primary_list _ %rparen {% (d) => d[2] %}
 primary_list -> addition (_ %comma _ addition):* {% (d) => [d[0], ...d[1].map(x => x[3])] %}
