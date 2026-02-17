@@ -66,8 +66,9 @@ import {
   Assert,
   Test,
   TestGroup,
+  LogicConstraint,
+  isLazyList,
 } from "yukigo-ast";
-import { InterpreterConfig } from "../index.js";
 import {
   ArithmeticBinaryTable,
   ArithmeticUnaryTable,
@@ -84,57 +85,40 @@ import {
   createGlobalEnv,
   define,
   ExpressionEvaluator,
-  isDefined,
   lookup,
-  popEnv,
   pushEnv,
-  remove,
   replace,
 } from "../utils.js";
 import { LogicEngine } from "./logic/LogicEngine.js";
-import {
-  ErrorFrame,
-  InterpreterError,
-  UnboundVariable,
-  UnexpectedValue,
-} from "../errors.js";
-import { LazyRuntime } from "./LazyRuntime.js";
-import { FunctionRuntime } from "./FunctionRuntime.js";
-import { ObjectRuntime } from "./ObjectRuntime.js";
+import { ErrorFrame, InterpreterError, UnexpectedValue } from "../errors.js";
+import { LazyRuntime } from "./runtimes/LazyRuntime.js";
+import { FunctionRuntime } from "./runtimes/FunctionRuntime.js";
+import { ObjectRuntime } from "./runtimes/ObjectRuntime.js";
 import { EnvBuilderVisitor } from "./EnvBuilder.js";
 import { FailedAssert, TestRunner } from "./TestRunner.js";
 import {
-  bindCPS,
   Continuation,
   CPSThunk,
   idContinuation,
-  makeCPSThunk,
   Thunk,
   trampoline,
   valueToCPS,
 } from "../trampoline.js";
+import { RuntimeContext } from "./RuntimeContext.js";
 
 export class InterpreterVisitor
   implements Visitor<CPSThunk<PrimitiveValue>>, ExpressionEvaluator
 {
-  private frames: ErrorFrame[];
-  private env: EnvStack;
-  private readonly config: InterpreterConfig;
-
   constructor(
-    env: EnvStack,
-    config: InterpreterConfig,
-    frames: ErrorFrame[] = [],
-  ) {
-    this.frames = frames;
-    this.env = env;
-    this.config = config;
-  }
+    private env: EnvStack,
+    private context: RuntimeContext,
+    private frames: ErrorFrame[] = [],
+  ) {}
 
-  evaluate(
+  evaluate<R = PrimitiveValue>(
     node: ASTNode,
-    cont: Continuation<PrimitiveValue>,
-  ): Thunk<PrimitiveValue> {
+    cont: Continuation<PrimitiveValue, R>,
+  ): Thunk<R> {
     return () => {
       try {
         const cpsThunk = node.accept(this);
@@ -159,7 +143,15 @@ export class InterpreterVisitor
     return (k) => {
       if (node.statements.length === 0) return k(undefined);
 
-      const evaluateNext = (index: number, lastResult: PrimitiveValue): Thunk<PrimitiveValue> => {
+      if (this.context.config.debug)
+        console.log(
+          `[Interpreter] Entering sequence with ${node.statements.length} statements`,
+        );
+
+      const evaluateNext = (
+        index: number,
+        lastResult: PrimitiveValue,
+      ): Thunk<PrimitiveValue> => {
         if (index >= node.statements.length) return k(lastResult);
         const stmt = node.statements[index];
 
@@ -174,24 +166,33 @@ export class InterpreterVisitor
   }
 
   visitAssert(node: Assert): CPSThunk<PrimitiveValue> {
-    return makeCPSThunk((cont) => {
-      new TestRunner(this).visitAssert(node);
-      return cont(undefined);
-    });
+    if (this.context.config.debug) {
+      console.log(`[Interpreter] Visiting Assert`);
+    }
+    return (k) =>
+      new TestRunner(this, this.context.lazyRuntime).visitAssert(node)((val) =>
+        k(val),
+      );
   }
 
   visitTest(node: Test): CPSThunk<PrimitiveValue> {
-    return makeCPSThunk((cont) => {
-      new TestRunner(this).visitTest(node);
-      return cont(undefined);
-    });
+    if (this.context.config.debug) {
+      console.log(`[Interpreter] Visiting Test`);
+    }
+    return (k) =>
+      new TestRunner(this, this.context.lazyRuntime).visitTest(node)((val) =>
+        k(val),
+      );
   }
 
   visitTestGroup(node: TestGroup): CPSThunk<PrimitiveValue> {
-    return makeCPSThunk((cont) => {
-      new TestRunner(this).visitTestGroup(node);
-      return cont(undefined);
-    });
+    if (this.context.config.debug) {
+      console.log(`[Interpreter] Visiting TestGroup`);
+    }
+    return (k) =>
+      new TestRunner(this, this.context.lazyRuntime).visitTestGroup(node)(
+        (val) => k(val),
+      );
   }
 
   visitNumberPrimitive(node: NumberPrimitive): CPSThunk<PrimitiveValue> {
@@ -208,13 +209,13 @@ export class InterpreterVisitor
 
   visitListPrimitive(node: ListPrimitive): CPSThunk<PrimitiveValue> {
     return (k) => {
-      if (node.elements.length === 0) return k([]);
+      if (node.value.length === 0) return k([]);
 
       const results: PrimitiveValue[] = [];
       const evaluateNext = (index: number): Thunk<PrimitiveValue> => {
-        if (index >= node.elements.length) return k(results);
+        if (index >= node.value.length) return k(results);
 
-        return this.evaluate(node.elements[index], (val) => {
+        return this.evaluate(node.value[index], (val) => {
           results.push(val);
           return () => evaluateNext(index + 1);
         });
@@ -236,32 +237,46 @@ export class InterpreterVisitor
     try {
       const val = lookup(this.env, node.value);
       if (isRuntimeFunction(val) && val.arity === 0) {
+        if (this.context.config.debug) {
+          console.log(
+            `[Interpreter] Resolved symbol ${node.value} as arity-0 function, applying...`,
+          );
+        }
         return (k) => () =>
-          FunctionRuntime.apply(
+          this.context.funcRuntime.apply(
             val.identifier ?? "<anon>",
             val.equations,
             [],
             val.closure || this.env,
-            (newEnv) => new InterpreterVisitor(newEnv, this.config, this.frames),
-            k
+            (newEnv) =>
+              new InterpreterVisitor(newEnv, this.context, this.frames),
+            k,
           );
       }
       return valueToCPS(val);
     } catch (error) {
-      throw new InterpreterError("Symbol Lookup", (error as Error).message, this.frames);
+      throw new InterpreterError(
+        "Symbol Lookup",
+        (error as Error).message,
+        this.frames,
+      );
     }
   }
 
   visitVariable(node: Variable): CPSThunk<PrimitiveValue> {
     const name = node.identifier.value;
-    return (k) => this.evaluate(node.expression, (value) => {
-      define(this.env, name, value);
-      return k(true);
-    });
+    if (this.context.config.debug) {
+      console.log(`[Interpreter] Defining variable: ${name}`);
+    }
+    return (k) =>
+      this.evaluate(node.expression, (value) => {
+        define(this.env, name, value);
+        return k(true);
+      });
   }
 
   visitAssignment(node: Assignment): CPSThunk<PrimitiveValue> {
-    if (!this.config.mutability) {
+    if (!this.context.config.mutability) {
       throw new InterpreterError(
         "Assignment",
         `Cannot reassign variable '${node.identifier.value}': mutability is disabled`,
@@ -270,24 +285,28 @@ export class InterpreterVisitor
     }
 
     const name = node.identifier.value;
-    return (k) => this.evaluate(node.expression, (value) => {
-      const onReplace = (scope: Environment) => {
-        if (scope.has("self")) {
-          const self = scope.get("self");
-          if (isRuntimeObject(self) && self.fields.has(name))
-            self.fields.set(name, value);
-        }
-      };
+    if (this.context.config.debug) {
+      console.log(`[Interpreter] Assigning variable: ${name}`);
+    }
+    return (k) =>
+      this.evaluate(node.expression, (value) => {
+        const onReplace = (scope: Environment) => {
+          if (scope.has("self")) {
+            const self = scope.get("self");
+            if (isRuntimeObject(self) && self.fields.has(name))
+              self.fields.set(name, value);
+          }
+        };
 
-      if (!replace(this.env, name, value, onReplace))
-        throw new InterpreterError(
-          "Assignment",
-          `Cannot assign to undefined variable: ${name}`,
-          this.frames,
-        );
+        if (!replace(this.env, name, value, onReplace))
+          throw new InterpreterError(
+            "Assignment",
+            `Cannot assign to undefined variable: ${name}`,
+            this.frames,
+          );
 
-      return k(value);
-    });
+        return k(value);
+      });
   }
 
   visitArithmeticUnaryOperation(
@@ -313,38 +332,50 @@ export class InterpreterVisitor
   }
 
   visitListUnaryOperation(node: ListUnaryOperation): CPSThunk<PrimitiveValue> {
-    return (k) => this.evaluate(node.operand, (operand) => {
-      if (typeof operand !== "string" && !Array.isArray(operand))
-        throw new UnexpectedValue(
-          "ListUnaryOperation",
-          "Array or String",
-          typeof operand,
-        );
+    return (k) =>
+      this.evaluate(node.operand, (operand) => {
+        if (
+          typeof operand !== "string" &&
+          !Array.isArray(operand) &&
+          !isLazyList(operand)
+        )
+          throw new UnexpectedValue(
+            "ListUnaryOperation",
+            "Array, String or LazyList",
+            typeof operand,
+          );
 
-      const arr = this.realizeListSync(operand);
-      const fn = ListUnaryTable[node.operator];
-      if (!fn)
-        throw new InterpreterError(
-          "ListUnaryOperation",
-          `Unknown operator: ${node.operator}`,
-        );
-      return k(fn(arr));
-    });
+        return this.context.lazyRuntime.realizeList(operand, (arr) => {
+          const fn = ListUnaryTable[node.operator];
+          if (!fn)
+            throw new InterpreterError(
+              "ListUnaryOperation",
+              `Unknown operator: ${node.operator}`,
+            );
+          return k(fn(arr));
+        });
+      });
   }
 
   visitListBinaryOperation(
     node: ListBinaryOperation,
   ): CPSThunk<PrimitiveValue> {
-    if (node.operator === "Concat" && this.config.lazyLoading) {
-      return (k) => () => k(LazyRuntime.evaluateConcatLazy(node, this));
+    if (node.operator === "Concat") {
+      return (k) =>
+        this.evaluate(node.left, (left) => {
+          return () =>
+            this.evaluate(node.right, (right) => {
+              return this.context.lazyRuntime.evaluateConcat(left, right, k);
+            });
+        });
     }
 
     return this.processBinary(
       node,
       ListBinaryTable,
       (a, b) =>
-        (Array.isArray(a) || typeof a === "string") &&
-        (Array.isArray(b) || typeof b === "string"),
+        (Array.isArray(a) || typeof a === "string" || isLazyList(a)) &&
+        (Array.isArray(b) || typeof b === "string" || isLazyList(b)),
       "ListBinaryOperation",
     );
   }
@@ -363,34 +394,35 @@ export class InterpreterVisitor
   visitLogicalBinaryOperation(
     node: LogicalBinaryOperation,
   ): CPSThunk<PrimitiveValue> {
-    return (k) => this.evaluate(node.left, (left) => {
-      if (typeof left !== "boolean")
-        throw new InterpreterError(
-          "LogicalBinaryOperation",
-          `Expected left side to be boolean and got: ${left}`,
-        );
-
-      const fn = LogicalBinaryTable[node.operator];
-      if (!fn)
-        throw new InterpreterError(
-          "LogicalBinaryOperation",
-          `Unknown operator '${node.operator}'`,
-        );
-
-      if (this.config.lazyLoading) {
-        if (node.operator === "And" && left === false) return k(false);
-        if (node.operator === "Or" && left === true) return k(true);
-      }
-
-      return this.evaluate(node.right, (right) => {
-        if (typeof right !== "boolean")
+    return (k) =>
+      this.evaluate(node.left, (left) => {
+        if (typeof left !== "boolean")
           throw new InterpreterError(
             "LogicalBinaryOperation",
-            `Expected right side to be boolean and got: ${right}`,
+            `Expected left side to be boolean and got: ${left}`,
           );
-        return k(fn(left, () => right));
+
+        const fn = LogicalBinaryTable[node.operator];
+        if (!fn)
+          throw new InterpreterError(
+            "LogicalBinaryOperation",
+            `Unknown operator '${node.operator}'`,
+          );
+
+        if (this.context.config.lazyLoading) {
+          if (node.operator === "And" && left === false) return k(false);
+          if (node.operator === "Or" && left === true) return k(true);
+        }
+
+        return this.evaluate(node.right, (right) => {
+          if (typeof right !== "boolean")
+            throw new InterpreterError(
+              "LogicalBinaryOperation",
+              `Expected right side to be boolean and got: ${right}`,
+            );
+          return k(fn(left, () => right));
+        });
       });
-    });
   }
 
   visitLogicalUnaryOperation(
@@ -436,11 +468,11 @@ export class InterpreterVisitor
   }
 
   visitUnifyOperation(node: UnifyOperation): CPSThunk<PrimitiveValue> {
-    return (k) => () => k(this.getLogicEngine().unifyExpr(node.left, node.right));
+    return (k) => this.getLogicEngine().unifyExpr(node.left, node.right, k);
   }
 
   visitAssignOperation(node: AssignOperation): CPSThunk<PrimitiveValue> {
-    if (!this.config.mutability) {
+    if (!this.context.config.mutability) {
       throw new InterpreterError(
         "AssignOperation",
         `Cannot perform assignment operation: mutability is disabled`,
@@ -448,33 +480,30 @@ export class InterpreterVisitor
       );
     }
 
-    if (!(node.left instanceof Variable))
+    if (!(node.left instanceof SymbolPrimitive))
       throw new InterpreterError(
         "AssignOperation",
-        "Left side must be a Variable"
+        "Left side must be a SymbolPrimitive",
       );
-    const identifier = node.left.identifier;
-    const name = identifier.value;
+    const name = node.left.value;
 
-    return (k) => this.evaluate(node.right, (value) => {
-      const onReplace = (scope: Environment) => {
-        if (scope.has("self")) {
-          const self = scope.get("self");
-          if (isRuntimeObject(self) && self.fields.has(name)) {
-            self.fields.set(name, value);
+    return (k) =>
+      this.evaluate(node.right, (value) => {
+        const onReplace = (scope: Environment) => {
+          if (scope.has("self")) {
+            const self = scope.get("self");
+            if (isRuntimeObject(self) && self.fields.has(name)) {
+              self.fields.set(name, value);
+            }
           }
+        };
+
+        if (!replace(this.env, name, value, onReplace)) {
+          define(this.env, name, value);
         }
-      };
 
-      if (!replace(this.env, name, value, onReplace))
-        throw new InterpreterError(
-          "Assignment",
-          `Cannot assign to undefined variable: ${name}`,
-          this.frames,
-        );
-
-      return k(true);
-    });
+        return k(true);
+      });
   }
 
   visitTupleExpr(node: TupleExpression): CPSThunk<PrimitiveValue> {
@@ -492,9 +521,10 @@ export class InterpreterVisitor
   }
 
   visitFieldExpression(node: FieldExpression): CPSThunk<PrimitiveValue> {
-    return (k) => this.evaluate(node.name, (obj) => {
-      return k(ObjectRuntime.getField(obj, node.name.value));
-    });
+    return (k) =>
+      this.evaluate(node.name, (obj) => {
+        return k(this.context.objRuntime.getField(obj, node.name.value));
+      });
   }
 
   visitDataExpr(node: DataExpression): CPSThunk<PrimitiveValue> {
@@ -504,7 +534,7 @@ export class InterpreterVisitor
       const evaluateFields = (index: number): Thunk<PrimitiveValue> => {
         if (index >= node.contents.length) {
           return k(
-            ObjectRuntime.instantiate(
+            this.context.objRuntime.instantiate(
               node.name.value,
               node.name.value,
               fieldValues,
@@ -524,63 +554,71 @@ export class InterpreterVisitor
   }
 
   visitConsExpr(node: ConsExpression): CPSThunk<PrimitiveValue> {
-    return (k) => () => {
-      try {
-        return k(LazyRuntime.evaluateCons(node, this, this.config.lazyLoading));
-      } catch (e) {
-        throw new InterpreterError("Cons", (e as Error).message, this.frames);
-      }
-    };
+    return (k) => this.context.lazyRuntime.evaluateCons(node, this, k);
   }
 
   visitLetInExpr(node: LetInExpression): CPSThunk<PrimitiveValue> {
     return (k) => {
-      pushEnv(this.env);
-      const envBuilder = new EnvBuilderVisitor(this.env);
+      const oldEnv = this.env;
+      this.env = pushEnv(this.env);
+      const envBuilder = new EnvBuilderVisitor(this.context, this.env);
       node.declarations.accept(envBuilder);
       return this.evaluate(node.expression, (result) => {
-        popEnv(this.env);
+        this.env = oldEnv;
         return k(result);
       });
     };
   }
 
   visitIf(node: If): CPSThunk<PrimitiveValue> {
-    return (k) => this.evaluate(node.condition, (condition) => {
-      if (typeof condition !== "boolean")
-        throw new InterpreterError(
-          "If",
-          `Expected boolean in condition and got ${typeof condition}`,
-          this.frames,
-        );
-      return condition ? node.then.accept(this)(k) : node.elseExpr.accept(this)(k);
-    });
+    return (k) =>
+      this.evaluate(node.condition, (condition) => {
+        if (typeof condition !== "boolean")
+          throw new InterpreterError(
+            "If",
+            `Expected boolean in condition and got ${typeof condition}`,
+            this.frames,
+          );
+        if (this.context.config.debug) {
+          console.log(`[Interpreter] If condition: ${condition}`);
+        }
+        return condition
+          ? node.then.accept(this)(k)
+          : node.elseExpr.accept(this)(k);
+      });
   }
 
   visitCall(node: Call): CPSThunk<PrimitiveValue> {
-    return (k) => this.evaluate(node.callee, (callee) => {
-      const args: PrimitiveValue[] = [];
-      const evaluateArgs = (index: number): Thunk<PrimitiveValue> => {
-        if (index >= node.args.length) {
-          if (isRuntimeFunction(callee)) {
-            return FunctionRuntime.apply(
-              callee.identifier,
-              callee.equations,
-              args,
-              callee.closure || this.env,
-              (newEnv) => new InterpreterVisitor(newEnv, this.config, this.frames),
-              k,
-            );
+    return (k) =>
+      this.evaluate(node.callee, (callee) => {
+        const args: PrimitiveValue[] = [];
+        const evaluateArgs = (index: number): Thunk<PrimitiveValue> => {
+          if (index >= node.args.length) {
+            if (isRuntimeFunction(callee)) {
+              if (this.context.config.debug) {
+                console.log(
+                  `[Interpreter] Calling function: ${callee.identifier} with ${args.length} args`,
+                );
+              }
+              return this.context.funcRuntime.apply(
+                callee.identifier,
+                callee.equations,
+                args,
+                callee.closure || this.env,
+                (newEnv) =>
+                  new InterpreterVisitor(newEnv, this.context, this.frames),
+                k,
+              );
+            }
+            throw new InterpreterError("Call", "Target is not a function");
           }
-          throw new InterpreterError("Call", "Target is not a function");
-        }
-        return this.evaluate(node.args[index], (val) => {
-          args.push(val);
-          return () => evaluateArgs(index + 1);
-        });
-      };
-      return evaluateArgs(0);
-    });
+          return this.evaluate(node.args[index], (val) => {
+            args.push(val);
+            return () => evaluateArgs(index + 1);
+          });
+        };
+        return evaluateArgs(0);
+      });
   }
 
   visitOtherwise(node: Otherwise): CPSThunk<PrimitiveValue> {
@@ -590,51 +628,56 @@ export class InterpreterVisitor
   visitCompositionExpression(
     node: CompositionExpression,
   ): CPSThunk<PrimitiveValue> {
-    return (k) => this.evaluate(node.left, (f) => {
-      return this.evaluate(node.right, (g) => {
-        if (!isRuntimeFunction(f) || !isRuntimeFunction(g)) {
-          throw new InterpreterError(
-            "Composition",
-            "Both operands of (.) must be functions",
+    return (k) =>
+      this.evaluate(node.left, (f) => {
+        return this.evaluate(node.right, (g) => {
+          if (!isRuntimeFunction(f) || !isRuntimeFunction(g)) {
+            throw new InterpreterError(
+              "Composition",
+              "Both operands of (.) must be functions",
+            );
+          }
+
+          const F_REF = "__internal_f";
+          const G_REF = "__internal_g";
+          const PARAM_NAME = "__x";
+
+          const compositionBody = new Application(
+            new SymbolPrimitive(F_REF),
+            new Application(
+              new SymbolPrimitive(G_REF),
+              new SymbolPrimitive(PARAM_NAME),
+            ),
           );
-        }
 
-        const F_REF = "__internal_f";
-        const G_REF = "__internal_g";
-        const PARAM_NAME = "__x";
+          const patterns = [
+            new VariablePattern(new SymbolPrimitive(PARAM_NAME)),
+          ];
+          const equation: EquationRuntime = {
+            patterns,
+            body: new UnguardedBody(
+              new Sequence([new Return(compositionBody)]),
+            ),
+          };
 
-        const compositionBody = new Application(
-          new SymbolPrimitive(F_REF),
-          new Application(
-            new SymbolPrimitive(G_REF),
-            new SymbolPrimitive(PARAM_NAME),
-          ),
-        );
+          const privateScope = new Map<string, PrimitiveValue>();
+          privateScope.set(F_REF, f);
+          privateScope.set(G_REF, g);
 
-        const patterns = [new VariablePattern(new SymbolPrimitive(PARAM_NAME))];
-        const equation: EquationRuntime = {
-          patterns,
-          body: new UnguardedBody(new Sequence([new Return(compositionBody)])),
-        };
-
-        const privateScope = new Map<string, PrimitiveValue>();
-        privateScope.set(F_REF, f);
-        privateScope.set(G_REF, g);
-
-        const capturedEnv: EnvStack = {
-          head: privateScope,
-          tail: this.env,
-        };
-        return k({
-          type: "Function",
-          arity: 1,
-          identifier: `<(${f.identifier} . ${g.identifier})>`,
-          equations: [equation],
-          pendingArgs: [],
-          closure: capturedEnv,
+          const capturedEnv: EnvStack = {
+            head: privateScope,
+            tail: this.env,
+          };
+          return k({
+            type: "Function",
+            arity: 1,
+            identifier: `<(${f.identifier} . ${g.identifier})>`,
+            equations: [equation],
+            pendingArgs: [],
+            closure: capturedEnv,
+          });
         });
       });
-    });
   }
 
   visitLambda(node: Lambda): CPSThunk<PrimitiveValue> {
@@ -654,19 +697,23 @@ export class InterpreterVisitor
   }
 
   visitApplication(node: Application): CPSThunk<PrimitiveValue> {
-    return (k) => this.evaluate(node.functionExpr, (func) => {
-      if (!isRuntimeFunction(func))
-        throw new InterpreterError("Application", "Cannot apply non-function");
+    return (k) =>
+      this.evaluate(node.functionExpr, (func) => {
+        if (!isRuntimeFunction(func))
+          throw new InterpreterError(
+            "Application",
+            "Cannot apply non-function",
+          );
 
-      return this.evaluate(node.parameter, (arg) => {
-        const argThunk = () => arg;
-        const allPendingArgs = func.pendingArgs
-          ? [...func.pendingArgs, argThunk]
-          : [argThunk];
+        return this.evaluate(node.parameter, (arg) => {
+          const argThunk = () => arg;
+          const allPendingArgs = func.pendingArgs
+            ? [...func.pendingArgs, argThunk]
+            : [argThunk];
 
-        return this.applyArguments(func, allPendingArgs)(k);
+          return this.applyArguments(func, allPendingArgs)(k);
+        });
       });
-    });
   }
 
   private applyArguments(
@@ -689,12 +736,12 @@ export class InterpreterVisitor
 
     const executionEnv = func.closure ?? this.env;
     return (cont) => () =>
-      FunctionRuntime.apply(
+      this.context.funcRuntime.apply(
         func.identifier ?? "<anonymous>",
         func.equations,
         evaluatedArgs,
         executionEnv,
-        (newEnv) => new InterpreterVisitor(newEnv, this.config, this.frames),
+        (newEnv) => new InterpreterVisitor(newEnv, this.context, this.frames),
         (result) => {
           if (remainingArgs.length > 0) {
             if (isRuntimeFunction(result)) {
@@ -716,27 +763,66 @@ export class InterpreterVisitor
   }
 
   visitQuery(node: Query): CPSThunk<PrimitiveValue> {
-    return (k) => () => k(this.getLogicEngine().solveQuery(node));
+    return (k) =>
+      this.getLogicEngine().solveQuery(node, (res) => {
+        this.bindLogicResults(res);
+        return k(res);
+      });
   }
 
   visitExist(node: Exist): CPSThunk<PrimitiveValue> {
-    return (k) => () => k(this.getLogicEngine().solveExist(node));
+    return (k) =>
+      this.getLogicEngine().solveExist(node, (res) => {
+        this.bindLogicResults(res);
+        return k(res);
+      });
   }
 
   visitNot(node: Not): CPSThunk<PrimitiveValue> {
-    return (k) => () => k(this.getLogicEngine().solveNot(node));
+    return (k) => this.getLogicEngine().solveNot(node, k);
   }
 
   visitFindall(node: Findall): CPSThunk<PrimitiveValue> {
-    return (k) => () => k(this.getLogicEngine().solveFindall(node));
+    return (k) => this.getLogicEngine().solveFindall(node, k);
   }
 
   visitForall(node: Forall): CPSThunk<PrimitiveValue> {
-    return (k) => () => k(this.getLogicEngine().solveForall(node));
+    return (k) => this.getLogicEngine().solveForall(node, k);
   }
 
   visitGoal(node: Goal): CPSThunk<PrimitiveValue> {
-    return (k) => () => k(this.getLogicEngine().solveGoal(node));
+    return (k) =>
+      this.getLogicEngine().solveGoal(node, (res) => {
+        this.bindLogicResults(res);
+        return k(res);
+      });
+  }
+
+  private bindLogicResults(res: PrimitiveValue) {
+    if (!res) return;
+    if (Array.isArray(res)) {
+      if (res.length > 0) this.bindLogicResults(res[0]);
+      return;
+    }
+    if (
+      typeof res === "object" &&
+      res !== null &&
+      "success" in res &&
+      res.success &&
+      "solutions" in res
+    ) {
+      for (const [name, val] of (res as any).solutions) {
+        define(this.env, name, val);
+      }
+    }
+  }
+
+  visitLogicConstraint(node: LogicConstraint): CPSThunk<PrimitiveValue> {
+    return (k) =>
+      this.evaluate(node.expression, (val) => {
+        if (Array.isArray(val)) return k(val.length > 0);
+        return k(!!val);
+      });
   }
 
   visitSuper(node: Super): CPSThunk<PrimitiveValue> {
@@ -755,11 +841,19 @@ export class InterpreterVisitor
       const args: PrimitiveValue[] = [];
       const evaluateNextArg = (index: number): Thunk<PrimitiveValue> => {
         if (index >= node.args.length) {
-          return ObjectRuntime.dispatchSuper(
+          if (this.context.config.debug) {
+            console.log(`[Interpreter] Dispatching super call: ${methodName}`);
+          }
+          return this.context.objRuntime.dispatchSuper(
             this.env,
             methodName,
             args,
-            (newEnv) => new InterpreterVisitor(newEnv, this.config, this.frames),
+            (newEnv) =>
+              new InterpreterVisitor(
+                newEnv,
+                this.context,
+                this.frames,
+              ),
             k,
           );
         }
@@ -779,11 +873,21 @@ export class InterpreterVisitor
         const args: PrimitiveValue[] = [];
         const evaluateNextArg = (index: number): Thunk<PrimitiveValue> => {
           if (index >= node.args.length) {
-            return ObjectRuntime.dispatchSuper(
+            if (this.context.config.debug) {
+              console.log(
+                `[Interpreter] Dispatching super call: ${methodName}`,
+              );
+            }
+            return this.context.objRuntime.dispatchSuper(
               this.env,
               methodName,
               args,
-              (newEnv) => new InterpreterVisitor(newEnv, this.config, this.frames),
+              (newEnv) =>
+                new InterpreterVisitor(
+                  newEnv,
+                  this.context,
+                  this.frames,
+                ),
               k,
             );
           }
@@ -800,12 +904,22 @@ export class InterpreterVisitor
         const args: PrimitiveValue[] = [];
         const evaluateNextArg = (index: number): Thunk<PrimitiveValue> => {
           if (index >= node.args.length) {
-            return ObjectRuntime.dispatch(
+            if (this.context.config.debug) {
+              console.log(
+                `[Interpreter] Sending method call: ${methodName} to object`,
+              );
+            }
+            return this.context.objRuntime.dispatch(
               receiver,
               methodName,
               args,
               this.env,
-              (newEnv) => new InterpreterVisitor(newEnv, this.config, this.frames),
+              (newEnv) =>
+                new InterpreterVisitor(
+                  newEnv,
+                  this.context,
+                  this.frames,
+                ),
               k,
             );
           }
@@ -829,8 +943,12 @@ export class InterpreterVisitor
         this.frames,
       );
 
+    if (this.context.config.debug) {
+      console.log(`[Interpreter] Instantiating class: ${className}`);
+    }
+
     return valueToCPS(
-      ObjectRuntime.instantiate(
+      this.context.objRuntime.instantiate(
         className,
         node.identifier.value,
         classDef.fields,
@@ -866,22 +984,26 @@ export class InterpreterVisitor
 
         if (current instanceof YuGenerator) {
           return this.evaluate(current.expression, (exprResult) => {
-            const sourceList = this.realizeListSync(exprResult);
-            const iterateSource = (sourceIndex: number): Thunk<PrimitiveValue> => {
-              if (sourceIndex >= sourceList.length) return () => k(results);
+            return this.context.lazyRuntime.realizeList(exprResult, (sourceList) => {
+              const iterateSource = (
+                sourceIndex: number,
+              ): Thunk<PrimitiveValue> => {
+                if (sourceIndex >= sourceList.length) return () => k(results);
 
-              const item = sourceList[sourceIndex];
-              const varName = current.variable.value;
-              const previousVal = isDefined(this.env, varName) ? lookup(this.env, varName) : undefined;
-              define(this.env, varName, item);
-              
-              return () => process(index + 1);
-            };
-            return iterateSource(0);
+                const item = sourceList[sourceIndex];
+                const varName = current.variable.value;
+                define(this.env, varName, item);
+
+                return () => process(index + 1);
+              };
+              return iterateSource(0);
+            });
           });
         } else {
           return this.evaluate(current as Expression, (condition) => {
-            return condition === true ? () => process(index + 1) : () => k(results);
+            return condition === true
+              ? () => process(index + 1)
+              : () => k(results);
           });
         }
       };
@@ -896,29 +1018,27 @@ export class InterpreterVisitor
   }
 
   visitRaise(node: Raise): CPSThunk<PrimitiveValue> {
-    return (k) => this.evaluate(node.body, (msg) => {
-      if (typeof msg !== "string")
-        throw new UnexpectedValue("Raise", "string", typeof msg);
-      throw new InterpreterError("Raise", msg);
-    });
+    return (k) =>
+      this.evaluate(node.body, (msg) => {
+        if (typeof msg !== "string")
+          throw new UnexpectedValue("Raise", "string", typeof msg);
+        throw new InterpreterError("Raise", msg);
+      });
   }
 
   visitRangeExpression(node: RangeExpression): CPSThunk<PrimitiveValue> {
-    return (k) => () => {
-      try {
-        return k(LazyRuntime.evaluateRange(node, this));
-      } catch (e) {
-        throw new InterpreterError("Range", (e as Error).message, this.frames);
-      }
-    };
+    return (k) => this.context.lazyRuntime.evaluateRange(node, this, k);
   }
 
   visit(node: Expression): CPSThunk<PrimitiveValue> {
     return node.accept(this);
   }
 
-  public realizeListSync(val: PrimitiveValue): PrimitiveValue[] {
-    return LazyRuntime.realizeList(val);
+  public realizeList<R = PrimitiveValue[]>(
+    val: PrimitiveValue,
+    k: Continuation<PrimitiveValue[], R>,
+  ): Thunk<R> {
+    return this.context.lazyRuntime.realizeList(val, k);
   }
 
   private processBinary(
@@ -927,21 +1047,25 @@ export class InterpreterVisitor
     typeGuard: (a: any, b: any) => boolean,
     contextName: string,
   ): CPSThunk<PrimitiveValue> {
-    return (k) => this.evaluate(node.left, (left) => {
-      return this.evaluate(node.right, (right) => {
-        if (!typeGuard(left, right))
-          throw new InterpreterError(
-            contextName,
-            `Type mismatch: ${left}, ${right}`,
-            this.frames,
-          );
+    return (k) =>
+      this.evaluate(node.left, (left) => {
+        return this.evaluate(node.right, (right) => {
+          if (!typeGuard(left, right))
+            throw new InterpreterError(
+              contextName,
+              `Type mismatch: ${left}, ${right}`,
+              this.frames,
+            );
 
-        const fn = table[node.operator];
-        if (!fn)
-          throw new InterpreterError(contextName, `Unknown op: ${node.operator}`);
-        return k(fn(left, right));
+          const fn = table[node.operator];
+          if (!fn)
+            throw new InterpreterError(
+              contextName,
+              `Unknown op: ${node.operator}`,
+            );
+          return k(fn(left, right));
+        });
       });
-    });
   }
 
   private processUnary(
@@ -950,27 +1074,32 @@ export class InterpreterVisitor
     typeGuard: (a: any) => boolean,
     contextName: string,
   ): CPSThunk<PrimitiveValue> {
-    return (k) => this.evaluate(node.operand, (operand) => {
-      if (!typeGuard(operand))
-        throw new InterpreterError(
-          contextName,
-          `Type mismatch: ${operand}`,
-          this.frames,
-        );
+    return (k) =>
+      this.evaluate(node.operand, (operand) => {
+        if (!typeGuard(operand))
+          throw new InterpreterError(
+            contextName,
+            `Type mismatch: ${operand}`,
+            this.frames,
+          );
 
-      const fn = table[node.operator];
-      if (!fn)
-        throw new InterpreterError(contextName, `Unknown op: ${node.operator}`);
-      return k(fn(operand));
-    });
+        const fn = table[node.operator];
+        if (!fn)
+          throw new InterpreterError(
+            contextName,
+            `Unknown op: ${node.operator}`,
+          );
+        return k(fn(operand));
+      });
   }
 
   private getLogicEngine(): LogicEngine {
-    return new LogicEngine(this.env, this.config, this);
+    return new LogicEngine(this.env, this, this.context);
   }
 
   static evaluateLiteral(node: ASTNode): PrimitiveValue {
-    const visitor = new InterpreterVisitor(createGlobalEnv(), { lazyLoading: false });
+    const ctx = new RuntimeContext();
+    const visitor = new InterpreterVisitor(createGlobalEnv(), ctx);
     return trampoline(visitor.evaluate(node, idContinuation));
   }
 }

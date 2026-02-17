@@ -1,26 +1,18 @@
-import { PrimitiveValue, Expression, AST, EnvStack, ASTNode } from "yukigo-ast";
+import { PrimitiveValue, AST, EnvStack, ASTNode } from "yukigo-ast";
 import { InterpreterVisitor } from "./components/Visitor.js";
 import { EnvBuilderVisitor } from "./components/EnvBuilder.js";
 import { InterpreterError } from "./errors.js";
 import { define } from "./utils.js";
 import { idContinuation, trampoline } from "./trampoline.js";
+import {
+  InterpreterConfig,
+  RuntimeContext,
+} from "./components/RuntimeContext.js";
+import { LazyRuntime } from "./components/runtimes/LazyRuntime.js";
+import { FunctionRuntime } from "./components/runtimes/FunctionRuntime.js";
+import { ObjectRuntime } from "./components/runtimes/ObjectRuntime.js";
 
 export type Bindings = [string, PrimitiveValue][];
-
-export type LogicSearchMode = "first" | "all" | "stream";
-export type InterpreterConfig = {
-  lazyLoading?: boolean;
-  debug?: boolean;
-  outputMode?: LogicSearchMode;
-  mutability?: boolean;
-};
-
-export const DefaultConfiguration: Required<InterpreterConfig> = {
-  lazyLoading: false,
-  debug: false,
-  outputMode: "first",
-  mutability: true,
-};
 
 /**
  * The Interpreter class is responsible for evaluating the Abstract Syntax Tree (AST)
@@ -31,14 +23,15 @@ export const DefaultConfiguration: Required<InterpreterConfig> = {
  */
 export class Interpreter {
   private globalEnv: EnvStack;
-  private readonly config: Required<InterpreterConfig>;
+  private context: RuntimeContext;
 
   /**
    * @param ast The Abstract Syntax Tree (AST) of the program to be interpreted.
    */
   constructor(ast: AST, config?: InterpreterConfig) {
-    this.globalEnv = new EnvBuilderVisitor().build(ast);
-    this.config = { ...DefaultConfiguration, ...config };
+    this.context = new RuntimeContext(config);
+    const envBuilder = new EnvBuilderVisitor(this.context);
+    this.globalEnv = envBuilder.build(ast);
   }
 
   public define(name: string, value: PrimitiveValue): void {
@@ -53,7 +46,7 @@ export class Interpreter {
    */
   public evaluate(expr: ASTNode): PrimitiveValue {
     try {
-      const visitor = new InterpreterVisitor(this.globalEnv, this.config);
+      const visitor = new InterpreterVisitor(this.globalEnv, this.context);
       const evaluatedCPS = expr.accept(visitor);
       return trampoline(evaluatedCPS(idContinuation));
     } catch (error) {
