@@ -1,6 +1,14 @@
-import { AST, Expression, Test, TestGroup, TraverseVisitor, VariablePattern } from "yukigo-ast";
-import { Interpreter, InterpreterConfig } from "../interpreter/index.js";
+import {
+  AST,
+  Expression,
+  Test,
+  TestGroup,
+  TraverseVisitor,
+  VariablePattern,
+} from "yukigo-ast";
+import { Interpreter } from "../interpreter/index.js";
 import { FailedAssert } from "../interpreter/components/TestRunner.js";
+import { InterpreterConfig } from "../interpreter/components/RuntimeContext.js";
 
 export type TestStatus = "passed" | "failed" | "error";
 
