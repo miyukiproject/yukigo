@@ -2,6 +2,7 @@ import { Expression } from "../globals/expressions.js";
 import { ASTNode, SourceLocation } from "../globals/generics.js";
 import { Pattern } from "../globals/patterns.js";
 import { Primitive, SymbolPrimitive } from "../globals/primitives.js";
+import { PrimitiveValue } from "../globals/runtime.js";
 import { Equation } from "../globals/statements.js";
 import { Visitor } from "../visitor/index.js";
 
@@ -305,29 +306,4 @@ export class LogicConstraint extends ASTNode {
       expression: this.expression.toJSON(),
     };
   }
-}
-
-// Runtime Types
-
-export type RuntimePredicate = RuntimeFact | RuntimeRule;
-
-export const isRuntimePredicate = (
-  prim: PrimitiveValue,
-): prim is RuntimePredicate => {
-  return (
-    typeof prim === "object" &&
-    "kind" in prim &&
-    (prim.kind === "Fact" || prim.kind === "Rule")
-  );
-};
-
-export interface RuntimeFact {
-  kind: "Fact";
-  identifier: string;
-  equations: Fact[];
-}
-export interface RuntimeRule {
-  kind: "Rule";
-  identifier: string;
-  equations: Rule[];
 }

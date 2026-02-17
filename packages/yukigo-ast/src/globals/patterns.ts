@@ -1,6 +1,6 @@
 import { Visitor } from "../visitor/index.js";
 import { ASTNode, SourceLocation } from "./generics.js";
-import { Primitive, SymbolPrimitive } from "./primitives.js";
+import { ListPrimitive, Primitive, SymbolPrimitive } from "./primitives.js";
 
 type NamedPatternKind = "VariablePattern" | "LiteralPattern";
 type ArgsPatternKind =
@@ -122,11 +122,11 @@ type LiteralPrimitive = Exclude<Primitive, ListPrimitive>;
  * Represents a pattern that matches an exact literal value.
  * @category Patterns
  */
-export class LiteralPattern extends NamedPattern<Primitive> {
+export class LiteralPattern extends NamedPattern<LiteralPrimitive> {
   protected get jsonType(): NamedPatternKind {
     return "LiteralPattern";
   }
-  constructor(name: Primitive, loc?: SourceLocation) {
+  constructor(name: LiteralPrimitive, loc?: SourceLocation) {
     super(name, loc);
   }
   public accept<R>(visitor: Visitor<R>): R {
@@ -309,6 +309,6 @@ export type Pattern =
   | UnionPattern
   | ConsPattern;
 
-export function isPattern(node: ASTNode): node is Primitive {
+export function isPattern(node: ASTNode): node is Pattern {
   return node instanceof BasePattern;
 }
