@@ -12,9 +12,10 @@ import {
   EnvStack,
   PrimitiveValue,
 } from "yukigo-ast";
-import { FunctionRuntime } from "../../src/interpreter/components/FunctionRuntime.js";
+import { FunctionRuntime } from "../../src/interpreter/components/runtimes/FunctionRuntime.js";
 import { createGlobalEnv } from "../../src/interpreter/utils.js";
 import { Continuation, idContinuation, Thunk, trampoline } from "../../src/interpreter/trampoline.js";
+import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
 
 const s = (val: string) => new SymbolPrimitive(val);
 const n = (val: number) => new NumberPrimitive(val);
@@ -45,10 +46,12 @@ class MockEvaluator {
 describe("FunctionRuntime", () => {
   let globalEnv: EnvStack;
   let evaluatorFactory: any;
-
+  let funcRuntime: FunctionRuntime
   beforeEach(() => {
     globalEnv = createGlobalEnv();
     evaluatorFactory = (env: EnvStack) => new MockEvaluator(env);
+    const context = new RuntimeContext()
+    funcRuntime = new FunctionRuntime(context)
   });
 
   describe("Pattern Matching & Dispatch", () => {
@@ -62,7 +65,7 @@ describe("FunctionRuntime", () => {
         body: unguarded([valExpr("twenty")]),
       };
 
-      const resultThunk = FunctionRuntime.apply(
+      const resultThunk = funcRuntime.apply(
         "f",
         [eq1, eq2],
         [20],
@@ -82,7 +85,7 @@ describe("FunctionRuntime", () => {
       };
 
       expect(() => {
-        trampoline(FunctionRuntime.apply("f", [eq1], [99], globalEnv, evaluatorFactory, idContinuation));
+        trampoline(funcRuntime.apply("f", [eq1], [99], globalEnv, evaluatorFactory, idContinuation));
       }).to.throw(/Non-exhaustive patterns/);
     });
 
@@ -93,7 +96,7 @@ describe("FunctionRuntime", () => {
       };
 
       expect(() => {
-        trampoline(FunctionRuntime.apply("f", [eq1], [1, 2], globalEnv, evaluatorFactory, idContinuation));
+        trampoline(funcRuntime.apply("f", [eq1], [1, 2], globalEnv, evaluatorFactory, idContinuation));
       }).to.throw(/Non-exhaustive patterns/);
     });
   });
@@ -105,7 +108,7 @@ describe("FunctionRuntime", () => {
         body: unguarded([varExpr("X")]),
       };
 
-      const result = trampoline(FunctionRuntime.apply(
+      const result = trampoline(funcRuntime.apply(
         "identity",
         [eq1],
         [500],
@@ -125,7 +128,7 @@ describe("FunctionRuntime", () => {
         body: unguarded([varExpr("X")]),
       };
 
-      const result = trampoline(FunctionRuntime.apply(
+      const result = trampoline(funcRuntime.apply(
         "shadow",
         [eq1],
         [999],
@@ -157,7 +160,7 @@ describe("FunctionRuntime", () => {
         body: guarded(guards),
       };
 
-      const result = trampoline(FunctionRuntime.apply(
+      const result = trampoline(funcRuntime.apply(
         "guards",
         [eq],
         [0],
@@ -179,7 +182,7 @@ describe("FunctionRuntime", () => {
         body: unguarded([valExpr(2)]),
       };
 
-      const result = trampoline(FunctionRuntime.apply(
+      const result = trampoline(funcRuntime.apply(
         "fallback",
         [eq1, eq2],
         [0],
@@ -198,7 +201,7 @@ describe("FunctionRuntime", () => {
         body: unguarded([valExpr(10), valExpr(20), valExpr(30)]),
       };
 
-      const result = trampoline(FunctionRuntime.apply(
+      const result = trampoline(funcRuntime.apply(
         "seq",
         [eq],
         [],
@@ -217,7 +220,7 @@ describe("FunctionRuntime", () => {
         body: unguarded([valExpr(10), retStmt, valExpr(30)]),
       };
 
-      const result = trampoline(FunctionRuntime.apply(
+      const result = trampoline(funcRuntime.apply(
         "earlyRet",
         [eq],
         [],
@@ -233,7 +236,7 @@ describe("FunctionRuntime", () => {
         patterns: [],
         body: unguarded([]),
       };
-      const result = trampoline(FunctionRuntime.apply(
+      const result = trampoline(funcRuntime.apply(
         "empty",
         [eq],
         [],

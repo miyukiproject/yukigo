@@ -17,6 +17,9 @@ import {
   PatternResolver,
 } from "../../src/interpreter/components/PatternMatcher.js";
 import { createStream } from "../../src/interpreter/utils.js";
+import { idContinuation, trampoline } from "../../src/interpreter/trampoline.js";
+import { LazyRuntime } from "../../src/interpreter/components/runtimes/LazyRuntime.js";
+import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
 
 const s = (v: string) => new SymbolPrimitive(v);
 const n = (v: number) => new NumberPrimitive(v);
@@ -76,9 +79,9 @@ describe("Pattern System", () => {
       value: any
     ): { success: boolean; bindings: [string, any][] } => {
       const bindings: [string, any][] = [];
-      const matcher = new PatternMatcher(value, bindings);
+      const matcher = new PatternMatcher(value, bindings, new LazyRuntime(new RuntimeContext()));
 
-      const success = pattern.accept(matcher);
+      const success = trampoline(pattern.accept(matcher)(idContinuation as any));
       return { success, bindings };
     };
 
