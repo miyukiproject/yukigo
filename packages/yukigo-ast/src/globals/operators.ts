@@ -17,7 +17,8 @@ export type ArithmeticUnaryOperator =
   | "Ceil"
   | "Floor"
   | "Negation"
-  | "Sqrt";
+  | "Sqrt"
+  | "ToString";
 
 export type ComparisonOperatorType =
   | "Equal"

@@ -44,8 +44,18 @@ export const BitwiseBinaryTable: OperatorTable<BinaryOp<number>> = {
   BitwiseXor: (a, b) => a ^ b,
 };
 
-export const StringOperationTable: OperatorTable<BinaryOp<string>> = {
-  Concat: (a, b) => `${a + b}`,
+export const StringOperationTable: OperatorTable<BinaryOp<any, string>> = {
+  Concat: (a, b) => {
+    if (
+      (typeof a !== "string" && typeof a !== "number") ||
+      (typeof b !== "string" && typeof b !== "number")
+    ) {
+      throw new Error(
+        `String Concatenation: operands must be strings or numbers, got ${typeof a} and ${typeof b}`,
+      );
+    }
+    return String(a) + String(b);
+  },
 };
 
 export const BitwiseUnaryTable: OperatorTable<UnaryOp<number>> = {
@@ -54,8 +64,15 @@ export const BitwiseUnaryTable: OperatorTable<UnaryOp<number>> = {
 export const LogicalUnaryTable: OperatorTable<UnaryOp<boolean>> = {
   Negation: (a: boolean) => !a,
 };
-export const ListBinaryTable: OperatorTable<BinaryOp<PrimitiveValue[]>> = {
-  Concat: (a, b) => a.concat(b),
+export const ListBinaryTable: OperatorTable<BinaryOp<any, PrimitiveValue>> = {
+  Concat: (a, b) => {
+    const res = a.concat(b);
+    if (typeof a === "string" && typeof b === "string") {
+      const hasNonString = res.some((c: any) => typeof c !== "string");
+      if (!hasNonString) return res.join("");
+    }
+    return res;
+  },
 };
 export const ListUnaryTable: OperatorTable<UnaryOp<PrimitiveValue[], PrimitiveValue>> = {
   Size: (a: PrimitiveValue[]) => a.length,
@@ -71,11 +88,12 @@ export const ListUnaryTable: OperatorTable<UnaryOp<PrimitiveValue[], PrimitiveVa
   },
   Flatten: (a: PrimitiveValue[]) => a.flat(),
 };
-export const ArithmeticUnaryTable: OperatorTable<UnaryOp<number>> = {
+export const ArithmeticUnaryTable: OperatorTable<UnaryOp<number, number | string>> = {
   Round: (a) => Math.round(a),
   Absolute: (a) => Math.abs(a),
   Ceil: (a) => Math.ceil(a),
   Floor: (a) => Math.floor(a),
   Negation: (a) => a * -1,
   Sqrt: (a) => Math.sqrt(a),
+  ToString: (a) => String(a),
 };

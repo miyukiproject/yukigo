@@ -4,15 +4,25 @@ import {
   PrimitiveValue,
   Environment,
   EnvStack,
+  ASTNode,
+  isLazyList,
+  isRuntimeFunction,
+  isRuntimeObject,
+  isRuntimeClass,
+  isRuntimePredicate,
 } from "yukigo-ast";
 import { UnboundVariable } from "./errors.js";
+import { Continuation, Thunk } from "./trampoline.js";
 
 export interface ExpressionEvaluator {
-  evaluate(node: Expression): PrimitiveValue;
+  evaluate<R = PrimitiveValue>(
+    node: ASTNode,
+    cont: Continuation<PrimitiveValue, R>,
+  ): Thunk<R>;
 }
 
 export function createStream(
-  generator: () => Generator<PrimitiveValue, void, unknown>
+  generator: () => Generator<PrimitiveValue, void, unknown>,
 ): LazyList {
   return {
     type: "LazyList",
@@ -28,7 +38,7 @@ export function isArrayOfNumbers(arr: PrimitiveValue[]): arr is number[] {
 export function generateRange(
   start: number,
   end: number,
-  step: number
+  step: number,
 ): number[] {
   if (step === 0) throw new Error("Step cannot be zero in range expression");
 
@@ -83,7 +93,7 @@ export function replace(
   env: EnvStack,
   name: string,
   value: PrimitiveValue,
-  onReplace?: (env: Environment) => void
+  onReplace?: (env: Environment) => void,
 ): boolean {
   let current: EnvStack | null = env;
 
@@ -119,11 +129,24 @@ export function lookup(env: EnvStack, name: string): PrimitiveValue {
 export function define(
   env: EnvStack,
   name: string,
-  value: PrimitiveValue
+  value: PrimitiveValue,
 ): void {
   env.head.set(name, value);
 }
 
 export function remove(env: EnvStack, name: string): void {
   env.head.delete(name);
+}
+
+export function getYukigoType(val: PrimitiveValue): string {
+  if (val === null || val === undefined) return "YuNil";
+  if (typeof val === "number") return "YuNumber";
+  if (typeof val === "boolean") return "YuBoolean";
+  if (typeof val === "string") return val.length === 1 ? "YuChar" : "YuString";
+  if (Array.isArray(val) || isLazyList(val)) return "YuList";
+  if (isRuntimeFunction(val)) return "YuFunction";
+  if (isRuntimeObject(val)) return "YuObject";
+  if (isRuntimeClass(val)) return "YuClass";
+  if (isRuntimePredicate(val)) return "YuPredicate";
+  return "YuUnknown";
 }
