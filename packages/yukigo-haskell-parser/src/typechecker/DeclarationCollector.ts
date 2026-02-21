@@ -4,6 +4,15 @@ import {
   TypeAlias,
   TypeSignature,
   Visitor,
+  TestGroup,
+  Test,
+  Assert,
+  TypeClass,
+  Instance,
+  Equation,
+  TypePattern,
+  SimpleType,
+  ListType,
 } from "yukigo-ast";
 import {
   functionType,
@@ -14,6 +23,7 @@ import {
 } from "./checker.js";
 import { CoreHM } from "./core.js";
 import { TypeBuilder } from "./TypeBuilder.js";
+import { typeMappings } from "../utils/types.js";
 
 const builder = new TypeBuilder(new CoreHM());
 
@@ -80,6 +90,42 @@ export class DeclarationCollectorVisitor implements Visitor<void> {
       this.signatureMap.set(cons.name.value, scheme);
     }
   }
+
+  visitTypeClass(node: TypeClass) {
+    const className = node.name.value;
+    if (this.coreHM.typeClasses.has(className)) {
+      // It's fine if it's already there (it might be a built-in one)
+    } else {
+      this.coreHM.typeClasses.set(className, []);
+    }
+
+    // Register method signatures
+    for (const sig of node.signatures) {
+      this.visitTypeSignature(sig);
+    }
+  }
+
+  visitInstance(node: Instance) {
+    const className = node.className.value;
+    let yukigoTypeName = "YuUnknown";
+
+    if (node.type instanceof SimpleType) {
+      yukigoTypeName = typeMappings[node.type.value] || node.type.value;
+    } else if (node.type instanceof ListType) {
+      yukigoTypeName = "YuList";
+    }
+
+    let instances = this.coreHM.typeClasses.get(className);
+    if (!instances) {
+      instances = [];
+      this.coreHM.typeClasses.set(className, instances);
+    }
+
+    if (!instances.includes(yukigoTypeName)) {
+      instances.push(yukigoTypeName);
+    }
+  }
+
   visitTypeSignature(node: TypeSignature) {
     const functionName = node.identifier.value;
     if (this.signatureMap.has(functionName)) {
@@ -97,6 +143,15 @@ export class DeclarationCollectorVisitor implements Visitor<void> {
       body: type,
       constraints,
     });
+  }
+  visitTestGroup(node: TestGroup): void {
+    node.group.accept(this);
+  }
+  visitTest(node: Test): void {
+    node.body.accept(this);
+  }
+  visitAssert(node: Assert): void {
+    // assertions don't contain declarations
   }
   visit(node: ASTNode): void {
     node.accept(this);

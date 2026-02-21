@@ -45,7 +45,7 @@ describe("TypeChecker Tests", () => {
     assert.throw(() => parser.parse(code));
     assert.include(
       parser.errors,
-      "Type error in 'first': Cannot apply [YuChar] to type [YuNumber] -> YuNumber"
+      "Type error in 'first': Cannot apply YuString to type [YuNumber] -> YuNumber"
     );
   });
   it("detects bad application of parameters in tuple", () => {
@@ -316,6 +316,11 @@ describe("TypeChecker Tests", () => {
   });
   it("validates infix partial application", () => {
     const code = `doble numero = (2 *) numero`;
+    parser.parse(code);
+    assert.isEmpty(parser.errors);
+  });
+  it("validates correct usage of succ and pred", () => {
+    const code = `next x = succ x\nprev x = pred x`;
     parser.parse(code);
     assert.isEmpty(parser.errors);
   });

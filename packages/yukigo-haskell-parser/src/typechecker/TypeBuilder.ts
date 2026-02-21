@@ -12,7 +12,7 @@ import {
 } from "yukigo-ast";
 import { typeMappings } from "../utils/types.js";
 import { CoreHM } from "./core.js";
-import { functionType, Type, TypeConstructor, TypeVar } from "./checker.js";
+import { functionType, Type, TypeConstructor, TypeVar, stringType, charType } from "./checker.js";
 
 export class TypeBuilder {
   constructor(private coreHM: CoreHM) {}
@@ -44,6 +44,8 @@ export class TypeBuilder {
 
         // Uppercase = type constructor (e.g., Int, Bool, List)
         const primitive = typeMappings[n.value] || n.value;
+        if (primitive === "YuString") return stringType;
+        if (primitive === "YuChar") return charType;
         return {
           type: "TypeConstructor",
           name: primitive,
