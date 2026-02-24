@@ -8,8 +8,6 @@ import {
   EnvStack,
   RuntimeFunction,
   RuntimePredicate,
-  RuntimeFact,
-  RuntimeRule,
 } from "yukigo-ast";
 import { EnvBuilderVisitor } from "../../src/interpreter/components/EnvBuilder.js";
 import {
@@ -18,6 +16,7 @@ import {
   isDefined,
   lookup,
 } from "../../src/interpreter/utils.js";
+import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
 
 const id = (val: string) => ({ value: val } as SymbolPrimitive);
 
@@ -39,22 +38,26 @@ const makeFunc = (
     accept: (v: any) => v.visitFunction(makeFunc(name, arity, eqCount)),
   } as any);
 
-const makeFact = (name: string): Fact =>
-  ({
+const makeFact = (name: string): Fact => {
+  const node = {
     type: "Fact",
     identifier: id(name),
     patterns: [],
-    accept: (v: any) => v.visitFact(makeFact(name)),
-  } as any);
+  } as any;
+  node.accept = (v: any) => v.visitFact(node);
+  return node;
+};
 
-const makeRule = (name: string): Rule =>
-  ({
+const makeRule = (name: string): Rule => {
+  const node = {
     type: "Rule",
     identifier: id(name),
     patterns: [],
     expressions: [],
-    accept: (v: any) => v.visitRule(makeRule(name)),
-  } as any);
+  } as any;
+  node.accept = (v: any) => v.visitRule(node);
+  return node;
+};
 
 describe("EnvBuilderVisitor", () => {
   let visitor: EnvBuilderVisitor;
@@ -62,7 +65,7 @@ describe("EnvBuilderVisitor", () => {
 
   beforeEach(() => {
     env = createGlobalEnv();
-    visitor = new EnvBuilderVisitor(env);
+    visitor = new EnvBuilderVisitor(new RuntimeContext(), env);
   });
 
   describe("Function Declarations", () => {
@@ -113,34 +116,35 @@ describe("EnvBuilderVisitor", () => {
       visitor.visitFact(factNode);
 
       expect(isDefined(env, "parent")).to.be.true;
-      const entry = lookup(env, "parent") as RuntimeFunction;
-      expect(entry).to.have.property("kind", "Fact");
+      const entry = lookup(env, "parent") as RuntimePredicate;
+      expect(entry).to.have.property("kind", "Predicate");
       expect(entry.equations).to.have.lengthOf(1);
       expect(entry.equations[0]).to.equal(factNode);
     });
 
     it("should append to existing Fact if identifier exists", () => {
-      const fact1 = makeFact("parent");
-      const fact2 = makeFact("parent");
+      const f1 = makeFact("parent");
+      const f2 = makeFact("parent");
 
-      visitor.visitFact(fact1);
-      visitor.visitFact(fact2);
+      visitor.visitFact(f1);
+      visitor.visitFact(f2);
 
       const entry = lookup(env, "parent") as RuntimePredicate;
-      expect(entry.kind).to.equal("Fact");
+      expect(entry.kind).to.equal("Predicate");
       expect(entry.equations).to.have.lengthOf(2);
-      expect(entry.equations[0]).to.equal(fact1);
-      expect(entry.equations[1]).to.equal(fact2);
+      expect(entry.equations[0]).to.equal(f1);
+      expect(entry.equations[1]).to.equal(f2);
     });
 
     it("should overwrite existing entry if it is not a Fact", () => {
-      define(env, "test", { kind: "SomethingElse", equations: [] } as any);
-      const fact = makeFact("test");
-      visitor.visitFact(fact);
+      define(env, "test", { type: "SomethingElse", equations: [] } as any);
+      const factNode = makeFact("test");
+      visitor.visitFact(factNode);
 
-      const entry = lookup(env, "test") as RuntimeFact;
-      expect(entry.kind).to.equal("Fact");
+      const entry = lookup(env, "test") as RuntimePredicate;
+      expect(entry.kind).to.equal("Predicate");
       expect(entry.equations).to.have.lengthOf(1);
+      expect(entry.equations[0]).to.equal(factNode);
     });
   });
 
@@ -151,21 +155,24 @@ describe("EnvBuilderVisitor", () => {
       visitor.visitRule(ruleNode);
 
       expect(isDefined(env, "grandparent")).to.be.true;
-      const entry = lookup(env, "grandparent") as RuntimeRule;
-      expect(entry).to.have.property("kind", "Rule");
+      const entry = lookup(env, "grandparent") as RuntimePredicate;
+      expect(entry).to.have.property("kind", "Predicate");
       expect(entry.equations).to.have.lengthOf(1);
+      expect(entry.equations[0]).to.equal(ruleNode);
     });
 
     it("should append to existing Rule group", () => {
-      const rule1 = makeRule("ancestor");
-      const rule2 = makeRule("ancestor");
+      const r1 = makeRule("ancestor");
+      const r2 = makeRule("ancestor");
 
-      visitor.visitRule(rule1);
-      visitor.visitRule(rule2);
+      visitor.visitRule(r1);
+      visitor.visitRule(r2);
 
       const entry = lookup(env, "ancestor") as RuntimePredicate;
-      expect(entry.kind).to.equal("Rule");
+      expect(entry.kind).to.equal("Predicate");
       expect(entry.equations).to.have.lengthOf(2);
+      expect(entry.equations[0]).to.equal(r1);
+      expect(entry.equations[1]).to.equal(r2);
     });
   });
 

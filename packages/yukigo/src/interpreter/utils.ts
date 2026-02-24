@@ -4,11 +4,13 @@ import {
   PrimitiveValue,
   Environment,
   EnvStack,
+  ASTNode,
 } from "yukigo-ast";
 import { UnboundVariable } from "./errors.js";
+import { Continuation, Thunk } from "./trampoline.js";
 
 export interface ExpressionEvaluator {
-  evaluate(node: Expression): PrimitiveValue;
+  evaluate<R = PrimitiveValue>(node: ASTNode, cont: Continuation<PrimitiveValue, R>): Thunk<R>;
 }
 
 export function createStream(

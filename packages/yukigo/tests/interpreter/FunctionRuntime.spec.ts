@@ -12,8 +12,10 @@ import {
   EnvStack,
   PrimitiveValue,
 } from "yukigo-ast";
-import { FunctionRuntime } from "../../src/interpreter/components/FunctionRuntime.js";
+import { FunctionRuntime } from "../../src/interpreter/components/runtimes/FunctionRuntime.js";
 import { createGlobalEnv } from "../../src/interpreter/utils.js";
+import { Continuation, idContinuation, Thunk, trampoline } from "../../src/interpreter/trampoline.js";
+import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
 
 const s = (val: string) => new SymbolPrimitive(val);
 const n = (val: number) => new NumberPrimitive(val);
@@ -31,23 +33,25 @@ const guarded = (guards: { cond: any; body: any }[]): GuardedBody[] => {
 class MockEvaluator {
   constructor(public env: EnvStack) {}
 
-  evaluate(node: any): PrimitiveValue {
-    if (node.type === "Value") return node.value;
+  evaluate(node: any, k: Continuation<PrimitiveValue>): Thunk<PrimitiveValue> {
+    if (node.type === "Value") return k(node.value);
     if (node.type === "Variable") {
       const val = this.env.head.get(node.value);
-      return val !== undefined ? val : `Error: ${node.value} not found`;
+      return k(val !== undefined ? val : `Error: ${node.value} not found`);
     }
-    return node;
+    return k(node);
   }
 }
 
 describe("FunctionRuntime", () => {
   let globalEnv: EnvStack;
   let evaluatorFactory: any;
-
+  let funcRuntime: FunctionRuntime
   beforeEach(() => {
     globalEnv = createGlobalEnv();
     evaluatorFactory = (env: EnvStack) => new MockEvaluator(env);
+    const context = new RuntimeContext()
+    funcRuntime = new FunctionRuntime(context)
   });
 
   describe("Pattern Matching & Dispatch", () => {
@@ -61,13 +65,15 @@ describe("FunctionRuntime", () => {
         body: unguarded([valExpr("twenty")]),
       };
 
-      const result = FunctionRuntime.apply(
+      const resultThunk = funcRuntime.apply(
         "f",
         [eq1, eq2],
         [20],
         globalEnv,
-        evaluatorFactory
+        evaluatorFactory,
+        idContinuation
       );
+      const result = trampoline(resultThunk);
 
       expect(result).to.equal("twenty");
     });
@@ -79,7 +85,7 @@ describe("FunctionRuntime", () => {
       };
 
       expect(() => {
-        FunctionRuntime.apply("f", [eq1], [99], globalEnv, evaluatorFactory);
+        trampoline(funcRuntime.apply("f", [eq1], [99], globalEnv, evaluatorFactory, idContinuation));
       }).to.throw(/Non-exhaustive patterns/);
     });
 
@@ -90,7 +96,7 @@ describe("FunctionRuntime", () => {
       };
 
       expect(() => {
-        FunctionRuntime.apply("f", [eq1], [1, 2], globalEnv, evaluatorFactory);
+        trampoline(funcRuntime.apply("f", [eq1], [1, 2], globalEnv, evaluatorFactory, idContinuation));
       }).to.throw(/Non-exhaustive patterns/);
     });
   });
@@ -102,13 +108,14 @@ describe("FunctionRuntime", () => {
         body: unguarded([varExpr("X")]),
       };
 
-      const result = FunctionRuntime.apply(
+      const result = trampoline(funcRuntime.apply(
         "identity",
         [eq1],
         [500],
         globalEnv,
-        evaluatorFactory
-      );
+        evaluatorFactory,
+        idContinuation
+      ));
 
       expect(result).to.equal(500);
     });
@@ -121,23 +128,24 @@ describe("FunctionRuntime", () => {
         body: unguarded([varExpr("X")]),
       };
 
-      const result = FunctionRuntime.apply(
+      const result = trampoline(funcRuntime.apply(
         "shadow",
         [eq1],
         [999],
         globalEnv,
-        evaluatorFactory
-      );
+        evaluatorFactory,
+        idContinuation
+      ));
       expect(result).to.equal(999);
     });
   });
 
   describe("Guarded Bodies", () => {
     const guardedEvaluatorFactory = (env: any[]) => ({
-      evaluate: (node: any) => {
-        if (node.type === "Condition") return node.value;
-        if (node.type === "Value") return node.value;
-        return null;
+      evaluate: (node: any, k: Continuation<PrimitiveValue>) => {
+        if (node.type === "Condition") return k(node.value);
+        if (node.type === "Value") return k(node.value);
+        return k(null);
       },
     });
 
@@ -152,13 +160,14 @@ describe("FunctionRuntime", () => {
         body: guarded(guards),
       };
 
-      const result = FunctionRuntime.apply(
+      const result = trampoline(funcRuntime.apply(
         "guards",
         [eq],
         [0],
         globalEnv,
-        guardedEvaluatorFactory as any
-      );
+        guardedEvaluatorFactory as any,
+        idContinuation
+      ));
       expect(result).to.equal(2);
     });
 
@@ -173,13 +182,14 @@ describe("FunctionRuntime", () => {
         body: unguarded([valExpr(2)]),
       };
 
-      const result = FunctionRuntime.apply(
+      const result = trampoline(funcRuntime.apply(
         "fallback",
         [eq1, eq2],
         [0],
         globalEnv,
-        guardedEvaluatorFactory as any
-      );
+        guardedEvaluatorFactory as any,
+        idContinuation
+      ));
       expect(result).to.equal(2);
     });
   });
@@ -191,13 +201,14 @@ describe("FunctionRuntime", () => {
         body: unguarded([valExpr(10), valExpr(20), valExpr(30)]),
       };
 
-      const result = FunctionRuntime.apply(
+      const result = trampoline(funcRuntime.apply(
         "seq",
         [eq],
         [],
         globalEnv,
-        evaluatorFactory
-      );
+        evaluatorFactory,
+        idContinuation
+      ));
       expect(result).to.equal(30);
     });
 
@@ -209,13 +220,14 @@ describe("FunctionRuntime", () => {
         body: unguarded([valExpr(10), retStmt, valExpr(30)]),
       };
 
-      const result = FunctionRuntime.apply(
+      const result = trampoline(funcRuntime.apply(
         "earlyRet",
         [eq],
         [],
         globalEnv,
-        evaluatorFactory
-      );
+        evaluatorFactory,
+        idContinuation
+      ));
       expect(result).to.equal(99);
     });
 
@@ -224,13 +236,14 @@ describe("FunctionRuntime", () => {
         patterns: [],
         body: unguarded([]),
       };
-      const result = FunctionRuntime.apply(
+      const result = trampoline(funcRuntime.apply(
         "empty",
         [eq],
         [],
         globalEnv,
-        evaluatorFactory
-      );
+        evaluatorFactory,
+        idContinuation
+      ));
       expect(result).to.be.undefined;
     });
   });

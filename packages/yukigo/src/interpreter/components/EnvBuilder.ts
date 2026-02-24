@@ -21,6 +21,8 @@ import {
 } from "yukigo-ast";
 import { createGlobalEnv, define } from "../utils.js";
 import { InterpreterVisitor } from "./Visitor.js";
+import { idContinuation, trampoline } from "../trampoline.js";
+import { RuntimeContext } from "./RuntimeContext.js";
 
 /**
  * Builds the initial environment by collecting all top-level function declarations.
@@ -30,7 +32,10 @@ import { InterpreterVisitor } from "./Visitor.js";
 export class EnvBuilderVisitor extends TraverseVisitor {
   private env: EnvStack;
 
-  constructor(baseEnv?: EnvStack) {
+  constructor(
+    private context: RuntimeContext,
+    baseEnv?: EnvStack,
+  ) {
     super();
     this.env = baseEnv ?? createGlobalEnv();
   }
@@ -44,6 +49,9 @@ export class EnvBuilderVisitor extends TraverseVisitor {
   }
   visitFunction(node: Function): void {
     const name = node.identifier.value;
+
+    if (this.context.config.debug)
+      console.log(`[EnvBuilder] Defining function: ${name}`);
 
     if (node.equations.length === 0)
       throw new Error(`Function ${name} has no equations`);
@@ -73,6 +81,9 @@ export class EnvBuilderVisitor extends TraverseVisitor {
   visitClass(node: Class): void {
     const identifier = node.identifier.value;
 
+    if (this.context.config.debug)
+      console.log(`[EnvBuilder] Defining class: ${identifier}`);
+
     const superclass = node.extendsSymbol?.value;
 
     const mixins = node.includes.map((symbol) => symbol.value);
@@ -97,6 +108,9 @@ export class EnvBuilderVisitor extends TraverseVisitor {
   visitObject(node: Object): void {
     const identifier = node.identifier.value;
 
+    if (this.context.config.debug)
+      console.log(`[EnvBuilder] Defining object: ${identifier}`);
+
     const collector = new OOPCollector();
     node.expression.accept(collector);
 
@@ -115,17 +129,18 @@ export class EnvBuilderVisitor extends TraverseVisitor {
   }
   visitFact(node: Fact): void {
     const identifier = node.identifier.value;
+
+    if (this.context.config.debug)
+      console.log(`[EnvBuilder] Defining fact: ${identifier}`);
+
     const localEnv = this.env.head;
     const runtimeValue = localEnv.get(identifier);
 
-    if (isRuntimePredicate(runtimeValue) && runtimeValue.kind === "Fact") {
-      localEnv.set(identifier, {
-        ...runtimeValue,
-        equations: [...runtimeValue.equations, node],
-      });
+    if (isRuntimePredicate(runtimeValue)) {
+      runtimeValue.equations.push(node);
     } else {
       localEnv.set(identifier, {
-        kind: "Fact",
+        kind: "Predicate",
         identifier,
         equations: [node],
       });
@@ -134,17 +149,18 @@ export class EnvBuilderVisitor extends TraverseVisitor {
 
   visitRule(node: Rule): void {
     const identifier = node.identifier.value;
+
+    if (this.context.config.debug)
+      console.log(`[EnvBuilder] Defining rule: ${identifier}`);
+
     const localEnv = this.env.head;
     const runtimeValue = localEnv.get(identifier);
 
-    if (isRuntimePredicate(runtimeValue) && runtimeValue.kind === "Rule") {
-      localEnv.set(identifier, {
-        ...runtimeValue,
-        equations: [...runtimeValue.equations, node],
-      });
+    if (isRuntimePredicate(runtimeValue)) {
+      runtimeValue.equations.push(node);
     } else {
       localEnv.set(identifier, {
-        kind: "Rule",
+        kind: "Predicate",
         identifier,
         equations: [node],
       });
@@ -152,8 +168,13 @@ export class EnvBuilderVisitor extends TraverseVisitor {
   }
   visitVariable(node: Variable): void {
     const identifier = node.identifier.value;
-    const interpreter = new InterpreterVisitor(this.env, {});
-    define(this.env, identifier, node.expression.accept(interpreter));
+
+    if (this.context.config.debug)
+      console.log(`[EnvBuilder] Defining variable: ${identifier}`);
+
+    const interpreter = new InterpreterVisitor(this.env, this.context);
+    const cps = node.expression.accept(interpreter);
+    define(this.env, identifier, trampoline(cps(idContinuation)));
   }
   visit(node: ASTNode): void {
     return node.accept(this);
@@ -176,7 +197,7 @@ class OOPCollector extends TraverseVisitor {
   visitAttribute(node: Attribute) {
     this.collectedFields.set(
       node.identifier.value,
-      InterpreterVisitor.evaluateLiteral(node.expression)
+      InterpreterVisitor.evaluateLiteral(node.expression),
     );
   }
 }

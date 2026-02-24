@@ -17,6 +17,9 @@ import {
   PatternResolver,
 } from "../../src/interpreter/components/PatternMatcher.js";
 import { createStream } from "../../src/interpreter/utils.js";
+import { idContinuation, trampoline } from "../../src/interpreter/trampoline.js";
+import { LazyRuntime } from "../../src/interpreter/components/runtimes/LazyRuntime.js";
+import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
 
 const s = (v: string) => new SymbolPrimitive(v);
 const n = (v: number) => new NumberPrimitive(v);
@@ -76,9 +79,9 @@ describe("Pattern System", () => {
       value: any
     ): { success: boolean; bindings: [string, any][] } => {
       const bindings: [string, any][] = [];
-      const matcher = new PatternMatcher(value, bindings);
+      const matcher = new PatternMatcher(value, bindings, new LazyRuntime(new RuntimeContext()));
 
-      const success = pattern.accept(matcher);
+      const success = trampoline(pattern.accept(matcher)(idContinuation as any));
       return { success, bindings };
     };
 
@@ -152,6 +155,28 @@ describe("Pattern System", () => {
       expect(match(p, 1).success).to.be.true;
       expect(match(p, 2).success).to.be.true;
       expect(match(p, 3).success).to.be.false;
+    });
+
+    describe("String Matching as List", () => {
+      it("should match an empty string against an empty list pattern", () => {
+        const p = new ListPattern([]);
+        expect(match(p, "").success).to.be.true;
+      });
+
+      it("should match a string against a cons pattern", () => {
+        const p = new ConsPattern(variable("H"), variable("T"));
+        const { success, bindings } = match(p, "abc");
+
+        expect(success).to.be.true;
+        const map = new Map(bindings);
+        expect(map.get("H")).to.equal("a");
+        expect(map.get("T")).to.equal("bc");
+      });
+
+      it("should fail to match an empty string against a cons pattern", () => {
+        const p = new ConsPattern(variable("H"), variable("T"));
+        expect(match(p, "").success).to.be.false;
+      });
     });
 
     describe("LazyList Matching", () => {
