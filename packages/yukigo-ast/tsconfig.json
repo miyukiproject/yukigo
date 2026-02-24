@@ -5,6 +5,7 @@
     "moduleResolution": "NodeNext",
     "lib": ["ES2022"],
     "outDir": "./dist",
+    "rootDir": "src",
     "declaration": true,
     "composite": true,
     "declarationMap": true,
