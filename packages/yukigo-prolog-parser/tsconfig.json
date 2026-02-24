@@ -5,6 +5,7 @@
     "moduleResolution": "nodenext",
     "lib": ["ES2024"],
     "outDir": "./dist",
+    "rootDir": "src",
     "sourceRoot": "./src",
     "declaration": true,
     "composite": true,

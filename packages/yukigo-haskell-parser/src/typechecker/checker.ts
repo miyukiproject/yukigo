@@ -1,17 +1,16 @@
 import {
   AST,
   Function,
-  UnguardedBody,
-  GuardedBody,
   Visitor,
   Return,
   isUnguardedBody,
   Sequence,
+  TestGroup,
+  Test,
+  Assert,
 } from "yukigo-ast";
-import { typeMappings } from "../utils/types.js";
 import { InferenceEngine, PatternVisitor } from "./inference.js";
 import { CoreHM } from "./core.js";
-import { inspect } from "util";
 import { DeclarationCollectorVisitor } from "./DeclarationCollector.js";
 
 export interface TypeVar {
@@ -117,6 +116,13 @@ export class FunctionRegistrarVisitor implements Visitor<void> {
       }
     }
   }
+  visitTestGroup(node: TestGroup): void {
+    node.group.accept(this);
+  }
+  visitTest(node: Test): void {
+    node.body.accept(this);
+  }
+  visitAssert(node: Assert): void {}
 }
 export class FunctionCheckerVisitor implements Visitor<void> {
   constructor(
@@ -125,6 +131,20 @@ export class FunctionCheckerVisitor implements Visitor<void> {
     private coreHM: CoreHM,
     private errors: string[]
   ) {}
+  visitTestGroup(node: TestGroup): void {
+    node.group.accept(this);
+  }
+  visitTest(node: Test): void {
+    node.body.accept(this);
+  }
+  visitAssert(node: Assert): void {
+    const inferenceEngine = new InferenceEngine(
+      this.signatureMap,
+      this.coreHM,
+      this.environments
+    );
+    node.body.accept(inferenceEngine);
+  }
   visitFunction(node: Function): void {
     const functionName = node.identifier.value;
     let funcScheme = this.signatureMap.get(functionName);

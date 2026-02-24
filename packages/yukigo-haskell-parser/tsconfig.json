@@ -10,7 +10,8 @@
     "allowSyntheticDefaultImports": true,
     "sourceMap": true,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "composite": true
   },
   "include": ["src"],
   "exclude": [

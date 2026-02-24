@@ -72,7 +72,7 @@ export class YukigoHaskellParser implements YukigoParser {
       parser.feed(code);
       parser.finish();
     } catch (error) {
-      if ("token" in error) throw new UnexpectedToken(error.token);
+      if ("token" in error && error.token) throw new UnexpectedToken(error.token);
       throw error;
     }
     const { results } = parser;
