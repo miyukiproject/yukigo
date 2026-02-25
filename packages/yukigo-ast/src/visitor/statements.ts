@@ -35,6 +35,7 @@ import {
     Rule,
     Fact,
     Query,
+    LogicConstraint,
 } from "../paradigms/logic.js";
 import {
     Method,
@@ -89,6 +90,7 @@ export interface StatementVisitor<TReturn> {
     visitObject(node: Object): TReturn;
     visitClass(node: Class): TReturn;
     visitInterface(node: Interface): TReturn;
+    visitLogicConstraint(node: LogicConstraint): TReturn;
 }
 
 export function StatementTraverser<TBase extends GConstructor<TraverseBase>>(
@@ -251,6 +253,9 @@ export function StatementTraverser<TBase extends GConstructor<TraverseBase>>(
             node.identifier.accept(this);
             this.traverseCollection(node.extendsSymbol);
             node.expression.accept(this);
+        }
+        visitLogicConstraint(node: LogicConstraint): void {
+            node.expression.accept(this)
         }
     };
 }

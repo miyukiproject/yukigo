@@ -4,7 +4,7 @@ import { GuardedBody, UnguardedBody } from "./statements.js";
 
 export type SuccessLogicResult = {
   success: true;
-  solutions: Map<string, string>;
+  solutions: Map<string, PrimitiveValue>;
 };
 export type FailedLogicResult = {
   success: false;
@@ -47,28 +47,22 @@ export type EnvStack = {
 
 // Runtime Types
 
-export type RuntimePredicate = RuntimeFact | RuntimeRule;
+export interface RuntimePredicate {
+  kind: "Fact" | "Rule" | "Predicate";
+  identifier: string;
+  equations: (Fact | Rule)[];
+}
 
 export const isRuntimePredicate = (
   prim: PrimitiveValue
 ): prim is RuntimePredicate => {
   return (
     typeof prim === "object" &&
+    prim !== null &&
     "kind" in prim &&
-    (prim.kind === "Fact" || prim.kind === "Rule")
+    (prim.kind === "Fact" || prim.kind === "Rule" || prim.kind === "Predicate")
   );
 };
-
-export interface RuntimeFact {
-  kind: "Fact";
-  identifier: string;
-  equations: Fact[];
-}
-export interface RuntimeRule {
-  kind: "Rule";
-  identifier: string;
-  equations: Rule[];
-}
 
 export interface EquationRuntime {
   patterns: Pattern[];
