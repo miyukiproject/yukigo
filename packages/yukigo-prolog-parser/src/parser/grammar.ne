@@ -66,7 +66,7 @@ conditional -> "(" _ body _ "->" _ body _ %semicolon _ body _ ")"  {% (d) =>
 
 forall -> %forallRule "(" _ expression _ %comma _ expression _ ")" {% (d) => new Forall(d[3], d[7]) %}
 
-findall -> %findallRule "(" _ expression _ %comma _ expression _ %comma _ expression _ ")" {% (d) => new Findall(d[3], d[7], d[11]) %}
+findall -> %findallRule "(" _ pattern _ %comma _ expression _ %comma _ expression _ ")" {% (d) => new Findall(d[3], d[7], d[11]) %}
 
 not -> 
     %notOperator _ expression {% (d) => new Not([d[2]]) %}
