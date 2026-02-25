@@ -1,4 +1,3 @@
-import { typeClasses } from "../utils/types.js";
 import {
   charType,
   Environment,
@@ -13,7 +12,10 @@ import {
 
 export class CoreHM {
   private nextVarId = 0;
-  constructor(private aliases: Map<string, Type> = new Map()) {}
+  constructor(
+    private aliases: Map<string, Type> = new Map(),
+    public typeClasses: Map<string, string[]> = new Map()
+  ) {}
   public resolve(t: Type): Type {
     if (t.type === "TypeConstructor" && this.aliases.has(t.name))
       return this.resolve(this.aliases.get(t.name)!);
@@ -162,8 +164,18 @@ export class CoreHM {
         rt.constraints.push(constraintName);
       }
     } else if (rt.type === "TypeConstructor") {
-      const instances = typeClasses.get(constraintName);
-      if (!instances || !instances.includes(rt.name)) {
+      let typeName = rt.name;
+      if (
+        typeName === "List" &&
+        rt.args.length === 1 &&
+        rt.args[0].type === "TypeConstructor" &&
+        rt.args[0].name === "YuChar"
+      ) {
+        typeName = "YuString";
+      }
+
+      const instances = this.typeClasses.get(constraintName);
+      if (!instances || !instances.includes(typeName)) {
         throw new Error(
           `Type '${showType(rt)}' is not an instance of '${constraintName}'`
         );

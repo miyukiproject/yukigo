@@ -1,18 +1,18 @@
 import {
   AST,
   Function,
-  UnguardedBody,
-  GuardedBody,
   Visitor,
   Return,
   isUnguardedBody,
   Sequence,
+  TestGroup,
+  Test,
+  Assert,
 } from "yukigo-ast";
-import { typeMappings } from "../utils/types.js";
 import { InferenceEngine, PatternVisitor } from "./inference.js";
 import { CoreHM } from "./core.js";
-import { inspect } from "util";
 import { DeclarationCollectorVisitor } from "./DeclarationCollector.js";
+import { typeClasses as staticTypeClasses } from "../utils/types.js";
 
 export interface TypeVar {
   type: "TypeVar";
@@ -69,16 +69,12 @@ export const numberType: TypeConstructor = {
   name: "YuNumber",
   args: [],
 };
-export const stringType: TypeConstructor = {
-  type: "TypeConstructor",
-  name: "YuString",
-  args: [],
-};
 export const charType: TypeConstructor = {
   type: "TypeConstructor",
   name: "YuChar",
   args: [],
 };
+export const stringType: Type = listType(charType);
 
 export class FunctionRegistrarVisitor implements Visitor<void> {
   constructor(
@@ -117,6 +113,13 @@ export class FunctionRegistrarVisitor implements Visitor<void> {
       }
     }
   }
+  visitTestGroup(node: TestGroup): void {
+    node.group.accept(this);
+  }
+  visitTest(node: Test): void {
+    node.body.accept(this);
+  }
+  visitAssert(node: Assert): void {}
 }
 export class FunctionCheckerVisitor implements Visitor<void> {
   constructor(
@@ -125,6 +128,20 @@ export class FunctionCheckerVisitor implements Visitor<void> {
     private coreHM: CoreHM,
     private errors: string[]
   ) {}
+  visitTestGroup(node: TestGroup): void {
+    node.group.accept(this);
+  }
+  visitTest(node: Test): void {
+    node.body.accept(this);
+  }
+  visitAssert(node: Assert): void {
+    const inferenceEngine = new InferenceEngine(
+      this.signatureMap,
+      this.coreHM,
+      this.environments
+    );
+    node.body.accept(inferenceEngine);
+  }
   visitFunction(node: Function): void {
     const functionName = node.identifier.value;
     let funcScheme = this.signatureMap.get(functionName);
@@ -307,7 +324,7 @@ export class TypeChecker {
   }
   check(ast: AST): string[] {
     const typeAliasMap = new Map<string, Type>();
-    this.coreHM = new CoreHM(typeAliasMap);
+    this.coreHM = new CoreHM(typeAliasMap, new Map(staticTypeClasses));
     const recordMap = new Map<string, Type>();
 
     // Phase 1: Collect declarations
@@ -366,7 +383,12 @@ export function showType(t: Type): string {
     const aDisp = isFunctionType(t.args[0]) ? `(${a})` : a;
     return `${aDisp} -> ${b}`;
   }
-  if (isListType(t)) return `[${showType(t.args[0])}]`;
+  if (isListType(t)) {
+    if (t.args[0].type === "TypeConstructor" && t.args[0].name === "YuChar") {
+      return "YuString";
+    }
+    return `[${showType(t.args[0])}]`;
+  }
   if (isTupleType(t)) return `(${t.args.map(showType.bind(this)).join(", ")})`;
 
   return t.args.length

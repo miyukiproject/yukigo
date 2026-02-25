@@ -26,6 +26,12 @@ export const keywords = [
   "qualified",
   "hiding",
   "foreign",
+  "describe",
+  "it",
+  "shouldBe",
+  "shouldNotBe",
+  "shouldSatisfy",
+  "shouldThrow"
 ];
 
 export const typeMappings: { [key: string]: YukigoPrimitive } = {

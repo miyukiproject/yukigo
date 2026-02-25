@@ -23,7 +23,7 @@ export const HaskellLexerConfig = {
   number:
     /0[xX][0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+|(?:\d*\.\d+|\d+)(?:[eE][+-]?\d+)?/,
   char: /'(?:\\['\\bfnrtv0]|\\u[0-9a-fA-F]{4}|[^'\\\n\r])?'/,
-  string: /"(?:\\["\\bfnrtv0]|\\u[0-9a-fA-F]{4}|[^"\\\n\r])*"/,
+  string: { match: /"(?:\\[\s\S]|[^"\\])*"/, lineBreaks: true },
 
   lparen: "(",
   rparen: ")",
@@ -39,7 +39,7 @@ export const HaskellLexerConfig = {
   fatArrow: "=>",
   op: {
     match:
-      /,|>>=|>>|\\\\|\\|\.\.|\.|\+\+|\+|\-|\*\*|\*|===|!==|==|\/=|<=|>=|<|>|&&|\/|\|\||\$|\^\^|\^|#|@|~|!!|!|%|\?|:|&|`/,
+    /,|>>=|>>|\\\\|\\|\.\.|\.|\+\+|\+|\-|\*\*|\*|===|!==|==|\/=|<=|>=|<|>|&&|\/|\|\||\$!|\$|\^\^|\^|#|@|~|!!|!|%|\?|:|&|`/,
     lineBreaks: false,
   },
   assign: "=",
@@ -70,6 +70,16 @@ export class HaskellLayoutLexer implements Lexer {
 
   private readonly layoutTriggers = new Set(["where", "let", "do", "of"]);
   private readonly noSemicolonKeywords = new Set(["in", "then", "else", "of"]);
+  private readonly alwaysNewDeclarationKeywords = new Set([
+    "type",
+    "data",
+    "class",
+    "instance",
+    "describe",
+    "it",
+    "module",
+    "import",
+  ]);
 
   constructor() {
     this.mooLexer = moo.compile(HaskellLexerConfig);
@@ -157,6 +167,9 @@ export class HaskellLayoutLexer implements Lexer {
 
     if (token) {
       this.checkLayoutTrigger(token);
+      if (!this.state.firstTokenProcessed && token.col > 1) {
+        this.state.stack[0] = token.col;
+      }
       this.state.firstTokenProcessed = true;
     }
 
@@ -164,11 +177,15 @@ export class HaskellLayoutLexer implements Lexer {
   }
 
   private fetchAndProcessNextToken(): Token | undefined {
-    const { token: rawToken, crossedNewline } =
+    let { token: rawToken, crossedNewline } =
       this.advanceSkippingWhitespace();
 
     if (!rawToken) return this.emitEOF();
 
+    // If the token itself crossed lines (like a multiline string),
+    // we should treat the NEXT token as if it crossed a newline for layout purposes.
+    // However, the current token should also be processed for indentation if it's the first on its line.
+    
     if (this.state.expectingBlock) return this.handleBlockStart(rawToken);
 
     if (this.isInToken(rawToken)) return this.handleInKeyword(rawToken);
@@ -203,6 +220,11 @@ export class HaskellLayoutLexer implements Lexer {
       ops.push(this.createVirtualToken("rbracket", "}", sourceToken));
     }
 
+    const isAlwaysNewDeclaration =
+      this.state.stack.length === 1 &&
+      sourceToken.type === "keyword" &&
+      this.alwaysNewDeclarationKeywords.has(sourceToken.value);
+
     const shouldInjectSemicolon =
       !sourceToken.value || !this.noSemicolonKeywords.has(sourceToken.value);
 
@@ -214,9 +236,10 @@ export class HaskellLayoutLexer implements Lexer {
       this.state.stack.pop();
       ops.push(this.createVirtualToken("rbracket", "}", sourceToken));
     } else if (
-      this.state.stack.length > 0 &&
-      this.state.stack[this.state.stack.length - 1] === targetIndent &&
-      shouldInjectSemicolon
+      (this.state.stack.length > 0 &&
+        this.state.stack[this.state.stack.length - 1] === targetIndent &&
+        shouldInjectSemicolon) ||
+      isAlwaysNewDeclaration
     ) {
       ops.push(this.createVirtualToken("semicolon", ";", sourceToken));
     }
@@ -276,7 +299,12 @@ export class HaskellLayoutLexer implements Lexer {
     const currentIndent = token.col;
     const stackTop = this.state.stack[this.state.stack.length - 1];
 
-    if (currentIndent === stackTop) {
+    const isAlwaysNewDeclaration =
+      this.state.stack.length === 1 &&
+      token.type === "keyword" &&
+      this.alwaysNewDeclarationKeywords.has(token.value);
+
+    if (currentIndent === stackTop || isAlwaysNewDeclaration) {
       const isContinuationKeyword =
         token.value && this.noSemicolonKeywords.has(token.value);
       if (this.state.firstTokenProcessed && !isContinuationKeyword) {
