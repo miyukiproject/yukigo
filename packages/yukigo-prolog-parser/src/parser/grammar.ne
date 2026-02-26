@@ -25,26 +25,38 @@
     FunctorPattern, 
     ConsPattern, 
     ListPattern, 
+    LogicConstraint,
     LiteralPattern,
     WildcardPattern,
-    TuplePattern
+    TuplePattern,
+    Test,
+    Assert,
+    Truth
  } from "yukigo-ast"
 
 import { PrologLexer } from "./lexer.js"
 
-const asSequence = (d) => d.length === 1 ? d[0] : new Sequence(d);
+const asSequence = (d) => {
+    if (d instanceof Sequence) return d;
+    if (Array.isArray(d)) return d.length === 1 ? d[0] : new Sequence(d);
+    return new Sequence([d]);
+};
 
 %}
 @preprocessor typescript
 @lexer PrologLexer
 
-program -> (clause _):* {% (d) => d[0].map(x => x[0]).filter(x => x !== null).flat(Infinity) %}
+program -> _ (clause _):* {% (d) => d[1].map(x => x[0]).filter(x => x !== null).flat(Infinity) %}
 
-clause -> (fact | rule | query) {% (d) => d[0][0] %}
+clause -> (fact | rule | query | test_rule) {% (d) => d[0][0] %}
 
 fact -> any_atom arguments:? _ %period {% (d) => new Fact(d[0], d[1] ?? []) %}
 
 rule -> any_atom equation _ %period {% (d) => new Rule(d[0], [d[1]]) %}
+
+test_rule -> %testKeyword %lparen _ structural_literal test_args:? _ %rparen equation _ %period {% (d) => new Test(d[3], d[7].body.sequence, d[4] ? [d[4]] : []) %}
+
+test_args -> _ %comma _ pattern {% (d) => d[3] %}
 
 equation -> arguments:? _ %colonDash _ body {% (d) => new Equation(d[0] || [], new UnguardedBody(new Sequence(d[4])))%}
 
@@ -53,23 +65,24 @@ query -> %queryOp _ body _ %period {% (d) => new Query(d[2]) %}
 body -> expression (_ (%comma | %semicolon) _ expression):* {% (d) => [d[0], ...d[1].map(x => x[3])] %}
 
 expression -> 
-    (conditional | forall | findall | unification | assignment | comparison | not | exist) {% (d) => d[0][0] %}
-    | "(" _ body _ ")" {% (d) => asSequence(d[2]) %}
+    (conditional | forall | findall | unification | assignment | comparison | not | exist | assertion) {% (d) => d[0][0] %}
+    | "(" _ body _ ")" {% (d) => new Sequence(d[2]) %}
 
 conditional -> "(" _ body _ "->" _ body _ %semicolon _ body _ ")"  {% (d) => 
     new If(
         asSequence(d[2]),  
         asSequence(d[6]),   
         asSequence(d[10])
-    ) 
+    )
 %}
 
 forall -> %forallRule "(" _ expression _ %comma _ expression _ ")" {% (d) => new Forall(d[3], d[7]) %}
 
-findall -> %findallRule "(" _ expression _ %comma _ expression _ %comma _ expression _ ")" {% (d) => new Findall(d[3], d[7], d[11]) %}
+findall -> %findallRule "(" _ pattern _ %comma _ expression _ %comma _ pattern _ ")" {% (d) => new Findall(d[3], d[7], d[11]) %}
 
 not -> 
-    %notOperator _ expression {% (d) => new Not([d[2]]) %}
+    "not" "(" _ expression _ ")" {% (d) => new Not(asSequence(d[3])) %}
+    | "\\+" _ expression {% (d) => new Not(d[2]) %}
 
 exist -> 
     "call" %lparen _ pattern_list _ %rparen {% (d) => {
@@ -78,18 +91,26 @@ exist ->
     } %}
     | any_atom arguments:? {% (d, l, reject) => {
         const val = d[0].value; 
-        if (val === "not" || val === "\\+" || val === "call") return reject;
+        if (["not", "\\+", "call", "assertion"].includes(val)) return reject;
         return new Exist(d[0], d[1] ?? []) 
     } %}
     | variable {% (d) => new Exist(d[0], []) %}
     
+assertion -> "assertion" %lparen _ expression _ %rparen {% (d) => 
+    new Assert(null, new Truth(asSequence(d[3]))) 
+%}
 
-assignment -> addition _ "is" _ addition {% (d) => new AssignOperation("Assign", d[0], d[4]) %}
+assignment -> 
+    addition _ "is" _ addition {% (d) => 
+        new LogicConstraint(new AssignOperation("Assign", d[0], d[4])) 
+    %}
 
-unification -> addition _ "=" _ addition {% (d) => new UnifyOperation("Unify", d[0], d[4]) %}
+unification -> addition _ "=" _ addition {% (d) => new LogicConstraint(new UnifyOperation("Unify", d[0], d[4])) %}
 
 comparison -> 
-    addition _ comparison_op _ addition {% (d) => new ComparisonOperation(d[2], d[0], d[4]) %}
+    addition _ comparison_op _ addition {% (d) => 
+        new LogicConstraint(new ComparisonOperation(d[2], d[0], d[4])) 
+    %}
 
 addition ->
     multiplication _ "+" _ addition {% (d) => new ArithmeticBinaryOperation("Plus", d[0], d[4]) %}
@@ -107,7 +128,7 @@ primary ->
     | "-" _ primary {% (d) => new ArithmeticUnaryOperation("Negation", d[2]) %}
     | strict_atom arguments  {% (d, l, reject) => {
         const val = d[0].value;
-        if (["abs", "round", "sqrt"].includes(val)) return reject;
+        if (["abs", "round", "sqrt", "max", "assertion"].includes(val)) return reject;
         return new Exist(d[0], d[1] ?? [])
     } %}
     | primitiveOperation  {% id %}
@@ -131,6 +152,7 @@ primitiveOperation ->
     "round" __ addition {% d => new ArithmeticUnaryOperation("Round", d[2]) %}
     | "abs" __ addition {% d => new ArithmeticUnaryOperation("Absolute", d[2]) %}
     | "sqrt" __ addition {% d => new ArithmeticUnaryOperation("Sqrt", d[2]) %}
+    | "max" "(" _ addition _ "," _ addition _ ")" {% d => new ArithmeticBinaryOperation("Max", d[3], d[7]) %}
 
 primitiveArguments -> %lparen _ primary_list _ %rparen {% (d) => d[2] %}
 primary_list -> addition (_ %comma _ addition):* {% (d) => [d[0], ...d[1].map(x => x[3])] %}
@@ -140,6 +162,10 @@ arguments -> %lparen _ pattern_list _ %rparen {% (d) => d[2] %}
 pattern_list -> pattern (_ %comma _ pattern):* {% (d) => [d[0], ...d[1].map(x => x[3])] %}
 
 pattern -> 
+    infix_pattern {% id %}
+    | primary_pattern {% id %}
+
+primary_pattern ->
     variable {% (d) => new VariablePattern(d[0]) %}
     | structural_literal {% (d) => new LiteralPattern(d[0]) %}
     | %wildcard {% (d) => new WildcardPattern() %}
@@ -155,6 +181,8 @@ pattern ->
         return current;
     } %}
     | "[" _ pattern_list:? _ "]"  {% (d) => new ListPattern(d[2] ? d[2] : []) %}
+
+infix_pattern -> primary_pattern _ any_atom _ pattern {% (d) => new FunctorPattern(d[2], [d[0], d[4]]) %}
 
 variable -> %variable {% (d) => new SymbolPrimitive(d[0].value) %}
 

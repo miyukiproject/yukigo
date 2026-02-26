@@ -52,6 +52,9 @@ import {
   Visitor,
   WildcardPattern,
   Yield,
+  Truth,
+  Equality,
+  Failure
 } from "yukigo-ast";
 import {
   Environment,
@@ -77,7 +80,6 @@ import {
 } from "./checker.js";
 import { CoreHM } from "./core.js";
 import { TypeBuilder } from "./TypeBuilder.js";
-import { inspect } from "util";
 
 export class PatternVisitor implements Visitor<void> {
   constructor(
@@ -1305,6 +1307,38 @@ export class InferenceEngine implements Visitor<Result<Type>> {
       success: true,
       value: listType(finalElemType),
     };
+  }
+  visitTruth(node: Truth): Result<Type> {
+    const result = node.body.accept(this);
+    if (!result.success) return result;
+    return { success: true, value: booleanType };
+  }
+  visitEquality(node: Equality): Result<Type> {
+    const expectedRes = node.expected.accept(this);
+    if (!expectedRes.success) return expectedRes;
+    const valueRes = node.value.accept(this);
+    if (!valueRes.success) return valueRes;
+
+    const unifyResult = this.coreHM.unify(expectedRes.value, valueRes.value);
+    if (!unifyResult.success) {
+      return {
+        success: false,
+        error: `Equality operands must have the same type`,
+      };
+    }
+    return { success: true, value: booleanType };
+  }
+  visitFailure(node: Failure): Result<Type> {
+    const funcRes = node.func.accept(this);
+    if (!funcRes.success) return funcRes;
+    const msgRes = node.message.accept(this);
+    if (!msgRes.success) return msgRes;
+
+    const unifyMsg = this.coreHM.unify(msgRes.value, stringType);
+    if (!unifyMsg.success)
+      return { success: false, error: "Failure message must be a string" };
+
+    return { success: true, value: booleanType };
   }
   visit(node: ASTNode): Result<Type> {
     return node.accept(this);

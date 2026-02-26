@@ -58,7 +58,13 @@ import {
   CharPrimitive,
   StringPrimitive,
   BooleanPrimitive,
-  SourceLocation
+  SourceLocation,
+  TestGroup,
+  Test,
+  Assert,
+  Equality,
+  Truth,
+  Failure
 } from "yukigo-ast";
 
 const filter = d => {
@@ -78,13 +84,36 @@ declaration -> (function_declaration
                 | function_signature
                 | type_declaration
                 | data_declaration 
-                | apply_operator) {% (d) => d[0][0] %}
+                | apply_operator
+                | test_declaration) {% (d) => d[0][0] %}
 
 expression -> 
   (type_cast
   | letin_expression
   | if_expression
-  | case_expression) {% (d) => d[0][0] %}
+  | case_expression
+  | test_declaration) {% (d) => d[0][0] %}
+
+# Test rules
+
+test_declaration -> 
+    "describe" expression "do" %lbracket test_body %rbracket {% (d) => new TestGroup(d[1], new Sequence(d[4])) %}
+    | "describe" expression "$" "do" %lbracket test_body %rbracket {% (d) => new TestGroup(d[1], new Sequence(d[5])) %}
+    | "it" expression "do" %lbracket test_body %rbracket {% (d) => new Test(d[1], new Sequence(d[4])) %}
+    | "it" expression "$" "do" %lbracket test_body %rbracket {% (d) => new Test(d[1], new Sequence(d[5])) %}
+    | assertion {% id %}
+
+test_body -> 
+    test_declaration (";" test_declaration):* {% (d) => [d[0], ...d[1].map(x => x[1])] %}
+
+assertion ->
+    expression "shouldBe" expression {% (d) => new Assert(new BooleanPrimitive(false), new Equality(d[2], d[0])) %}
+    | expression "`" "shouldBe" "`" expression {% (d) => new Assert(new BooleanPrimitive(false), new Equality(d[4], d[0])) %}
+    | expression "shouldNotBe" expression {% (d) => new Assert(new BooleanPrimitive(true), new Equality(d[2], d[0])) %}
+    | expression "`" "shouldNotBe" "`" expression {% (d) => new Assert(new BooleanPrimitive(true), new Equality(d[4], d[0])) %}
+    | expression "shouldSatisfy" expression {% (d) => new Assert(new BooleanPrimitive(false), new Truth(new Application(d[2], d[0]))) %}
+    | expression "`" "shouldSatisfy" "`" expression {% (d) => new Assert(new BooleanPrimitive(false), new Truth(new Application(d[4], d[0]))) %}
+
 
 type_cast -> apply_operator "::" type {% (d) => new TypeCast(d[0], d[2]) %}
 | apply_operator {% id %}
@@ -456,6 +485,6 @@ comparison_operator ->
 
 primitive -> 
     %number {% ([n]) => new NumberPrimitive(Number(n.value), loc(n)) %}
-    | %char {% ([c]) => new CharPrimitive(c.value, loc(c)) %}
+    | %char {% ([c]) => new CharPrimitive(c.value.slice(1, -1), loc(c)) %}
     | %string {% ([s]) => new StringPrimitive(s.value.slice(1, -1), loc(s)) %}
     | %bool {% ([b]) => new BooleanPrimitive(b.value === 'True' ? true : false, loc(b)) %}

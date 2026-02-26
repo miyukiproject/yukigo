@@ -4,6 +4,9 @@ import {
   TypeAlias,
   TypeSignature,
   Visitor,
+  TestGroup,
+  Test,
+  Assert,
 } from "yukigo-ast";
 import {
   functionType,
@@ -97,6 +100,15 @@ export class DeclarationCollectorVisitor implements Visitor<void> {
       body: type,
       constraints,
     });
+  }
+  visitTestGroup(node: TestGroup): void {
+    node.group.accept(this);
+  }
+  visitTest(node: Test): void {
+    node.body.accept(this);
+  }
+  visitAssert(node: Assert): void {
+    // assertions don't contain declarations
   }
   visit(node: ASTNode): void {
     node.accept(this);

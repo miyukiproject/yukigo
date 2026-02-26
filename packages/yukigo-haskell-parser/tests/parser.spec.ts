@@ -81,7 +81,7 @@ describe("Parser Tests", () => {
     assert.deepEqual(parser.parse("f 'a' = 1"), [
       new Function(new SymbolPrimitive("f"), [
         new Equation(
-          [new LiteralPattern(new CharPrimitive("'a'"))],
+          [new LiteralPattern(new CharPrimitive("a"))],
           new UnguardedBody(new Sequence([returnExpression])),
           returnExpression
         ),
@@ -288,10 +288,15 @@ describe("Parser Tests", () => {
     ]);
   });
   it("parses chars and single char strings differently", () => {
-    assert.notDeepEqual(parser.parse('x = "a"'), parser.parse("x = 'a'"));
+    const stringAst: any = parser.parse('x = "a"');
+    const charAst: any = parser.parse("x = 'a'");
+    const stringExpr = stringAst[0].equations[0].returnExpr.body;
+    const charExpr = charAst[0].equations[0].returnExpr.body;
+    assert.instanceOf(stringExpr, StringPrimitive);
+    assert.instanceOf(charExpr, CharPrimitive);
   });
   it("parses chars as YuChars", () => {
-    const returnExpression = new Return(new CharPrimitive("'a'"));
+    const returnExpression = new Return(new CharPrimitive("a"));
     assert.deepEqual(parser.parse("x = 'a'"), [
       new Function(new SymbolPrimitive("x"), [
         new Equation(

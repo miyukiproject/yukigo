@@ -118,4 +118,15 @@ exclude(Pred, [H|T], Rest) :-
     ;   Rest = [H|Rest2],
         exclude(Pred, T, Rest2)
     ).
+
+% Arithmetic predicates
+abs(X, Y) :- Y is abs(X).
+round(X, Y) :- Y is round(X).
+sqrt(X, Y) :- Y is sqrt(X).
+
+
+max_list([X], X).
+max_list([H|T], Max) :-
+    max_list(T, MaxTail),
+    Max is max(H, MaxTail).
 `
