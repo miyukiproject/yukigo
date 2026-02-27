@@ -25,16 +25,12 @@ import {
   SuccessCont,
   FailureCont,
 } from "./LogicResolver.js";
-import {
-  createStream,
-  define,
-  ExpressionEvaluator,
-  pushEnv,
-} from "../../utils.js";
+import { createStream, ExpressionEvaluator } from "../../utils.js";
 import { InterpreterVisitor } from "../Visitor.js";
 import { LogicTranslator } from "./LogicTranslator.js";
 import { trampoline, Continuation, Thunk } from "../../trampoline.js";
 import { RuntimeContext, LogicSearchMode } from "../RuntimeContext.js";
+import { inspect } from "util";
 
 export type LogicExecutable = Expression | Statement | Goal | Exist | Findall;
 
@@ -42,11 +38,10 @@ export class LogicEngine {
   private translator: LogicTranslator;
 
   constructor(
-    private env: EnvStack,
     evaluator: ExpressionEvaluator,
     private context: RuntimeContext,
   ) {
-    this.translator = new LogicTranslator(env, evaluator);
+    this.translator = new LogicTranslator(evaluator, this.context);
   }
 
   public unifyExpr(
@@ -112,7 +107,7 @@ export class LogicEngine {
         return k(this.createLazyStreamForGoal(id, patterns, new Map()));
       }
       return solveGoalCPS(
-        this.env,
+        this.context,
         id,
         patterns,
         (body, s, onSucc, onFail) =>
@@ -193,7 +188,7 @@ export class LogicEngine {
         return k(this.createLazyStreamForGoal(id, patterns, new Map()));
       }
       return solveGoalCPS(
-        this.env,
+        this.context,
         id,
         patterns,
         (body, s, onSucc, onFail) =>
@@ -276,7 +271,7 @@ export class LogicEngine {
 
     return this.prepareLogicTargetCPS(goal, substs, ({ id, patterns }) => {
       return solveGoalCPS(
-        this.env,
+        this.context,
         id,
         patterns,
         (body, s, onSucc, onFail) =>
@@ -294,13 +289,13 @@ export class LogicEngine {
     onSuccess: SuccessCont,
     onFailure: FailureCont,
   ): Thunk<any> {
-    const localEnv = this.createLocalEnv(substs);
-    const localEvaluator = new InterpreterVisitor(localEnv, this.context);
+    this.createLocalEnv(substs);
+    const localEvaluator = new InterpreterVisitor(this.context);
 
     return localEvaluator.evaluate(expr, (result) => {
       if (result !== undefined && result !== false) {
         let currentSubsts = new Map(substs);
-        for (const [name, val] of localEnv.head) {
+        for (const [name, val] of this.context.env.head) {
           const pat = this.translator.primitiveToPattern(val);
           const unified = unify(
             new VariablePattern(new SymbolPrimitive(name)),
@@ -331,24 +326,23 @@ export class LogicEngine {
     );
   }
 
-  private createLocalEnv(substs: Substitution): EnvStack {
-    const localEnv = pushEnv(this.env, new Map());
+  private createLocalEnv(substs: Substitution) {
+    this.context.pushEnv(new Map());
     for (const [name, pattern] of substs) {
       const resolvedPattern = instantiate(pattern, substs);
       const value = this.translator.patternToPrimitive(resolvedPattern);
 
-      define(localEnv, name, value);
+      this.context.define(name, value);
 
-      // Also map base name if it was standardized apart (e.g., "X_1" -> "X")
+      // map base name if it was standardized apart ("X_1" -> "X")
       const baseNameMatch = name.match(/^(.*)_\d+$/);
       if (baseNameMatch) {
         const baseName = baseNameMatch[1];
-        if (!localEnv.head.has(baseName)) {
-          define(localEnv, baseName, value);
+        if (!this.context.env.head.has(baseName)) {
+          this.context.define(baseName, value);
         }
       }
     }
-    return localEnv;
   }
 
   private prepareLogicTargetCPS(
@@ -402,7 +396,7 @@ export class LogicEngine {
   ): Thunk<any> {
     const results: Substitution[] = [];
     return solveGoalCPS(
-      this.env,
+      this.context,
       id,
       patterns,
       (body, s, onSucc, onFail) =>
@@ -461,7 +455,7 @@ export class LogicEngine {
     let currentNext: (() => Thunk<any>) | null = null;
 
     let thunk = solveGoalCPS(
-      this.env,
+      this.context,
       id,
       patterns,
       (body, s, onSucc, onFail) =>

@@ -16,7 +16,7 @@ import {
   PatternMatcher,
   PatternResolver,
 } from "../../src/interpreter/components/PatternMatcher.js";
-import { createStream } from "../../src/interpreter/utils.js";
+import { createGlobalEnv, createStream } from "../../src/interpreter/utils.js";
 import { idContinuation, trampoline } from "../../src/interpreter/trampoline.js";
 import { LazyRuntime } from "../../src/interpreter/components/runtimes/LazyRuntime.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
@@ -81,7 +81,7 @@ describe("Pattern System", () => {
       const bindings: [string, any][] = [];
       const matcher = new PatternMatcher(value, bindings, new LazyRuntime(new RuntimeContext()));
 
-      const success = trampoline(pattern.accept(matcher)(idContinuation as any));
+      const success = trampoline(pattern.accept(matcher)(idContinuation));
       return { success, bindings };
     };
 

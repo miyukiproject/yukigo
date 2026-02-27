@@ -7,7 +7,6 @@ import {
   RuntimeClass,
   EnvStack,
 } from "yukigo-ast";
-import { ExpressionEvaluator, lookup, pushEnv } from "../../utils.js";
 import { InterpreterError } from "../../errors.js";
 import { Continuation, Thunk } from "../../trampoline.js";
 import { RuntimeContext } from "../RuntimeContext.js";
@@ -49,7 +48,6 @@ export class ObjectRuntime {
     methodName: string,
     args: PrimitiveValue[],
     env: EnvStack,
-    evaluatorFactory: (env: EnvStack) => ExpressionEvaluator,
     k: Continuation<PrimitiveValue>,
   ): Thunk<PrimitiveValue> {
     if (!isRuntimeObject(receiver))
@@ -65,15 +63,8 @@ export class ObjectRuntime {
       );
 
     const objectScope = this.createDispatchScope(receiver, match, methodName);
-
-    return this.context.funcRuntime.apply(
-      methodName,
-      match.method.equations,
-      args,
-      pushEnv(env, objectScope),
-      evaluatorFactory,
-      k,
-    );
+    this.context.pushEnv(objectScope);
+    return this.context.funcRuntime.apply(match.method, args, k);
   }
 
   /**
@@ -83,12 +74,11 @@ export class ObjectRuntime {
     currentEnv: EnvStack,
     methodName: string,
     args: PrimitiveValue[],
-    evaluatorFactory: (env: EnvStack) => ExpressionEvaluator,
     k: Continuation<PrimitiveValue>,
   ): Thunk<PrimitiveValue> {
-    const self = lookup(currentEnv, "self") as RuntimeObject;
-    const currentHolder = lookup(currentEnv, "__CONTEXT_CLASS__") as OOPEntity;
-    const currentMethodName = lookup(currentEnv, "__METHOD_NAME__");
+    const self = this.context.lookup("self") as RuntimeObject;
+    const currentHolder = this.context.lookup("__CONTEXT_CLASS__") as OOPEntity;
+    const currentMethodName = this.context.lookup("__METHOD_NAME__");
     const targetMethodName = methodName || currentMethodName;
 
     if (!self || !currentHolder)
@@ -115,14 +105,8 @@ export class ObjectRuntime {
 
     const objectScope = this.createDispatchScope(self, match, targetMethodName);
 
-    return this.context.funcRuntime.apply(
-      methodName,
-      match.method.equations,
-      args,
-      pushEnv(currentEnv, objectScope),
-      evaluatorFactory,
-      k,
-    );
+    this.context.pushEnv(objectScope);
+    return this.context.funcRuntime.apply(match.method, args, k);
   }
   private createDispatchScope(
     self: RuntimeObject,
@@ -156,7 +140,7 @@ export class ObjectRuntime {
     env: EnvStack,
     chain: Array<RuntimeObject | RuntimeClass>,
   ) {
-    const classDef = lookup(env, className);
+    const classDef = this.context.lookup(className);
     if (!isRuntimeClass(classDef))
       throw new InterpreterError(
         "expandClassHierarchy",

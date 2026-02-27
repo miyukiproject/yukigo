@@ -45,7 +45,7 @@ describe("LazyRuntime", () => {
   let evaluator: ExpressionEvaluator;
   let lazyRuntime: LazyRuntime;
   beforeEach(() => {
-    evaluator = new InterpreterVisitor(createGlobalEnv(), context);
+    evaluator = new InterpreterVisitor(context);
     lazyRuntime = new LazyRuntime(context);
   });
   describe("realizeList", () => {
@@ -150,7 +150,7 @@ describe("LazyRuntime", () => {
   describe("evaluateCons", () => {
     describe("Eager Mode (lazy: false)", () => {
       const eagerContext = new RuntimeContext({ lazyLoading: false });
-      const eagerEvaluator = new InterpreterVisitor(createGlobalEnv(), eagerContext);
+      const eagerEvaluator = new InterpreterVisitor(eagerContext);
       const lazyRuntimeEager = new LazyRuntime(eagerContext);
       it("should construct an array if tail is an array", () => {
         const node = cons(num(1), list([num(2), num(3)]));

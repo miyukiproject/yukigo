@@ -16,8 +16,7 @@ import {
   ArithmeticBinaryOperation,
   EnvStack,
 } from "yukigo-ast";
-import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
-import { createGlobalEnv, lookup } from "../../src/interpreter/utils.js";
+import { createGlobalEnv } from "../../src/interpreter/utils.js";
 import {
   Continuation,
   idContinuation,
@@ -63,20 +62,6 @@ const createClass = (
   };
 };
 
-const dummyFactory = (env: EnvStack) => {
-  return {
-    evaluate: <R = PrimitiveValue>(
-      n: any,
-      k: Continuation<PrimitiveValue, R>,
-    ): Thunk<R> => {
-      if (n instanceof NumberPrimitive) return k(n.value);
-      if (n instanceof StringPrimitive) return k(n.value);
-      if (n instanceof SymbolPrimitive) return k(lookup(env, n.value) as any);
-      throw new Error("Unexpected value in dummyFactory: " + n);
-    },
-  };
-};
-
 describe("ctx.objRuntime", () => {
   let objectInstance: RuntimeObject;
   const className = "TestClass";
@@ -96,6 +81,7 @@ describe("ctx.objRuntime", () => {
   const env: EnvStack = createGlobalEnv();
   env.head.set(className, classDef);
   const ctx = new RuntimeContext();
+  ctx.setEnv(env);
   beforeEach(() => {
     objectInstance = ctx.objRuntime.instantiate(
       className,
@@ -176,7 +162,7 @@ describe("ctx.objRuntime", () => {
           "getCount",
           [],
           env,
-          dummyFactory,
+
           idContinuation,
         ),
       );
@@ -192,7 +178,7 @@ describe("ctx.objRuntime", () => {
             "unknownMethod",
             [],
             env,
-            dummyFactory,
+
             idContinuation,
           ),
         );
@@ -207,7 +193,7 @@ describe("ctx.objRuntime", () => {
             "toString",
             [],
             createEmptyEnv() as any,
-            dummyFactory,
+
             idContinuation,
           ),
         );
@@ -237,7 +223,7 @@ describe("ctx.objRuntime", () => {
           "echo",
           [999],
           env,
-          dummyFactory,
+
           idContinuation,
         ),
       );
@@ -270,7 +256,7 @@ describe("ctx.objRuntime", () => {
           "speak",
           [],
           env,
-          dummyFactory,
+
           idContinuation,
         ),
       );
@@ -302,7 +288,7 @@ describe("ctx.objRuntime", () => {
             "id",
             [],
             env,
-            dummyFactory,
+
             idContinuation,
           ),
         ),
@@ -336,7 +322,7 @@ describe("ctx.objRuntime", () => {
             "volar",
             [],
             env,
-            dummyFactory,
+
             idContinuation,
           ),
         ),
@@ -374,7 +360,7 @@ describe("ctx.objRuntime", () => {
             "skill",
             [],
             env,
-            dummyFactory,
+
             idContinuation,
           ),
         ),
@@ -422,7 +408,7 @@ describe("ctx.objRuntime", () => {
             "val",
             [],
             env,
-            dummyFactory,
+
             idContinuation,
           ),
         ),
@@ -464,7 +450,7 @@ describe("ctx.objRuntime", () => {
             "val",
             [],
             env,
-            dummyFactory,
+
             idContinuation,
           ),
         ),
@@ -507,7 +493,7 @@ describe("ctx.objRuntime", () => {
             "val",
             [],
             env,
-            dummyFactory,
+
             idContinuation,
           ),
         ),
@@ -550,7 +536,7 @@ describe("ctx.objRuntime", () => {
             "val",
             [],
             env,
-            dummyFactory,
+
             idContinuation,
           ),
         ),
@@ -611,14 +597,7 @@ describe("ctx.objRuntime", () => {
       );
 
       const result = trampoline(
-        ctx.objRuntime.dispatch(
-          hijoInstance,
-          "calc",
-          [],
-          env,
-          (newEnv) => new InterpreterVisitor(newEnv, ctx),
-          idContinuation,
-        ),
+        ctx.objRuntime.dispatch(hijoInstance, "calc", [], env, idContinuation),
       );
 
       expect(result).to.equal(15);

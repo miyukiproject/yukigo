@@ -18,7 +18,7 @@ import {
   FunctorPattern,
 } from "yukigo-ast";
 import { Substitution, instantiate } from "./LogicResolver.js";
-import { ExpressionEvaluator, isDefined } from "../../utils.js";
+import { ExpressionEvaluator } from "../../utils.js";
 import { InterpreterError } from "../../errors.js";
 import {
   idContinuation,
@@ -26,11 +26,12 @@ import {
   Continuation,
   Thunk,
 } from "../../trampoline.js";
+import { RuntimeContext } from "../RuntimeContext.js";
 
 export class LogicTranslator {
   constructor(
-    private env: EnvStack,
     private evaluator: ExpressionEvaluator,
+    private ctx: RuntimeContext,
   ) {}
 
   public patternToPrimitive(pat: Pattern): PrimitiveValue | undefined {
@@ -83,7 +84,7 @@ export class LogicTranslator {
     if (expr instanceof Variable || expr instanceof SymbolPrimitive) {
       const name =
         expr instanceof Variable ? expr.identifier.value : expr.value;
-      if (isDefined(this.env, name)) {
+      if (this.ctx.isDefined(name)) {
         return this.evaluator.evaluate(expr, (val) => {
           return k(this.primitiveToPattern(val));
         });
@@ -113,13 +114,21 @@ export class LogicTranslator {
     if (Array.isArray(val)) {
       return new ListPattern(val.map((v) => this.primitiveToPattern(v)));
     }
-    if (val && typeof val === "object" && "type" in val && val.type === "Object") {
+    if (
+      val &&
+      typeof val === "object" &&
+      "type" in val &&
+      val.type === "Object"
+    ) {
       // Convert RuntimeObject to FunctorPattern for logic matching
       const args: Pattern[] = [];
       for (const [_, fieldVal] of (val as any).fields) {
         args.push(this.primitiveToPattern(fieldVal));
       }
-      return new FunctorPattern(new SymbolPrimitive((val as any).className || (val as any).identifier), args);
+      return new FunctorPattern(
+        new SymbolPrimitive((val as any).className || (val as any).identifier),
+        args,
+      );
     }
 
     throw new InterpreterError(

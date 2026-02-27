@@ -19,10 +19,10 @@ import {
   RuntimeObject,
   Variable,
 } from "yukigo-ast";
-import { createGlobalEnv, define } from "../utils.js";
 import { InterpreterVisitor } from "./Visitor.js";
 import { idContinuation, trampoline } from "../trampoline.js";
 import { RuntimeContext } from "./RuntimeContext.js";
+import { InterpreterError } from "../errors.js";
 
 /**
  * Builds the initial environment by collecting all top-level function declarations.
@@ -30,19 +30,11 @@ import { RuntimeContext } from "./RuntimeContext.js";
  * allowing recursion by including itself in the closure.
  */
 export class EnvBuilderVisitor extends TraverseVisitor {
-  private env: EnvStack;
-
-  constructor(
-    private context: RuntimeContext,
-    baseEnv?: EnvStack,
-  ) {
+  constructor(private ctx: RuntimeContext) {
     super();
-    this.env = baseEnv ?? createGlobalEnv();
   }
-
-  public build(ast: AST): EnvStack {
+  public build(ast: AST) {
     for (const node of ast) node.accept(this);
-    return this.env;
   }
   visitSequence(node: Sequence): void {
     for (const stmt of node.statements) stmt.accept(this);
@@ -50,20 +42,19 @@ export class EnvBuilderVisitor extends TraverseVisitor {
   visitFunction(node: Function): void {
     const name = node.identifier.value;
 
-    if (this.context.config.debug)
+    if (this.ctx.config.debug)
       console.log(`[EnvBuilder] Defining function: ${name}`);
 
     if (node.equations.length === 0)
       throw new Error(`Function ${name} has no equations`);
 
     const arity = node.equations[0].patterns.length;
-    for (const eq of node.equations) {
-      if (eq.patterns.length !== arity)
-        throw new Error(`All equations of ${name} must have the same arity`);
-    }
+
+    if (node.equations.some((eq) => eq.patterns.length !== arity))
+      throw new Error(`All equations of ${name} must have the same arity`);
 
     let placeholder: RuntimeFunction;
-    define(this.env, name, placeholder);
+    this.ctx.define(name, placeholder);
 
     const equations: EquationRuntime[] = node.equations.map((eq) => ({
       patterns: eq.patterns,
@@ -76,12 +67,12 @@ export class EnvBuilderVisitor extends TraverseVisitor {
       arity,
       equations,
     };
-    define(this.env, name, runtimeFunc);
+    this.ctx.define(name, runtimeFunc);
   }
   visitClass(node: Class): void {
     const identifier = node.identifier.value;
 
-    if (this.context.config.debug)
+    if (this.ctx.config.debug)
       console.log(`[EnvBuilder] Defining class: ${identifier}`);
 
     const superclass = node.extendsSymbol?.value;
@@ -103,12 +94,12 @@ export class EnvBuilderVisitor extends TraverseVisitor {
       mixins,
     };
 
-    define(this.env, identifier, runtimeClass);
+    this.ctx.define(identifier, runtimeClass);
   }
   visitObject(node: Object): void {
     const identifier = node.identifier.value;
 
-    if (this.context.config.debug)
+    if (this.ctx.config.debug)
       console.log(`[EnvBuilder] Defining object: ${identifier}`);
 
     const collector = new OOPCollector();
@@ -125,21 +116,23 @@ export class EnvBuilderVisitor extends TraverseVisitor {
       methods,
     };
 
-    define(this.env, identifier, runtimeObject);
+    this.ctx.define(identifier, runtimeObject);
   }
   visitFact(node: Fact): void {
     const identifier = node.identifier.value;
 
-    if (this.context.config.debug)
+    if (this.ctx.config.debug)
       console.log(`[EnvBuilder] Defining fact: ${identifier}`);
-
-    const localEnv = this.env.head;
-    const runtimeValue = localEnv.get(identifier);
-
-    if (isRuntimePredicate(runtimeValue)) {
+    try {
+      const runtimeValue = this.ctx.lookup(identifier);
+      if (!isRuntimePredicate(runtimeValue))
+        throw new InterpreterError(
+          "EnvBuilder",
+          `"${identifier}" is not a predicate. Maybe there is something else defined as "${identifier}"?`,
+        );
       runtimeValue.equations.push(node);
-    } else {
-      localEnv.set(identifier, {
+    } catch (error) {
+      this.ctx.define(identifier, {
         kind: "Predicate",
         identifier,
         equations: [node],
@@ -150,16 +143,18 @@ export class EnvBuilderVisitor extends TraverseVisitor {
   visitRule(node: Rule): void {
     const identifier = node.identifier.value;
 
-    if (this.context.config.debug)
+    if (this.ctx.config.debug)
       console.log(`[EnvBuilder] Defining rule: ${identifier}`);
-
-    const localEnv = this.env.head;
-    const runtimeValue = localEnv.get(identifier);
-
-    if (isRuntimePredicate(runtimeValue)) {
+    try {
+      const runtimeValue = this.ctx.lookup(identifier);
+      if (!isRuntimePredicate(runtimeValue))
+        throw new InterpreterError(
+          "EnvBuilder",
+          `"${identifier}" is not a predicate. Maybe there is something else defined as "${identifier}"?`,
+        );
       runtimeValue.equations.push(node);
-    } else {
-      localEnv.set(identifier, {
+    } catch (error) {
+      this.ctx.define(identifier, {
         kind: "Predicate",
         identifier,
         equations: [node],
@@ -169,12 +164,12 @@ export class EnvBuilderVisitor extends TraverseVisitor {
   visitVariable(node: Variable): void {
     const identifier = node.identifier.value;
 
-    if (this.context.config.debug)
+    if (this.ctx.config.debug)
       console.log(`[EnvBuilder] Defining variable: ${identifier}`);
 
-    const interpreter = new InterpreterVisitor(this.env, this.context);
+    const interpreter = new InterpreterVisitor(this.ctx);
     const cps = node.expression.accept(interpreter);
-    define(this.env, identifier, trampoline(cps(idContinuation)));
+    this.ctx.define(identifier, trampoline(cps(idContinuation)));
   }
   visit(node: ASTNode): void {
     return node.accept(this);

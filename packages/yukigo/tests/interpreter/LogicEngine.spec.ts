@@ -22,7 +22,6 @@ import {
 } from "yukigo-ast";
 import {
   createGlobalEnv,
-  define,
   ExpressionEvaluator,
 } from "../../src/interpreter/utils.js";
 import { LogicEngine } from "../../src/interpreter/components/logic/LogicEngine.js";
@@ -76,21 +75,22 @@ const rulesSibling: RuntimePredicate = {
   ],
 };
 
+const env = createGlobalEnv();
 const context = new RuntimeContext({
   debug: false,
   outputMode: "all",
 });
+context.setEnv(env);
+context.define("sibling", rulesSibling);
+context.define("parent", factsParent);
 
 describe("Logic Engine & Unification", () => {
   let engine: LogicEngine;
   let evaluator: ExpressionEvaluator;
-  const env = createGlobalEnv();
 
-  define(env, "sibling", rulesSibling);
-  define(env, "parent", factsParent);
   beforeEach(() => {
-    evaluator = new InterpreterVisitor(env, context);
-    engine = new LogicEngine(env, evaluator, context);
+    evaluator = new InterpreterVisitor(context);
+    engine = new LogicEngine(evaluator, context);
   });
 
   describe("Unification Algorithm", () => {
@@ -198,11 +198,6 @@ describe("Logic Engine & Unification", () => {
   });
   describe("Output Modes", () => {
     it('should return all results when outputMode is "all"', () => {
-      engine = new LogicEngine(
-        env,
-        evaluator,
-        new RuntimeContext({ outputMode: "all" }),
-      );
       const query = makeGoal("parent", [lit("zeus"), varPat("X")]);
 
       const results = trampoline(
@@ -210,7 +205,6 @@ describe("Logic Engine & Unification", () => {
       ) as LogicResult[];
       expect(results).to.be.an("array");
       expect(results).to.have.lengthOf(2);
-
       const names = results.map((r) => {
         if (!r.success) throw new Error("Unexpected failure");
         return r.solutions.get("X");

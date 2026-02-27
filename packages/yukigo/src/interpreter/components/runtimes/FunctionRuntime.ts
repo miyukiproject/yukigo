@@ -6,14 +6,16 @@ import {
   Return,
   EnvStack,
   Function,
+  RuntimeFunction,
 } from "yukigo-ast";
 import { Bindings } from "../../index.js";
 import { PatternMatcher } from "../PatternMatcher.js";
-import { ExpressionEvaluator, pushEnv } from "../../utils.js";
+import { ExpressionEvaluator } from "../../utils.js";
 import { InterpreterError } from "../../errors.js";
 import { EnvBuilderVisitor } from "../EnvBuilder.js";
 import { Continuation, Thunk } from "../../trampoline.js";
 import { RuntimeContext } from "../RuntimeContext.js";
+import { InterpreterVisitor } from "../Visitor.js";
 
 class NonExhaustivePatterns extends InterpreterError {
   constructor(funcName: string) {
@@ -21,17 +23,19 @@ class NonExhaustivePatterns extends InterpreterError {
   }
 }
 
+type EvaluatorFactory = (ctx: RuntimeContext) => ExpressionEvaluator;
+
 export class FunctionRuntime {
   constructor(private context: RuntimeContext) {}
 
   public apply(
-    funcName: string,
-    equations: EquationRuntime[],
+    func: RuntimeFunction,
     args: PrimitiveValue[],
-    currentEnv: EnvStack,
-    evaluatorFactory: (env: EnvStack) => ExpressionEvaluator,
     k: Continuation<PrimitiveValue>,
   ): Thunk<PrimitiveValue> {
+    const funcName = func.identifier;
+    const equations = func.equations;
+
     if (this.context.config.debug)
       console.log(
         `[FunctionRuntime] Applying function: ${funcName} with args:`,
@@ -58,44 +62,48 @@ export class FunctionRuntime {
           );
 
         const localEnv = new Map<string, PrimitiveValue>(bindings);
-        const newStack: EnvStack = pushEnv(currentEnv, localEnv);
+        if (func.closure) this.context.setEnv(func.closure);
+        this.context.pushEnv(localEnv);
+        const evaluatorFactory: EvaluatorFactory = (ctx) =>
+          new InterpreterVisitor(ctx);
 
-        const scopeEvaluator = evaluatorFactory(newStack);
+        const body = eq.body;
 
         // UnguardedBody
-        if (eq.body instanceof UnguardedBody)
+        if (body instanceof UnguardedBody)
           return this.evaluateSequence(
-            eq.body.sequence,
-            scopeEvaluator,
-            newStack,
+            body.sequence,
+            this.context,
+            evaluatorFactory,
             k,
           );
 
         // GuardedBody
         return () => {
-          if (Array.isArray(eq.body) && eq.body.length > 0) {
-            const prototypeBody = eq.body[0].body;
+          if (Array.isArray(body) && body.length > 0) {
+            const prototypeBody = body[0].body;
             if (prototypeBody instanceof Sequence)
-              this.preloadDefinitions(prototypeBody, scopeEvaluator, newStack);
+              this.preloadDefinitions(prototypeBody, evaluatorFactory);
           }
 
           const tryNextGuard = (guardIndex: number): Thunk<PrimitiveValue> => {
-            if (guardIndex >= (eq.body as any[]).length) {
+            if (guardIndex >= body.length)
               return () => tryNextEquation(eqIndex + 1);
-            }
-            const guard = (eq.body as any[])[guardIndex];
-            return scopeEvaluator.evaluate(guard.condition, (cond) => {
-              if (cond === true) {
-                if (guard.body instanceof Sequence)
-                  return this.evaluateSequence(
-                    guard.body,
-                    scopeEvaluator,
-                    newStack,
-                    k,
-                  );
-                return scopeEvaluator.evaluate(guard.body, k);
-              }
-              return () => tryNextGuard(guardIndex + 1);
+
+            const evaluator = evaluatorFactory(this.context);
+            const guard = body[guardIndex];
+            return evaluator.evaluate(guard.condition, (cond) => {
+              if (cond !== true) return () => tryNextGuard(guardIndex + 1);
+
+              if (!(guard.body instanceof Sequence))
+                return evaluator.evaluate(guard.body, k);
+
+              return this.evaluateSequence(
+                guard.body,
+                this.context,
+                evaluatorFactory,
+                k,
+              );
             });
           };
 
@@ -109,13 +117,12 @@ export class FunctionRuntime {
 
   private preloadDefinitions(
     seq: Sequence,
-    evaluator: ExpressionEvaluator,
-    env: EnvStack,
+    evaluatorFactory: EvaluatorFactory,
   ): void {
-    const builder = new EnvBuilderVisitor(this.context, env);
-    for (const stmt of seq.statements) {
-      if (stmt instanceof Function) stmt.accept(builder);
-    }
+    const ctx = new RuntimeContext();
+    new EnvBuilderVisitor(ctx).build(seq.statements);
+    const evaluator = evaluatorFactory(ctx);
+
     for (const stmt of seq.statements) {
       if (stmt instanceof Function || stmt instanceof Return) continue;
       evaluator.evaluate(stmt, (val) => val);
@@ -145,14 +152,12 @@ export class FunctionRuntime {
 
   private evaluateSequence(
     seq: Sequence,
-    evaluator: ExpressionEvaluator,
-    env: EnvStack,
+    ctx: RuntimeContext,
+    evaluatorFactory: EvaluatorFactory,
     k: Continuation<PrimitiveValue>,
   ): Thunk<PrimitiveValue> {
-    const builder = new EnvBuilderVisitor(this.context, env);
-    for (const stmt of seq.statements) {
-      if (stmt instanceof Function) stmt.accept(builder);
-    }
+    new EnvBuilderVisitor(ctx).build(seq.statements);
+    const evaluator = evaluatorFactory(ctx);
 
     const evaluateNext = (
       index: number,

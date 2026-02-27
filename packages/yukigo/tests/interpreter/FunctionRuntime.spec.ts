@@ -10,68 +10,67 @@ import {
   VariablePattern,
   GuardedBody,
   EnvStack,
-  PrimitiveValue,
+  RuntimeFunction,
+  StringPrimitive,
+  Variable,
+  Expression,
+  BooleanPrimitive,
+  Equation,
 } from "yukigo-ast";
 import { FunctionRuntime } from "../../src/interpreter/components/runtimes/FunctionRuntime.js";
 import { createGlobalEnv } from "../../src/interpreter/utils.js";
-import { Continuation, idContinuation, Thunk, trampoline } from "../../src/interpreter/trampoline.js";
+import {
+  idContinuation,
+  trampoline,
+} from "../../src/interpreter/trampoline.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
 
-const s = (val: string) => new SymbolPrimitive(val);
-const n = (val: number) => new NumberPrimitive(val);
+const symbol = (val: string) => new SymbolPrimitive(val);
+const num = (val: number) => new NumberPrimitive(val);
+const str = (val: string) => new StringPrimitive(val);
 const litPat = (val: number | string) =>
-  new LiteralPattern(typeof val === "number" ? n(val) : s(val));
-const varPat = (name: string) => new VariablePattern(s(name));
-const valExpr = (val: any) => ({ type: "Value", value: val } as any);
-const varExpr = (name: string) => ({ type: "Variable", value: name } as any);
+  new LiteralPattern(typeof val === "number" ? num(val) : symbol(val));
+const varPat = (name: string) => new VariablePattern(symbol(name));
+const varExpr = (name: string, expr: Expression) =>
+  new Variable(symbol(name), expr);
 const seq = (stmts: any[]) => new Sequence(stmts);
 const unguarded = (stmts: any[]) => new UnguardedBody(seq(stmts));
-const guarded = (guards: { cond: any; body: any }[]): GuardedBody[] => {
-  return guards.map((g) => new GuardedBody(g.cond, valExpr(g.body)));
+const guarded = (guards: { cond: any; body: Expression }[]): GuardedBody[] => {
+  return guards.map((g) => new GuardedBody(g.cond, g.body));
 };
 
-class MockEvaluator {
-  constructor(public env: EnvStack) {}
-
-  evaluate(node: any, k: Continuation<PrimitiveValue>): Thunk<PrimitiveValue> {
-    if (node.type === "Value") return k(node.value);
-    if (node.type === "Variable") {
-      const val = this.env.head.get(node.value);
-      return k(val !== undefined ? val : `Error: ${node.value} not found`);
-    }
-    return k(node);
-  }
-}
+const makeRunFunc = (
+  identifier: string,
+  arity: number,
+  equations: EquationRuntime[],
+): RuntimeFunction => ({ type: "Function", identifier, arity, equations });
 
 describe("FunctionRuntime", () => {
   let globalEnv: EnvStack;
-  let evaluatorFactory: any;
-  let funcRuntime: FunctionRuntime
+
+  let funcRuntime: FunctionRuntime;
   beforeEach(() => {
     globalEnv = createGlobalEnv();
-    evaluatorFactory = (env: EnvStack) => new MockEvaluator(env);
-    const context = new RuntimeContext()
-    funcRuntime = new FunctionRuntime(context)
+    const context = new RuntimeContext();
+    context.setEnv(globalEnv);
+    funcRuntime = new FunctionRuntime(context);
   });
 
   describe("Pattern Matching & Dispatch", () => {
     it("should match arguments to literal patterns", () => {
       const eq1: EquationRuntime = {
         patterns: [litPat(10)],
-        body: unguarded([valExpr("ten")]),
+        body: unguarded([str("ten")]),
       };
       const eq2: EquationRuntime = {
         patterns: [litPat(20)],
-        body: unguarded([valExpr("twenty")]),
+        body: unguarded([str("twenty")]),
       };
 
       const resultThunk = funcRuntime.apply(
-        "f",
-        [eq1, eq2],
+        makeRunFunc("f", 1, [eq1, eq2]),
         [20],
-        globalEnv,
-        evaluatorFactory,
-        idContinuation
+        idContinuation,
       );
       const result = trampoline(resultThunk);
 
@@ -81,22 +80,26 @@ describe("FunctionRuntime", () => {
     it("should throw error if no pattern matches (Non-exhaustive)", () => {
       const eq1: EquationRuntime = {
         patterns: [litPat(10)],
-        body: unguarded([valExpr("ten")]),
+        body: unguarded([str("ten")]),
       };
 
       expect(() => {
-        trampoline(funcRuntime.apply("f", [eq1], [99], globalEnv, evaluatorFactory, idContinuation));
+        trampoline(
+          funcRuntime.apply(makeRunFunc("f", 1, [eq1]), [99], idContinuation),
+        );
       }).to.throw(/Non-exhaustive patterns/);
     });
 
     it("should skip equations with wrong arity (argument count)", () => {
       const eq1: EquationRuntime = {
         patterns: [varPat("X")],
-        body: unguarded([valExpr("one arg")]),
+        body: unguarded([str("one arg")]),
       };
 
       expect(() => {
-        trampoline(funcRuntime.apply("f", [eq1], [1, 2], globalEnv, evaluatorFactory, idContinuation));
+        trampoline(
+          funcRuntime.apply(makeRunFunc("f", 2, [eq1]), [1, 2], idContinuation),
+        );
       }).to.throw(/Non-exhaustive patterns/);
     });
   });
@@ -105,17 +108,16 @@ describe("FunctionRuntime", () => {
     it("should bind variables to a new local scope", () => {
       const eq1: EquationRuntime = {
         patterns: [varPat("X")],
-        body: unguarded([varExpr("X")]),
+        body: unguarded([num(500)]),
       };
 
-      const result = trampoline(funcRuntime.apply(
-        "identity",
-        [eq1],
-        [500],
-        globalEnv,
-        evaluatorFactory,
-        idContinuation
-      ));
+      const result = trampoline(
+        funcRuntime.apply(
+          makeRunFunc("identity", 1, [eq1]),
+          [500],
+          idContinuation,
+        ),
+      );
 
       expect(result).to.equal(500);
     });
@@ -123,73 +125,59 @@ describe("FunctionRuntime", () => {
     it("should prioritize local scope over global scope", () => {
       globalEnv.head.set("X", 1);
 
-      const eq1: EquationRuntime = {
-        patterns: [varPat("X")],
-        body: unguarded([varExpr("X")]),
-      };
+      const eq1: EquationRuntime = new Equation(
+        [new VariablePattern(new SymbolPrimitive("X"))],
+        new UnguardedBody(new Sequence([new Return(new SymbolPrimitive("X"))])),
+        new Return(new SymbolPrimitive("X")),
+      );
 
-      const result = trampoline(funcRuntime.apply(
-        "shadow",
-        [eq1],
-        [999],
-        globalEnv,
-        evaluatorFactory,
-        idContinuation
-      ));
+      const result = trampoline(
+        funcRuntime.apply(
+          makeRunFunc("shadow", 1, [eq1]),
+          [999],
+          idContinuation,
+        ),
+      );
       expect(result).to.equal(999);
     });
   });
 
   describe("Guarded Bodies", () => {
-    const guardedEvaluatorFactory = (env: any[]) => ({
-      evaluate: (node: any, k: Continuation<PrimitiveValue>) => {
-        if (node.type === "Condition") return k(node.value);
-        if (node.type === "Value") return k(node.value);
-        return k(null);
-      },
-    });
-
     it("should execute the body of the first true guard", () => {
       const guards = [
-        { cond: { type: "Condition", value: false }, body: 1 },
-        { cond: { type: "Condition", value: true }, body: 2 },
+        new GuardedBody(new BooleanPrimitive(false), num(1)),
+        new GuardedBody(new BooleanPrimitive(true), num(2)),
       ];
 
       const eq: EquationRuntime = {
         patterns: [varPat("_")],
-        body: guarded(guards),
+        body: guards,
       };
 
-      const result = trampoline(funcRuntime.apply(
-        "guards",
-        [eq],
-        [0],
-        globalEnv,
-        guardedEvaluatorFactory as any,
-        idContinuation
-      ));
+      const result = trampoline(
+        funcRuntime.apply(makeRunFunc("guards", 1, [eq]), [0], idContinuation),
+      );
       expect(result).to.equal(2);
     });
 
     it("should fall through to next equation if no guard matches", () => {
       const eq1: EquationRuntime = {
         patterns: [varPat("_")],
-        body: guarded([{ cond: { type: "Condition", value: false }, body: 1 }]),
+        body: [new GuardedBody(new BooleanPrimitive(false), num(1))],
       };
 
       const eq2: EquationRuntime = {
         patterns: [varPat("_")],
-        body: unguarded([valExpr(2)]),
+        body: unguarded([num(2)]),
       };
 
-      const result = trampoline(funcRuntime.apply(
-        "fallback",
-        [eq1, eq2],
-        [0],
-        globalEnv,
-        guardedEvaluatorFactory as any,
-        idContinuation
-      ));
+      const result = trampoline(
+        funcRuntime.apply(
+          makeRunFunc("fallback", 1, [eq1, eq2]),
+          [0],
+          idContinuation,
+        ),
+      );
       expect(result).to.equal(2);
     });
   });
@@ -198,36 +186,26 @@ describe("FunctionRuntime", () => {
     it("should return the value of the last statement implicitly", () => {
       const eq: EquationRuntime = {
         patterns: [],
-        body: unguarded([valExpr(10), valExpr(20), valExpr(30)]),
+        body: unguarded([num(10), num(20), num(30)]),
       };
 
-      const result = trampoline(funcRuntime.apply(
-        "seq",
-        [eq],
-        [],
-        globalEnv,
-        evaluatorFactory,
-        idContinuation
-      ));
+      const result = trampoline(
+        funcRuntime.apply(makeRunFunc("seq", 1, [eq]), [], idContinuation),
+      );
       expect(result).to.equal(30);
     });
 
     it("should return early with Return statement", () => {
-      const retStmt = new Return(valExpr(99));
+      const retStmt = new Return(num(99));
 
       const eq: EquationRuntime = {
         patterns: [],
-        body: unguarded([valExpr(10), retStmt, valExpr(30)]),
+        body: unguarded([num(10), retStmt, num(30)]),
       };
 
-      const result = trampoline(funcRuntime.apply(
-        "earlyRet",
-        [eq],
-        [],
-        globalEnv,
-        evaluatorFactory,
-        idContinuation
-      ));
+      const result = trampoline(
+        funcRuntime.apply(makeRunFunc("earlyRet", 1, [eq]), [], idContinuation),
+      );
       expect(result).to.equal(99);
     });
 
@@ -236,14 +214,9 @@ describe("FunctionRuntime", () => {
         patterns: [],
         body: unguarded([]),
       };
-      const result = trampoline(funcRuntime.apply(
-        "empty",
-        [eq],
-        [],
-        globalEnv,
-        evaluatorFactory,
-        idContinuation
-      ));
+      const result = trampoline(
+        funcRuntime.apply(makeRunFunc("empty", 1, [eq]), [], idContinuation),
+      );
       expect(result).to.be.undefined;
     });
   });

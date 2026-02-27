@@ -31,7 +31,7 @@ class TestExecutor extends TraverseVisitor {
     const start = Date.now();
 
     try {
-      this.bindParameters(node);
+      //this.bindParameters(node);
       this.interpreter.evaluate(node);
       this.report = {
         name,
@@ -43,7 +43,7 @@ class TestExecutor extends TraverseVisitor {
     }
   }
 
-  private bindParameters(node: Test): void {
+  /*   private bindParameters(node: Test): void {
     if (!node.args || node.args.length === 0) return;
 
     for (const pattern of node.args) {
@@ -51,7 +51,7 @@ class TestExecutor extends TraverseVisitor {
         this.interpreter.define(pattern.name.value, null);
       }
     }
-  }
+  } */
 
   visitTestGroup(node: TestGroup): void {
     const name = this.evaluateName(node.name);

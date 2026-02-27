@@ -2,7 +2,7 @@ import { PrimitiveValue, AST, EnvStack, ASTNode } from "yukigo-ast";
 import { InterpreterVisitor } from "./components/Visitor.js";
 import { EnvBuilderVisitor } from "./components/EnvBuilder.js";
 import { InterpreterError } from "./errors.js";
-import { define } from "./utils.js";
+import { createGlobalEnv } from "./utils.js";
 import { idContinuation, trampoline } from "./trampoline.js";
 import {
   InterpreterConfig,
@@ -22,20 +22,15 @@ export type Bindings = [string, PrimitiveValue][];
  * of Expression nodes to a dedicated visitor.
  */
 export class Interpreter {
-  private globalEnv: EnvStack;
   private context: RuntimeContext;
 
   /**
    * @param ast The Abstract Syntax Tree (AST) of the program to be interpreted.
    */
-  constructor(ast: AST, config?: InterpreterConfig) {
+  constructor(ast: AST, config: InterpreterConfig = {}) {
     this.context = new RuntimeContext(config);
-    const envBuilder = new EnvBuilderVisitor(this.context);
-    this.globalEnv = envBuilder.build(ast);
-  }
-
-  public define(name: string, value: PrimitiveValue): void {
-    define(this.globalEnv, name, value);
+    const builder = new EnvBuilderVisitor(this.context);
+    builder.build(ast);
   }
 
   /**
@@ -46,7 +41,7 @@ export class Interpreter {
    */
   public evaluate(expr: ASTNode): PrimitiveValue {
     try {
-      const visitor = new InterpreterVisitor(this.globalEnv, this.context);
+      const visitor = new InterpreterVisitor(this.context);
       const evaluatedCPS = expr.accept(visitor);
       return trampoline(evaluatedCPS(idContinuation));
     } catch (error) {

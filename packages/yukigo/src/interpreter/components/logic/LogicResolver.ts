@@ -49,11 +49,14 @@ import {
   NilPrimitive,
   CharPrimitive,
   Visitor,
+  GuardedBody,
+  isUnguardedBody,
 } from "yukigo-ast";
-import { lookup } from "../../utils.js";
 import { InterpreterError } from "../../errors.js";
 import { Thunk } from "../../trampoline.js";
 import { LogicExecutable } from "./LogicEngine.js";
+import { RuntimeContext } from "../RuntimeContext.js";
+import { inspect } from "util";
 
 /**
  * A Substitution maps variable names to their bound patterns.
@@ -303,7 +306,13 @@ export function instantiate(
 
 let variableCounter = 0;
 
-class LogicVariableRenamer implements PatternVisitor<Pattern> {
+interface RenamerVisitor {
+  visitFact(node: Fact): Fact;
+  visitRule(node: Rule): Rule;
+  visitUnguardedBody(node: UnguardedBody): UnguardedBody;
+}
+
+class LogicVariableRenamer implements PatternVisitor<Pattern>, RenamerVisitor {
   constructor(
     private renames: Map<string, string>,
     private freshId: number,
@@ -315,6 +324,37 @@ class LogicVariableRenamer implements PatternVisitor<Pattern> {
       return node.accept(this);
     }
     return node;
+  }
+
+  visitFact(node: Fact): Fact {
+    return new Fact(
+      node.identifier,
+      node.patterns.map((p) => this.rename(p)),
+      node.loc,
+    );
+  }
+  visitRule(node: Rule): Rule {
+    const renamedEquations = node.equations.map((eq) => {
+      const body = eq.body;
+      if (!isUnguardedBody(body))
+        throw new Error("GuardedBody renaming not implemented");
+      return new Equation(
+        eq.patterns.map((p) => this.rename(p)),
+        body.accept(this),
+        eq.returnExpr,
+        eq.loc,
+      );
+    });
+    return new Rule(node.identifier, renamedEquations, node.loc);
+  }
+  visitUnguardedBody(node: UnguardedBody): UnguardedBody {
+    return new UnguardedBody(
+      new Sequence(
+        node.sequence.statements.map((stmt) => this.rename(stmt)),
+        node.sequence.loc,
+      ),
+      node.loc,
+    );
   }
 
   // PatternVisitor
@@ -453,7 +493,11 @@ class LogicVariableRenamer implements PatternVisitor<Pattern> {
   }
 
   visitForall(node: Forall): any {
-    return new Forall(this.rename(node.condition), this.rename(node.action), node.loc);
+    return new Forall(
+      this.rename(node.condition),
+      this.rename(node.action),
+      node.loc,
+    );
   }
 
   visitCall(node: Call): any {
@@ -622,45 +666,104 @@ export function renameVariables<T extends Rule | Fact>(clause: T): T {
   const renames = new Map<string, string>();
   const freshId = ++variableCounter;
   const renamer = new LogicVariableRenamer(renames, freshId);
+  const renamedClause = clause.accept(renamer)
+  return renamedClause;
+}
 
-  if (clause instanceof Fact) {
-    return new Fact(
-      clause.identifier,
-      clause.patterns.map((p) => renamer.rename(p)),
-      clause.loc,
-    ) as T;
+class CPSBodyVisitor implements Visitor<Thunk<any>> {
+  constructor(
+    private readonly solveBody: BodySolverCPS,
+    private readonly substs: Substitution,
+    private readonly onSuccess: SuccessCont,
+    private readonly onNextEq: Thunk<any>,
+  ) {}
+
+  public visitUnguardedBody(body: UnguardedBody): Thunk<any> {
+    return this.solveBody(
+      body.sequence.statements,
+      this.substs,
+      this.onSuccess,
+      this.onNextEq,
+    );
   }
 
-  if (clause instanceof Rule) {
-    const renamedEquations = clause.equations.map((eq) => {
-      let renamedBody = eq.body;
-      if (eq.body instanceof UnguardedBody) {
-        renamedBody = new UnguardedBody(
-          new Sequence(
-            eq.body.sequence.statements.map((stmt) => renamer.rename(stmt)),
-            eq.body.sequence.loc,
-          ),
-          eq.body.loc,
+  public visitGuardedBody(body: GuardedBody): Thunk<any> {
+    return this.solveBody(
+      [body.condition],
+      this.substs,
+      (guardSubsts: Substitution, _nextGuardChoice: Thunk<any>) => {
+        return this.solveBody(
+          [body.body],
+          guardSubsts,
+          this.onSuccess,
+          this.onNextEq,
         );
-      }
-      return new Equation(
-        eq.patterns.map((p) => renamer.rename(p)),
-        renamedBody,
-        eq.returnExpr,
-        eq.loc,
-      );
-    });
-    return new Rule(clause.identifier, renamedEquations, clause.loc) as T;
+      },
+      this.onNextEq,
+    );
+  }
+}
+
+class GoalSolverVisitor implements Visitor<Thunk<any>> {
+  constructor(
+    private readonly args: Pattern[],
+    private readonly baseSubst: Substitution,
+    private readonly solveBody: BodySolverCPS,
+    private readonly onSuccess: SuccessCont,
+    private readonly onNextClause: Thunk<any>,
+  ) {}
+
+  public visitFact(fact: Fact): Thunk<any> {
+    if (fact.patterns.length !== this.args.length) return this.onNextClause;
+
+    const renamedFact = renameVariables(fact);
+    const substs = unifyParameters(
+      renamedFact.patterns,
+      this.args,
+      this.baseSubst,
+    );
+
+    if (substs) return this.onSuccess(substs, this.onNextClause);
+    return this.onNextClause;
   }
 
-  return clause;
+  public visitRule(rule: Rule): Thunk<any> {
+    if (rule.equations.length === 0) return this.onNextClause;
+
+    const arity = rule.equations[0].patterns.length;
+    if (arity !== this.args.length) return this.onNextClause;
+
+    const renamedRule = renameVariables(rule);
+
+    const tryRuleEq = (eqIndex: number): Thunk<any> => {
+      if (eqIndex >= renamedRule.equations.length) return this.onNextClause;
+
+      const eq = renamedRule.equations[eqIndex];
+      const substs = unifyParameters(eq.patterns, this.args, this.baseSubst);
+      const onNextEq = () => tryRuleEq(eqIndex + 1);
+
+      if (!substs) return onNextEq;
+
+      const bodyVisitor = new CPSBodyVisitor(
+        this.solveBody,
+        substs,
+        this.onSuccess,
+        onNextEq,
+      );
+
+      if (isUnguardedBody(eq.body)) return eq.body.accept(bodyVisitor);
+      return eq.body.forEach((branch) => branch.accept(bodyVisitor));
+    };
+
+    return () => tryRuleEq(0);
+  }
 }
 
 /**
  * Solves a single logic goal (predicate call) using CPS.
  */
 export function solveGoalCPS(
-  envs: EnvStack,
+  ctx: RuntimeContext,
   predicateName: string,
   args: Pattern[],
   solveBody: BodySolverCPS,
@@ -668,51 +771,31 @@ export function solveGoalCPS(
   onSuccess: SuccessCont,
   onFailure: FailureCont,
 ): Thunk<any> {
-  const pred = lookup(envs, predicateName);
-  if (!pred || !isRuntimePredicate(pred)) return () => onFailure();
-
   const tryClause = (index: number): Thunk<any> => {
-    if (index >= pred.equations.length) return () => onFailure();
+    let equations: (Rule | Fact)[];
 
-    const clause = pred.equations[index];
-
-    const arity =
-      clause instanceof Fact
-        ? clause.patterns.length
-        : clause.equations[0].patterns.length;
-
-    if (arity !== args.length) return () => tryClause(index + 1);
-
-    if (clause instanceof Fact) {
-      const renamedFact = renameVariables(clause);
-      const substs = unifyParameters(renamedFact.patterns, args, baseSubst);
-      if (substs) {
-        return onSuccess(substs, () => tryClause(index + 1));
-      }
-      return () => tryClause(index + 1);
+    try {
+      const pred = ctx.lookup(predicateName);
+      if (!pred || !isRuntimePredicate(pred)) return () => onFailure();
+      equations = pred.equations;
+    } catch (error) {
+      return () => onFailure();
     }
 
-    if (clause instanceof Rule) {
-      const renamedRule = renameVariables(clause);
-      const tryRuleEq = (eqIndex: number): Thunk<any> => {
-        if (eqIndex >= renamedRule.equations.length)
-          return () => tryClause(index + 1);
-        const eq = renamedRule.equations[eqIndex];
-        const substs = unifyParameters(eq.patterns, args, baseSubst);
-        if (!substs) return () => tryRuleEq(eqIndex + 1);
+    if (index >= equations.length) return () => onFailure();
 
-        if (eq.body instanceof UnguardedBody) {
-          return solveBody(eq.body.sequence.statements, substs, onSuccess, () =>
-            tryRuleEq(eqIndex + 1),
-          );
-        }
-        // TODO: Handle GuardedBody
-        return () => tryRuleEq(eqIndex + 1);
-      };
-      return () => tryRuleEq(0);
-    }
+    const clause = equations[index];
+    const onNextClause = () => tryClause(index + 1);
 
-    throw new InterpreterError("solveGoal", `Unexpected clause type ${clause}`);
+    const clauseVisitor = new GoalSolverVisitor(
+      args,
+      baseSubst,
+      solveBody,
+      onSuccess,
+      onNextClause,
+    );
+
+    return clause.accept(clauseVisitor);
   };
 
   return () => tryClause(0);
