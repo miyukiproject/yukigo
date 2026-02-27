@@ -9,23 +9,33 @@ import {
   Goal,
   Pattern,
   Rule,
-  RuntimeFact,
-  RuntimeRule,
   LogicResult,
   EnvStack,
   Equation,
   Sequence,
   UnguardedBody,
   Statement,
+  LogicConstraint,
+  Expression,
+  SuccessLogicResult,
+  RuntimePredicate,
 } from "yukigo-ast";
 import {
   createGlobalEnv,
   ExpressionEvaluator,
 } from "../../src/interpreter/utils.js";
-import { LogicEngine } from "../../src/interpreter/components/LogicEngine.js";
-import { InterpreterConfig } from "../../src/interpreter/index.js";
-import { unify } from "../../src/interpreter/components/LogicResolver.js";
+import { LogicEngine } from "../../src/interpreter/components/logic/LogicEngine.js";
+import { unify } from "../../src/interpreter/components/logic/LogicResolver.js";
 import { PatternResolver } from "../../src/interpreter/components/PatternMatcher.js";
+import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
+import {
+  idContinuation,
+  trampoline,
+} from "../../src/interpreter/trampoline.js";
+import {
+  InterpreterConfig,
+  RuntimeContext,
+} from "../../src/interpreter/components/RuntimeContext.js";
 
 const s = (val: string) => new SymbolPrimitive(val);
 const n = (val: number) => new NumberPrimitive(val);
@@ -38,31 +48,49 @@ const makeEq = (args: Pattern[], stmts: Statement[]) =>
 const makeFact = (id: string, args: Pattern[]) => new Fact(s(id), args);
 const makeRule = (id: string, body: Equation[]) => new Rule(s(id), body);
 const makeGoal = (id: string, args: Pattern[]) => new Goal(s(id), args);
+const makeConstraint = (expr: Expression) => new LogicConstraint(expr);
 
-class MockEvaluator implements ExpressionEvaluator {
-  evaluate(node: any): any {
-    if (node instanceof SymbolPrimitive) return node.value;
-    if (node instanceof NumberPrimitive) return node.value;
-    if (node instanceof LiteralPattern) return this.evaluate(node.name);
-    return null;
-  }
-}
+const factsParent: RuntimePredicate = {
+  kind: "Fact",
+  identifier: "parent",
+  equations: [
+    makeFact("parent", [lit("zeus"), lit("ares")]),
+    makeFact("parent", [lit("zeus"), lit("athena")]),
+    makeFact("parent", [lit("hera"), lit("ares")]),
+  ],
+};
+const rulesSibling: RuntimePredicate = {
+  kind: "Rule",
+  identifier: "sibling",
+  equations: [
+    makeRule("sibling", [
+      makeEq(
+        [varPat("X"), varPat("Y")],
+        [
+          makeConstraint(makeGoal("parent", [varPat("Z"), varPat("X")])),
+          makeConstraint(makeGoal("parent", [varPat("Z"), varPat("Y")])),
+        ],
+      ),
+    ]),
+  ],
+};
+
+const env = createGlobalEnv();
+const context = new RuntimeContext({
+  debug: false,
+  outputMode: "all",
+});
+context.setEnv(env);
+context.define("sibling", rulesSibling);
+context.define("parent", factsParent);
 
 describe("Logic Engine & Unification", () => {
   let engine: LogicEngine;
-  let env: EnvStack;
-  let evaluator: MockEvaluator;
+  let evaluator: ExpressionEvaluator;
 
   beforeEach(() => {
-    env = createGlobalEnv();
-    evaluator = new MockEvaluator();
-
-    const config: InterpreterConfig = {
-      debug: false,
-      outputMode: "all",
-    };
-
-    engine = new LogicEngine(env, config, evaluator);
+    evaluator = new InterpreterVisitor(context);
+    engine = new LogicEngine(evaluator, context);
   });
 
   describe("Unification Algorithm", () => {
@@ -102,102 +130,104 @@ describe("Logic Engine & Unification", () => {
   });
 
   describe("LogicEngine Execution", () => {
-    beforeEach(() => {
-      const globalEnv = env.head;
-      const factsParent: RuntimeFact = {
-        kind: "Fact",
-        identifier: "parent",
-        equations: [
-          makeFact("parent", [lit("zeus"), lit("ares")]),
-          makeFact("parent", [lit("zeus"), lit("athena")]),
-          makeFact("parent", [lit("hera"), lit("ares")]),
-        ],
-      };
-      globalEnv.set("parent", factsParent);
-
-      const rulesSibling: RuntimeRule = {
-        kind: "Rule",
-        identifier: "sibling",
-        equations: [
-          makeRule("sibling", [
-            makeEq(
-              [varPat("X"), varPat("Y")],
-              [
-                makeGoal("parent", [varPat("Z"), varPat("X")]),
-                makeGoal("parent", [varPat("Z"), varPat("Y")]),
-              ]
-            ),
-          ]),
-        ],
-      };
-      globalEnv.set("sibling", rulesSibling);
-    });
-
     it("should solve a simple ground goal (Fact exists)", () => {
       const query = makeGoal("parent", [lit("zeus"), lit("ares")]);
-      const results = engine.solveGoal(query) as LogicResult[];
+      const results = trampoline(
+        engine.solveGoal(query, idContinuation),
+      ) as LogicResult[];
       expect(results).to.not.be.false;
       results.forEach((res) => expect(res.success).to.be.true);
     });
 
     it("should fail a ground goal that does not exist", () => {
       const query = makeGoal("parent", [lit("zeus"), lit("thor")]);
-      const results = engine.solveGoal(query) as LogicResult[];
+      const results = trampoline(
+        engine.solveGoal(query, idContinuation),
+      ) as LogicResult[];
       results.forEach((res) => expect(res.success).to.be.false);
     });
 
     it("should solve a goal with a variable", () => {
       const query = makeGoal("parent", [lit("zeus"), varPat("Child")]);
-      const results = engine.solveGoal(query) as LogicResult[];
-      results.forEach((res) => expect(res.success).to.be.true);
-      results.forEach((res) => expect(res.solutions.has("Child")).to.be.true);
+      const results = trampoline(
+        engine.solveGoal(query, idContinuation),
+      ) as LogicResult[];
 
-      const names = results.map((r) => r.solutions.get("Child"));
+      results.forEach((res) => {
+        if (!res.success) expect.fail("Result should be successful");
+        expect(res.solutions.has("Child")).to.be.true;
+      });
+
+      const names = results.map((r) => {
+        if (!r.success) throw new Error("Unexpected failure");
+        return r.solutions.get("Child");
+      });
+
       expect(names).to.include("ares");
       expect(names).to.include("athena");
     });
 
     it("should solve a rule using backtracking", () => {
       const query = makeGoal("sibling", [lit("ares"), lit("athena")]);
-      const results = engine.solveGoal(query) as LogicResult[];
-      results.forEach((res) => expect(res.success).to.be.true);
+      const results = trampoline(
+        engine.solveGoal(query, idContinuation),
+      ) as LogicResult[];
+      expect(results.length).to.be.eq(1);
+      const solution = results[0] as SuccessLogicResult;
+      expect(solution.success).to.be.true;
+      expect(solution.solutions.get("X")).to.eq("ares");
+      expect(solution.solutions.get("Y")).to.eq("athena");
+      expect(solution.solutions.get("Z")).to.eq("zeus");
     });
-    it("should solve a rule using backtracking with variable", () => {
-      const query = makeGoal("sibling", [lit("ares"), varPat("Child")]);
-      const results = engine.solveGoal(query) as LogicResult[];
-      results.forEach((res) => expect(res.success).to.be.true);
-      const names = results.map((r) => r.solutions.get("Child"));
+  });
+  it("should solve a rule using backtracking with variable", () => {
+    const query = makeGoal("sibling", [lit("ares"), varPat("Child")]);
+    const results = trampoline(
+      engine.solveGoal(query, idContinuation),
+    ) as LogicResult[];
+    results.forEach((res) => {
+      if (!res.success) expect.fail("Result should be successful");
+      expect(res.solutions.has("Child")).to.be.true;
+    });
+    const names = results.map((r) => {
+      if (!r.success) throw new Error("Unexpected failure");
+      return r.solutions.get("Child");
+    });
+    expect(names).to.include("ares");
+    expect(names).to.include("athena");
+  });
+  describe("Output Modes", () => {
+    it('should return all results when outputMode is "all"', () => {
+      const query = makeGoal("parent", [lit("zeus"), varPat("X")]);
+
+      const results = trampoline(
+        engine.solveGoal(query, idContinuation),
+      ) as LogicResult[];
+      expect(results).to.be.an("array");
+      expect(results).to.have.lengthOf(2);
+      const names = results.map((r) => {
+        if (!r.success) throw new Error("Unexpected failure");
+        return r.solutions.get("X");
+      });
       expect(names).to.include("ares");
       expect(names).to.include("athena");
     });
-    describe("Output Modes", () => {
-      it('should return all results when outputMode is "all"', () => {
-        engine = new LogicEngine(env, { outputMode: "all" }, evaluator);
-        const query = makeGoal("parent", [lit("zeus"), varPat("X")]);
+  });
 
-        const results = engine.solveGoal(query) as LogicResult[];
-        expect(results).to.be.an("array");
-        expect(results).to.have.lengthOf(2);
-
-        const names = results.map((r) => r.solutions.get("X"));
-        expect(names).to.include("ares");
-        expect(names).to.include("athena");
-      });
-    });
-
-    describe("Findall", () => {
-      it("should collect all solutions into a list", () => {
-        const findallNode = new Findall(
-          varPat("X"), // Template
-          makeGoal("parent", [lit("zeus"), varPat("X")]), // Goal
-          varPat("List") // Bag variable
-        );
-        const result = engine.solveFindall(findallNode) as LogicResult[];
-        expect(Array.isArray(result)).to.be.true;
-        expect(result).to.have.lengthOf(2);
-        expect(result).to.include("ares");
-        expect(result).to.include("athena");
-      });
+  describe("Findall", () => {
+    it("should collect all solutions into a list", () => {
+      const findallNode = new Findall(
+        varPat("X"), // Template
+        makeGoal("parent", [lit("zeus"), varPat("X")]), // Goal
+        varPat("List"), // Bag variable
+      );
+      const result = trampoline(
+        engine.solveFindall(findallNode, idContinuation),
+      ) as any;
+      expect(Array.isArray(result)).to.be.true;
+      expect(result).to.have.lengthOf(2);
+      expect(result).to.include("ares");
+      expect(result).to.include("athena");
     });
   });
 });
