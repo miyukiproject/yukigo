@@ -1,3 +1,4 @@
+import { YU_PRIMITIVE } from "yukigo-ast";
 import { typeClasses } from "../utils/types.js";
 import {
   charType,
@@ -102,8 +103,8 @@ export class CoreHM {
     if (rt2.type === "TypeVar") return this.unifyVar(rt2, rt1);
     if (rt1.type === "TypeConstructor" && rt2.type === "TypeConstructor") {
       const isStringList = (a: TypeConstructor, b: TypeConstructor) =>
-        (a.name === "YuString" && b.name === "List") ||
-        (b.name === "YuString" && a.name === "List");
+        (a.name === YU_PRIMITIVE.String && b.name === "List") ||
+        (b.name === YU_PRIMITIVE.String && a.name === "List");
 
       if (isStringList(rt1, rt2)) {
         const listType = rt1.name === "List" ? rt1 : rt2;
@@ -163,7 +164,7 @@ export class CoreHM {
       }
     } else if (rt.type === "TypeConstructor") {
       const instances = typeClasses.get(constraintName);
-      if (!instances || !instances.includes(rt.name)) {
+      if (!instances || !instances.includes(rt.name as any)) {
         throw new Error(
           `Type '${showType(rt)}' is not an instance of '${constraintName}'`
         );
