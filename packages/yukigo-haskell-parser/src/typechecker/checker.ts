@@ -7,6 +7,7 @@ import {
   Return,
   isUnguardedBody,
   Sequence,
+  YU_PRIMITIVE,
 } from "yukigo-ast";
 import { typeMappings } from "../utils/types.js";
 import { InferenceEngine, PatternVisitor } from "./inference.js";
@@ -61,22 +62,22 @@ export type Result<T> =
 
 export const booleanType: TypeConstructor = {
   type: "TypeConstructor",
-  name: "YuBoolean",
+  name: YU_PRIMITIVE.Boolean,
   args: [],
 };
 export const numberType: TypeConstructor = {
   type: "TypeConstructor",
-  name: "YuNumber",
+  name: YU_PRIMITIVE.Number,
   args: [],
 };
 export const stringType: TypeConstructor = {
   type: "TypeConstructor",
-  name: "YuString",
+  name: YU_PRIMITIVE.String,
   args: [],
 };
 export const charType: TypeConstructor = {
   type: "TypeConstructor",
-  name: "YuChar",
+  name: YU_PRIMITIVE.Char,
   args: [],
 };
 

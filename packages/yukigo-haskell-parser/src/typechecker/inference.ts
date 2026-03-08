@@ -52,6 +52,7 @@ import {
   Visitor,
   WildcardPattern,
   Yield,
+  YU_PRIMITIVE,
 } from "yukigo-ast";
 import {
   Environment,
@@ -383,7 +384,7 @@ export class InferenceEngine implements Visitor<Result<Type>> {
       success: true,
       value: {
         type: "TypeConstructor",
-        name: "YuNil",
+        name: YU_PRIMITIVE.Nil,
         args: [],
       },
     };
@@ -393,7 +394,7 @@ export class InferenceEngine implements Visitor<Result<Type>> {
       success: true,
       value: {
         type: "TypeConstructor",
-        name: "YuChar",
+        name: YU_PRIMITIVE.Char,
         args: [],
       },
     };
