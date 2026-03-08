@@ -1,0 +1,7 @@
+YukigoArithmetic {
+  Program = Addition
+  Addition = Multiplication (("+" | "-") Multiplication)*
+  Multiplication = Primitive (("*" | "/") Primitive)*
+  Primitive = number
+  number = digit+
+}

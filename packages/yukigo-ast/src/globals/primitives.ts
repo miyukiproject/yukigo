@@ -2,14 +2,18 @@ import { Visitor } from "../visitor/index.js";
 import { Expression } from "./expressions.js";
 import { ASTNode, SourceLocation } from "./generics.js";
 
+export const YU_PRIMITIVE = {
+  Number: "YuNumber",
+  Symbol: "YuSymbol",
+  List: "YuList",
+  String: "YuString",
+  Char: "YuChar",
+  Nil: "YuNil",
+  Boolean: "YuBoolean",
+} as const;
+
 export type YukigoPrimitive =
-  | "YuNumber"
-  | "YuSymbol"
-  | "YuList"
-  | "YuString"
-  | "YuChar"
-  | "YuNil"
-  | "YuBoolean";
+  (typeof YU_PRIMITIVE)[keyof typeof YU_PRIMITIVE];
 
 /**
  * Abstract base class for all Primitives to reduce boilerplate.
@@ -50,7 +54,7 @@ abstract class BasePrimitive<T> extends ASTNode {
  */
 export class NumberPrimitive extends BasePrimitive<number> {
   protected get jsonType(): YukigoPrimitive {
-    return "YuNumber";
+    return YU_PRIMITIVE.Number;
   }
 
   public accept<R>(visitor: Visitor<R>): R {
@@ -64,7 +68,7 @@ export class NumberPrimitive extends BasePrimitive<number> {
  */
 export class BooleanPrimitive extends BasePrimitive<boolean> {
   protected get jsonType(): YukigoPrimitive {
-    return "YuBoolean";
+    return YU_PRIMITIVE.Boolean;
   }
 
   public accept<R>(visitor: Visitor<R>): R {
@@ -78,7 +82,7 @@ export class BooleanPrimitive extends BasePrimitive<boolean> {
  */
 export class CharPrimitive extends BasePrimitive<string> {
   protected get jsonType(): YukigoPrimitive {
-    return "YuChar";
+    return YU_PRIMITIVE.Char;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitCharPrimitive?.(this) as R;
@@ -91,7 +95,7 @@ export class CharPrimitive extends BasePrimitive<string> {
  */
 export class StringPrimitive extends BasePrimitive<string> {
   protected get jsonType(): YukigoPrimitive {
-    return "YuString";
+    return YU_PRIMITIVE.String;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitStringPrimitive?.(this) as R;
@@ -104,7 +108,7 @@ export class StringPrimitive extends BasePrimitive<string> {
  */
 export class NilPrimitive extends BasePrimitive<undefined | null> {
   protected get jsonType(): YukigoPrimitive {
-    return "YuNil";
+    return YU_PRIMITIVE.Nil;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitNilPrimitive?.(this) as R;
@@ -117,7 +121,7 @@ export class NilPrimitive extends BasePrimitive<undefined | null> {
  */
 export class SymbolPrimitive extends BasePrimitive<string> {
   protected get jsonType(): YukigoPrimitive {
-    return "YuSymbol";
+    return YU_PRIMITIVE.Symbol;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return visitor.visitSymbolPrimitive?.(this) as R;
@@ -130,7 +134,7 @@ export class SymbolPrimitive extends BasePrimitive<string> {
  */
 export class ListPrimitive extends BasePrimitive<Expression[]> {
   protected get jsonType(): YukigoPrimitive {
-    return "YuList";
+    return YU_PRIMITIVE.List;
   }
 
   public accept<R>(visitor: Visitor<R>): R {
