@@ -9,14 +9,14 @@ import { Token } from "moo";
 class UnexpectedToken extends Error {
   constructor(token: Token) {
     super(
-      `Parser: Unexpected '${token.type}' token '${token.value}' at line ${token.line} col ${token.col}.`
+      `Parser: Unexpected '${token.type}' token '${token.value}' at line ${token.line} col ${token.col}.`,
     );
   }
 }
 class AmbiguityError extends Error {
   constructor(amountAST: number) {
     super(
-      `Parser: Too much ambiguity. ${amountAST} ASTs parsed. Output not generated.`
+      `Parser: Too much ambiguity. ${amountAST} ASTs parsed. Output not generated.`,
     );
   }
 }
@@ -38,9 +38,11 @@ export class YukigoHaskellParser implements YukigoParser {
   public errors: string[] = [];
   private prelude: AST;
   private config: HaskellConfig;
+  private checker?: TypeChecker;
+
   constructor(
     prelude: string = preludeCode,
-    config: HaskellConfig = HaskellDefaultConfig
+    config: HaskellConfig = HaskellDefaultConfig,
   ) {
     this.errors = [];
     this.prelude = this.feedParser(prelude);
@@ -48,12 +50,11 @@ export class YukigoHaskellParser implements YukigoParser {
   }
 
   public parse(code: string): AST {
-    //const processedCode = preprocessor(code);
     const result = this.feedParser(code);
     const ast = groupFunctionDeclarations(this.prelude.concat(result));
     if (this.config.typecheck) {
-      const typeChecker = new TypeChecker();
-      const errors = typeChecker.check(ast);
+      this.checker = new TypeChecker();
+      const errors = this.checker.check(ast);
       if (errors.length > 0) {
         this.errors.push(...errors);
         throw new TypeError(errors);
@@ -62,7 +63,6 @@ export class YukigoHaskellParser implements YukigoParser {
     return ast;
   }
   public parseExpression(code: string): Expression {
-    //const processedCode = preprocessor(code);
     const expr = this.feedParser(code)[0];
     return expr;
   }
@@ -72,12 +72,24 @@ export class YukigoHaskellParser implements YukigoParser {
       parser.feed(code);
       parser.finish();
     } catch (error) {
-      if ("token" in error && error.token) throw new UnexpectedToken(error.token);
+      if ("token" in error && error.token)
+        throw new UnexpectedToken(error.token);
       throw error;
     }
     const { results } = parser;
     if (results.length > 1) throw new AmbiguityError(results.length);
     if (results.length == 0) return [];
     return results[0];
+  }
+  public typeOfExpression(code: string): string {
+    if (!this.config.typecheck || !this.checker)
+      throw new Error("Type checking not initialized. Did you load a file?");
+
+    const expr = this.parseExpression(code);
+    return this.checker.inferExpression(expr);
+  }
+  public getKnownSymbols(): string[] {
+    if (!this.config.typecheck || !this.checker) return [];
+    return this.checker.getKnownSymbols();
   }
 }
