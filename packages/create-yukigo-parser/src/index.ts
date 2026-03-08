@@ -10,4 +10,9 @@ program
 const name = await input({ message: `Project Name:` });
 const projectName = `yukigo-${name}-parser`;
 
+console.log("Template: Nearley (default)");
+console.log(
+  "Tip: the generated README explains how to adapt the scaffold to Chevrotain or Ohm.js."
+);
+
 createProject(projectName);
