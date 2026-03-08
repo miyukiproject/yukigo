@@ -1,4 +1,4 @@
-import { YukigoPrimitive } from "yukigo-ast";
+import { YukigoPrimitive, YU_PRIMITIVE } from "yukigo-ast";
 
 export const keywords = [
   "type",
@@ -29,29 +29,29 @@ export const keywords = [
 ];
 
 export const typeMappings: { [key: string]: YukigoPrimitive } = {
-  Float: "YuNumber",
-  Double: "YuNumber",
-  Int: "YuNumber",
-  Integer: "YuNumber",
-  String: "YuString",
-  Char: "YuChar",
-  Boolean: "YuBoolean",
-  Bool: "YuBoolean",
+  Float: YU_PRIMITIVE.Number,
+  Double: YU_PRIMITIVE.Number,
+  Int: YU_PRIMITIVE.Number,
+  Integer: YU_PRIMITIVE.Number,
+  String: YU_PRIMITIVE.String,
+  Char: YU_PRIMITIVE.Char,
+  Boolean: YU_PRIMITIVE.Boolean,
+  Bool: YU_PRIMITIVE.Boolean,
 };
 
-export const typeClasses: Map<string, string[]> = new Map([
-  ["Bounded", ["YuChar", "YuNumber"]],
-  ["Enum", ["YuChar", "YuNumber"]],
-  ["Ord", ["YuNumber", "YuString", "YuChar"]],
-  ["Eq", ["YuNumber", "YuString", "YuChar", "YuBoolean"]],
-  ["Floating", ["YuNumber"]],
-  ["Fractional", ["YuNumber"]],
-  ["Integral", ["YuNumber"]],
-  ["Num", ["YuNumber"]],
-  ["Random", ["YuBoolean", "YuChar", "YuNumber"]],
-  ["Read", ["YuList", "YuChar", "YuNumber"]],
-  ["Real", ["YuNumber"]],
-  ["RealFloat", ["YuNumber"]],
-  ["RealFrac", ["YuNumber"]],
-  ["Show", ["YuNumber", "YuString", "YuChar", "YuList"]],
+export const typeClasses: Map<string, YukigoPrimitive[]> = new Map([
+  ["Bounded", [YU_PRIMITIVE.Char, YU_PRIMITIVE.Number]],
+  ["Enum", [YU_PRIMITIVE.Char, YU_PRIMITIVE.Number]],
+  ["Ord", [YU_PRIMITIVE.Number, YU_PRIMITIVE.String, YU_PRIMITIVE.Char]],
+  ["Eq", [YU_PRIMITIVE.Number, YU_PRIMITIVE.String, YU_PRIMITIVE.Char, YU_PRIMITIVE.Boolean]],
+  ["Floating", [YU_PRIMITIVE.Number]],
+  ["Fractional", [YU_PRIMITIVE.Number]],
+  ["Integral", [YU_PRIMITIVE.Number]],
+  ["Num", [YU_PRIMITIVE.Number]],
+  ["Random", [YU_PRIMITIVE.Boolean, YU_PRIMITIVE.Char, YU_PRIMITIVE.Number]],
+  ["Read", [YU_PRIMITIVE.List, YU_PRIMITIVE.Char, YU_PRIMITIVE.Number]],
+  ["Real", [YU_PRIMITIVE.Number]],
+  ["RealFloat", [YU_PRIMITIVE.Number]],
+  ["RealFrac", [YU_PRIMITIVE.Number]],
+  ["Show", [YU_PRIMITIVE.Number, YU_PRIMITIVE.String, YU_PRIMITIVE.Char, YU_PRIMITIVE.List]],
 ]);
