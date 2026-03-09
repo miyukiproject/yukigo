@@ -395,10 +395,10 @@ export class TypeChecker {
 
 type SeenTypeNames = Map<number, string>;
 const YuNameMap = {
-  YuNumber: "Number",
-  YuString: "String",
-  YuBoolean: "Bool",
-  YuChar: "Char",
+  YuNumber: "YuNumber",
+  YuString: "YuString",
+  YuBoolean: "YuBoolean",
+  YuChar: "YuChar",
 };
 const getVarName = (
   id: number,
