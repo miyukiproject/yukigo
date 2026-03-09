@@ -10,6 +10,8 @@ const x _ = x
 (,) x y = (x, y)
 ($) :: (a -> b) -> a -> b
 ($) f x = f x
+($!) :: (a -> b) -> a -> b
+($!) f x = f x
 (.) :: (b -> c) -> (a -> b) -> a -> c
 (.) f g a = (\\x -> f (g x)) a
 (:) :: a -> [a] -> [a]
@@ -80,6 +82,10 @@ signum :: (Num a) => a -> a
 signum x | x == 0 = 0 | x > 0 = 1 | otherwise = -1
 abs :: (Num a) => a -> a
 abs n = if n < 0 then -n else n
+succ :: (Num a) => a -> a
+succ x = x + 1
+pred :: (Num a) => a -> a
+pred x = x - 1
 sqrt :: (Num a) => a -> a
 sqrt x = x ** 0.5
 max :: Ord a => a -> a -> a
@@ -169,8 +175,10 @@ map :: (a -> b) -> [a] -> [b]
 map f [] = []
 map f (x:xs) = f x : map f xs
 any :: (a -> Bool) -> [a] -> Bool
-all :: (a -> Bool) -> [a] -> Bool
+any f [] = False
 any f (x:xs) = f x || any f xs
+all :: (a -> Bool) -> [a] -> Bool
+all f [] = True
 all f (x:xs) = f x && all f xs
 foldl :: (a -> b -> a) -> a -> [b] -> a
 foldl f z [] = z
@@ -240,5 +248,35 @@ intercalate :: [a] -> [[a]] -> [a]
 intercalate xs xss = concat (intersperse xs xss)
 fromIntegral :: (Integral a, Num b) => a -> b
 fromIntegral x = x 
-show :: a -> String
-show x = x`
+
+anyException = ""
+evaluate x = x
+
+class Show a where
+  show :: a -> String
+
+instance Show Int where
+  show x = primShow x
+
+instance Show Bool where
+  show True = "True"
+  show False = "False"
+
+instance Show Ordering where
+  show LT = "LT"
+  show EQ = "EQ"
+  show GT = "GT"
+
+instance Show (Maybe a) where
+  show Nothing = "Nothing"
+  show (Just x) = "Just " ++ show x
+
+instance Show Char where
+  show c = '\\'' : c : '\\'' : []
+
+instance Show String where
+  show s = primShowString s
+
+instance Show [a] where
+  show xs = '[' : (intercalate "," (map show xs) ++ "]")
+`

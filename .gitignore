@@ -3,7 +3,7 @@ dist/
 
 apps/yukigo-docs/docs/.vitepress/cache/
 .vscode
-
+tsconfig.tsbuildinfo
 
 .nx/cache
 .nx/workspace-data

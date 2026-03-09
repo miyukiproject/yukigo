@@ -102,7 +102,7 @@ export function ExpressionTraverser<TBase extends GConstructor<TraverseBase>>(
             this.traverseCollection(node.patterns);
         }
         visitNot(node: Not): void {
-            this.traverseCollection(node.expressions);
+            node.expression.accept(this);
         }
         visitFindall(node: Findall): void {
             node.template.accept(this);

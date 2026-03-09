@@ -6,8 +6,19 @@ import { PatternTraverser, PatternVisitor } from "./patterns.js";
 import { PrimitiveTraverser, PrimitiveVisitor } from "./primitives.js";
 import { StatementTraverser, StatementVisitor } from "./statements.js";
 import { TypeTraverser, TypeVisitor } from "./types.js";
+import { TestingTraverser, TestingVisitor } from "./testing.js";
+import { TypeClassTraverser, TypeClassVisitor } from "./typeclasses.js";
 
-// Combine Interfaces
+export * from "./base.js";
+export * from "./expressions.js";
+export * from "./operations.js";
+export * from "./patterns.js";
+export * from "./primitives.js";
+export * from "./statements.js";
+export * from "./types.js";
+export * from "./testing.js";
+export * from "./typeclasses.js";
+
 export interface StrictVisitor<TReturn>
     extends BaseVisitor<TReturn>,
     ExpressionVisitor<TReturn>,
@@ -15,7 +26,9 @@ export interface StrictVisitor<TReturn>
     PatternVisitor<TReturn>,
     PrimitiveVisitor<TReturn>,
     StatementVisitor<TReturn>,
-    TypeVisitor<TReturn> { }
+    TypeVisitor<TReturn>,
+    TestingVisitor<TReturn>,
+    TypeClassVisitor<TReturn> { }
 
 export type Visitor<TReturn> = Partial<StrictVisitor<TReturn>>;
 
@@ -27,7 +40,7 @@ export class StopTraversalException extends Error {
 
 // Combine Traversal Logic via Mixins
 export class TraverseVisitor
-    extends TypeTraverser(
+    extends TypeClassTraverser(TestingTraverser(TypeTraverser(
         StatementTraverser(
             PatternTraverser(
                 OperationTraverser(
@@ -35,10 +48,5 @@ export class TraverseVisitor
                 )
             )
         )
-    )
-    implements StrictVisitor<void> {
-    // Overrides or custom logic if needed
-    visit(node: ASTNode): void {
-        node.accept(this);
-    }
-}
+    )))
+    implements StrictVisitor<void> {}

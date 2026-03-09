@@ -95,7 +95,7 @@ describe("OOP Inspections", () => {
     );
   };
 
-  const createObject = (name: string, children: ASTNode[] = []) => {
+  const createObject = (name: string, children: Statement[] = []) => {
     const identifier = createSymbol(name);
     const expression = new Sequence(children);
     return new AstObject(identifier, expression);

@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "docs:dev": "vitepress dev docs",
+    "docs:dev": "vitepress dev docs --host",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
     "docs:gen": "typedoc --options typedoc.json --out ./docs/ast && npx tsx ../../scripts/renameReferences.ts"
@@ -15,8 +15,8 @@
     "typedoc-vitepress-theme": "^1.1.2",
     "yukigo": "^0.1.0",
     "yukigo-haskell-parser": "^0.1.0",
-    "yukigo-prolog-parser":  "^0.1.0",
-    "yukigo-wollok-parser" : "^0.1.0"
+    "yukigo-prolog-parser": "^0.1.0",
+    "yukigo-wollok-parser": "^0.1.0"
   },
   "devDependencies": {
     "@types/node": "^24.9.2",

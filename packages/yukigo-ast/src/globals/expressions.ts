@@ -6,6 +6,7 @@ import { ASTNode, SourceLocation } from "./generics.js";
 import { Operation } from "./operators.js";
 import { SymbolPrimitive, Primitive } from "./primitives.js";
 import { Sequence, Print, For } from "./statements.js";
+import { Assertion } from "./testing.js";
 import { TypeCast } from "./types.js";
 
 /**
@@ -334,4 +335,5 @@ export type Expression =
   | Not
   | TypeCast
   | ListComprehension
-  | RangeExpression;
+  | RangeExpression
+  | Assertion;

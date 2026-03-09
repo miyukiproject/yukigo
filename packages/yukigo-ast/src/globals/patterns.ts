@@ -1,6 +1,7 @@
 import { Visitor } from "../visitor/index.js";
 import { ASTNode, SourceLocation } from "./generics.js";
-import { Primitive, SymbolPrimitive } from "./primitives.js";
+import { ListPrimitive, Primitive, SymbolPrimitive } from "./primitives.js";
+import { Type } from "./types.js";
 
 type NamedPatternKind = "VariablePattern" | "LiteralPattern";
 type ArgsPatternKind =
@@ -15,7 +16,8 @@ type YukigoPattern =
   | ArgsPatternKind
   | ListBasedPatternKind
   | BinaryPatternKind
-  | "WildcardPattern";
+  | "WildcardPattern"
+  | "TypePattern";
 
 abstract class BasePattern extends ASTNode {
   constructor(loc?: SourceLocation) {
@@ -117,15 +119,16 @@ export class VariablePattern extends NamedPattern<SymbolPrimitive> {
   }
 }
 
+type LiteralPrimitive = Exclude<Primitive, ListPrimitive>;
 /**
  * Represents a pattern that matches an exact literal value.
  * @category Patterns
  */
-export class LiteralPattern extends NamedPattern<Primitive> {
+export class LiteralPattern extends NamedPattern<LiteralPrimitive> {
   protected get jsonType(): NamedPatternKind {
     return "LiteralPattern";
   }
-  constructor(name: Primitive, loc?: SourceLocation) {
+  constructor(name: LiteralPrimitive, loc?: SourceLocation) {
     super(name, loc);
   }
   public accept<R>(visitor: Visitor<R>): R {
@@ -295,6 +298,36 @@ export class ConsPattern extends BinaryPattern {
   }
 }
 
+/**
+ * Represents a pattern matching a value by its type.
+ * @category Patterns
+ */
+export class TypePattern extends BasePattern {
+  protected get jsonType(): YukigoPattern {
+    return "TypePattern";
+  }
+  /** @hidden */
+  public targetType: Type;
+  /** @hidden */
+  public innerPattern?: Pattern;
+
+  constructor(targetType: Type, innerPattern?: Pattern, loc?: SourceLocation) {
+    super(loc);
+    this.targetType = targetType;
+    this.innerPattern = innerPattern;
+  }
+  public accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitTypePattern?.(this);
+  }
+  public toJSON() {
+    return {
+      type: "TypePattern",
+      targetType: this.targetType.toJSON(),
+      innerPattern: this.innerPattern?.toJSON(),
+    };
+  }
+}
+
 export type Pattern =
   | VariablePattern
   | LiteralPattern
@@ -306,8 +339,9 @@ export type Pattern =
   | WildcardPattern
   | ConstructorPattern
   | UnionPattern
-  | ConsPattern;
+  | ConsPattern
+  | TypePattern;
 
-export function isPattern(node: ASTNode): node is Primitive {
+export function isPattern(node: ASTNode): node is Pattern {
   return node instanceof BasePattern;
 }

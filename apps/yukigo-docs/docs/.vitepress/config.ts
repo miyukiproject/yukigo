@@ -92,6 +92,13 @@ export default defineConfig({
           ],
         },
         {
+          text: "How it works?",
+          items: [
+            { text: "Interpreter", link: "/how/interpreter/index" },
+            { text: "Pattern matching", link: "/how/pattern-matching/index" },
+          ],
+        },
+        {
           text: "AST Reference",
           items: getAstSidebar(),
         },

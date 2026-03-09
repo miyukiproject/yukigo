@@ -4,10 +4,27 @@ import { Expression } from "./expressions.js";
 import { NilPrimitive, SymbolPrimitive } from "./primitives.js";
 import { Type, TypeAlias, TypeSignature } from "./types.js";
 import { Pattern } from "./patterns.js";
-import { EntryPoint, Enumeration, ForLoop, Procedure, Repeat, Structure, While } from "../paradigms/imperative.js";
-import { Call, Clause } from "../paradigms/logic.js";
+import {
+  EntryPoint,
+  Enumeration,
+  ForLoop,
+  Procedure,
+  Repeat,
+  Structure,
+  While,
+} from "../paradigms/imperative.js";
+import { Call, Clause, LogicConstraint } from "../paradigms/logic.js";
 import { Yield } from "../paradigms/functional.js";
-import { Class, Method, Super, Attribute, Interface, Send, Object } from "../paradigms/object.js";
+import {
+  Class,
+  Method,
+  Super,
+  Attribute,
+  Interface,
+  Send,
+  Object,
+} from "../paradigms/object.js";
+import { Assert, Test, TestGroup } from "./testing.js";
 
 /**
  * Generic conditional If statements.
@@ -28,7 +45,7 @@ export class If extends ASTNode {
     condition: Expression,
     then: Expression,
     elseExpr: Expression,
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ) {
     super(loc);
     this.condition = condition;
@@ -95,7 +112,7 @@ export class Field extends ASTNode {
   constructor(
     name: SymbolPrimitive | undefined,
     value: Type,
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ) {
     super(loc);
     this.name = name;
@@ -162,7 +179,7 @@ export class Record extends ASTNode {
     name: SymbolPrimitive,
     contents: Constructor[],
     deriving?: SymbolPrimitive[],
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ) {
     super(loc);
     this.name = name;
@@ -214,7 +231,7 @@ export class UnguardedBody extends ASTNode {
 }
 
 export function isUnguardedBody(
-  body: UnguardedBody | GuardedBody[]
+  body: UnguardedBody | GuardedBody[],
 ): body is UnguardedBody {
   return !Array.isArray(body);
 }
@@ -271,7 +288,7 @@ export class Equation extends ASTNode {
     patterns: Pattern[],
     body: UnguardedBody | GuardedBody[],
     returnExpr?: Return,
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ) {
     super(loc);
     this.patterns = patterns;
@@ -286,11 +303,11 @@ export class Equation extends ASTNode {
   public toJSON() {
     return {
       type: "Equation",
-      patterns: this.patterns.map((pattern) => pattern.toJSON),
-      body: Array.isArray(this.body)
-        ? this.body.map((guard) => guard.toJSON())
-        : this.body.toJSON(),
-      return: this.returnExpr.toJSON(),
+      patterns: this.patterns.map((pattern) => pattern.toJSON()),
+      body: isUnguardedBody(this.body)
+        ? this.body.toJSON()
+        : this.body.map((guard) => guard.toJSON()),
+      return: this.returnExpr?.toJSON(),
     };
   }
 }
@@ -316,7 +333,7 @@ export class Function extends ASTNode {
   constructor(
     identifier: SymbolPrimitive,
     equations: Equation[],
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ) {
     super(loc);
     this.identifier = identifier;
@@ -381,7 +398,7 @@ export class Switch extends ASTNode {
     value: Expression,
     cases: Case[],
     defaultExpr?: Expression,
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ) {
     super(loc);
     this.value = value;
@@ -449,7 +466,7 @@ export class Try extends ASTNode {
     body: Expression,
     catchExpr: Catch[],
     finallyExpr: Expression,
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ) {
     super(loc);
     this.body = body;
@@ -530,7 +547,7 @@ export class Input extends ASTNode {
   constructor(
     message: Expression,
     variable: SymbolPrimitive,
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ) {
     super(loc);
     this.message = message;
@@ -635,7 +652,7 @@ export class Variable extends ASTNode {
     identifier: SymbolPrimitive,
     expression: Expression,
     variableType?: Type,
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ) {
     super(loc);
     this.identifier = identifier;
@@ -671,7 +688,7 @@ export class Assignment extends ASTNode {
   constructor(
     identifier: SymbolPrimitive,
     expression: Expression,
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ) {
     super(loc);
     this.identifier = identifier;
@@ -744,4 +761,8 @@ export type Statement =
   | If
   | Repeat
   | ForLoop
-  | While;
+  | While
+  | LogicConstraint
+  | Assert
+  | Test
+  | TestGroup;
