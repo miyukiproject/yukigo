@@ -295,5 +295,7 @@ export class LazyRuntime {
           });
       });
     }
+
+    return compareValues(a, b);
   }
 }
