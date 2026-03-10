@@ -124,7 +124,7 @@ export class Field extends ASTNode {
   public toJSON() {
     return {
       type: "Field",
-      name: this.name.toJSON(),
+      name: this.name?.toJSON(),
       value: this.value.toJSON(),
     };
   }
@@ -416,7 +416,7 @@ export class Switch extends ASTNode {
         condition: caseVal.condition.toJSON(),
         body: caseVal.body.toJSON(),
       })),
-      default: this.defaultExpr.toJSON(),
+      default: this.defaultExpr?.toJSON(),
     };
   }
 }
