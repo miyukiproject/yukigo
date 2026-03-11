@@ -92,9 +92,9 @@ import {
   isRuntimeClass,
   isRuntimeFunction,
   isRuntimeObject,
-} from "../../../../packages/yukigo-ast/dist/globals/runtime";
-import { isRuntimePredicate } from "../../../../packages/yukigo-ast/dist/paradigms/logic";
-import { isLogicResult } from "../../../../packages/yukigo-ast/dist/globals/generics";
+} from "yukigo-ast";
+import { isRuntimePredicate } from "yukigo-ast";
+import { isLogicResult } from "yukigo-ast";
 
 const props = defineProps({
   initialCode: {

@@ -1,6 +1,6 @@
 import { defineConfig } from "vitepress";
 import tailwindcss from "@tailwindcss/vite";
-import { existsSync, readdirSync, readFileSync } from "fs";
+import { existsSync, readdirSync } from "fs";
 import path from "path";
 
 const NODES_DIR = path.resolve(__dirname, "../ast");
@@ -30,7 +30,7 @@ function getAstSidebar() {
           const name = file.replace(".md", "");
           return {
             text: name,
-            link: `ast/${category}/${name}`,
+            link: `/ast/${category}/${name}`,
           };
         });
 
@@ -89,6 +89,13 @@ export default defineConfig({
               text: "Making a Custom Inspection Set",
               link: "/guides/making-inspections",
             },
+          ],
+        },
+        {
+          text: "How it works?",
+          items: [
+            { text: "Interpreter", link: "/how/interpreter/index" },
+            { text: "Pattern matching", link: "/how/pattern-matching/index" },
           ],
         },
         {

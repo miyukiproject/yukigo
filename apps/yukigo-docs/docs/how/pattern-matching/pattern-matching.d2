@@ -1,0 +1,58 @@
+shape: sequence_diagram
+style.fill: transparent
+
+classes: {
+  actor_box: {
+    style: {
+      fill: "#5d83ff"
+      stroke: "#5d83ff"
+      font-color: "white"
+      font-size: 20
+      border-radius: 16
+    }
+  }
+  standard_line: {
+    style: {
+      stroke: "#5d83ff"
+      font-color: "#e2e8f0"
+      font-size: 18
+    }
+  }
+  failed_line: {
+    style: {
+      animated: true
+      stroke: "#ff4757"
+      font-color: "#e2e8f0"
+      font-size: 18
+    }
+  }
+  success_line: {
+    style: {
+      animated: true
+      stroke: "#2ed573"
+      font-color: "#e2e8f0"
+      font-size: 18
+    }
+  }
+}
+
+User: { class: actor_box }
+Interpreter: { class: actor_box }
+Environment: { class: actor_box }
+FunctionRuntime: { class: actor_box }
+PatternMatcher: { class: actor_box }
+
+User -> Interpreter: describeNumber "10" { class: standard_line }
+Interpreter -> Environment: Lookup describeNumber { class: standard_line }
+Environment -> Interpreter: Return Function Definition { class: standard_line }
+
+Interpreter -> FunctionRuntime: Apply function with args \["10"\] { class: standard_line }
+
+FunctionRuntime -> PatternMatcher: Try match "10" against literal 0 { class: standard_line }
+PatternMatcher -> FunctionRuntime: Match Failed { class: failed_line }
+
+FunctionRuntime -> PatternMatcher: Try match "10" against variable x { class: standard_line }
+PatternMatcher -> FunctionRuntime: Match Successful, binds x to 10 { class: success_line }
+
+FunctionRuntime -> Interpreter: Evaluate right side using x as 10 { class: standard_line }
+Interpreter -> User: \"You entered a different number 10\" { class: standard_line }
