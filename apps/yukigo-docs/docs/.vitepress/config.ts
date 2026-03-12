@@ -54,18 +54,6 @@ export default defineConfig({
     "An universal, multi-paradigm, multi-language static code analyzer & interpreter",
   vite: {
     plugins: [tailwindcss() as any],
-    ssr: {
-      noExternal: [
-        "yukigo",
-        "yukigo-ast",
-        "yukigo-haskell-parser",
-        "yukigo-prolog-parser",
-        "yukigo-wollok-parser",
-        "nearley",
-        "moo",
-        "moo-ignore",
-      ],
-    },
   },
   themeConfig: {
     nav: [
