@@ -58,7 +58,7 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: "Home", link: "/" },
-      { text: "Docs", link: "/getting-started" },
+      { text: "Docs", link: "/yukigo/getting-started" },
       { text: "Reference", link: "/ast/README" },
     ],
 
@@ -67,7 +67,7 @@ export default defineConfig({
         {
           text: "Introduction",
           items: [
-            { text: "Getting Started", link: "/getting-started" },
+            { text: "Getting Started", link: "/yukigo/getting-started" },
             { text: "Making a Simple REPL", link: "/simple-repl" },
           ],
         },
