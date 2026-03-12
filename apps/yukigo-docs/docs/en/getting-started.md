@@ -7,7 +7,7 @@ Yukigo (From the composition of the japanese kanjis "雪", for "snow", and "語"
 Yukigo is built on top of 4 main components:
 
 1. An Abstract Semantic Tree (AST), which allows to express the semantic of the code.
-2. [Inspections](/inspections/generic) are predefined queries over the AST that check for specific code patterns or properties (e.g., "does this function exist?"). Yukigo provides sets of built-in inspections for each paradigm to analyze the code and define explicit expectations of the input.
+2. [Inspections](/en/inspections/generic) are predefined queries over the AST that check for specific code patterns or properties (e.g., "does this function exist?"). Yukigo provides sets of built-in inspections for each paradigm to analyze the code and define explicit expectations of the input.
 3. An Analyzer for running the inspections in the AST.
 4. An Interpreter for running expressions using the AST as the context.
 
@@ -21,7 +21,7 @@ For now, Yukigo provides support for:
 
 The modular nature of Yukigo allows for everyone to build a parser for their desired language, as long as it produces a Yukigo AST which is easier using `yukigo-ast`, a package that provides all the available AST nodes as classes that can be instantiated in the parser.
 
-See [Guide: Making a Yukigo Parser](/guides/making-a-parser.html) for more on that topic.
+See [Guide: Making a Yukigo Parser](/en/guides/making-a-parser.html) for more on that topic.
 
 ### What can you do with Yukigo?
 
@@ -106,4 +106,4 @@ The modular design of Yukigo provides a foundation to achieve these principles. 
 
 ## Community
 
-If you have questions or need help, reach out to the community at [Discord](https://discord.gg/M3hpGEbbum) or [GitHub](https://github.com/noiseArch/yukigo).
+If you have questions or need help, reach out to the community at [Discord](https://discord.gg/M3hpGEbbum) or [GitHub](https://github.com/miyukiproject/yukigo).

@@ -15,7 +15,7 @@ If we load that code into the `Interpreter` and evaluate the following expressio
 describeNumber 0
 ```
 
-It will match the two literal values because `0` is a [LiteralPattern](../../ast/Patterns/LiteralPattern.md)
+It will match with the first equation, where `0` is a [LiteralPattern](../../ast/Patterns/LiteralPattern.md)
 
 ```text
 [EnvBuilder] Defining function: `describeNumber`

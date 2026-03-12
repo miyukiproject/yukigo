@@ -1,6 +1,6 @@
 ---
 title: Yukigo
-titleTemplate: Universal code analysis made easy
+titleTemplate: Analisis de codigo universal facil
 
 layout: home
 aside: false
@@ -9,8 +9,8 @@ markdownStyles: false
 ---
 
 <script setup>
-  import Hero from "./components/Hero.vue"
-  import CodePlayground from "./components/CodePlayground.vue"
+  import Hero from "../components/Hero.vue"
+  import CodePlayground from "../components/CodePlayground.vue"
 </script>
 
 <main class="flex flex-col gap-8 sm:gap-12 lg:gap-16 px-4 sm:px-6 lg:px-48">

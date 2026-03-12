@@ -1,34 +1,33 @@
-# How to make a Yukigo parser
+# Cómo hacer un parser para Yukigo
 
-In this tutorial we will cover some basics on making a parser compatible with the yukigo analyzer.
+En este tutorial vamos a cubrir los conceptos básicos para crear un parser compatible con el analizador de Yukigo.
 
-By the end of this tutorial, you will be able to:
-- Set up a nearley-based parser with TypeScript
-- Design a lexer using `moo`
-- Write grammar rules with proper operator precedence and associativity
-- Use postprocessors to build a Yukigo-compatible AST
-- Implement support for variables, functions, lists, conditionals, and loops
-- Write and run unit tests for your parser
+Al final de este tutorial, vas a poder:
+- Configurar un parser basado en nearley con TypeScript
+- Diseñar un lexer usando `moo`
+- Escribir reglas gramaticales con precedencia y asociatividad de operadores correctas
+- Usar postprocesadores para construir un AST compatible con Yukigo
+- Implementar soporte para variables, funciones, listas, condicionales y bucles
+- Escribir y ejecutar pruebas unitarias para tu parser
 
-## Set up
+## Configuración
 
-First, let's check what yukigo expects from a parser.
-
+Primero, veamos qué espera Yukigo de un parser.
 ```ts
 interface YukigoParser {
   errors?: string[];
   parse: (code: string) => AST;
+  parseExpression: (code: string) => Expression;
 }
 ```
 
-Every parser needs to expose a `parse` method and can also include an errors array. The internal checks or functionality isn't important to Yukigo. For example, if the language is typed, we could add a type checker step before returning the parsed AST.
+Todo parser necesita exponer un método `parse` y `parseExpression`, y puede incluir también un array de errores. La lógica interna no le importa a Yukigo. Por ejemplo, si el lenguaje tiene tipos, podríamos agregar un paso de verificación de tipos antes de retornar el AST parseado.
 
-For this tutorial we will be implementing a parser for a subset of [mini-lang](https://github.com/mini-lang/mini-lang). We will cover expressions, statements, control flow, functions, etc.
+En este tutorial vamos a implementar un parser para un subconjunto de [mini-lang](https://github.com/mini-lang/mini-lang). Vamos a cubrir expresiones, sentencias, flujo de control, funciones, etc.
 
-We will be using [nearley.js](https://nearley.js.org/) as our parser generator, but feel free to use any tool you find convenient.
+Vamos a usar [nearley.js](https://nearley.js.org/) como generador de parsers, pero podés usar cualquier herramienta que te resulte conveniente.
 
-Let's start a new Yukigo Parser project with `create-yukigo-parser`.
-
+Iniciemos un nuevo proyecto de Yukigo Parser con `create-yukigo-parser`.
 ```sh
 mkdir yukigo-mini-parser
 cd yukigo-mini-parser
@@ -59,13 +58,13 @@ Next steps:
 Happy parsing! :)
 ```
 
-You can choose to initialize the repository or install dependencies as you like.
+Podés elegir si inicializar el repositorio e instalar las dependencias según tus preferencias.
 
 ## Lexer
 
-Great! We have a base to work on. Now let's work on the lexer, this is the component reponsible for lexical tokenization, the process where a set of characters is grouped and converted into meaningful tokens.
+¡Genial! Tenemos una base para trabajar. Ahora trabajemos en el lexer, el componente responsable de la tokenización léxica: el proceso donde un conjunto de caracteres es agrupado y convertido en tokens con significado.
 
-In the `src/lexer.ts` file, let's define the meaningful tokens in our language:
+En el archivo `src/lexer.ts`, definamos los tokens significativos de nuestro lenguaje:
 ```ts
 import moo from "moo";
 import { makeLexer } from "moo-ignore";
@@ -99,15 +98,15 @@ export const MiniLexer = makeLexer(MiniLexerConfig, [], {
   eof: true,
 });
 ```
-As you can see, we have defined primitive tokens like `number`, `string`, `char`, `bool`. We also defined how a `variable` looks like and some `keywords`. The tokens for whitespace (`WS`), newline (`NL`), end-of-file (`EOF`) will be useful when designing our grammar.
 
-> We need to define every token that our lexer should expect. That's why we defined `assign` and `semicolon`
+Como podés ver, definimos tokens primitivos como `number`, `string`, `char`, `bool`. También definimos cómo luce una `variable` y algunas `keywords`. Los tokens para espacios en blanco (`WS`), salto de línea (`NL`) y fin de archivo (`EOF`) van a ser útiles al diseñar nuestra gramática.
 
-## Grammar
+> Necesitamos definir cada token que nuestro lexer debe reconocer. Por eso definimos `assign` y `semicolon`.
 
-Now let's start with the grammar file.
-Make a `src/grammar.ne` file and add this boilerplate for now
+## Gramática
 
+Ahora empecemos con el archivo de gramática.
+Creá un archivo `src/grammar.ne` y agregá este boilerplate por ahora:
 ```nearley
 @{%
 import { MiniLexer } from "./lexer.js"
@@ -122,18 +121,18 @@ _ -> %WS:* {% d => null %}
 __ -> %WS:+ {% d => null %}
 ```
 
-> `_` and `__` are rules to match zero-or-more and one-or-more whitespaces. 
+> `_` y `__` son reglas para reconocer cero-o-más y uno-o-más espacios en blanco.
 
-> nearley.js allows us to use [EBNF](https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form) operators `:+`, `:*`, `:?`
+> nearley.js nos permite usar operadores [EBNF](https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form): `:+`, `:*`, `:?`
 
-
-Let's start small by supporting variable assignment, we want to be able to assign and declare variables like this
+Empecemos de a poco con el soporte para asignación de variables. Queremos poder asignar y declarar variables así:
 ```
 int x := 10;
 ```
-So we need to add multiple things first. As we see, the assignment statement is composed of a `type` a `variable` and an optional `expression` (we want to support `int x;` also)
 
-Let's modify our `program` rule and add a `statement` rule that we can later expand
+Entonces necesitamos agregar varias cosas primero. Como vemos, la sentencia de asignación está compuesta por un `type`, una `variable` y una `expression` opcional (también queremos soportar `int x;`).
+
+Modifiquemos la regla `program` y agreguemos una regla `statement` que podamos expandir más adelante:
 ```ne
 program -> statement:+ _ %EOF
 
@@ -142,10 +141,9 @@ statement -> assignment _ ";" _
 assignment -> type __ variable (_ ":=" _ expression):?
 ```
 
-Let's continue with the expressions. An expression is a syntactic notation that can be evaluated to get its value. So we will need to add some more rules to support arithmetic binary operations and primitive values.
-
+Continuemos con las expresiones. Una expresión es una notación sintáctica que puede evaluarse para obtener su valor. Vamos a necesitar agregar más reglas para soportar operaciones binarias aritméticas y valores primitivos.
 ```ne
-# Below our current code
+# Debajo del código actual
 
 expression -> addition
 
@@ -175,14 +173,14 @@ primitive ->
 
 variable -> %variable {% (d) => new SymbolPrimitive(d[0].value) %}
 ```
-As you may have notice reading these new rules, they are recursive. This allows to have expressions like `1 + 1 + 1` which parse like `(1 + 1) + 1`. Because the recursive [non-terminal](https://en.wikipedia.org/wiki/Terminal_and_nonterminal_symbols) appears as the leftmost symbol in the rule, we can say that the rule is left recursive which help us build the left [associativity](https://en.wikipedia.org/wiki/Operator_associativity)
 
-> If we define these rules with right associativity we would have errors in the evaluation of operations like `5 − 3 − 2` where the parser would parse as `5 − (3 − 2)` which later would wrongly evaluate to `5 − 1 = 4` instead of `2 − 2 = 0`
+Como habrás notado al leer estas nuevas reglas, son recursivas. Esto permite tener expresiones como `1 + 1 + 1` que se parsean como `(1 + 1) + 1`. Como el [no-terminal](https://en.wikipedia.org/wiki/Terminal_and_nonterminal_symbols) recursivo aparece como el símbolo más a la izquierda en la regla, decimos que la regla es recursiva por la izquierda, lo que nos ayuda a construir la [asociatividad](https://en.wikipedia.org/wiki/Operator_associativity) por izquierda.
 
-Also notice that we defined a `primary` rule that serves the purpose of being the base case for recursion and the highest precedence expressions
+> Si definiéramos estas reglas con asociatividad por derecha, tendríamos errores al evaluar operaciones como `5 − 3 − 2`, donde el parser interpretaría `5 − (3 − 2)`, que incorrectamente evaluaría a `5 − 1 = 4` en lugar de `2 − 2 = 0`.
 
-Good! Finally for this first statement we will implement a simple type rule that for now it's enough.
+También notá que definimos una regla `primary` que sirve como caso base para la recursión y como expresión de mayor precedencia.
 
+¡Bien! Por último, para esta primera sentencia implementamos una regla de tipo simple que por ahora es suficiente:
 ```ne
 # ...
 type -> variable
@@ -190,32 +188,28 @@ type -> variable
 variable -> %variable
 ```
 
-Now let's add the post processing of these rules. We want our parser to produce certain output after matching a rule. For that we can use a syntax that nearley provides. Let's use the `variable` rule for example
-
+Ahora agreguemos el postprocesamiento de estas reglas. Queremos que nuestro parser produzca cierta salida tras reconocer una regla. Para eso podemos usar una sintaxis que provee nearley. Usemos la regla `variable` como ejemplo:
 ```ne
 variable -> %variable {% (d) => ... %}
 ```
 
-We can define JavaScript/TypeScript code inside {%%} after a rule. These are called [postprocessors](https://nearley.js.org/docs/grammar#postprocessors) and the `d` argument is an array with the symbols matched.
-
+Podemos definir código JavaScript/TypeScript dentro de `{%%}` después de una regla. Estos se llaman [postprocesadores](https://nearley.js.org/docs/grammar#postprocessors) y el argumento `d` es un array con los símbolos reconocidos.
 ```ne
 variable -> %variable {% (d) => new SymbolPrimitive(d[0].value) %}
 ```
 
-We access the `%variable` symbol with `d[0]` and then it's value from the `moo` lexer token. But wait... What is `SymbolPrimitive`?
+Accedemos al símbolo `%variable` con `d[0]` y luego a su valor desde el token del lexer `moo`. Pero... ¿qué es `SymbolPrimitive`?
 
-Yukigo provides a collection of AST nodes to build your parser quicker and yukigo compatible. `SymbolPrimitive` is the node that represents symbols like variables.
+Yukigo provee una colección de nodos AST para construir tu parser más rápido y de forma compatible. `SymbolPrimitive` es el nodo que representa símbolos como variables.
 
-> You can check the Yukigo's AST reference [here](/ast/README) 
+> Podés consultar la referencia del AST de Yukigo [aquí](/en/ast/README).
 
-The output that the rule returns will be available for other rules that use the non-terminal. For example:
-
+La salida que retorna la regla va a estar disponible para otras reglas que usen el no-terminal. Por ejemplo:
 ```ne
 type -> variable {% (d) => new SimpleType(d[0], []) %}
 ```
 
-We do not need to instantiate another `SymbolPrimitive` we just access it by it's position in the rule. Now let's use the available yukigo's nodes to process all of our rules.
-
+No necesitamos instanciar otro `SymbolPrimitive`, simplemente lo accedemos por su posición en la regla. Ahora usemos los nodos de Yukigo disponibles para procesar todas nuestras reglas:
 ```ne
 @{%
 import { MiniLexer } from "./lexer.js"
@@ -230,7 +224,7 @@ import {
     StringPrimitive, 
     CharPrimitive,
     NilPrimitive
-} from "yukigo-core"
+} from "yukigo-ast"
 %}
 
 @preprocessor typescript
@@ -274,45 +268,49 @@ _ -> %WS:* {% d => null %}
 __ -> %WS:+ {% d => null %}
 ```
 
-> As you may have notice, in the `program` rule we use `.flat(Infinity)` this is because some rules (like `function_statement`) return multiple top-level declarations. We flatten the result to produce a flat list of statements. 
+> Como habrás notado, en la regla `program` usamos `.flat(Infinity)`. Esto se debe a que algunas reglas (como `function_statement`) retornan múltiples declaraciones de nivel superior. Aplanamos el resultado para producir una lista plana de sentencias.
 
-### Using the grammar
+### Usando la gramática
 
-Excellent! We need to load the compiled grammar into our `YukigoParser` class, where we will also add some error handling 
-
+¡Excelente! Necesitamos cargar la gramática compilada en nuestra clase `YukigoParser`, donde también agregaremos manejo de errores:
 ```ts
-import { YukigoParser } from "yukigo-core";
+import { YukigoParser } from "yukigo-ast";
 import nearley from "nearley";
 import grammar from "./grammar.js";
 
 export class YukigoMiniParser implements YukigoParser {
   public errors: string[] = [];
 
-  public parse(code: string) {
+  public parse(code: string): AST {
+    return this.feedParser(code);
+  }
+  public parseExpression(code: string): Expression {
+    return this.feedParser(code);
+  }
+  private feedParser(code: string): any {
     const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar));
     try {
       parser.feed(code);
       parser.finish();
     } catch (error) {
-      const token = error.token;
-      const message = `Unexpected '${token.type}' token '${token.value}' at line ${token.line} col ${token.col}.`;
-      this.errors.push(message)
+      if ("token" in error) throw new UnexpectedToken(error.token);
+      throw error
     }
-    const results = parser.results
-    if(results.length > 1)
-      throw Error(`Ambiguous grammar. The parser generated ${results} ASTs`)
-
-    return results[0]
+    const results = parser.results;
+    if (results.length > 1)
+      throw Error(
+        `Ambiguous grammar. The parser generated ${results.length} ASTs`
+      );
+    return results[0];
   }
 }
 ```
 
-> We need to ensure our grammar only produces one AST, nearley returns all possible ASTs so we need to throw in case that the parser returns more than one.
+> Necesitamos asegurarnos de que nuestra gramática produzca un único AST. nearley retorna todos los ASTs posibles, por eso debemos lanzar un error si el parser retorna más de uno.
 
-### Testing the grammar
+### Testeando la gramática
 
-Let's use `mocha` and `chai` to write a test in `tests/parser.spec.ts`
-
+Usemos `mocha` y `chai` para escribir un test en `tests/parser.spec.ts`:
 ```ts
 import { assert } from "chai";
 import {
@@ -321,7 +319,7 @@ import {
   SymbolPrimitive,
   Variable,
   YukigoParser,
-} from "yukigo-core";
+} from "yukigo-ast";
 import { YukigoMiniParser } from "../src/index.js";
 
 describe("Parser Tests", () => {
@@ -347,19 +345,18 @@ describe("Parser Tests", () => {
   });
 });
 ```
-
 ```
   Parser Tests
     ✔ should parse assignment
 ```
 
-Excellent! We have our first feature implemented with the test running
+¡Excelente! Tenemos nuestra primera funcionalidad implementada con el test pasando.
 
-Now let's build some more advaced features
+Ahora construyamos algunas características más avanzadas.
 
-## Functions
+## Funciones
 
-We want to add support for functions like this
+Queremos agregar soporte para funciones como esta:
 ```
 int add(int x, int y) {
   int result := x + y;
@@ -367,10 +364,10 @@ int add(int x, int y) {
 };
 int three := add(1, 2);
 ```
-We see that the function `add` is a `Procedure` with one `Equation` that has two `VariablePattern` and an `UnguardedBody` with a `Sequence` of two statements: `Variable` and `Return`.
 
-So let's start with the rule for the function statement.
+Vemos que la función `add` es un `Procedure` con una `Equation` que tiene dos `VariablePattern` y un `UnguardedBody` con una `Sequence` de dos sentencias: `Variable` y `Return`.
 
+Empecemos con la regla para la sentencia de función:
 ```
 # ...
 function_statement -> type __ variable ("(" _ param_list:? _ ")" _ "{" _ body _ "}") {% (d) => {
@@ -397,21 +394,19 @@ body -> statement:* {% (d) => new UnguardedBody(new Sequence(d[0])) %}
 # ...
 ```
 
-> Notice that, we also add a `TypeSignature` node which represents the signature of a function. In `paramTypeList` we collect the types of each argument to later add it to the `inputs` of the `ParameterizedType`. 
+> Notá que también agregamos un nodo `TypeSignature` que representa la firma de una función. En `paramTypeList` recolectamos los tipos de cada argumento para luego agregarlos a los `inputs` del `ParameterizedType`.
 
-Also let's add a return statement
-
+Agreguemos también una sentencia de retorno:
 ```
 return_statement -> "return" _ expression {% (d) => new Return(d[2]) %}
 ```
 
-And finally let's add them to our statement rule
+Y finalmente agreguémoslas a nuestra regla `statement`:
 ```
 statement -> (assignment | function_statement | return_statement) _ ";" _ {% (d) => d[0][0] %}
 ```
 
-Finally let's add a test that validates this behaviour
-
+Ahora escribamos un test que valide este comportamiento:
 ```ts
 it("should parse function declaration", () => {
   const code = `int add(int x, int y) {
@@ -453,26 +448,25 @@ it("should parse function declaration", () => {
 });
 ```
 
-Hopefully that will give us
+Deberíamos obtener:
 ```
 Parser Tests
   ✔ should parse assignment
   ✔ should parse function declaration
 ```
-It's a pretty simple workflow, if you like you could even make the tests first so you already have expectations setted for your grammar.
 
-## Collection Primitive
+Es un flujo de trabajo bastante simple. Si querés, podés incluso escribir los tests primero para tener las expectativas definidas antes de escribir la gramática.
 
-We are missing a key primitive though. 
+## Primitiva de Colección
 
+Nos falta un primitivo clave:
 ```
 int[] numberList := [1, 2, 3 + 4];
 ```
 
-This is not hard to implement. We need to define a primary rule `list` and use `ListPrimitive` node from `yukigo-core`. Let's add it
+Esto no es difícil de implementar. Necesitamos definir una regla primaria `list` y usar el nodo `ListPrimitive` de `yukigo-ast`. Agreguémoslo.
 
-First, let's think about the test. We expect the example above to parse as a `Variable` with expression `ListPrimitive` and type `ListType` which has int for it's elements. We might think of something like this:
-
+Primero, pensemos en el test. Esperamos que el ejemplo anterior se parsee como un `Variable` con expresión `ListPrimitive` y tipo `ListType` que tiene `int` para sus elementos:
 ```ts
 it("should parse list primitive", () => {
   const code = `int[] numberList := [1, 2, 3 + 4];`;
@@ -493,19 +487,22 @@ it("should parse list primitive", () => {
   ]);
 });
 ```
-Let's modify our type rule to support this new list type
+
+Modifiquemos la regla `type` para soportar este nuevo tipo lista:
 ```
 type -> 
     variable {% (d) => new SimpleType(d[0].value, []) %}
     | type "[" "]" {% (d) => new ListType(d[0], []) %}
 ```
-Good! Now for the expression we have something like
+
+Para la expresión tenemos algo como:
 ```
 list_primitive -> "[" _ expression_list _ "]" {% (d) => new ListPrimitive(d[2]) %}
 
 expression_list -> expression _ ("," _ expression _):* {% (d) => ([d[0], ...d[2].map(x => x[2])]) %}
 ```
-So lastly we add the `list_primitive` rule to the `primitive` rule
+
+Por último, agregamos la regla `list_primitive` a la regla `primitive`:
 ```
 primitive -> 
     %number {% (d) => new NumberPrimitive(Number(d[0].value)) %}
@@ -516,7 +513,7 @@ primitive ->
     | list_primitive {% d => d[0] %}
 ```
 
-Let's run the tests and check if we got it right
+Corramos los tests y verifiquemos que todo esté bien:
 ```
 Parser Tests
   ✔ should parse assignment
@@ -524,12 +521,11 @@ Parser Tests
   ✔ should parse list primitive
 ```
 
+## Flujo de Control: If & While
 
-## Control Flow: If & While statements
+Por último, queremos que nuestro lenguaje tenga sentencias `if` y bucles `while`. Para eso vamos a implementar reglas que produzcan nodos `If` y `While`.
 
-Finally, we want our language to have if statements and while loops. So we will need to implement some rules that produce `If` and `While` nodes
-
-We expect something like this for if statements
+Esperamos algo así para las sentencias `if`:
 ```ts
   it("should parse if statement", () => {
     const code = `if(a != b) { c := a + b; } else { c := a * 2; };`;
@@ -566,7 +562,7 @@ We expect something like this for if statements
 });
 ```
 
-First, let's add the `!=`, `==`, `*`, `if`, and `else` tokens to our lexer.
+Primero, agreguemos los tokens `!=`, `==`, `*`, `if` y `else` a nuestro lexer:
 ```ts
 // ...
 const keywords = [
@@ -576,12 +572,12 @@ const keywords = [
 ]
 
 export const MiniLexerConfig = {
-  // other tokens
+  // otros tokens
   semicolon: ";",
   assign: ":=",
   notEqual: "!=",
   equal: "==",
-  // other tokens
+  // otros tokens
   operator: /\+|\*/,
   variable: {
     match: /[a-z_][a-zA-Z0-9_']*/,
@@ -594,8 +590,7 @@ export const MiniLexerConfig = {
 // ...
 ```
 
-Now, let's define the production for the if statement
-
+Ahora definamos la producción para la sentencia `if`:
 ```
 if_statement -> "if" _ condition _ statement_list _ "else" _ statement_list {% d => new If(d[2], d[4], d[8]) %}
 
@@ -604,8 +599,7 @@ condition -> "(" _ expression _ ")" {% (d) => d[2] %}
 statement_list -> "{" _ statement:* _ "}" {% d => new Sequence(d[2]) %}
 ```
 
-Good, now we are missing the rule that produces `ComparisonOperation` nodes. Let's modify the operations section to add comparison **before** arithmetic operations
-
+Nos falta la regla que produce nodos `ComparisonOperation`. Modifiquemos la sección de operaciones para agregar comparación **antes** de las operaciones aritméticas:
 ```
 expression -> comparison {% (d) => d[0] %}
 
@@ -623,24 +617,21 @@ multiplication ->
     | multiplication _ "/" _ primary {% (d) => new ArithmeticBinaryOperation("Divide", d[0], d[4]) %}
     | primary {% (d) => d[0] %}
 
-# the rest of the grammar
+# el resto de la gramática
 
 comparison_operator -> 
     %equal {% d => "Equal" %}
     | %notEqual {% d => "NotEqual" %}
-
 ```
 
-The `comparison_operator` rule helps us assign semantic value to the operation by the operator we received from the lexer.
+La regla `comparison_operator` nos ayuda a asignar valor semántico a la operación a partir del operador recibido del lexer.
 
-Also we are missing assignment statements so we can add in our statement rule
-
+También nos falta la sentencia de asignación, así que la agregamos a nuestra regla `statement`:
 ```
 assignment -> variable _ ":=" _ expression {% (d) => new Assignment(d[0], d[4]) %}
 ```
 
-And that should work, let's now implement `while` loops which have a `condition` and a `body` to parse something like this
-
+Ahora implementemos los bucles `while`, que tienen una `condition` y un `body` para parsear algo como esto:
 ```ts
 it("should parse while loop statement", () => {
   const code = `while(a < 10) { a := a + 1; };`;
@@ -666,22 +657,21 @@ it("should parse while loop statement", () => {
 });
 ```
 
-In the lexer we need to add
+En el lexer necesitamos agregar:
 ```ts
 export const MiniLexerConfig = {
-  // other tokens
+  // otros tokens
   gte: ">=",
   gt: ">",
   lte: "<=",
   lt: "<",
-  // other tokens
+  // otros tokens
 };
 ```
 
-> Notice the order in which we defined these tokens. If the `gt` token were to be before the `gte` token, then the lexer would return the token `gt` even if it read `>=`. This is called [maximal munch](https://en.wikipedia.org/wiki/Maximal_munch) or longest match principle.
+> Notá el orden en que definimos estos tokens. Si el token `gt` estuviera antes que `gte`, el lexer retornaría el token `gt` incluso al leer `>=`. Esto se llama [maximal munch](https://en.wikipedia.org/wiki/Maximal_munch) o principio de la coincidencia más larga.
 
-Let's update our `comparison_operator` rule with these new operators
-
+Actualicemos la regla `comparison_operator` con estos nuevos operadores:
 ```
 comparison_operator -> 
     %equal {% d => "Equal" %}
@@ -692,13 +682,12 @@ comparison_operator ->
     | %gte {% d => "GreaterOrEqualThan" %}
 ```
 
-And now define the `while_statement` rule reusing the condition and body from the `if_statement` rule
-
+Y ahora definamos la regla `while_statement` reutilizando la condición y el cuerpo de la regla `if_statement`:
 ```
 while_statement -> "while" _ condition _ statement_list {% d => new While(d[2], d[4]) %}
 ```
 
-Finally we should have all tests working 
+¡Con esto deberíamos tener todos los tests pasando!
 ```
 Parser Tests
   ✔ should parse assignment

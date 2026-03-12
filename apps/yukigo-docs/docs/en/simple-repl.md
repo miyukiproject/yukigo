@@ -75,14 +75,8 @@ Now, lets integrate Yukigo. Lets instantiate the parser and the interpreter befo
 ```js
 const parser = new YukigoHaskellParser();
 const prelude = parser.parse("")
-
 const interpreter = new Interpreter(prelude, { lazyLoading: true });
-const replParser = new YukigoHaskellParser("");
 ```
-
-As you can see, we need 2 different parsers. One that loads Prelude as the AST where the interpreter will evaluate the expressions, and another to parser the user inputted expressions.
-
-For the `replParser` we pass an empty string so it does not load Prelude. We only want the `replParser` to output expressions.
 
 The loop should Read the input, Evaluate it, and then Print the result. Let's update the `readLoop` function to achieve this:
 
@@ -91,8 +85,8 @@ var readLoop = function () {
   rl.question("$ ", function (input) {
     if (input == "exit") return rl.close();
     try {
-      const parsedInput = replParser.parse(input);
-      const result = interpreter.evaluate(parsedInput[0]);
+      const expr = parser.parseExpression(input);
+      const result = interpreter.evaluate(expr);
       console.log(result);
     } catch (error) {
       console.log(error);
@@ -101,8 +95,6 @@ var readLoop = function () {
   });
 };
 ```
-
-Note that the `parsedInput` is of type `AST` which is `(Statement | Expression)[]` thats why we access the first element.
 
 When we run it, we can do things like:
 ```sh
@@ -126,16 +118,14 @@ const rl = readline.createInterface({
 
 const parser = new YukigoHaskellParser();
 const prelude = parser.parse("")
-
 const interpreter = new Interpreter(prelude, { lazyLoading: true });
-const replParser = new YukigoHaskellParser("");
 
 var readLoop = function () {
   rl.question("$ ", function (input) {
     if (input == "exit") return rl.close();
     try {
-      const parsedInput = replParser.parse(input);
-      const result = interpreter.evaluate(parsedInput[0]);
+      const expr = parser.parseExpression(input);
+      const result = interpreter.evaluate(expr);
       console.log(result);
     } catch (error) {
       console.log(error);
