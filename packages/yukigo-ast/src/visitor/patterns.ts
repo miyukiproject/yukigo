@@ -10,6 +10,7 @@ import {
     UnionPattern,
     ConstructorPattern,
     ConsPattern,
+    TypePattern,
 } from "../globals/patterns.js";
 import { TraverseBase, GConstructor } from "./base.js";
 
@@ -25,6 +26,7 @@ export interface PatternVisitor<TReturn> {
     visitUnionPattern(node: UnionPattern): TReturn;
     visitConstructorPattern(node: ConstructorPattern): TReturn;
     visitConsPattern(node: ConsPattern): TReturn;
+    visitTypePattern(node: TypePattern): TReturn;
 }
 
 export function PatternTraverser<TBase extends GConstructor<TraverseBase>>(
@@ -65,6 +67,10 @@ export function PatternTraverser<TBase extends GConstructor<TraverseBase>>(
         visitConsPattern(node: ConsPattern): void {
             node.left.accept(this);
             node.right.accept(this);
+        }
+        visitTypePattern(node: TypePattern): void {
+            node.targetType.accept(this);
+            node.innerPattern?.accept(this);
         }
     };
 }

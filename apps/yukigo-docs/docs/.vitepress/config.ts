@@ -127,7 +127,6 @@ const sidebarTranslations = {
   },
 };
 
-// ── 3. One small resolver ──────────────────────────────────────────────────
 type Locale = keyof typeof sidebarTranslations;
 
 function buildSidebar(locale: Locale) {

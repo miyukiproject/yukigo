@@ -7,6 +7,7 @@ import { PrimitiveTraverser, PrimitiveVisitor } from "./primitives.js";
 import { StatementTraverser, StatementVisitor } from "./statements.js";
 import { TypeTraverser, TypeVisitor } from "./types.js";
 import { TestingTraverser, TestingVisitor } from "./testing.js";
+import { TypeClassTraverser, TypeClassVisitor } from "./typeclasses.js";
 
 export * from "./base.js";
 export * from "./expressions.js";
@@ -16,6 +17,7 @@ export * from "./primitives.js";
 export * from "./statements.js";
 export * from "./types.js";
 export * from "./testing.js";
+export * from "./typeclasses.js";
 
 export interface StrictVisitor<TReturn>
     extends BaseVisitor<TReturn>,
@@ -25,7 +27,8 @@ export interface StrictVisitor<TReturn>
     PrimitiveVisitor<TReturn>,
     StatementVisitor<TReturn>,
     TypeVisitor<TReturn>,
-    TestingVisitor<TReturn> { }
+    TestingVisitor<TReturn>,
+    TypeClassVisitor<TReturn> { }
 
 export type Visitor<TReturn> = Partial<StrictVisitor<TReturn>>;
 
@@ -37,7 +40,7 @@ export class StopTraversalException extends Error {
 
 // Combine Traversal Logic via Mixins
 export class TraverseVisitor
-    extends TestingTraverser(TypeTraverser(
+    extends TypeClassTraverser(TestingTraverser(TypeTraverser(
         StatementTraverser(
             PatternTraverser(
                 OperationTraverser(
@@ -45,5 +48,5 @@ export class TraverseVisitor
                 )
             )
         )
-    ))
+    )))
     implements StrictVisitor<void> {}

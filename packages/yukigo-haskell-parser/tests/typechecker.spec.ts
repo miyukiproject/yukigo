@@ -45,7 +45,7 @@ describe("TypeChecker Tests", () => {
     assert.throw(() => parser.parse(code));
     assert.include(
       parser.errors,
-      "Type error in 'first': Cannot apply [YuChar] to type [YuNumber] -> YuNumber"
+      "Type error in 'first': Cannot apply YuString to type [YuNumber] -> YuNumber"
     );
   });
   it("detects bad application of parameters in tuple", () => {
@@ -190,7 +190,7 @@ describe("TypeChecker Tests", () => {
     assert.exists(targetError);
     assert.match(
       targetError,
-      /Cannot apply YuNumber to type YuString -> Foo t\d+/
+      /Cannot apply YuNumber to type YuString -> Foo [a-z]/
     );
   });
   it("validates correct usage of map", () => {
@@ -215,7 +215,7 @@ describe("TypeChecker Tests", () => {
     assert.exists(targetError);
     assert.match(
       targetError,
-      /Type error in 'f': Cannot unify t\d+ -> YuNumber with YuNumber/
+      /Type error in 'f': Cannot unify [a-z] -> YuNumber with YuNumber/
     );
   });
   it("validates correct usage of filter", () => {
@@ -232,7 +232,7 @@ describe("TypeChecker Tests", () => {
     assert.exists(targetError);
     assert.match(
       targetError,
-      /Type error in 'f': Cannot apply t\d+ -> YuString to type \(t\d+ -> YuBoolean\) -> \[t\d+\] -> \[t\d+\]/
+      /Type error in 'f': Cannot apply [a-z] -> YuString to type \([a-z] -> YuBoolean\) -> \[[a-z]\] -> \[[a-z]\]/
     );
   });
   it("handles multiple type errors", () => {
@@ -316,6 +316,11 @@ describe("TypeChecker Tests", () => {
   });
   it("validates infix partial application", () => {
     const code = `doble numero = (2 *) numero`;
+    parser.parse(code);
+    assert.isEmpty(parser.errors);
+  });
+  it("validates correct usage of succ and pred", () => {
+    const code = `next x = succ x\nprev x = pred x`;
     parser.parse(code);
     assert.isEmpty(parser.errors);
   });

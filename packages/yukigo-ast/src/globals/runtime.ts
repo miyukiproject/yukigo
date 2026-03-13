@@ -122,7 +122,7 @@ export interface LazyList {
   readonly generator: () => Generator<PrimitiveValue, void, unknown>;
 }
 
-export function isLazyList(prim: PrimitiveValue): prim is LazyList {
+export function isLazyList(prim: unknown): prim is LazyList {
   return (
     prim &&
     typeof prim === "object" &&

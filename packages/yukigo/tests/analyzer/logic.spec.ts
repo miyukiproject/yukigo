@@ -14,6 +14,7 @@ import {
   Equation,
   UnguardedBody,
   Sequence,
+  VariablePattern,
 } from "yukigo-ast";
 import {
   Analyzer,
@@ -123,9 +124,9 @@ describe("Logic Inspections", () => {
   describe("UsesFindall", () => {
     it("detects usage of findall/3", () => {
       const findallNode = new Findall(
-        createSymbol("X"),
+        new VariablePattern(createSymbol("X")),
         createCall("goal"),
-        createSymbol("L")
+        new VariablePattern(createSymbol("L"))
       );
       const rule = createRule("foo", [], [findallNode]);
       expect(runSingleRule([rule], "UsesFindall", true)).to.be.true;
@@ -134,7 +135,7 @@ describe("Logic Inspections", () => {
 
   describe("UsesNot", () => {
     it("detects usage of Not node", () => {
-      const notNode = new Not([createCall("g")]);
+      const notNode = new Not(createCall("g"));
       const rule = createRule("foo", [], [notNode]);
       expect(runSingleRule([rule], "UsesNot", true)).to.be.true;
     });

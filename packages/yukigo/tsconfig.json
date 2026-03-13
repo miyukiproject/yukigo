@@ -13,14 +13,11 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["**/*"],
+  "include": ["src"],
   "exclude": [
     "dist/**/*"
   ],
   "references": [
-    {
-      "path": "../yukigo-prolog-parser"
-    },
     {
       "path": "../yukigo-ast"
     }

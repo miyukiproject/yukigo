@@ -2,7 +2,9 @@
   "compilerOptions": {
     "rootDir": ".",
     "baseUrl": ".",
-    "paths": {} 
+    "paths": {} ,
+    "sourceMap": true,
+    "inlineSourceMap": true,
   },
   "files": [],
   "include": [],
@@ -16,6 +18,9 @@
     },
     {
       "path": "./packages/yukigo-ast"
+    },
+    {
+      "path": "./packages/yukigo-haskell-parser"
     }
   ]
 }

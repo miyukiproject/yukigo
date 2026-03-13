@@ -12,20 +12,23 @@ import {
   RuntimeClass,
   StringPrimitive,
   Primitive,
-  Equation,
   Super,
   ArithmeticBinaryOperation,
   EnvStack,
 } from "yukigo-ast";
-import { ObjectRuntime } from "../../src/interpreter/components/ObjectRuntime.js";
-import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
-import { createGlobalEnv, lookup } from "../../src/interpreter/utils.js";
-import { DefaultConfiguration } from "../../src/index.js";
+import { createGlobalEnv } from "../../src/interpreter/utils.js";
+import {
+  Continuation,
+  idContinuation,
+  Thunk,
+  trampoline,
+} from "../../src/interpreter/trampoline.js";
+import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
 
 const createEmptyEnv = () => ({ head: new Map(), tail: null });
 
 const createMethodMap = (
-  methods: RuntimeFunction[]
+  methods: RuntimeFunction[],
 ): Map<string, RuntimeFunction> =>
   new Map(methods.map((m) => [m.identifier, m]));
 const createMethod = (name: string, returnVal: Primitive): RuntimeFunction => {
@@ -47,7 +50,7 @@ const createClass = (
   name: string,
   superclass?: string,
   methodDefs: Map<string, RuntimeFunction> = new Map(),
-  mixins: string[] = []
+  mixins: string[] = [],
 ): RuntimeClass => {
   return {
     type: "Class",
@@ -59,18 +62,7 @@ const createClass = (
   };
 };
 
-const dummyFactory = (env: EnvStack) => {
-  return {
-    evaluate: (n: any) => {
-      if (n instanceof NumberPrimitive) return n.value;
-      if (n instanceof StringPrimitive) return n.value;
-      if (n instanceof SymbolPrimitive) return lookup(env, n.value);
-      throw new Error("Unexpected value in dummyFactory: ", n);
-    },
-  };
-};
-
-describe("ObjectRuntime", () => {
+describe("ctx.objRuntime", () => {
   let objectInstance: RuntimeObject;
   const className = "TestClass";
   const initialFields = new Map<string, PrimitiveValue>([
@@ -88,12 +80,14 @@ describe("ObjectRuntime", () => {
   };
   const env: EnvStack = createGlobalEnv();
   env.head.set(className, classDef);
+  const ctx = new RuntimeContext();
+  ctx.setEnv(env);
   beforeEach(() => {
-    objectInstance = ObjectRuntime.instantiate(
+    objectInstance = ctx.objRuntime.instantiate(
       className,
       "obj",
       initialFields,
-      methods
+      methods,
     );
   });
 
@@ -105,7 +99,7 @@ describe("ObjectRuntime", () => {
 
     it("debe clonar el mapa de campos (no usar la referencia original)", () => {
       const fieldsDef = new Map([["x", 1]]);
-      const obj = ObjectRuntime.instantiate("A", "objA", fieldsDef, new Map());
+      const obj = ctx.objRuntime.instantiate("A", "objA", fieldsDef, new Map());
 
       fieldsDef.set("x", 2);
 
@@ -115,30 +109,30 @@ describe("ObjectRuntime", () => {
 
   describe("Field Access (Get/Set)", () => {
     it("getField debe devolver el valor de un campo existente", () => {
-      const val = ObjectRuntime.getField(objectInstance, "count");
+      const val = ctx.objRuntime.getField(objectInstance, "count");
       expect(val).to.equal(10);
     });
 
     it("getField debe lanzar error si el campo no existe", () => {
       expect(() => {
-        ObjectRuntime.getField(objectInstance, "non_existent");
+        ctx.objRuntime.getField(objectInstance, "non_existent");
       }).to.throw(/Field 'non_existent' not found/);
     });
 
     it("getField debe lanzar error si el target no es un objeto", () => {
       expect(() => {
-        ObjectRuntime.getField(123 as any, "count");
+        ctx.objRuntime.getField(123 as any, "count");
       }).to.throw(/Target is not an object/);
     });
 
     it("setField debe actualizar el valor de un campo existente", () => {
-      ObjectRuntime.setField(objectInstance, "count", 20, DefaultConfiguration);
+      ctx.objRuntime.setField(objectInstance, "count", 20);
       expect(objectInstance.fields.get("count")).to.equal(20);
     });
 
     it("setField debe lanzar error si intentas crear un campo nuevo (strict mode)", () => {
       expect(() => {
-        ObjectRuntime.setField(objectInstance, "newProp", 99, DefaultConfiguration);
+        ctx.objRuntime.setField(objectInstance, "newProp", 99);
       }).to.throw(/Cannot set unknown field/);
     });
   });
@@ -154,7 +148,7 @@ describe("ObjectRuntime", () => {
           {
             patterns: [],
             body: new UnguardedBody(
-              new Sequence([new Return(new SymbolPrimitive("count"))])
+              new Sequence([new Return(new SymbolPrimitive("count"))]),
             ),
           },
         ],
@@ -162,12 +156,15 @@ describe("ObjectRuntime", () => {
 
       objectInstance.methods.set("getCount", getCountMethod);
 
-      const result = ObjectRuntime.dispatch(
-        objectInstance,
-        "getCount",
-        [],
-        env,
-        dummyFactory
+      const result = trampoline(
+        ctx.objRuntime.dispatch(
+          objectInstance,
+          "getCount",
+          [],
+          env,
+
+          idContinuation,
+        ),
       );
 
       expect(result).to.equal(10);
@@ -175,24 +172,30 @@ describe("ObjectRuntime", () => {
 
     it("debe fallar si el método no existe", () => {
       expect(() => {
-        ObjectRuntime.dispatch(
-          objectInstance,
-          "unknownMethod",
-          [],
-          env,
-          dummyFactory
+        trampoline(
+          ctx.objRuntime.dispatch(
+            objectInstance,
+            "unknownMethod",
+            [],
+            env,
+
+            idContinuation,
+          ),
         );
       }).to.throw(/does not understand 'unknownMethod'/);
     });
 
     it("debe fallar si el receiver no es un objeto", () => {
       expect(() => {
-        ObjectRuntime.dispatch(
-          "soy un string" as any,
-          "toString",
-          [],
-          createEmptyEnv(),
-          dummyFactory
+        trampoline(
+          ctx.objRuntime.dispatch(
+            "soy un string" as any,
+            "toString",
+            [],
+            createEmptyEnv() as any,
+
+            idContinuation,
+          ),
         );
       }).to.throw(/is not an object/);
     });
@@ -214,12 +217,15 @@ describe("ObjectRuntime", () => {
 
       objectInstance.methods.set("echo", addMethod);
 
-      const result = ObjectRuntime.dispatch(
-        objectInstance,
-        "echo",
-        [999],
-        env,
-        dummyFactory
+      const result = trampoline(
+        ctx.objRuntime.dispatch(
+          objectInstance,
+          "echo",
+          [999],
+          env,
+
+          idContinuation,
+        ),
       );
 
       expect(result).to.equal(999);
@@ -232,19 +238,28 @@ describe("ObjectRuntime", () => {
         createClass(
           "Animal",
           undefined,
-          createMethodMap([createMethod("speak", new StringPrimitive("Guau"))])
-        )
+          createMethodMap([createMethod("speak", new StringPrimitive("Guau"))]),
+        ),
       );
       env.head.set("Perro", createClass("Perro", "Animal"));
 
-      const perro = ObjectRuntime.instantiate(
+      const perro = ctx.objRuntime.instantiate(
         "Perro",
         "dogObj",
         new Map(),
-        new Map()
+        new Map(),
       );
 
-      const res = ObjectRuntime.dispatch(perro, "speak", [], env, dummyFactory);
+      const res = trampoline(
+        ctx.objRuntime.dispatch(
+          perro,
+          "speak",
+          [],
+          env,
+
+          idContinuation,
+        ),
+      );
       expect(res).to.equal("Guau");
     });
 
@@ -254,15 +269,29 @@ describe("ObjectRuntime", () => {
         createClass(
           "A",
           undefined,
-          createMethodMap([createMethod("id", new NumberPrimitive(1))])
-        )
+          createMethodMap([createMethod("id", new NumberPrimitive(1))]),
+        ),
       );
       env.head.set("B", createClass("B", "A"));
       env.head.set("C", createClass("C", "B"));
 
-      const objC = ObjectRuntime.instantiate("C", "objC", new Map(), new Map());
+      const objC = ctx.objRuntime.instantiate(
+        "C",
+        "objC",
+        new Map(),
+        new Map(),
+      );
       expect(
-        ObjectRuntime.dispatch(objC, "id", [], env, dummyFactory)
+        trampoline(
+          ctx.objRuntime.dispatch(
+            objC,
+            "id",
+            [],
+            env,
+
+            idContinuation,
+          ),
+        ),
       ).to.equal(1);
     });
 
@@ -272,22 +301,31 @@ describe("ObjectRuntime", () => {
         createClass(
           "Volador",
           undefined,
-          createMethodMap([createMethod("volar", new StringPrimitive("Wosh"))])
-        )
+          createMethodMap([createMethod("volar", new StringPrimitive("Wosh"))]),
+        ),
       );
       env.head.set(
         "Ave",
-        createClass("Ave", undefined, undefined, ["Volador"])
+        createClass("Ave", undefined, undefined, ["Volador"]),
       );
 
-      const pepita = ObjectRuntime.instantiate(
+      const pepita = ctx.objRuntime.instantiate(
         "Ave",
         "birdObj",
         new Map(),
-        new Map()
+        new Map(),
       );
       expect(
-        ObjectRuntime.dispatch(pepita, "volar", [], env, dummyFactory)
+        trampoline(
+          ctx.objRuntime.dispatch(
+            pepita,
+            "volar",
+            [],
+            env,
+
+            idContinuation,
+          ),
+        ),
       ).to.equal("Wosh");
     });
 
@@ -297,26 +335,35 @@ describe("ObjectRuntime", () => {
         createClass(
           "HabilidadA",
           undefined,
-          createMethodMap([createMethod("skill", new StringPrimitive("Fire"))])
-        )
+          createMethodMap([createMethod("skill", new StringPrimitive("Fire"))]),
+        ),
       );
       env.head.set(
         "HabilidadB",
-        createClass("HabilidadB", undefined, undefined, ["HabilidadA"])
+        createClass("HabilidadB", undefined, undefined, ["HabilidadA"]),
       );
       env.head.set(
         "Heroe",
-        createClass("Heroe", undefined, undefined, ["HabilidadB"])
+        createClass("Heroe", undefined, undefined, ["HabilidadB"]),
       );
 
-      const heroe = ObjectRuntime.instantiate(
+      const heroe = ctx.objRuntime.instantiate(
         "Heroe",
         "heroObj",
         new Map(),
-        new Map()
+        new Map(),
       );
       expect(
-        ObjectRuntime.dispatch(heroe, "skill", [], env, dummyFactory)
+        trampoline(
+          ctx.objRuntime.dispatch(
+            heroe,
+            "skill",
+            [],
+            env,
+
+            idContinuation,
+          ),
+        ),
       ).to.equal("Fire");
     });
 
@@ -326,16 +373,16 @@ describe("ObjectRuntime", () => {
         createClass(
           "Super",
           undefined,
-          createMethodMap([createMethod("val", new NumberPrimitive(1))])
-        )
+          createMethodMap([createMethod("val", new NumberPrimitive(1))]),
+        ),
       );
       env.head.set(
         "Mixin",
         createClass(
           "Mixin",
           undefined,
-          createMethodMap([createMethod("val", new NumberPrimitive(2))])
-        )
+          createMethodMap([createMethod("val", new NumberPrimitive(2))]),
+        ),
       );
 
       env.head.set(
@@ -344,18 +391,27 @@ describe("ObjectRuntime", () => {
           "Child",
           "Super",
           createMethodMap([createMethod("val", new NumberPrimitive(3))]),
-          ["Mixin"]
-        )
+          ["Mixin"],
+        ),
       );
 
-      const child = ObjectRuntime.instantiate(
+      const child = ctx.objRuntime.instantiate(
         "Child",
         "childObj",
         new Map(),
-        new Map()
+        new Map(),
       );
       expect(
-        ObjectRuntime.dispatch(child, "val", [], env, dummyFactory)
+        trampoline(
+          ctx.objRuntime.dispatch(
+            child,
+            "val",
+            [],
+            env,
+
+            idContinuation,
+          ),
+        ),
       ).to.equal(3);
     });
 
@@ -365,30 +421,39 @@ describe("ObjectRuntime", () => {
         createClass(
           "Super",
           undefined,
-          createMethodMap([createMethod("val", new NumberPrimitive(1))])
-        )
+          createMethodMap([createMethod("val", new NumberPrimitive(1))]),
+        ),
       );
       env.head.set(
         "Mixin",
         createClass(
           "Mixin",
           undefined,
-          createMethodMap([createMethod("val", new NumberPrimitive(2))])
-        )
+          createMethodMap([createMethod("val", new NumberPrimitive(2))]),
+        ),
       );
       env.head.set(
         "Child",
-        createClass("Child", "Super", undefined, ["Mixin"])
+        createClass("Child", "Super", undefined, ["Mixin"]),
       );
 
-      const child = ObjectRuntime.instantiate(
+      const child = ctx.objRuntime.instantiate(
         "Child",
         "childObj",
         new Map(),
-        new Map()
+        new Map(),
       );
       expect(
-        ObjectRuntime.dispatch(child, "val", [], env, dummyFactory)
+        trampoline(
+          ctx.objRuntime.dispatch(
+            child,
+            "val",
+            [],
+            env,
+
+            idContinuation,
+          ),
+        ),
       ).to.equal(2);
     });
 
@@ -398,31 +463,40 @@ describe("ObjectRuntime", () => {
         createClass(
           "MixinA",
           undefined,
-          createMethodMap([createMethod("val", new NumberPrimitive(10))])
-        )
+          createMethodMap([createMethod("val", new NumberPrimitive(10))]),
+        ),
       );
       env.head.set(
         "MixinB",
         createClass(
           "MixinB",
           undefined,
-          createMethodMap([createMethod("val", new NumberPrimitive(20))])
-        )
+          createMethodMap([createMethod("val", new NumberPrimitive(20))]),
+        ),
       );
 
       env.head.set(
         "Clase",
-        createClass("Clase", undefined, undefined, ["MixinA", "MixinB"])
+        createClass("Clase", undefined, undefined, ["MixinA", "MixinB"]),
       );
 
-      const obj = ObjectRuntime.instantiate(
+      const obj = ctx.objRuntime.instantiate(
         "Clase",
         "objC",
         new Map(),
-        new Map()
+        new Map(),
       );
       expect(
-        ObjectRuntime.dispatch(obj, "val", [], env, dummyFactory)
+        trampoline(
+          ctx.objRuntime.dispatch(
+            obj,
+            "val",
+            [],
+            env,
+
+            idContinuation,
+          ),
+        ),
       ).to.equal(20);
     });
 
@@ -432,31 +506,40 @@ describe("ObjectRuntime", () => {
         createClass(
           "MixinA",
           undefined,
-          createMethodMap([createMethod("val", new NumberPrimitive(10))])
-        )
+          createMethodMap([createMethod("val", new NumberPrimitive(10))]),
+        ),
       );
       env.head.set(
         "MixinB",
         createClass(
           "MixinB",
           undefined,
-          createMethodMap([createMethod("val", new NumberPrimitive(20))])
-        )
+          createMethodMap([createMethod("val", new NumberPrimitive(20))]),
+        ),
       );
 
       env.head.set(
         "Clase",
-        createClass("Clase", undefined, undefined, ["MixinB", "MixinA"])
+        createClass("Clase", undefined, undefined, ["MixinB", "MixinA"]),
       );
 
-      const obj = ObjectRuntime.instantiate(
+      const obj = ctx.objRuntime.instantiate(
         "Clase",
         "obj",
         new Map(),
-        new Map()
+        new Map(),
       );
       expect(
-        ObjectRuntime.dispatch(obj, "val", [], env, dummyFactory)
+        trampoline(
+          ctx.objRuntime.dispatch(
+            obj,
+            "val",
+            [],
+            env,
+
+            idContinuation,
+          ),
+        ),
       ).to.equal(10);
     });
   });
@@ -467,8 +550,8 @@ describe("ObjectRuntime", () => {
         createClass(
           "Base",
           undefined,
-          createMethodMap([createMethod("calc", new NumberPrimitive(10))])
-        )
+          createMethodMap([createMethod("calc", new NumberPrimitive(10))]),
+        ),
       );
 
       const astBody = new UnguardedBody(
@@ -477,10 +560,10 @@ describe("ObjectRuntime", () => {
             new ArithmeticBinaryOperation(
               "Plus",
               new Super([]),
-              new NumberPrimitive(5)
-            )
+              new NumberPrimitive(5),
+            ),
           ),
-        ])
+        ]),
       );
 
       const methodHijo: RuntimeFunction = {
@@ -488,7 +571,12 @@ describe("ObjectRuntime", () => {
         identifier: "calc",
         arity: 0,
         pendingArgs: [],
-        equations: [new Equation([], astBody)],
+        equations: [
+          {
+            patterns: [],
+            body: astBody,
+          },
+        ],
       };
 
       const Hijo: RuntimeClass = {
@@ -501,19 +589,15 @@ describe("ObjectRuntime", () => {
       };
       env.head.set("Hijo", Hijo);
 
-      const hijoInstance = ObjectRuntime.instantiate(
+      const hijoInstance = ctx.objRuntime.instantiate(
         "Hijo",
         "childObj",
         new Map(),
-        new Map()
+        new Map(),
       );
 
-      const result = ObjectRuntime.dispatch(
-        hijoInstance,
-        "calc",
-        [],
-        env,
-        (newEnv) => new InterpreterVisitor(newEnv, {}, [])
+      const result = trampoline(
+        ctx.objRuntime.dispatch(hijoInstance, "calc", [], env, idContinuation),
       );
 
       expect(result).to.equal(15);
