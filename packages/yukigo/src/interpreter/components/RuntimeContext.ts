@@ -87,12 +87,12 @@ export class RuntimeContext {
 
     return false;
   }
-  public popEnv(env: EnvStack) {
-    if (!env.tail)
+  public popEnv() {
+    if (!this.env.tail)
       throw new Error(
         "Runtime Error: Cannot pop the global environment scope.",
       );
-    this.env = env.tail;
+    this.env = this.env.tail;
   }
   public lookup(name: string): PrimitiveValue {
     let current: EnvStack | null = this.env;
