@@ -25,12 +25,14 @@
 import { ref, computed, watch, nextTick, onMounted, defineProps } from 'vue'
 import Prism from 'prismjs'
 import 'prismjs/components/prism-haskell'
+import 'prismjs/components/prism-prolog'
 import 'prismjs/themes/prism-okaidia.css'
 
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
-  readonly: { type: Boolean, default: false }
+  readonly: { type: Boolean, default: false },
+  selectedLanguage: {type: String, default: 'haskell'}
 })
 const emit = defineEmits(['update:modelValue'])
 const internalValue = ref(props.modelValue)
@@ -44,7 +46,7 @@ const lineCount = computed(() => Array.from({ length: Math.max(internalValue.val
 
 const highlightedCode = computed(() => {
   try {
-    return Prism.highlight(internalValue.value, Prism.languages.haskell, 'haskell')
+    return Prism.highlight(internalValue.value, Prism.languages[props.selectedLanguage??'haskell'], props.selectedLanguage??'haskell')
   } catch {
     return internalValue.value
   }
