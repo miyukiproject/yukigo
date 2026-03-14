@@ -28,7 +28,7 @@ const tr = computed(() => t[lang.value] ?? t['en'])
       {{ tr.tagline }}
     </span>
     <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center justify-center mt-4">
-      <a class="bg-primary px-4 py-2 rounded-2xl w-full sm:w-auto text-center" href="/getting-started/">
+      <a class="bg-primary px-4 py-2 rounded-2xl w-full sm:w-auto text-center" :href="'/yukigo/' + lang + '/getting-started/'">
         {{ tr.getStarted }}
       </a>
       <a class="alt text-center w-full sm:w-auto" href="https://github.com/miyukiproject/yukigo" target="_blank">
