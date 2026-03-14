@@ -18,7 +18,6 @@ const t = {
 }
 
 const tr = computed(() => t[lang.value] ?? t['en'])
-console.log(lang)
 </script>
 <template>
   <div class="flex gap-4 sm:gap-6 lg:gap-8 flex-col w-full mt-10 sm:mt-16 lg:mt-20 justify-center items-center text-center">
