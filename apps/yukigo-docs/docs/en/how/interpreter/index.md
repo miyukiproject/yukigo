@@ -2,6 +2,21 @@
 
 The `Interpreter` serves as the primary entry point for evaluating Abstract Syntax Tree (AST) nodes. It evaluates all the `Expression` nodes (and some `Statement`) and returns a `PrimitiveValue`.
 
+## Use
+
+```ts
+const interpreter = new Interpreter(ast, interpreterConfig);
+```
+
+## InterpreterConfig
+
+| Option        | Type             | Default   | Description                                                                 |
+|---------------|------------------|-----------|-----------------------------------------------------------------------------|
+| `lazyLoading` | `boolean`        | `false`   | Defer evaluation until the value is demanded. Enables `LazyList` support.  |
+| `debug`       | `boolean`        | `false`   | Emit verbose diagnostic output during AST traversal and evaluation.         |
+| `outputMode`  | `LogicSearchMode`| `"first"` | Search strategy for logic queries: `"first"`, `"all"`, or `"stream"`.      |
+| `mutability`  | `boolean`        | `true`    | Allow identifiers to be rebound after their initial assignment.             |
+
 ## PrimitiveValue
 
 The `PrimitiveValue` is the core data abstraction in Yukigo. It is a comprehensive union type that integrates JavaScript native primitives with custom runtime entities required for multi-paradigma support.
