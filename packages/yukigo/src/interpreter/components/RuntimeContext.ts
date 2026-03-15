@@ -4,7 +4,6 @@ import { LazyRuntime } from "./runtimes/LazyRuntime.js";
 import { ObjectRuntime } from "./runtimes/ObjectRuntime.js";
 import { createGlobalEnv } from "../utils.js";
 import { UnboundVariable } from "../errors.js";
-import { inspect } from "util";
 
 export const DefaultConfiguration: Required<InterpreterConfig> = {
   lazyLoading: false,
@@ -87,12 +86,12 @@ export class RuntimeContext {
 
     return false;
   }
-  public popEnv(env: EnvStack) {
-    if (!env.tail)
+  public popEnv() {
+    if (!this.env.tail)
       throw new Error(
         "Runtime Error: Cannot pop the global environment scope.",
       );
-    this.env = env.tail;
+    this.env = this.env.tail;
   }
   public lookup(name: string): PrimitiveValue {
     let current: EnvStack | null = this.env;
@@ -109,5 +108,12 @@ export class RuntimeContext {
   }
   public define(name: string, value: PrimitiveValue): void {
     this.env.head.set(name, value);
+  }
+  public clone(env?: EnvStack): EnvStack {
+    const target = env ?? this.env;
+    return {
+      head: new Map(target.head),
+      tail: this.env.tail,
+    };
   }
 }

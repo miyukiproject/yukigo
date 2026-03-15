@@ -21,6 +21,7 @@ import {
   TypePattern,
   SimpleType,
   ListType,
+  EnvStack,
 } from "yukigo-ast";
 import { Bindings } from "../index.js";
 import { InterpreterVisitor } from "./Visitor.js";
@@ -61,6 +62,7 @@ export interface InternalConsState {
   readonly head: PrimitiveValue;
   readonly tailExpr: Expression;
   readonly evaluator: ExpressionEvaluator;
+  readonly capturedEnv: EnvStack;
   realizedTail?: PrimitiveValue;
 }
 

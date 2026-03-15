@@ -684,6 +684,7 @@ export class InterpreterVisitor
   }
 
   visitApplication(node: Application): CPSThunk<PrimitiveValue> {
+    const { funcRuntime } = this.context
     if (this.context.config.debug) {
       console.log(`[Interpreter] Visiting Application`);
     }
@@ -695,53 +696,26 @@ export class InterpreterVisitor
             "Cannot apply non-function",
           );
 
-        return this.evaluate(node.parameter, (arg) => {
-          const argThunk = () => arg;
-          const allPendingArgs = func.pendingArgs
-            ? [...func.pendingArgs, argThunk]
-            : [argThunk];
-
-          return this.applyArguments(func, allPendingArgs)(k);
-        });
-      });
-  }
-
-  private applyArguments(
-    func: RuntimeFunction,
-    args: (PrimitiveValue | (() => PrimitiveValue))[],
-  ): CPSThunk<PrimitiveValue> {
-    if (args.length < func.arity) {
-      return valueToCPS({
-        ...func,
-        pendingArgs: args,
-      });
-    }
-
-    const argsToConsume = args.slice(0, func.arity);
-    const remainingArgs = args.slice(func.arity);
-
-    const evaluatedArgs = argsToConsume.map((arg) =>
-      typeof arg === "function" ? arg() : arg,
-    );
-
-    if (func.closure) this.context.pushEnv(func.closure.head);
-    return (cont) => () =>
-      this.context.funcRuntime.apply(func, evaluatedArgs, (result) => {
-        if (remainingArgs.length > 0) {
-          if (isRuntimeFunction(result)) {
-            const nextArgs = result.pendingArgs
-              ? [...result.pendingArgs, ...remainingArgs]
-              : remainingArgs;
-
-            return this.applyArguments(result, nextArgs)(cont);
-          } else {
-            throw new InterpreterError(
-              "Application",
-              `Too many arguments provided. Result was '${result}' (not a function), but had ${remainingArgs.length} args left.`,
-            );
-          }
+        const applyFuncToNode = (func: RuntimeFunction): CPSThunk<PrimitiveValue> => (k) =>
+          this.evaluate(node.parameter, (arg) => {
+            const argThunk = () => arg;
+            const allPendingArgs = func.pendingArgs
+              ? [...func.pendingArgs, argThunk]
+              : [argThunk];
+            return funcRuntime.applyArguments(func, allPendingArgs)(k);
+          });
+        if (func.arity === 0) {
+          return funcRuntime.applyArguments(func, [])(resultOfFunc => {
+            if (!isRuntimeFunction(resultOfFunc))
+              throw new InterpreterError(
+                "Application",
+                `Cannot apply non-function result of arity-0 function`,
+              );
+            return applyFuncToNode(resultOfFunc)(k);
+          });
         }
-        return cont(result);
+
+        return applyFuncToNode(func)(k);
       });
   }
 
