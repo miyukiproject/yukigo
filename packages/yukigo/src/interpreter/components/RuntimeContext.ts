@@ -4,7 +4,6 @@ import { LazyRuntime } from "./runtimes/LazyRuntime.js";
 import { ObjectRuntime } from "./runtimes/ObjectRuntime.js";
 import { createGlobalEnv } from "../utils.js";
 import { UnboundVariable } from "../errors.js";
-import { inspect } from "util";
 
 export const DefaultConfiguration: Required<InterpreterConfig> = {
   lazyLoading: false,
@@ -109,5 +108,12 @@ export class RuntimeContext {
   }
   public define(name: string, value: PrimitiveValue): void {
     this.env.head.set(name, value);
+  }
+  public clone(env?: EnvStack): EnvStack {
+    const target = env ?? this.env;
+    return {
+      head: new Map(target.head),
+      tail: this.env.tail,
+    };
   }
 }
