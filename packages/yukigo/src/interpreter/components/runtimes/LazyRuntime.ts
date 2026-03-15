@@ -236,29 +236,34 @@ export class LazyRuntime {
     evaluator: ExpressionEvaluator,
     k: Continuation<PrimitiveValue>,
   ): Thunk<PrimitiveValue> {
-    const capturedEnv = this.context.env;
     const ctx = this.context;
-    return k(
-      createMemoizedStream(function* () {
-        const prevEnv = ctx.env;
-        ctx.setEnv(capturedEnv);
-        try {
-          const left = trampoline(evaluator.evaluate(node.left, idContinuation));
+
+    return evaluator.evaluate(node.left, (left) => {
+      const capturedEnv = ctx.clone();
+      return k(
+        createMemoizedStream(function* () {
           if (Array.isArray(left)) yield* left;
           else if (typeof left === "string") yield* left.split("");
           else if (isLazyList(left)) yield* left.generator();
+          else throw new Error("Invalid left operand for lazy Concat");
 
-          const right = trampoline(
-            evaluator.evaluate(node.right, idContinuation),
-          );
+          // right evaluates lazily on demand
+          const prevEnv = ctx.env;
+          ctx.setEnv(capturedEnv);
+          let right: PrimitiveValue;
+          try {
+            right = trampoline(evaluator.evaluate(node.right, idContinuation));
+          } finally {
+            ctx.setEnv(prevEnv);
+          }
+
           if (Array.isArray(right)) yield* right;
           else if (typeof right === "string") yield* right.split("");
           else if (isLazyList(right)) yield* right.generator();
-        } finally {
-          ctx.setEnv(prevEnv);
-        }
-      }),
-    );
+          else throw new Error("Invalid right operand for lazy Concat");
+        }),
+      );
+    });
   }
   public deepEqual<R = boolean>(
     a: PrimitiveValue,
