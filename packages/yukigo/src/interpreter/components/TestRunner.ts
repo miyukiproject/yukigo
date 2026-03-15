@@ -85,18 +85,17 @@ class AssertionVisitor extends TraverseVisitor {
       this.interpreter.evaluate(node.value, (value) => {
         return () =>
           this.interpreter.evaluate(node.expected, (expected) => {
-            return this.isEqual(value, expected, (passed) => {
+            this.lazyRuntime.deepEqual(value, expected, (passed) => {
               if (this.negated === passed) {
                 throw new FailedAssert(
-                  value,
-                  expected,
+                  value, expected,
                   this.negated
                     ? `Expected ${JSON.stringify(value)} NOT to be equal to ${JSON.stringify(expected)}`
                     : `Expected ${JSON.stringify(expected)}, but got ${JSON.stringify(value)}`,
                 );
               }
               return k(undefined);
-            });
+            })
           });
       });
   }
@@ -116,73 +115,6 @@ class AssertionVisitor extends TraverseVisitor {
         }
         return k(undefined);
       });
-  }
-  private isEqual(a: any, b: any, k: Continuation<boolean>): Thunk<boolean> {
-    if (a === b) return k(true);
-
-    if (this.isListLike(a) || this.isListLike(b))
-      return this.compareAsLists(a, b, k);
-
-    if (this.isPlainObject(a) && this.isPlainObject(b))
-      return this.compareObjects(a, b, k);
-
-    return k(false);
-  }
-
-  private isListLike(val: any): boolean {
-    return Array.isArray(val) || isLazyList(val) || typeof val === "string";
-  }
-
-  private isPlainObject(val: any): boolean {
-    return val !== null && typeof val === "object" && !isLazyList(val);
-  }
-
-  private compareAsLists(
-    a: any,
-    b: any,
-    k: Continuation<boolean>,
-  ): Thunk<boolean> {
-    return this.lazyRuntime.realizeList(
-      a,
-      (valA) => () =>
-        this.lazyRuntime.realizeList(b, (valB) => {
-          if (valA.length !== valB.length) return k(false);
-          return this.compareElementsFrom(valA, valB, 0, k);
-        }),
-    );
-  }
-
-  private compareElementsFrom(
-    a: PrimitiveValue[],
-    b: PrimitiveValue[],
-    index: number,
-    k: Continuation<boolean>,
-  ): Thunk<boolean> {
-    if (index >= a.length) return k(true);
-    return this.isEqual(a[index], b[index], (eq) => {
-      if (!eq) return k(false);
-      return () => this.compareElementsFrom(a, b, index + 1, k);
-    });
-  }
-
-  private compareObjects(
-    a: Record<string, any>,
-    b: Record<string, any>,
-    k: Continuation<boolean>,
-  ): Thunk<boolean> {
-    const keys = Object.keys(a);
-    if (keys.length !== Object.keys(b).length) return k(false);
-
-    const checkNextKey = (index: number): Thunk<boolean> => {
-      if (index >= keys.length) return k(true);
-      const key = keys[index];
-      return this.isEqual(a[key], b[key], (eq) => {
-        if (!eq) return k(false);
-        return () => checkNextKey(index + 1);
-      });
-    };
-
-    return checkNextKey(0);
   }
 }
 
