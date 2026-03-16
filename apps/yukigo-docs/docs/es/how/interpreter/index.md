@@ -2,6 +2,21 @@
 
 El `Interpreter` es el punto de entrada principal para evaluar nodos del Árbol Semántico Abstracto (AST). Evalúa todos los nodos `Expression` (y algunos `Statement`) y devuelve un `PrimitiveValue`.
 
+## Uso
+
+```ts
+const interpreter = new Interpreter(ast, interpreterConfig);
+```
+
+## InterpreterConfig
+
+| Opción        | Tipo             | Default   | Descripción                                                                        |
+|---------------|------------------|-----------|------------------------------------------------------------------------------------|
+| `lazyLoading` | `boolean`        | `false`   | Difiere la evaluación hasta que el valor sea demandado. Habilita `LazyList`.       |
+| `debug`       | `boolean`        | `false`   | Emite salida de diagnóstico detallada durante el recorrido y evaluación del AST.   |
+| `outputMode`  | `LogicSearchMode`| `"first"` | Estrategia de búsqueda para queries lógicas: `"first"`, `"all"` o `"stream"`.     |
+| `mutability`  | `boolean`        | `true`    | Permite que los identificadores sean reasignados luego de su asignación inicial.   |
+
 ## PrimitiveValue
 
 El `PrimitiveValue` es la abstracción de datos central en Yukigo. Es un tipo unión exhaustivo que integra los primitivos nativos de JavaScript con entidades de tiempo de ejecución personalizadas, necesarias para el soporte multiparadigma.
