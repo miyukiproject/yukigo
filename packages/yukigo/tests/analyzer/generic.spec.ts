@@ -5,6 +5,7 @@ import {
   ParameterizedType,
   SymbolPrimitive,
   SimpleType,
+  Function,
 } from "yukigo-ast";
 
 describe("Generic Inspections", () => {
@@ -23,6 +24,19 @@ describe("Generic Inspections", () => {
     return new TypeSignature(identifier, body);
   };
 
+  it("should allow expectations without args", () => {
+    const ast = [new Function(new SymbolPrimitive("func"), [])];
+    const rules: InspectionRule[] = [
+      {
+        binding: "func",
+        inspection: "HasBinding",
+        expected: true
+      },
+    ];
+    const analyzer = new Analyzer();
+    const results = analyzer.analyze(ast, rules);
+    expect(results[0].passed).to.be.true;
+  });
   describe("TypesParameterAs", () => {
     it("should find a match when parameter type matches at correct index", () => {
       const ast = [createTypeSignature("f", ["Int", "String"], "Bool")];
