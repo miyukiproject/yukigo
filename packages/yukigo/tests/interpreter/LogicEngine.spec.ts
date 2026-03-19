@@ -9,8 +9,6 @@ import {
   Goal,
   Pattern,
   Rule,
-  LogicResult,
-  EnvStack,
   Equation,
   Sequence,
   UnguardedBody,
@@ -19,11 +17,8 @@ import {
   ConsPattern,
   ListPattern,
   NilPrimitive,
-  LazyList,
   LogicConstraint,
   Expression,
-  SuccessLogicResult,
-  RuntimePredicate,
 } from "yukigo-ast";
 import {
   createGlobalEnv,
@@ -41,6 +36,12 @@ import {
   InterpreterConfig,
   RuntimeContext,
 } from "../../src/interpreter/components/RuntimeContext.js";
+import {
+  LazyList,
+  LogicResult,
+  RuntimePredicate,
+  SuccessLogicResult,
+} from "../../src/interpreter/entities.js";
 
 const s = (val: string) => new SymbolPrimitive(val);
 const n = (val: number) => new NumberPrimitive(val);
@@ -55,30 +56,22 @@ const makeRule = (id: string, body: Equation[]) => new Rule(s(id), body);
 const makeGoal = (id: string, args: Pattern[]) => new Goal(s(id), args);
 const makeConstraint = (expr: Expression) => new LogicConstraint(expr);
 
-const factsParent: RuntimePredicate = {
-  kind: "Fact",
-  identifier: "parent",
-  equations: [
-    makeFact("parent", [lit("zeus"), lit("ares")]),
-    makeFact("parent", [lit("zeus"), lit("athena")]),
-    makeFact("parent", [lit("hera"), lit("ares")]),
-  ],
-};
-const rulesSibling: RuntimePredicate = {
-  kind: "Rule",
-  identifier: "sibling",
-  equations: [
-    makeRule("sibling", [
-      makeEq(
-        [varPat("X"), varPat("Y")],
-        [
-          makeConstraint(makeGoal("parent", [varPat("Z"), varPat("X")])),
-          makeConstraint(makeGoal("parent", [varPat("Z"), varPat("Y")])),
-        ],
-      ),
-    ]),
-  ],
-};
+const factsParent: RuntimePredicate = new RuntimePredicate("Fact", "parent", [
+  makeFact("parent", [lit("zeus"), lit("ares")]),
+  makeFact("parent", [lit("zeus"), lit("athena")]),
+  makeFact("parent", [lit("hera"), lit("ares")]),
+]);
+const rulesSibling: RuntimePredicate = new RuntimePredicate("Rule", "sibling", [
+  makeRule("sibling", [
+    makeEq(
+      [varPat("X"), varPat("Y")],
+      [
+        makeConstraint(makeGoal("parent", [varPat("Z"), varPat("X")])),
+        makeConstraint(makeGoal("parent", [varPat("Z"), varPat("Y")])),
+      ],
+    ),
+  ]),
+]);
 
 const env = createGlobalEnv();
 const context = new RuntimeContext({
@@ -135,80 +128,82 @@ describe("Logic Engine & Unification", () => {
 
     describe("ConsPattern Unification", () => {
       it("should unify two identical ConsPatterns", () => {
-          const p1 = new ConsPattern(lit(1), new ListPattern([]));
-          const p2 = new ConsPattern(lit(1), new ListPattern([]));
-          const result = unify(p1, p2);
-          expect(result).to.not.be.null;
+        const p1 = new ConsPattern(lit(1), new ListPattern([]));
+        const p2 = new ConsPattern(lit(1), new ListPattern([]));
+        const result = unify(p1, p2);
+        expect(result).to.not.be.null;
       });
 
       it("should unify ConsPattern with equivalent ListPattern", () => {
-          const cons = new ConsPattern(lit(1), new ListPattern([lit(2)]));
-          const list = new ListPattern([lit(1), lit(2)]);
-          const result = unify(cons, list);
-          expect(result).to.not.be.null;
+        const cons = new ConsPattern(lit(1), new ListPattern([lit(2)]));
+        const list = new ListPattern([lit(1), lit(2)]);
+        const result = unify(cons, list);
+        expect(result).to.not.be.null;
       });
 
       it("should unify ListPattern with equivalent ConsPattern", () => {
-          const list = new ListPattern([lit(1), lit(2)]);
-          const cons = new ConsPattern(lit(1), new ListPattern([lit(2)]));
-          const result = unify(list, cons);
-          expect(result).to.not.be.null;
+        const list = new ListPattern([lit(1), lit(2)]);
+        const cons = new ConsPattern(lit(1), new ListPattern([lit(2)]));
+        const result = unify(list, cons);
+        expect(result).to.not.be.null;
       });
 
       it("should fail if heads do not match", () => {
-          const cons = new ConsPattern(lit(1), new ListPattern([lit(2)]));
-          const list = new ListPattern([lit(3), lit(2)]);
-          const result = unify(cons, list);
-          expect(result).to.be.null;
+        const cons = new ConsPattern(lit(1), new ListPattern([lit(2)]));
+        const list = new ListPattern([lit(3), lit(2)]);
+        const result = unify(cons, list);
+        expect(result).to.be.null;
       });
-      
+
       it("should fail if ListPattern is empty and ConsPattern expects head", () => {
-          const list = new ListPattern([]);
-          const cons = new ConsPattern(varPat("H"), varPat("T"));
-          const result = unify(list, cons);
-          expect(result).to.be.null;
+        const list = new ListPattern([]);
+        const cons = new ConsPattern(varPat("H"), varPat("T"));
+        const result = unify(list, cons);
+        expect(result).to.be.null;
       });
 
       it("should bind variables in ConsPattern", () => {
-          const cons = new ConsPattern(varPat("H"), varPat("T"));
-          const list = new ListPattern([lit(1), lit(2)]);
-          const result = unify(cons, list);
-          expect(result).to.not.be.null;
-          
-          const h = result!.get("H");
-          expect(h).to.be.instanceOf(LiteralPattern);
-          
-          const t = result!.get("T");
-          expect(t).to.be.instanceOf(ListPattern);
-          expect((t as ListPattern).elements).to.have.lengthOf(1);
+        const cons = new ConsPattern(varPat("H"), varPat("T"));
+        const list = new ListPattern([lit(1), lit(2)]);
+        const result = unify(cons, list);
+        expect(result).to.not.be.null;
+
+        const h = result!.get("H");
+        expect(h).to.be.instanceOf(LiteralPattern);
+
+        const t = result!.get("T");
+        expect(t).to.be.instanceOf(ListPattern);
+        expect((t as ListPattern).elements).to.have.lengthOf(1);
       });
 
       it("should unify infinite LazyList with Variable lazily", () => {
-         // Create infinite generator
-         const gen = function*() {
-             let i = 1;
-             while(true) yield i++;
-         };
-         const lazyList: LazyList = {
-             type: "LazyList",
-             generator: gen
-         };
+        // Create infinite generator
+        const gen = function* () {
+          let i = 1;
+          while (true) yield i++;
+        };
+        const lazyList: LazyList = new LazyList(gen);
 
-         // Mock evaluator to return this lazy list for variable "Infinite"
-         evaluator.evaluate = (node: any) => {
-             if (node instanceof Variable && node.identifier.value === "Infinite") {
-                 return lazyList;
-             }
-             if (node instanceof SymbolPrimitive) return node.value;
-             return null;
-         };
-         
-         // Unify X = Infinite
-         const infiniteVar = new Variable(s("Infinite"), new NilPrimitive(null));
-         const xVar = new Variable(s("X"), new NilPrimitive(null));
-         
-         const result = trampoline(engine.unifyExpr(xVar, infiniteVar, idContinuation)) as boolean;
-         expect(result).to.be.true;
+        // Mock evaluator to return this lazy list for variable "Infinite"
+        evaluator.evaluate = (node: any): any => {
+          if (
+            node instanceof Variable &&
+            node.identifier.value === "Infinite"
+          ) {
+            return lazyList;
+          }
+          if (node instanceof SymbolPrimitive) return node.value;
+          return null;
+        };
+
+        // Unify X = Infinite
+        const infiniteVar = new Variable(s("Infinite"), new NilPrimitive(null));
+        const xVar = new Variable(s("X"), new NilPrimitive(null));
+
+        const result = trampoline(
+          engine.unifyExpr(xVar, infiniteVar, idContinuation),
+        ) as boolean;
+        expect(result).to.be.true;
       });
     });
   });

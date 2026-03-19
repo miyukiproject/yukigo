@@ -1,20 +1,15 @@
 import { expect } from "chai";
 import {
-  PrimitiveValue,
-  RuntimeFunction,
   UnguardedBody,
   Sequence,
   Return,
   SymbolPrimitive,
   NumberPrimitive,
   VariablePattern,
-  RuntimeObject,
-  RuntimeClass,
   StringPrimitive,
   Primitive,
   Super,
   ArithmeticBinaryOperation,
-  EnvStack,
 } from "yukigo-ast";
 import { createGlobalEnv } from "../../src/interpreter/utils.js";
 import {
@@ -24,6 +19,14 @@ import {
   trampoline,
 } from "../../src/interpreter/trampoline.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
+import {
+  EnvStack,
+  PrimitiveValue,
+  RuntimeClass,
+  RuntimeEquation,
+  RuntimeFunction,
+  RuntimeObject,
+} from "../../src/interpreter/entities.js";
 
 const createEmptyEnv = () => ({ head: new Map(), tail: null });
 
@@ -32,18 +35,17 @@ const createMethodMap = (
 ): Map<string, RuntimeFunction> =>
   new Map(methods.map((m) => [m.identifier, m]));
 const createMethod = (name: string, returnVal: Primitive): RuntimeFunction => {
-  return {
-    type: "Function",
-    identifier: name,
-    arity: 0,
-    pendingArgs: [],
-    equations: [
-      {
-        patterns: [],
-        body: new UnguardedBody(new Sequence([new Return(returnVal)])),
-      },
+  return new RuntimeFunction(
+    0,
+    name,
+    [
+      new RuntimeEquation(
+        [],
+        new UnguardedBody(new Sequence([new Return(returnVal)])),
+      ),
     ],
-  };
+    [],
+  );
 };
 
 const createClass = (
@@ -52,14 +54,7 @@ const createClass = (
   methodDefs: Map<string, RuntimeFunction> = new Map(),
   mixins: string[] = [],
 ): RuntimeClass => {
-  return {
-    type: "Class",
-    identifier: name,
-    fields: new Map(),
-    methods: methodDefs,
-    superclass,
-    mixins,
-  };
+  return new RuntimeClass(name, new Map(), methodDefs, mixins, superclass);
 };
 
 describe("ctx.objRuntime", () => {
@@ -70,14 +65,13 @@ describe("ctx.objRuntime", () => {
     ["name", "Yukigo"],
   ]);
   const methods = new Map<string, RuntimeFunction>();
-  const classDef: RuntimeClass = {
-    type: "Class",
-    identifier: className,
-    fields: initialFields,
+  const classDef: RuntimeClass = new RuntimeClass(
+    className,
+    initialFields,
     methods,
-    mixins: [],
-    superclass: undefined,
-  };
+    [],
+    undefined,
+  );
   const env: EnvStack = createGlobalEnv();
   env.head.set(className, classDef);
   const ctx = new RuntimeContext();
@@ -93,7 +87,7 @@ describe("ctx.objRuntime", () => {
 
   describe("instantiate()", () => {
     it("debe crear un objeto con la estructura correcta", () => {
-      expect(objectInstance.type).to.equal("Object");
+      expect(objectInstance).to.be.instanceOf(RuntimeObject);
       expect(objectInstance.className).to.equal(className);
     });
 
@@ -102,7 +96,6 @@ describe("ctx.objRuntime", () => {
       const obj = ctx.objRuntime.instantiate("A", "objA", fieldsDef, new Map());
 
       fieldsDef.set("x", 2);
-
       expect(obj.fields.get("x")).to.equal(1);
     });
   });
@@ -139,21 +132,18 @@ describe("ctx.objRuntime", () => {
 
   describe("dispatch()", () => {
     it("debe ejecutar un método que accede a 'self' (campos del objeto)", () => {
-      const getCountMethod: RuntimeFunction = {
-        type: "Function",
-        identifier: "getCount",
-        arity: 0,
-        pendingArgs: [],
-        equations: [
-          {
-            patterns: [],
-            body: new UnguardedBody(
-              new Sequence([new Return(new SymbolPrimitive("count"))]),
-            ),
-          },
-        ],
-      };
-
+      const eq = new RuntimeEquation(
+        [],
+        new UnguardedBody(
+          new Sequence([new Return(new SymbolPrimitive("count"))]),
+        ),
+      );
+      const getCountMethod: RuntimeFunction = new RuntimeFunction(
+        0,
+        "getCount",
+        [eq],
+        [],
+      );
       objectInstance.methods.set("getCount", getCountMethod);
 
       const result = trampoline(
@@ -202,18 +192,17 @@ describe("ctx.objRuntime", () => {
 
     it("debe permitir argumentos en el método", () => {
       const returnArgAST = new Return(new SymbolPrimitive("val"));
-      const addMethod: RuntimeFunction = {
-        type: "Function",
-        identifier: "echo",
-        arity: 1,
-        pendingArgs: [],
-        equations: [
-          {
-            patterns: [new VariablePattern(new SymbolPrimitive("val"))],
-            body: new UnguardedBody(new Sequence([returnArgAST])),
-          },
+      const addMethod: RuntimeFunction = new RuntimeFunction(
+        1,
+        "echo",
+        [
+          new RuntimeEquation(
+            [new VariablePattern(new SymbolPrimitive("val"))],
+            new UnguardedBody(new Sequence([returnArgAST])),
+          ),
         ],
-      };
+        [],
+      );
 
       objectInstance.methods.set("echo", addMethod);
 
@@ -566,27 +555,26 @@ describe("ctx.objRuntime", () => {
         ]),
       );
 
-      const methodHijo: RuntimeFunction = {
-        type: "Function",
-        identifier: "calc",
-        arity: 0,
-        pendingArgs: [],
-        equations: [
+      const methodHijo: RuntimeFunction = new RuntimeFunction(
+        0,
+        "calc",
+        [
           {
             patterns: [],
             body: astBody,
           },
         ],
-      };
+        [],
+      );
 
-      const Hijo: RuntimeClass = {
-        type: "Class",
-        identifier: "Hijo",
-        fields: new Map(),
-        methods: new Map([["calc", methodHijo]]),
-        superclass: "Base",
-        mixins: [],
-      };
+      const Hijo: RuntimeClass = new RuntimeClass(
+        "Hijo",
+        new Map(),
+        new Map([["calc", methodHijo]]),
+        [],
+        "Base",
+      );
+
       env.head.set("Hijo", Hijo);
 
       const hijoInstance = ctx.objRuntime.instantiate(

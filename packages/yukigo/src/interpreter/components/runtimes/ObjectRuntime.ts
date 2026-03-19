@@ -1,12 +1,4 @@
-import {
-  PrimitiveValue,
-  RuntimeFunction,
-  RuntimeObject,
-  isRuntimeObject,
-  isRuntimeClass,
-  RuntimeClass,
-  EnvStack,
-} from "yukigo-ast";
+import { EnvStack, isRuntimeClass, isRuntimeObject, PrimitiveValue, RuntimeClass, RuntimeFunction, RuntimeObject } from "../../entities.js";
 import { InterpreterError } from "../../errors.js";
 import { Continuation, Thunk } from "../../trampoline.js";
 import { RuntimeContext } from "../RuntimeContext.js";
@@ -27,16 +19,10 @@ export class ObjectRuntime {
   public instantiate(
     className: string,
     identifier: string,
-    fieldDefinitions: Map<string, PrimitiveValue>,
-    methodDefinitions: Map<string, RuntimeFunction>,
+    fields: Map<string, PrimitiveValue>,
+    methods: Map<string, RuntimeFunction>,
   ): RuntimeObject {
-    return {
-      type: "Object",
-      className,
-      identifier,
-      fields: new Map(fieldDefinitions),
-      methods: methodDefinitions,
-    };
+    return new RuntimeObject(identifier, className, new Map(fields), methods);
   }
 
   /**

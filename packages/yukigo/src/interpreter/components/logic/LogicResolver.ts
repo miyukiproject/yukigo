@@ -1,5 +1,4 @@
 import {
-  EnvStack,
   Fact,
   FunctorPattern,
   ListPattern,
@@ -8,7 +7,6 @@ import {
   Rule,
   VariablePattern,
   WildcardPattern,
-  isRuntimePredicate,
   UnguardedBody,
   Findall,
   ConsPattern,
@@ -56,6 +54,7 @@ import {
 import { Thunk } from "../../trampoline.js";
 import { LogicExecutable } from "./LogicEngine.js";
 import { RuntimeContext } from "../RuntimeContext.js";
+import { isRuntimePredicate } from "../../entities.js";
 
 /**
  * A Substitution maps variable names to their bound patterns.

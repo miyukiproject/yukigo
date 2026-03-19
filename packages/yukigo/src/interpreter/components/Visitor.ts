@@ -1,6 +1,5 @@
 import {
   Visitor,
-  PrimitiveValue,
   NumberPrimitive,
   BooleanPrimitive,
   StringPrimitive,
@@ -34,7 +33,6 @@ import {
   Expression,
   Application,
   Lambda,
-  EquationRuntime,
   UnguardedBody,
   Sequence,
   Return,
@@ -45,31 +43,21 @@ import {
   Goal,
   Send,
   New,
-  Implement,
   Self,
   ListComprehension,
   RangeExpression,
-  RuntimeFunction,
   Generator as YuGenerator,
   BinaryOperation,
   UnaryOperation,
   ASTNode,
   Raise,
   Query,
-  TypeCast,
-  isRuntimeObject,
-  isRuntimeClass,
-  isRuntimePredicate,
   Super,
-  EnvStack,
-  Environment,
   If,
-  isRuntimeFunction,
   Assert,
   Test,
   TestGroup,
   LogicConstraint,
-  isLazyList,
 } from "yukigo-ast";
 import {
   ArithmeticBinaryTable,
@@ -97,6 +85,7 @@ import {
   valueToCPS,
 } from "../trampoline.js";
 import { RuntimeContext } from "./RuntimeContext.js";
+import { Environment, EnvStack, isLazyList, isRuntimeClass, isRuntimeFunction, isRuntimeObject, PrimitiveValue, RuntimeEquation, RuntimeFunction } from "../entities.js";
 
 export class InterpreterVisitor
   implements Visitor<CPSThunk<PrimitiveValue>>, ExpressionEvaluator
@@ -354,7 +343,8 @@ export class InterpreterVisitor
   ): CPSThunk<PrimitiveValue> {
     if (node.operator === "Concat") {
       if (this.context.config.lazyLoading) {
-        return (k) => this.context.lazyRuntime.evaluateConcatLazy(node, this, k);
+        return (k) =>
+          this.context.lazyRuntime.evaluateConcatLazy(node, this, k);
       }
       return (k) =>
         this.evaluate(node.left, (left) => {
@@ -640,12 +630,10 @@ export class InterpreterVisitor
           const patterns = [
             new VariablePattern(new SymbolPrimitive(PARAM_NAME)),
           ];
-          const equation: EquationRuntime = {
+          const equation: RuntimeEquation = new RuntimeEquation(
             patterns,
-            body: new UnguardedBody(
-              new Sequence([new Return(compositionBody)]),
-            ),
-          };
+            new UnguardedBody(new Sequence([new Return(compositionBody)])),
+          );
 
           const privateScope = new Map<string, PrimitiveValue>();
           privateScope.set(F_REF, f);
@@ -655,32 +643,30 @@ export class InterpreterVisitor
             head: privateScope,
             tail: this.context.env,
           };
-          return k({
-            type: "Function",
-            arity: 1,
-            identifier: `<(${f.identifier} . ${g.identifier})>`,
-            equations: [equation],
-            pendingArgs: [],
-            closure: capturedEnv,
-          });
+          const arity = 1;
+          const identifier = `<(${f.identifier} . ${g.identifier})>`;
+          return k(
+            new RuntimeFunction(arity, identifier, [equation], [], capturedEnv),
+          );
         });
       });
   }
 
   visitLambda(node: Lambda): CPSThunk<PrimitiveValue> {
     const patterns = node.parameters;
-    const equation: EquationRuntime = {
-      patterns,
-      body: new UnguardedBody(new Sequence([new Return(node.body)])),
-    };
-    return valueToCPS({
-      type: "Function",
-      arity: patterns.length,
-      equations: [equation],
-      pendingArgs: [],
-      identifier: "<lambda>",
-      closure: this.context.env,
-    });
+    const body = new UnguardedBody(new Sequence([new Return(node.body)]));
+    const equation: RuntimeEquation = new RuntimeEquation(patterns, body);
+    const arity = patterns.length;
+    const identifier = "<lambda>";
+    const closure = this.context.env;
+    const func: RuntimeFunction = new RuntimeFunction(
+      arity,
+      identifier,
+      [equation],
+      [],
+      closure,
+    );
+    return valueToCPS(func);
   }
 
   visitApplication(node: Application): CPSThunk<PrimitiveValue> {
@@ -711,10 +697,8 @@ export class InterpreterVisitor
     args: (PrimitiveValue | (() => PrimitiveValue))[],
   ): CPSThunk<PrimitiveValue> {
     if (args.length < func.arity) {
-      return valueToCPS({
-        ...func,
-        pendingArgs: args,
-      });
+      func.setPendingArgs(args);
+      return valueToCPS(func);
     }
 
     const argsToConsume = args.slice(0, func.arity);
@@ -747,9 +731,7 @@ export class InterpreterVisitor
 
   visitQuery(node: Query): CPSThunk<PrimitiveValue> {
     if (this.context.config.debug) {
-      console.log(
-        `[Interpreter] Visiting Query.`,
-      );
+      console.log(`[Interpreter] Visiting Query.`);
     }
     return (k) =>
       this.getLogicEngine().solveQuery(node, (res) => {

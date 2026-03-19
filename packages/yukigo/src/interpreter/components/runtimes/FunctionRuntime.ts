@@ -1,12 +1,8 @@
 import {
-  EquationRuntime,
-  PrimitiveValue,
   UnguardedBody,
   Sequence,
   Return,
-  EnvStack,
   Function,
-  RuntimeFunction,
 } from "yukigo-ast";
 import { Bindings } from "../../index.js";
 import { PatternMatcher } from "../PatternMatcher.js";
@@ -16,6 +12,7 @@ import { EnvBuilderVisitor } from "../EnvBuilder.js";
 import { Continuation, Thunk } from "../../trampoline.js";
 import { RuntimeContext } from "../RuntimeContext.js";
 import { InterpreterVisitor } from "../Visitor.js";
+import { PrimitiveValue, RuntimeEquation, RuntimeFunction } from "../../entities.js";
 
 class NonExhaustivePatterns extends InterpreterError {
   constructor(funcName: string) {
@@ -139,7 +136,7 @@ export class FunctionRuntime {
   }
 
   private patternsMatch(
-    eq: EquationRuntime,
+    eq: RuntimeEquation,
     args: PrimitiveValue[],
     bindings: Bindings,
     k: Continuation<boolean>,

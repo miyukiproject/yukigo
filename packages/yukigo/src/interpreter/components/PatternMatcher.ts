@@ -6,13 +6,10 @@ import {
   ConstructorPattern,
   Expression,
   FunctorPattern,
-  isLazyList,
-  LazyList,
   ListPattern,
   ListPrimitive,
   LiteralPattern,
   Pattern,
-  PrimitiveValue,
   TuplePattern,
   UnionPattern,
   VariablePattern,
@@ -27,6 +24,7 @@ import { InterpreterVisitor } from "./Visitor.js";
 import { CPSThunk, Thunk, Continuation } from "../trampoline.js";
 import { RuntimeContext } from "./RuntimeContext.js";
 import { ExpressionEvaluator, getYukigoType } from "../utils.js";
+import { isLazyList, LazyGenerator, LazyList, PrimitiveValue } from "../entities.js";
 
 class SharedSequence {
   private cache: PrimitiveValue[] = [];
@@ -64,21 +62,31 @@ export interface InternalConsState {
   realizedTail?: PrimitiveValue;
 }
 
-export interface MemoizedLazyList extends LazyList {
-  _sequence: SharedSequence;
-  _offset: number;
-  _consState?: InternalConsState;
-  toJSON: () => any;
+export class MemoizedLazyList extends LazyList {
+  constructor(
+    public _sequence: SharedSequence,
+    public _offset: number,
+    public generator: LazyGenerator,
+    public _consState?: InternalConsState,
+  ) {
+    super(generator);
+  }
+  public toJSON() {
+    const iterator = this.generator();
+    const buffer: PrimitiveValue[] = [];
+    let next = iterator.next();
+
+    while (!next.done) {
+      buffer.push(next.value);
+      next = iterator.next();
+    }
+
+    return buffer;
+  }
 }
 
 export function isMemoizedList(list: unknown): list is MemoizedLazyList {
-  return (
-    list &&
-    typeof list === "object" &&
-    "type" in list &&
-    "_offset" in list &&
-    "_sequence" in list
-  );
+  return list instanceof MemoizedLazyList;
 }
 
 export function createMemoizedStream(
@@ -87,34 +95,16 @@ export function createMemoizedStream(
   offset: number = 0,
 ): MemoizedLazyList {
   const seq = sequence ?? new SharedSequence(genFactory);
-
-  return {
-    type: "LazyList",
-    _sequence: seq,
-    _offset: offset,
-
-    generator: function* () {
-      let currentIdx = offset;
-      while (true) {
-        const res = seq.get(currentIdx);
-        if (res.done) return;
-        yield res.value!;
-        currentIdx++;
-      }
-    },
-    toJSON() {
-      const iterator = this.generator();
-      const buffer: PrimitiveValue[] = [];
-      let next = iterator.next();
-
-      while (!next.done) {
-        buffer.push(next.value);
-        next = iterator.next();
-      }
-
-      return buffer;
-    },
+  const generator = function* () {
+    let currentIdx = offset;
+    while (true) {
+      const res = seq.get(currentIdx);
+      if (res.done) return;
+      yield res.value!;
+      currentIdx++;
+    }
   };
+  return new MemoizedLazyList(seq, offset, generator);
 }
 
 export class PatternResolver implements Visitor<string> {
@@ -290,11 +280,7 @@ export class PatternMatcher implements Visitor<CPSThunk<boolean>> {
     if (value.length !== elements.length) return k(false);
     const matchNext = (index: number): Thunk<boolean> => {
       if (index >= elements.length) return k(true);
-      const matcher = new PatternMatcher(
-        value[index],
-        this.bindings,
-        this.ctx,
-      );
+      const matcher = new PatternMatcher(value[index], this.bindings, this.ctx);
       return elements[index].accept(matcher)((isMatch) => {
         if (!isMatch) return k(false);
         return () => matchNext(index + 1);
@@ -308,18 +294,10 @@ export class PatternMatcher implements Visitor<CPSThunk<boolean>> {
       const [head, tail] = this.resolveCons(this.value);
       if (head === null || tail === null) return k(false);
 
-      const headMatcher = new PatternMatcher(
-        head,
-        this.bindings,
-        this.ctx,
-      );
+      const headMatcher = new PatternMatcher(head, this.bindings, this.ctx);
       return node.left.accept(headMatcher)((headMatches) => {
         if (!headMatches) return k(false);
-        const tailMatcher = new PatternMatcher(
-          tail,
-          this.bindings,
-          this.ctx,
-        );
+        const tailMatcher = new PatternMatcher(tail, this.bindings, this.ctx);
         return node.right.accept(tailMatcher)(k);
       });
     };
@@ -358,12 +336,10 @@ export class PatternMatcher implements Visitor<CPSThunk<boolean>> {
       if (list.length === 0) return [null, null];
       const isLazy = this.ctx.config.lazyLoading;
       if (!isLazy) return [list[0], list.slice(1)];
-      const tail: LazyList = {
-        type: "LazyList",
-        generator: function* () {
-          for (let i = 1; i < list.length; i++) yield list[i];
-        },
+      const generator = function* () {
+        for (let i = 1; i < list.length; i++) yield list[i];
       };
+      const tail: LazyList = new LazyList(generator);
       return [list[0], tail];
     }
 
@@ -372,12 +348,10 @@ export class PatternMatcher implements Visitor<CPSThunk<boolean>> {
 
       const isLazy = this.ctx.config.lazyLoading;
       if (!isLazy) return [list[0], list.slice(1)];
-      const tail: LazyList = {
-        type: "LazyList",
-        generator: function* () {
-          for (let i = 1; i < list.length; i++) yield list[i];
-        },
+      const generator = function* () {
+        for (let i = 1; i < list.length; i++) yield list[i];
       };
+      const tail: LazyList = new LazyList(generator);
       return [list[0], tail];
     }
 

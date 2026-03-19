@@ -1,4 +1,4 @@
-import { Environment, EnvStack, PrimitiveValue } from "yukigo-ast";
+import { Environment, EnvStack, PrimitiveValue } from "../entities.js";
 import { FunctionRuntime } from "./runtimes/FunctionRuntime.js";
 import { LazyRuntime } from "./runtimes/LazyRuntime.js";
 import { ObjectRuntime } from "./runtimes/ObjectRuntime.js";

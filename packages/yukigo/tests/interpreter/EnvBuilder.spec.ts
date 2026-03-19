@@ -5,14 +5,12 @@ import {
   Rule,
   SymbolPrimitive,
   Equation,
-  EnvStack,
-  RuntimeFunction,
-  RuntimePredicate,
   Function,
   AST,
 } from "yukigo-ast";
 import { EnvBuilderVisitor } from "../../src/interpreter/components/EnvBuilder.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
+import { RuntimeFunction, RuntimePredicate } from "../../src/interpreter/entities.js";
 
 const id = (val: string) => ({ value: val }) as SymbolPrimitive;
 
@@ -52,12 +50,10 @@ const makeRule = (name: string): Rule => {
 describe("EnvBuilderVisitor", () => {
   let ctx: RuntimeContext;
   let visitor: EnvBuilderVisitor;
-  let env: EnvStack;
 
   beforeEach(() => {
     ctx = new RuntimeContext();
     visitor = new EnvBuilderVisitor(ctx);
-    env = ctx.env;
   });
 
   describe("Function Declarations", () => {

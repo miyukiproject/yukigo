@@ -1,10 +1,7 @@
 import {
-  PrimitiveValue,
   RangeExpression,
   ConsExpression,
-  isLazyList,
   ListBinaryOperation,
-  LazyList,
 } from "yukigo-ast";
 import { ExpressionEvaluator } from "../../utils.js";
 import {
@@ -19,6 +16,7 @@ import {
   trampoline,
 } from "../../trampoline.js";
 import { RuntimeContext } from "../RuntimeContext.js";
+import { isLazyList, LazyList, PrimitiveValue } from "../../entities.js";
 
 export class LazyRuntime {
   constructor(private context: RuntimeContext) {}
@@ -129,57 +127,50 @@ export class LazyRuntime {
           realizedTail: undefined,
         };
 
-        const consList: LazyList = {
-          type: "LazyList",
-          generator: function* () {
-            let current: any = consState;
+        const generator = function* () {
+          let current: any = consState;
 
-            while (current !== undefined && current !== null) {
-              if (current.tailExpr !== undefined) {
-                yield current.head;
+          while (current !== undefined && current !== null) {
+            if (current.tailExpr !== undefined) {
+              yield current.head;
 
-                if (current.realizedTail === undefined) {
-                  const prevEnv = ctx.env;
-                  ctx.setEnv(capturedEnv);
-                  try {
-                    current.realizedTail = trampoline(
-                      current.evaluator.evaluate(
-                        current.tailExpr,
-                        idContinuation,
-                      ),
-                    );
-                  } finally {
-                    ctx.setEnv(prevEnv);
-                  }
+              if (current.realizedTail === undefined) {
+                const prevEnv = ctx.env;
+                ctx.setEnv(capturedEnv);
+                try {
+                  current.realizedTail = trampoline(
+                    current.evaluator.evaluate(
+                      current.tailExpr,
+                      idContinuation,
+                    ),
+                  );
+                } finally {
+                  ctx.setEnv(prevEnv);
                 }
-                current = current.realizedTail;
-              } else if (isLazyList(current)) {
-                const memoized = current;
-                if (isMemoizedList(memoized) && memoized._consState) {
-                  current = memoized._consState;
-                } else {
-                  const iter = current.generator();
-                  let step = iter.next();
-                  while (!step.done) {
-                    yield step.value;
-                    step = iter.next();
-                  }
-                  break;
-                }
-              } else if (
-                Array.isArray(current) ||
-                typeof current === "string"
-              ) {
-                for (const x of current) yield x;
-                break;
-              } else {
-                throw new Error(
-                  `Invalid tail type for Cons: ${typeof current}`,
-                );
               }
+              current = current.realizedTail;
+            } else if (isLazyList(current)) {
+              const memoized = current;
+              if (isMemoizedList(memoized) && memoized._consState) {
+                current = memoized._consState;
+              } else {
+                const iter = current.generator();
+                let step = iter.next();
+                while (!step.done) {
+                  yield step.value;
+                  step = iter.next();
+                }
+                break;
+              }
+            } else if (Array.isArray(current) || typeof current === "string") {
+              for (const x of current) yield x;
+              break;
+            } else {
+              throw new Error(`Invalid tail type for Cons: ${typeof current}`);
             }
-          },
+          }
         };
+        const consList: LazyList = new LazyList(generator);
 
         const memoized = createMemoizedStream(() => consList.generator());
 
@@ -243,7 +234,9 @@ export class LazyRuntime {
         const prevEnv = ctx.env;
         ctx.setEnv(capturedEnv);
         try {
-          const left = trampoline(evaluator.evaluate(node.left, idContinuation));
+          const left = trampoline(
+            evaluator.evaluate(node.left, idContinuation),
+          );
           if (Array.isArray(left)) yield* left;
           else if (typeof left === "string") yield* left.split("");
           else if (isLazyList(left)) yield* left.generator();

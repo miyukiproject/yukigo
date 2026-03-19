@@ -11,7 +11,6 @@ import {
   CompositionExpression,
   Equation,
   Function,
-  isLazyList,
   Lambda,
   ListPrimitive,
   ListUnaryOperation,
@@ -31,6 +30,7 @@ import {
 } from "yukigo-ast";
 import { Interpreter } from "../../src/interpreter/index.js";
 import { assert } from "chai";
+import { isLazyList } from "../../src/interpreter/entities.js";
 
 describe("Interpreter Spec", () => {
   let interpreter: Interpreter;

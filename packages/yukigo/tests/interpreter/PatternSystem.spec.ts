@@ -10,15 +10,18 @@ import {
   ConstructorPattern,
   UnionPattern,
   AsPattern,
-  LazyList,
 } from "yukigo-ast";
 import {
   PatternMatcher,
   PatternResolver,
 } from "../../src/interpreter/components/PatternMatcher.js";
 import { createStream } from "../../src/interpreter/utils.js";
-import { idContinuation, trampoline } from "../../src/interpreter/trampoline.js";
+import {
+  idContinuation,
+  trampoline,
+} from "../../src/interpreter/trampoline.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
+import { LazyList } from "../../src/interpreter/entities.js";
 
 const s = (v: string) => new SymbolPrimitive(v);
 const n = (v: number) => new NumberPrimitive(v);
@@ -58,7 +61,9 @@ describe("Pattern System", () => {
 
     it("should resolve a constructor pattern", () => {
       // Just(X)
-      const p = new ConstructorPattern(new SymbolPrimitive("Just"), [variable("X")]);
+      const p = new ConstructorPattern(new SymbolPrimitive("Just"), [
+        variable("X"),
+      ]);
       expect(p.accept(resolver)).to.equal("Just X");
     });
 
@@ -66,7 +71,7 @@ describe("Pattern System", () => {
       // (1:(2:[]))
       const p = new ConsPattern(
         lit(1),
-        new ConsPattern(lit(2), new ListPattern([]))
+        new ConsPattern(lit(2), new ListPattern([])),
       );
       expect(p.accept(resolver)).to.equal("(1:(2:[]))");
     });
@@ -75,10 +80,14 @@ describe("Pattern System", () => {
   describe("PatternMatcher (Logic)", () => {
     const match = (
       pattern: any,
-      value: any
+      value: any,
     ): { success: boolean; bindings: [string, any][] } => {
       const bindings: [string, any][] = [];
-      const matcher = new PatternMatcher(value, bindings, new RuntimeContext({lazyLoading: false}));
+      const matcher = new PatternMatcher(
+        value,
+        bindings,
+        new RuntimeContext({ lazyLoading: false }),
+      );
 
       const success = trampoline(pattern.accept(matcher)(idContinuation));
       return { success, bindings };
@@ -129,7 +138,9 @@ describe("Pattern System", () => {
     });
 
     it("should match a Constructor pattern", () => {
-      const p = new ConstructorPattern(new SymbolPrimitive("Just"), [variable("X")]);
+      const p = new ConstructorPattern(new SymbolPrimitive("Just"), [
+        variable("X"),
+      ]);
       const val = ["Just", 10];
 
       const { success, bindings } = match(p, val);
@@ -140,7 +151,7 @@ describe("Pattern System", () => {
     it("should match an AsPattern (@)", () => {
       const p = new AsPattern(
         variable("List"),
-        new ListPattern([variable("X"), wildcard()])
+        new ListPattern([variable("X"), wildcard()]),
       );
       const { success, bindings } = match(p, [1, 2]);
       expect(success).to.be.true;
@@ -180,7 +191,7 @@ describe("Pattern System", () => {
 
     describe("LazyList Matching", () => {
       const createLazy = (items: number[]): LazyList =>
-        createStream(function* () {
+        new LazyList(function* () {
           for (const i of items) yield i;
         });
 
@@ -194,8 +205,8 @@ describe("Pattern System", () => {
         const map = new Map(bindings);
         expect(map.get("X")).to.equal(1);
 
-        const tail = map.get("Xs") as LazyList;
-        expect(tail.type).to.equal("LazyList");
+        const tail = map.get("Xs");
+        expect(tail).to.be.instanceOf(LazyList);
 
         const gen = tail.generator();
         expect(gen.next().value).to.equal(2);

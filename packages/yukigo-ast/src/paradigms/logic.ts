@@ -2,7 +2,6 @@ import { Expression } from "../globals/expressions.js";
 import { ASTNode, SourceLocation } from "../globals/generics.js";
 import { Pattern } from "../globals/patterns.js";
 import { Primitive, SymbolPrimitive } from "../globals/primitives.js";
-import { PrimitiveValue } from "../globals/runtime.js";
 import { Equation } from "../globals/statements.js";
 import { Visitor } from "../visitor/index.js";
 

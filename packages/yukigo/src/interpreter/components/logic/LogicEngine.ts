@@ -5,10 +5,7 @@ import {
   Forall,
   Goal,
   Pattern,
-  PrimitiveValue,
   Query,
-  EnvStack,
-  LogicResult,
   Statement,
   Not,
   LogicConstraint,
@@ -32,6 +29,7 @@ import { trampoline, Continuation, Thunk } from "../../trampoline.js";
 import { RuntimeContext, LogicSearchMode } from "../RuntimeContext.js";
 import { inspect } from "util";
 import { PatternResolver } from "../PatternMatcher.js";
+import { LogicResult, PrimitiveValue } from "../../entities.js";
 
 export type LogicExecutable = Expression | Statement | Goal | Exist | Findall;
 

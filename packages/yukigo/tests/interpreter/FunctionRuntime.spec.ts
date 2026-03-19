@@ -1,6 +1,5 @@
 import { expect } from "chai";
 import {
-  EquationRuntime,
   UnguardedBody,
   Sequence,
   Return,
@@ -9,8 +8,6 @@ import {
   LiteralPattern,
   VariablePattern,
   GuardedBody,
-  EnvStack,
-  RuntimeFunction,
   StringPrimitive,
   Variable,
   Expression,
@@ -24,6 +21,11 @@ import {
   trampoline,
 } from "../../src/interpreter/trampoline.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
+import {
+  EnvStack,
+  RuntimeEquation,
+  RuntimeFunction,
+} from "../../src/interpreter/entities.js";
 
 const symbol = (val: string) => new SymbolPrimitive(val);
 const num = (val: number) => new NumberPrimitive(val);
@@ -42,8 +44,8 @@ const guarded = (guards: { cond: any; body: Expression }[]): GuardedBody[] => {
 const makeRunFunc = (
   identifier: string,
   arity: number,
-  equations: EquationRuntime[],
-): RuntimeFunction => ({ type: "Function", identifier, arity, equations });
+  equations: RuntimeEquation[],
+): RuntimeFunction => new RuntimeFunction(arity, identifier, equations, []);
 
 describe("FunctionRuntime", () => {
   let globalEnv: EnvStack;
@@ -58,11 +60,11 @@ describe("FunctionRuntime", () => {
 
   describe("Pattern Matching & Dispatch", () => {
     it("should match arguments to literal patterns", () => {
-      const eq1: EquationRuntime = {
+      const eq1: RuntimeEquation = {
         patterns: [litPat(10)],
         body: unguarded([str("ten")]),
       };
-      const eq2: EquationRuntime = {
+      const eq2: RuntimeEquation = {
         patterns: [litPat(20)],
         body: unguarded([str("twenty")]),
       };
@@ -78,7 +80,7 @@ describe("FunctionRuntime", () => {
     });
 
     it("should throw error if no pattern matches (Non-exhaustive)", () => {
-      const eq1: EquationRuntime = {
+      const eq1: RuntimeEquation = {
         patterns: [litPat(10)],
         body: unguarded([str("ten")]),
       };
@@ -91,7 +93,7 @@ describe("FunctionRuntime", () => {
     });
 
     it("should skip equations with wrong arity (argument count)", () => {
-      const eq1: EquationRuntime = {
+      const eq1: RuntimeEquation = {
         patterns: [varPat("X")],
         body: unguarded([str("one arg")]),
       };
@@ -106,7 +108,7 @@ describe("FunctionRuntime", () => {
 
   describe("Scope & Bindings", () => {
     it("should bind variables to a new local scope", () => {
-      const eq1: EquationRuntime = {
+      const eq1: RuntimeEquation = {
         patterns: [varPat("X")],
         body: unguarded([num(500)]),
       };
@@ -125,7 +127,7 @@ describe("FunctionRuntime", () => {
     it("should prioritize local scope over global scope", () => {
       globalEnv.head.set("X", 1);
 
-      const eq1: EquationRuntime = new Equation(
+      const eq1: RuntimeEquation = new Equation(
         [new VariablePattern(new SymbolPrimitive("X"))],
         new UnguardedBody(new Sequence([new Return(new SymbolPrimitive("X"))])),
         new Return(new SymbolPrimitive("X")),
@@ -149,7 +151,7 @@ describe("FunctionRuntime", () => {
         new GuardedBody(new BooleanPrimitive(true), num(2)),
       ];
 
-      const eq: EquationRuntime = {
+      const eq: RuntimeEquation = {
         patterns: [varPat("_")],
         body: guards,
       };
@@ -161,12 +163,12 @@ describe("FunctionRuntime", () => {
     });
 
     it("should fall through to next equation if no guard matches", () => {
-      const eq1: EquationRuntime = {
+      const eq1: RuntimeEquation = {
         patterns: [varPat("_")],
         body: [new GuardedBody(new BooleanPrimitive(false), num(1))],
       };
 
-      const eq2: EquationRuntime = {
+      const eq2: RuntimeEquation = {
         patterns: [varPat("_")],
         body: unguarded([num(2)]),
       };
@@ -184,7 +186,7 @@ describe("FunctionRuntime", () => {
 
   describe("Imperative Sequences & Returns", () => {
     it("should return the value of the last statement implicitly", () => {
-      const eq: EquationRuntime = {
+      const eq: RuntimeEquation = {
         patterns: [],
         body: unguarded([num(10), num(20), num(30)]),
       };
@@ -198,7 +200,7 @@ describe("FunctionRuntime", () => {
     it("should return early with Return statement", () => {
       const retStmt = new Return(num(99));
 
-      const eq: EquationRuntime = {
+      const eq: RuntimeEquation = {
         patterns: [],
         body: unguarded([num(10), retStmt, num(30)]),
       };
@@ -210,7 +212,7 @@ describe("FunctionRuntime", () => {
     });
 
     it("should return undefined for empty sequence", () => {
-      const eq: EquationRuntime = {
+      const eq: RuntimeEquation = {
         patterns: [],
         body: unguarded([]),
       };

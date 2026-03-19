@@ -3,11 +3,9 @@ import { LazyRuntime } from "../../src/interpreter/components/runtimes/LazyRunti
 import {
   RangeExpression,
   ConsExpression,
-  LazyList,
   NumberPrimitive,
   ListPrimitive,
   Expression,
-  isLazyList,
 } from "yukigo-ast";
 import {
   createGlobalEnv,
@@ -25,6 +23,7 @@ import {
   trampoline,
 } from "../../src/interpreter/trampoline.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
+import { isLazyList, LazyList } from "../../src/interpreter/entities.js";
 
 const num = (value: number) => new NumberPrimitive(value);
 
@@ -127,7 +126,7 @@ describe("LazyRuntime", () => {
           lazyRuntime.evaluateRange(node, evaluator, idContinuation),
         );
 
-        expect(result).to.have.property("type", "LazyList");
+        expect(result).to.be.instanceOf(LazyList);
         expect(result).to.have.property("generator");
       });
 
@@ -187,6 +186,7 @@ describe("LazyRuntime", () => {
         const result = trampoline(
           lazyRuntime.evaluateCons(node, evaluator, idContinuation),
         );
+        console.log(result)
         expect(isMemoizedList(result)).to.be.true;
         const memoList = result as MemoizedLazyList;
         const generator = memoList.generator();

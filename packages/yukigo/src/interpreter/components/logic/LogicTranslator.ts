@@ -2,11 +2,9 @@ import {
   Expression,
   LiteralPattern,
   Pattern,
-  PrimitiveValue,
   SymbolPrimitive,
   Variable,
   VariablePattern,
-  EnvStack,
   isPattern,
   NumberPrimitive,
   StringPrimitive,
@@ -27,6 +25,7 @@ import {
   Thunk,
 } from "../../trampoline.js";
 import { RuntimeContext } from "../RuntimeContext.js";
+import { PrimitiveValue } from "../../entities.js";
 
 export class LogicTranslator {
   constructor(

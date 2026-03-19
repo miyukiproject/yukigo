@@ -1,30 +1,27 @@
+import { ASTNode } from "yukigo-ast";
+import { Continuation, Thunk } from "./trampoline.js";
 import {
-  Expression,
-  LazyList,
-  PrimitiveValue,
   Environment,
   EnvStack,
-  ASTNode,
-  isRuntimeFunction,
-  isRuntimeObject,
   isLazyList,
   isRuntimeClass,
+  isRuntimeFunction,
+  isRuntimeObject,
   isRuntimePredicate,
-} from "yukigo-ast";
-import { UnboundVariable } from "./errors.js";
-import { Continuation, Thunk } from "./trampoline.js";
+  LazyGenerator,
+  LazyList,
+  PrimitiveValue,
+} from "./entities.js";
 
 export interface ExpressionEvaluator {
-  evaluate<R = PrimitiveValue>(node: ASTNode, cont: Continuation<PrimitiveValue, R>): Thunk<R>;
+  evaluate<R = PrimitiveValue>(
+    node: ASTNode,
+    cont: Continuation<PrimitiveValue, R>,
+  ): Thunk<R>;
 }
 
-export function createStream(
-  generator: () => Generator<PrimitiveValue, void, unknown>,
-): LazyList {
-  return {
-    type: "LazyList",
-    generator,
-  };
+export function createStream(generator: LazyGenerator): LazyList {
+  return new LazyList(generator);
 }
 
 export function isArrayOfNumbers(arr: PrimitiveValue[]): arr is number[] {

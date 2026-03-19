@@ -1,4 +1,4 @@
-import { PrimitiveValue } from "yukigo-ast";
+import { PrimitiveValue } from "./entities.js";
 
 // A Thunk now represents a deferred computation that, when called,
 // will produce either a value or another thunk.

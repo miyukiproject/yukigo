@@ -2,7 +2,6 @@ import {
   Assert,
   Equality,
   Failure,
-  PrimitiveValue,
   Test,
   TestGroup,
   TraverseVisitor,
@@ -17,6 +16,7 @@ import {
   Thunk,
 } from "../trampoline.js";
 import { LazyRuntime } from "./runtimes/LazyRuntime.js";
+import { PrimitiveValue } from "../entities.js";
 
 export class FailedAssert extends Error {
   constructor(

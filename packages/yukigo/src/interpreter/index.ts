@@ -1,4 +1,4 @@
-import { PrimitiveValue, AST, EnvStack, ASTNode } from "yukigo-ast";
+import { AST, ASTNode } from "yukigo-ast";
 import { InterpreterVisitor } from "./components/Visitor.js";
 import { EnvBuilderVisitor } from "./components/EnvBuilder.js";
 import { InterpreterError } from "./errors.js";
@@ -11,6 +11,7 @@ import {
 import { LazyRuntime } from "./components/runtimes/LazyRuntime.js";
 import { FunctionRuntime } from "./components/runtimes/FunctionRuntime.js";
 import { ObjectRuntime } from "./components/runtimes/ObjectRuntime.js";
+import { PrimitiveValue } from "./entities.js";
 
 export type Bindings = [string, PrimitiveValue][];
 
