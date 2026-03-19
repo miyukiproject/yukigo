@@ -67,7 +67,7 @@
                 v-model="currentCommand"
                 @keyup.enter="executeCommand"
                 @keydown="navigateHistory"
-                placeholder="doble 4"
+                :placeholder="languageExamples[selectedLanguage].placeholder || 'doble 4'"
                 spellcheck="false"
                 autocomplete="off"
                 class="bg-transparent border-none text-[#f0f0f0] font-inherit w-full focus:outline-none" />
