@@ -67,7 +67,7 @@
                 v-model="currentCommand"
                 @keyup.enter="executeCommand"
                 @keydown="navigateHistory"
-                placeholder="doble 4"
+                :placeholder="languageExamples[selectedLanguage].placeholder || 'doble 4'"
                 spellcheck="false"
                 autocomplete="off"
                 class="bg-transparent border-none text-[#f0f0f0] font-inherit w-full focus:outline-none" />
@@ -120,6 +120,7 @@ const languageExamples = {
     },
     prefix: null,
     placeholder: "doble 4",
+    prefixRemover: /^\$ /
   },
   prolog: {
     code: "padre(tom, bob).\npadre(tom, liz).\nabuelo(X, Y) :- padre(X, Z), padre(Z, Y).",
@@ -130,6 +131,7 @@ const languageExamples = {
     },
     prefix: "?-",
     placeholder: "padre(tom, X)",
+    prefixRemover: /^\?\-\s*/
   },
   wollok: {
     code: `object pepita {
@@ -146,6 +148,7 @@ const languageExamples = {
     },
     prefix: null,
     placeholder: "pepita.energy()",
+    prefixRemover: /^\$ /
   },
 };
 
@@ -267,7 +270,7 @@ function scrollToBottom() {
 }
 
 function getCommandText(historyItem) {
-  return historyItem.text.replace(/^\$ /, "");
+  return historyItem.text.replace(languageExamples[selectedLanguage.value].prefixRemover, "");
 }
 
 function executeCommand() {
