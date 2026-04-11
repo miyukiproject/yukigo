@@ -32,6 +32,10 @@ export abstract class ASTNode {
     return this.metadata.has(key);
   }
 
+  public is<T extends ASTNode>( nodeType : new (...args: any[]) => T ): this is T {
+    return this instanceof nodeType;
+  }
+
   /** @hidden */
   abstract accept<R>(visitor: Visitor<R>): R;
   /** @hidden */

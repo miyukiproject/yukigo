@@ -4,16 +4,16 @@ import {
   UnguardedBody,
   Sequence,
   Return,
-  EnvStack,
   Function,
   RuntimeFunction,
+  isRuntimeFunction,
 } from "yukigo-ast";
 import { Bindings } from "../../index.js";
 import { PatternMatcher } from "../PatternMatcher.js";
 import { ExpressionEvaluator } from "../../utils.js";
 import { InterpreterError } from "../../errors.js";
 import { EnvBuilderVisitor } from "../EnvBuilder.js";
-import { Continuation, Thunk } from "../../trampoline.js";
+import { Continuation, CPSThunk, Thunk, valueToCPS } from "../../trampoline.js";
 import { RuntimeContext } from "../RuntimeContext.js";
 import { InterpreterVisitor } from "../Visitor.js";
 
@@ -35,6 +35,7 @@ export class FunctionRuntime {
   ): Thunk<PrimitiveValue> {
     const funcName = func.identifier;
     const equations = func.equations;
+    const oldEnv = this.context.env;
 
     if (this.context.config.debug)
       console.log(
@@ -44,6 +45,7 @@ export class FunctionRuntime {
 
     const tryNextEquation = (eqIndex: number): Thunk<PrimitiveValue> => {
       if (eqIndex >= equations.length) {
+        this.context.setEnv(oldEnv);
         throw new NonExhaustivePatterns(funcName);
       }
 
@@ -62,7 +64,6 @@ export class FunctionRuntime {
           );
 
         const localEnv = new Map<string, PrimitiveValue>(bindings);
-        const oldEnv = this.context.env;
         if (func.closure) this.context.setEnv(func.closure);
         this.context.pushEnv(localEnv);
 
@@ -122,6 +123,44 @@ export class FunctionRuntime {
     };
 
     return tryNextEquation(0);
+  }
+
+  public applyArguments(
+    func: RuntimeFunction,
+    args: (PrimitiveValue | (() => PrimitiveValue))[],
+  ): CPSThunk<PrimitiveValue> {
+    if (args.length < func.arity) {
+      return valueToCPS({
+        ...func,
+        pendingArgs: args,
+      });
+    }
+
+    const argsToConsume = args.slice(0, func.arity);
+    const remainingArgs = args.slice(func.arity);
+
+    const evaluatedArgs = argsToConsume.map((arg) =>
+      typeof arg === "function" ? arg() : arg,
+    );
+
+    return (cont) => () =>
+      this.apply(func, evaluatedArgs, (result) => {
+        if (remainingArgs.length > 0) {
+          if (isRuntimeFunction(result)) {
+            const nextArgs = result.pendingArgs
+              ? [...result.pendingArgs, ...remainingArgs]
+              : remainingArgs;
+
+            return this.applyArguments(result, nextArgs)(cont);
+          } else {
+            throw new InterpreterError(
+              "Application",
+              `Too many arguments provided. Result was '${result}' (not a function), but had ${remainingArgs.length} args left.`,
+            );
+          }
+        }
+        return cont(result);
+      });
   }
 
   private preloadDefinitions(

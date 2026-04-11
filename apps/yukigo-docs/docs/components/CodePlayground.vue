@@ -32,7 +32,7 @@
     <!-- Editor and Terminal -->
     <div class="flex flex-col lg:flex-row w-full gap-4 lg:gap-8">
       <div class="w-full lg:w-1/2 h-80 sm:h-96 lg:h-80">
-        <Editor v-model="code" />
+        <Editor v-model="code" :selectedLanguage="selectedLanguage" />
       </div>
 
       <div class="w-full lg:w-1/2 h-80 sm:h-96 lg:h-80">

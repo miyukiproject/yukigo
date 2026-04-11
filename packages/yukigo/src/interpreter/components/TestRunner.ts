@@ -2,6 +2,7 @@ import {
   Assert,
   Equality,
   Failure,
+  isLazyList,
   PrimitiveValue,
   Test,
   TestGroup,
@@ -84,18 +85,17 @@ class AssertionVisitor extends TraverseVisitor {
       this.interpreter.evaluate(node.value, (value) => {
         return () =>
           this.interpreter.evaluate(node.expected, (expected) => {
-            return this.isEqual(value, expected, (passed) => {
+            this.lazyRuntime.deepEqual(value, expected, (passed) => {
               if (this.negated === passed) {
                 throw new FailedAssert(
-                  value,
-                  expected,
+                  value, expected,
                   this.negated
                     ? `Expected ${JSON.stringify(value)} NOT to be equal to ${JSON.stringify(expected)}`
                     : `Expected ${JSON.stringify(expected)}, but got ${JSON.stringify(value)}`,
                 );
               }
               return k(undefined);
-            });
+            })
           });
       });
   }
@@ -115,42 +115,6 @@ class AssertionVisitor extends TraverseVisitor {
         }
         return k(undefined);
       });
-  }
-  private isEqual(a: any, b: any, k: Continuation<boolean>): Thunk<boolean> {
-    if (a === b) return k(true);
-    if (a && b && typeof a === "object" && typeof b === "object") {
-      return this.lazyRuntime.realizeList(a, (valA) => {
-        return () =>
-          this.lazyRuntime.realizeList(b, (valB) => {
-            if (Array.isArray(valA) && Array.isArray(valB)) {
-              if (valA.length !== valB.length) return k(false);
-              const checkNext = (index: number): Thunk<boolean> => {
-                if (index >= valA.length) return k(true);
-                return this.isEqual(valA[index], valB[index], (res) => {
-                  if (!res) return k(false);
-                  return () => checkNext(index + 1);
-                });
-              };
-              return checkNext(0);
-            }
-
-            if (Array.isArray(valA) !== Array.isArray(valB)) return k(false);
-
-            const keys = Object.keys(valA);
-            if (keys.length !== Object.keys(valB).length) return k(false);
-            const checkNextKey = (index: number): Thunk<boolean> => {
-              if (index >= keys.length) return k(true);
-              const key = keys[index];
-              return this.isEqual(valA[key], valB[key], (res) => {
-                if (!res) return k(false);
-                return () => checkNextKey(index + 1);
-              });
-            };
-            return checkNextKey(0);
-          });
-      });
-    }
-    return k(false);
   }
 }
 
