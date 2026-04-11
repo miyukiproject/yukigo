@@ -22,7 +22,7 @@ export type AnalysisResult = {
 export type InspectionRule = {
   inspection: string;
   binding?: string;
-  args: string[];
+  args?: string[];
   expected: boolean;
 };
 
@@ -154,7 +154,8 @@ export class Analyzer {
       // Execution Loop
       const isGlobalVisitor = !rule.binding || rule.binding === "*";
       const normalizedBinding = isGlobalVisitor ? undefined : rule.binding;
-      const visitor = new InspectionClass(...rule.args, normalizedBinding);
+      const args = rule.args ?? []
+      const visitor = new InspectionClass(...args, normalizedBinding);
 
       for (const { node, binding } of targets) {
         try {
