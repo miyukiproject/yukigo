@@ -970,7 +970,9 @@ export class InterpreterVisitor
       return process(0);
     };
   }
-
+  visitTypeCast(node: TypeCast): CPSThunk<PrimitiveValue> {
+    return node.expression.accept(this);
+  }
   visitGenerator(node: YuGenerator): CPSThunk<PrimitiveValue> {
     return (k) => this.evaluate(node.expression, k);
   }

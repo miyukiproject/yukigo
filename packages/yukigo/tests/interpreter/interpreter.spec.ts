@@ -22,9 +22,11 @@ import {
   RangeExpression,
   Return,
   Sequence,
+  SimpleType,
   StringOperation,
   StringPrimitive,
   SymbolPrimitive,
+  TypeCast,
   UnguardedBody,
   Variable,
   VariablePattern,
@@ -890,6 +892,14 @@ describe("Interpreter Spec", () => {
       const app = new Application(fog, new NumberPrimitive(2));
       const res = interpreter.evaluate(app)
       assert.equal(res, 16);
+    });
+  });
+  describe("Evaluates TypeCast", () => {
+    it("Type casting of number 2 to string should be '2'", () => {
+      const res = interpreter.evaluate(
+        new TypeCast(new NumberPrimitive(2), new SimpleType("String", [])),
+      );
+      assert.equal(res, "2");
     });
   });
   describe("Evaluates Range Expression", () => {
