@@ -118,14 +118,15 @@ export class LazyRuntime {
     evaluator: ExpressionEvaluator,
     k: Continuation<PrimitiveValue>,
   ): Thunk<PrimitiveValue> {
-    const capturedEnv = this.context.env;
     const ctx = this.context;
+    const capturedEnv = ctx.clone();
     return evaluator.evaluate(node.head, (head) => {
-      if (this.context.config.lazyLoading) {
+      if (ctx.config.lazyLoading) {
         const consState: InternalConsState = {
           head,
           tailExpr: node.tail,
           evaluator,
+          capturedEnv,
           realizedTail: undefined,
         };
 
@@ -140,13 +141,10 @@ export class LazyRuntime {
 
                 if (current.realizedTail === undefined) {
                   const prevEnv = ctx.env;
-                  ctx.setEnv(capturedEnv);
+                  ctx.setEnv(current.capturedEnv);
                   try {
                     current.realizedTail = trampoline(
-                      current.evaluator.evaluate(
-                        current.tailExpr,
-                        idContinuation,
-                      ),
+                      current.evaluator.evaluate(current.tailExpr, idContinuation),
                     );
                   } finally {
                     ctx.setEnv(prevEnv);
