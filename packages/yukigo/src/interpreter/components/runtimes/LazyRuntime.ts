@@ -267,35 +267,65 @@ export class LazyRuntime {
   ): Thunk<R> {
     if (a === b) return k(true);
 
-    const compareValues = (valA: any, valB: any): Thunk<R> => {
-      if (typeof valA === "string" && typeof valB === "string")
-        return k(valA === valB);
+    const aIsListLike = this.isListLike(a);
+    const bIsListLike = this.isListLike(b);
+    const eitherIsCollection = this.isCollection(a) || this.isCollection(b);
 
-      if (Array.isArray(valA) && Array.isArray(valB)) {
-        if (valA.length !== valB.length) return k(false);
-        const compareNext = (index: number): Thunk<R> => {
-          if (index >= valA.length) return k(true);
-          return () =>
-            this.deepEqual(valA[index], valB[index], (isEqual) => {
-              if (!isEqual) return k(false);
-              return () => compareNext(index + 1);
-            });
-        };
-        return compareNext(0);
-      }
-
-      return k(valA == valB);
-    };
-
-    if (isLazyList(a) || isLazyList(b)) {
-      return this.realizeList(a, (valA) => {
-        return () =>
-          this.realizeList(b, (valB) => {
-            return () => compareValues(valA, valB);
-          });
-      });
+    if (eitherIsCollection && aIsListLike && bIsListLike) {
+      return this.realizeList(a, (valA) => () =>
+        this.realizeList(b, (valB) => {
+          if (valA.length !== valB.length) return k(false);
+          return this.deepEqualCollection(valA, valB, 0, k);
+        })
+      );
     }
 
-    return compareValues(a, b);
+    if (eitherIsCollection) return k(false); // colección vs número → false
+
+    if (this.isPlainObject(a) && this.isPlainObject(b))
+      return this.deepEqualObject(a, b, k);
+
+    return k(a == b); // primitivos: number, boolean, string==number
+  }
+  private isPlainObject(val: unknown): val is Record<string, any> {
+    return val !== null && typeof val === "object"
+      && !isLazyList(val) && !Array.isArray(val);
+  }
+  private isCollection(val: unknown): val is PrimitiveValue[] | LazyList {
+    return Array.isArray(val) || isLazyList(val);
+  }
+
+  private isListLike(val: unknown): val is string | PrimitiveValue[] | LazyList {
+    return Array.isArray(val) || isLazyList(val) || typeof val === "string";
+  }
+  private deepEqualCollection<R>(
+    a: PrimitiveValue[],
+    b: PrimitiveValue[],
+    index: number,
+    k: Continuation<boolean, R>,
+  ): Thunk<R> {
+    if (index >= a.length) return k(true);
+    return this.deepEqual(a[index], b[index], (eq) => {
+      if (!eq) return k(false);
+      return () => this.deepEqualCollection(a, b, index + 1, k);
+    });
+  }
+
+  private deepEqualObject<R>(
+    a: Record<string, any>,
+    b: Record<string, any>,
+    k: Continuation<boolean, R>,
+  ): Thunk<R> {
+    const keys = Object.keys(a);
+    if (keys.length !== Object.keys(b).length) return k(false);
+    const checkNext = (index: number): Thunk<R> => {
+      if (index >= keys.length) return k(true);
+      const key = keys[index];
+      return this.deepEqual(a[key], b[key], (eq) => {
+        if (!eq) return k(false);
+        return () => checkNext(index + 1);
+      });
+    };
+    return checkNext(0);
   }
 }

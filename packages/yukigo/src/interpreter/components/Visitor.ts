@@ -378,6 +378,17 @@ export class InterpreterVisitor
   visitComparisonOperation(
     node: ComparisonOperation,
   ): CPSThunk<PrimitiveValue> {
+    if (node.operator === "Equal" || node.operator === "NotEqual") {
+      return (k) =>
+        this.evaluate(node.left, (left) => () =>
+          this.evaluate(node.right, (right) =>
+            this.context.lazyRuntime.deepEqual(left, right, (eq) =>
+              k(node.operator === "Equal" ? eq : !eq)
+            )
+          )
+        );
+    }
+
     return this.processBinary(
       node,
       ComparisonOperationTable,
