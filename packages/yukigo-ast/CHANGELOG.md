@@ -1,3 +1,13 @@
+## 0.2.0 (2026-04-11)
+
+### 🚀 Features
+
+- **yukigo-ast:** agrego metodo is ASTNode ([6a63873](https://github.com/miyukiproject/yukigo/commit/6a63873))
+
+### ❤️ Thank You
+
+- Santiago Schneideroff
+
 ## 0.1.0 (2025-12-09)
 
 ### 🚀 Features

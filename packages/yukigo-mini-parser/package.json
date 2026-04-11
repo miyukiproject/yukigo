@@ -1,6 +1,6 @@
 {
   "name": "yukigo-mini-parser",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "",
   "scripts": {
     "build": "nearleyc src/grammar.ne -o src/grammar.ts && tsc",
