@@ -17,14 +17,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@types/chai": "^5.2.2",
-    "@types/mocha": "^10.0.10",
-    "@types/moo": "^0.5.10",
-    "@types/node": "^24.2.0",
-    "chai": "^6.2.0",
-    "mocha": "^11.7.1",
-    "tsx": "^4.20.6",
-    "typescript": "^5.9.2"
+    "@types/moo": "^0.5.10"
   },
   "dependencies": {
     "moo": "^0.5.2",

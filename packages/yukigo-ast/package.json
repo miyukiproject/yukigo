@@ -18,14 +18,5 @@
   },
   "keywords": [],
   "author": "noiseArch",
-  "license": "ISC",
-  "devDependencies": {
-    "tsup": "^8.5.0",
-    "typescript": "^5.9.2",
-    "@types/chai": "^5.2.2",
-    "@types/mocha": "^10.0.10",
-    "@types/node": "^24.2.0",
-    "chai": "^6.2.0",
-    "mocha": "^11.7.1"
-  }
+  "license": "ISC"
 }

@@ -18,13 +18,10 @@
   "author": "noiseArch",
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "^24.10.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "@types/fs-extra": "^11.0.4"
   },
   "dependencies": {
     "@inquirer/prompts": "^7.9.0",
-    "@types/fs-extra": "^11.0.4",
     "chalk": "^5.6.2",
     "commander": "^14.0.2",
     "fs-extra": "^11.3.2"

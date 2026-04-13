@@ -19,11 +19,9 @@
     "yukigo-wollok-parser": "^0.1.0"
   },
   "devDependencies": {
-    "@types/node": "^24.9.2",
     "@types/prismjs": "^1.26.5",
     "typedoc": "^0.28.15",
     "typedoc-plugin-markdown": "^4.9.0",
-    "typescript": "^5.9.3",
     "vitepress": "^1.6.4"
   }
 }
