@@ -1,6 +1,9 @@
+import { YUTYPES } from "../utils/types.js";
 import {
   charType,
   Environment,
+  isListType,
+  isString,
   Result,
   showType,
   Substitution,
@@ -104,11 +107,11 @@ export class CoreHM {
     if (rt2.type === "TypeVar") return this.unifyVar(rt2, rt1);
     if (rt1.type === "TypeConstructor" && rt2.type === "TypeConstructor") {
       const isStringList = (a: TypeConstructor, b: TypeConstructor) =>
-        (a.name === "YuString" && b.name === "List") ||
-        (b.name === "YuString" && a.name === "List");
+        (isString(a) && isListType(b)) ||
+        (isString(b) && isListType(a));
 
       if (isStringList(rt1, rt2)) {
-        const listType = rt1.name === "List" ? rt1 : rt2;
+        const listType = rt1.name === YUTYPES.List ? rt1 : rt2;
         return this.unify(listType.args[0], charType);
       }
 
@@ -166,12 +169,12 @@ export class CoreHM {
     } else if (rt.type === "TypeConstructor") {
       let typeName = rt.name;
       if (
-        typeName === "List" &&
+        typeName === YUTYPES.List &&
         rt.args.length === 1 &&
         rt.args[0].type === "TypeConstructor" &&
-        rt.args[0].name === "YuChar"
+        rt.args[0].name === YUTYPES.YuChar
       ) {
-        typeName = "YuString";
+        typeName = YUTYPES.YuString;
       }
 
       const instances = this.typeClasses.get(constraintName);

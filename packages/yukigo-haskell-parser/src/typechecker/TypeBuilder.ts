@@ -11,7 +11,7 @@ import {
   ASTNode,
   Visitor,
 } from "yukigo-ast";
-import { typeMappings } from "../utils/types.js";
+import { typeMappings, YUTYPES } from "../utils/types.js";
 import { CoreHM } from "./core.js";
 import { functionType, Type, TypeConstructor, TypeVar, stringType, charType } from "./checker.js";
 import { UnexpectedNode } from "../utils/helpers.js";
@@ -45,8 +45,8 @@ export class TypeBuilder {
 
         // Uppercase = type constructor (e.g., Int, Bool, List)
         const primitive = typeMappings[n.value] || n.value;
-        if (primitive === "YuString") return stringType;
-        if (primitive === "YuChar") return charType;
+        if (primitive === YUTYPES.YuString) return stringType;
+        if (primitive === YUTYPES.YuChar) return charType;
         return {
           type: "TypeConstructor",
           name: primitive,
@@ -72,7 +72,7 @@ export class TypeBuilder {
         const elementType = n.values.accept(visitor);
         return {
           type: "TypeConstructor",
-          name: "List",
+          name: YUTYPES.List,
           args: [elementType],
         };
       },
@@ -81,7 +81,7 @@ export class TypeBuilder {
         const elementTypes = n.values.map((v) => v.accept(visitor));
         return {
           type: "TypeConstructor",
-          name: "Tuple",
+          name: YUTYPES.Tuple,
           args: elementTypes,
         };
       },
