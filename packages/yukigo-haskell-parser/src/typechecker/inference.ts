@@ -78,9 +78,11 @@ import {
   FunctionRegistrarVisitor,
   FunctionCheckerVisitor,
   getReturnType,
+  isString,
 } from "./checker.js";
 import { CoreHM } from "./core.js";
 import { TypeBuilder } from "./TypeBuilder.js";
+import { YUTYPES } from "../utils/types.js";
 
 export class PatternVisitor implements Visitor<void> {
   constructor(
@@ -157,7 +159,7 @@ export class PatternVisitor implements Visitor<void> {
       tupleElementTypes = node.elements.map(() => this.coreHM.freshVar());
       const tupleType: Type = {
         type: "TypeConstructor",
-        name: "Tuple",
+        name: YUTYPES.Tuple,
         args: tupleElementTypes,
       };
 
@@ -410,7 +412,7 @@ export class InferenceEngine implements Visitor<Result<Type>> {
       success: true,
       value: {
         type: "TypeConstructor",
-        name: "YuNil",
+        name: YUTYPES.YuNil,
         args: [],
       },
     };
@@ -420,7 +422,7 @@ export class InferenceEngine implements Visitor<Result<Type>> {
       success: true,
       value: {
         type: "TypeConstructor",
-        name: "YuChar",
+        name: YUTYPES.YuChar,
         args: [],
       },
     };
@@ -737,15 +739,6 @@ export class InferenceEngine implements Visitor<Result<Type>> {
 
         const rightResult = node.right.accept(this);
         if (!rightResult.success) return rightResult;
-
-        // If either side is a string primitive or already inferred as stringType,
-        // we treat the whole operation as string concatenation.
-        const isString = (t: Type) =>
-          (t.type === "TypeConstructor" && t.name === "YuString") ||
-          (t.type === "TypeConstructor" &&
-            t.name === "List" &&
-            t.args[0].type === "TypeConstructor" &&
-            t.args[0].name === "YuChar");
 
         if (isString(leftResult.value) || isString(rightResult.value)) {
           const unifyLeft = this.coreHM.unify(leftResult.value, stringType);
