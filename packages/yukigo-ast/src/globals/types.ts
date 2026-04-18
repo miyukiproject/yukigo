@@ -1,9 +1,6 @@
 import { Visitor } from "../visitor/index.js";
 import { Expression } from "./expressions.js";
-import {
-  ASTNode,
-  SourceLocation,
-} from "./generics.js";
+import { ASTNode, SerializeNode, SourceLocation } from "./generics.js";
 import { SymbolPrimitive } from "./primitives.js";
 
 export type Type =
@@ -31,12 +28,12 @@ export class SimpleType extends ASTNode {
     this.constraints = constraints;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitSimpleType?.(this);
+    return this.dispatchVisit(visitor, visitor.visitSimpleType);
   }
-  toString() {
+  toString(): string {
     return this.value;
   }
-  toJSON() {
+  toJSON(): SerializeNode {
     return {
       type: "SimpleType",
       value: this.value,
@@ -60,12 +57,12 @@ export class TypeVar extends ASTNode {
     this.constraints = constraints;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitTypeVar?.(this);
+    return this.dispatchVisit(visitor, visitor.visitTypeVar);
   }
   toString(): string {
     return this.value;
   }
-  toJSON() {
+  toJSON(): SerializeNode {
     return {
       type: "TypeVar",
       value: this.value,
@@ -89,7 +86,7 @@ export class TypeApplication extends ASTNode {
     this.argument = argument;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitTypeApplication?.(this);
+    return this.dispatchVisit(visitor, visitor.visitTypeApplication);
   }
   toString(): string {
     const func = this.functionType.toString();
@@ -102,7 +99,7 @@ export class TypeApplication extends ASTNode {
     }
     return `${func} ${arg}`;
   }
-  toJSON() {
+  toJSON(): SerializeNode {
     return {
       type: "TypeApplication",
       function: this.functionType.toJSON(),
@@ -127,12 +124,12 @@ export class ListType extends ASTNode {
   }
 
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitListType?.(this);
+    return this.dispatchVisit(visitor, visitor.visitListType);
   }
-  toString() {
+  toString(): string {
     return `[${this.values.toString()}]`;
   }
-  toJSON() {
+  toJSON(): SerializeNode {
     return {
       type: "ListType",
       values: this.values.toJSON(),
@@ -156,12 +153,12 @@ export class TupleType extends ASTNode {
     this.constraints = constraints;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitTupleType?.(this);
+    return this.dispatchVisit(visitor, visitor.visitTupleType);
   }
-  toString() {
+  toString(): string {
     return `(${this.values.map((t) => t.toString()).join(", ")})`;
   }
-  toJSON() {
+  toJSON(): SerializeNode {
     return {
       type: "TupleType",
       values: this.values.map((val) => val.toJSON()),
@@ -189,9 +186,9 @@ export class Constraint extends ASTNode {
     this.parameters = parameters;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitConstraint?.(this);
+    return this.dispatchVisit(visitor, visitor.visitConstraint);
   }
-  toJSON() {
+  toJSON(): SerializeNode {
     return {
       type: "Constraint",
       name: this.name,
@@ -216,7 +213,7 @@ export class ParameterizedType extends ASTNode {
     inputs: Type[],
     returnType: Type,
     constraints: Constraint[],
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ) {
     super(loc);
     this.inputs = inputs;
@@ -224,9 +221,9 @@ export class ParameterizedType extends ASTNode {
     this.constraints = constraints;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitParameterizedType?.(this);
+    return this.dispatchVisit(visitor, visitor.visitParameterizedType);
   }
-  toString() {
+  toString(): string {
     const inputs = this.inputs.map((t) => {
       const str = t.toString();
       return t instanceof ParameterizedType ? `(${str})` : str;
@@ -247,7 +244,7 @@ export class ParameterizedType extends ASTNode {
     }
     return signature;
   }
-  toJSON() {
+  toJSON(): SerializeNode {
     return {
       type: "ParameterizedType",
       inputs: this.inputs.map((p) => p.toJSON()),
@@ -269,9 +266,9 @@ export class ConstrainedType extends ASTNode {
     this.constraints = constraints;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitConstrainedType?.(this);
+    return this.dispatchVisit(visitor, visitor.visitConstrainedType);
   }
-  toJSON() {
+  toJSON(): SerializeNode {
     return {
       type: "ConstrainedType",
       constraints: this.constraints.map((p) => p.toJSON()),
@@ -298,7 +295,7 @@ export class TypeAlias extends ASTNode {
     identifier: SymbolPrimitive,
     variables: string[],
     value: Type,
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ) {
     super(loc);
     this.identifier = identifier;
@@ -306,9 +303,9 @@ export class TypeAlias extends ASTNode {
     this.value = value;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitTypeAlias?.(this);
+    return this.dispatchVisit(visitor, visitor.visitTypeAlias);
   }
-  toJSON() {
+  toJSON(): SerializeNode {
     return {
       type: "TypeAlias",
       identifier: this.identifier.toJSON(),
@@ -337,9 +334,9 @@ export class TypeSignature extends ASTNode {
     this.body = body;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitTypeSignature?.(this);
+    return this.dispatchVisit(visitor, visitor.visitTypeSignature);
   }
-  toJSON() {
+  toJSON(): SerializeNode {
     return {
       type: "TypeSignature",
       identifier: this.identifier.toJSON(),
@@ -363,9 +360,9 @@ export class TypeCast extends ASTNode {
     this.body = body;
   }
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitTypeCast?.(this);
+    return this.dispatchVisit(visitor, visitor.visitTypeCast);
   }
-  toJSON() {
+  toJSON(): SerializeNode {
     return {
       type: "TypeCast",
       expression: this.expression.toJSON(),

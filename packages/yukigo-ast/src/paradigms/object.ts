@@ -1,6 +1,7 @@
 import { Expression } from "../globals/expressions.js";
 import {
   ASTNode,
+  SerializeNode,
   SourceLocation,
 } from "../globals/generics.js";
 import { Operator } from "../globals/operators.js";
@@ -33,9 +34,9 @@ export class Method extends ASTNode {
     this.equations = equations;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitMethod?.(this);
+    return this.dispatchVisit(visitor, visitor.visitMethod);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Method",
       identifier: this.identifier.toJSON(),
@@ -64,9 +65,9 @@ export class Attribute extends ASTNode {
     this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitAttribute?.(this);
+    return this.dispatchVisit(visitor, visitor.visitAttribute);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Attribute",
       identifier: this.identifier.toJSON(),
@@ -98,9 +99,9 @@ export class Object extends ASTNode {
     this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitObject?.(this);
+    return this.dispatchVisit(visitor, visitor.visitObject);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Object",
       identifier: this.identifier.toJSON(),
@@ -144,14 +145,14 @@ export class Class extends ASTNode {
     this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitClass?.(this);
+    return this.dispatchVisit(visitor, visitor.visitClass);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Class",
       identifier: this.identifier.toJSON(),
-      extends: this.extendsSymbol.toJSON(),
-      implements: this.implementsNode.toJSON(),
+      extends: this.extendsSymbol?.toJSON(),
+      implements: this.implementsNode?.toJSON(),
       includes: this.includes.map((s) => s.toJSON()),
       expression: this.expression.toJSON(),
     };
@@ -182,9 +183,9 @@ export class Interface extends ASTNode {
     this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitInterface?.(this);
+    return this.dispatchVisit(visitor, visitor.visitInterface);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Interface",
       identifier: this.identifier.toJSON(),
@@ -221,9 +222,9 @@ export class Send extends ASTNode {
     this.args = args;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitSend?.(this);
+    return this.dispatchVisit(visitor, visitor.visitSend);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Send",
       receiver: this.receiver.toJSON(),
@@ -256,9 +257,9 @@ export class New extends ASTNode {
     this.args = args;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitNew?.(this);
+    return this.dispatchVisit(visitor, visitor.visitNew);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "New",
       identifier: this.identifier.toJSON(),
@@ -280,9 +281,9 @@ export class Implement extends ASTNode {
     this.identifier = identifier;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitImplement?.(this);
+    return this.dispatchVisit(visitor, visitor.visitImplement);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Implement",
       identifier: this.identifier.toJSON(),
@@ -296,9 +297,9 @@ export class Implement extends ASTNode {
  */
 export class Self extends ASTNode {
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitSelf?.(this);
+    return this.dispatchVisit(visitor, visitor.visitSelf);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Self",
     };
@@ -316,9 +317,9 @@ export class Super extends ASTNode {
     this.args = args;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitSuper?.(this);
+    return this.dispatchVisit(visitor, visitor.visitSuper);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Super",
       args: this.args,
@@ -344,9 +345,9 @@ export class PrimitiveMethod extends ASTNode {
     this.equations = equations;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitPrimitiveMethod?.(this);
+    return this.dispatchVisit(visitor, visitor.visitPrimitiveMethod);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "PrimitiveMethod",
       operator: this.operator,

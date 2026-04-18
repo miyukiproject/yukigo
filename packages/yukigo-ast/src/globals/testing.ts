@@ -1,6 +1,6 @@
 import { Visitor } from "../visitor/index.js";
 import { Expression } from "./expressions.js";
-import { ASTNode, SourceLocation } from "./generics.js";
+import { ASTNode, SerializeNode, SourceLocation } from "./generics.js";
 import { Pattern } from "./patterns.js";
 import { Sequence } from "./statements.js";
 
@@ -14,9 +14,9 @@ export class TestGroup extends ASTNode {
   }
 
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitTestGroup(this);
+    return this.dispatchVisit(visitor, visitor.visitTestGroup);
   }
-  toJSON() {
+  toJSON(): SerializeNode {
     return {
       type: "TestGroup",
       name: this.name,
@@ -36,9 +36,9 @@ export class Test extends ASTNode {
   }
 
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitTest(this);
+    return this.dispatchVisit(visitor, visitor.visitTest);
   }
-  toJSON() {
+  toJSON(): SerializeNode {
     return {
       type: "Test",
       name: this.name,
@@ -60,9 +60,9 @@ export class Assert extends ASTNode {
   }
 
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitAssert(this);
+    return this.dispatchVisit(visitor, visitor.visitAssert);
   }
-  toJSON() {
+  toJSON(): SerializeNode {
     return {
       type: "Assert",
       negated: this.negated,
@@ -79,9 +79,9 @@ export class Truth extends ASTNode {
   }
 
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitTruth(this);
+    return this.dispatchVisit(visitor, visitor.visitTruth);
   }
-  toJSON() {
+  toJSON(): SerializeNode {
     return {
       type: "Truth",
       body: this.body,
@@ -98,9 +98,9 @@ export class Equality extends ASTNode {
   }
 
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitEquality(this);
+    return this.dispatchVisit(visitor, visitor.visitEquality);
   }
-  toJSON() {
+  toJSON(): SerializeNode {
     return {
       type: "Equality",
       expected: this.expected,
@@ -119,9 +119,9 @@ export class Failure extends ASTNode {
   }
 
   accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitFailure(this);
+    return this.dispatchVisit(visitor, visitor.visitFailure);
   }
-  toJSON() {
+  toJSON(): SerializeNode {
     return {
       type: "Failure",
       func: this.func,

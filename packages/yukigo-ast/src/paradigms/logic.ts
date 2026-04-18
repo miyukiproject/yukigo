@@ -1,5 +1,5 @@
 import { Expression } from "../globals/expressions.js";
-import { ASTNode, SourceLocation } from "../globals/generics.js";
+import { ASTNode, SerializeNode, SourceLocation } from "../globals/generics.js";
 import { Pattern } from "../globals/patterns.js";
 import { Primitive, SymbolPrimitive } from "../globals/primitives.js";
 import { PrimitiveValue } from "../globals/runtime.js";
@@ -31,9 +31,9 @@ export class Rule extends ASTNode {
     this.equations = equations;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitRule?.(this);
+    return this.dispatchVisit(visitor, visitor.visitRule);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Rule",
       identifier: this.identifier.toJSON(),
@@ -61,9 +61,9 @@ export class Call extends ASTNode {
     this.args = args;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitCall?.(this);
+    return this.dispatchVisit(visitor, visitor.visitCall);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Call",
       callee: this.callee.toJSON(),
@@ -95,9 +95,9 @@ export class Fact extends ASTNode {
     this.patterns = patterns;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitFact?.(this);
+    return this.dispatchVisit(visitor, visitor.visitFact);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Fact",
       identifier: this.identifier.toJSON(),
@@ -122,9 +122,9 @@ export class Query extends ASTNode {
     this.expressions = expressions;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitQuery?.(this);
+    return this.dispatchVisit(visitor, visitor.visitQuery);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Query",
       expressions: this.expressions.map((expr) => expr.toJSON()),
@@ -152,9 +152,9 @@ export class Exist extends ASTNode {
     this.patterns = patterns;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitExist?.(this);
+    return this.dispatchVisit(visitor, visitor.visitExist);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Exist",
       identifier: this.identifier.toJSON(),
@@ -176,9 +176,9 @@ export class Not extends ASTNode {
     this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitNot?.(this);
+    return this.dispatchVisit(visitor, visitor.visitNot);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Not",
       expression: this.expression.toJSON(),
@@ -209,9 +209,9 @@ export class Findall extends ASTNode {
     this.bag = bag;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitFindall?.(this);
+    return this.dispatchVisit(visitor, visitor.visitFindall);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Findall",
       template: this.template.toJSON(),
@@ -236,9 +236,9 @@ export class Forall extends ASTNode {
     this.action = action;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitForall?.(this);
+    return this.dispatchVisit(visitor, visitor.visitForall);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Forall",
       condition: this.condition.toJSON(),
@@ -267,9 +267,9 @@ export class Goal extends ASTNode {
     this.args = args;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitGoal?.(this);
+    return this.dispatchVisit(visitor, visitor.visitGoal);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Goal",
       identifier: this.identifier.toJSON(),
@@ -297,10 +297,10 @@ export class LogicConstraint extends ASTNode {
   }
 
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitLogicConstraint?.(this);
+    return this.dispatchVisit(visitor, visitor.visitLogicConstraint);
   }
 
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "LogicConstraint",
       expression: this.expression.toJSON(),

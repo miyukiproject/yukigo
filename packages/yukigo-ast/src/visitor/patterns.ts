@@ -12,7 +12,7 @@ import {
     ConsPattern,
     TypePattern,
 } from "../globals/patterns.js";
-import { TraverseBase, GConstructor } from "./base.js";
+import { TraverseBase, VisitorConstructor } from "./base.js";
 
 export interface PatternVisitor<TReturn> {
     visitVariablePattern(node: VariablePattern): TReturn;
@@ -29,10 +29,10 @@ export interface PatternVisitor<TReturn> {
     visitTypePattern(node: TypePattern): TReturn;
 }
 
-export function PatternTraverser<TBase extends GConstructor<TraverseBase>>(
+export function PatternTraverser<TBase extends VisitorConstructor<TraverseBase>>(
     Base: TBase
 ) {
-    return class PatternTraverser extends Base implements PatternVisitor<void> {
+    abstract class PatternTraverser extends Base implements PatternVisitor<void> {
         visitVariablePattern(node: VariablePattern): void {
             node.name.accept(this);
         }
@@ -73,4 +73,5 @@ export function PatternTraverser<TBase extends GConstructor<TraverseBase>>(
             node.innerPattern?.accept(this);
         }
     };
+    return PatternTraverser
 }

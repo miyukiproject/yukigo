@@ -1,6 +1,6 @@
 import { Visitor } from "../visitor/index.js";
 import { Expression } from "./expressions.js";
-import { ASTNode, SourceLocation } from "./generics.js";
+import { ASTNode, SerializeNode, SourceLocation } from "./generics.js";
 
 export type ArithmeticBinaryOperator =
   | "Plus"
@@ -106,9 +106,9 @@ export class ArithmeticUnaryOperation extends ASTNode {
     this.operand = operand;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitArithmeticUnaryOperation?.(this);
+    return this.dispatchVisit(visitor, visitor.visitArithmeticUnaryOperation);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "ArithmeticUnaryOperation",
       operator: this.operator,
@@ -141,9 +141,9 @@ export class ArithmeticBinaryOperation extends ASTNode {
     this.right = right;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitArithmeticBinaryOperation?.(this);
+    return this.dispatchVisit(visitor, visitor.visitArithmeticBinaryOperation);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "ArithmeticBinaryOperation",
       operator: this.operator,
@@ -172,9 +172,9 @@ export class ListUnaryOperation extends ASTNode {
     this.operand = operand;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitListUnaryOperation?.(this);
+    return this.dispatchVisit(visitor, visitor.visitListUnaryOperation);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "ListUnaryOperation",
       operator: this.operator,
@@ -207,9 +207,9 @@ export class ListBinaryOperation extends ASTNode {
     this.right = right;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitListBinaryOperation?.(this);
+    return this.dispatchVisit(visitor, visitor.visitListBinaryOperation);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "ListBinaryOperation",
       operator: this.operator,
@@ -243,9 +243,9 @@ export class ComparisonOperation extends ASTNode {
     this.right = right;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitComparisonOperation?.(this);
+    return this.dispatchVisit(visitor, visitor.visitComparisonOperation);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "ComparisonOperation",
       operator: this.operator,
@@ -279,9 +279,9 @@ export class LogicalBinaryOperation extends ASTNode {
     this.right = right;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitLogicalBinaryOperation?.(this);
+    return this.dispatchVisit(visitor, visitor.visitLogicalBinaryOperation);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "LogicalBinaryOperation",
       operator: this.operator,
@@ -310,9 +310,9 @@ export class LogicalUnaryOperation extends ASTNode {
     this.operand = operand;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitLogicalUnaryOperation?.(this);
+    return this.dispatchVisit(visitor, visitor.visitLogicalUnaryOperation);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "LogicalUnaryOperation",
       operator: this.operator,
@@ -345,9 +345,9 @@ export class BitwiseBinaryOperation extends ASTNode {
     this.right = right;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitBitwiseBinaryOperation?.(this);
+    return this.dispatchVisit(visitor, visitor.visitBitwiseBinaryOperation);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "BitwiseBinaryOperation",
       operator: this.operator,
@@ -376,9 +376,9 @@ export class BitwiseUnaryOperation extends ASTNode {
     this.operand = operand;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitBitwiseUnaryOperation?.(this);
+    return this.dispatchVisit(visitor, visitor.visitBitwiseUnaryOperation);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "BitwiseUnaryOperation",
       operator: this.operator,
@@ -411,9 +411,9 @@ export class StringOperation extends ASTNode {
     this.right = right;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitStringOperation?.(this);
+    return this.dispatchVisit(visitor, visitor.visitStringOperation);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "StringOperation",
       operator: this.operator,
@@ -450,9 +450,9 @@ export class UnifyOperation extends ASTNode {
     this.right = right;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitUnifyOperation?.(this);
+    return this.dispatchVisit(visitor, visitor.visitUnifyOperation);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "UnifyOperation",
       operator: this.operator,
@@ -486,9 +486,9 @@ export class AssignOperation extends ASTNode {
     this.right = right;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitAssignOperation?.(this);
+    return this.dispatchVisit(visitor, visitor.visitAssignOperation);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "AssignOperation",
       operator: this.operator,

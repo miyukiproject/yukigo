@@ -6,7 +6,7 @@ import {
   TestGroup,
   Truth,
 } from "../globals/testing.js";
-import { TraverseBase, GConstructor } from "./base.js";
+import { TraverseBase, VisitorConstructor } from "./base.js";
 
 export interface TestingVisitor<TReturn> {
   visitTestGroup(node: TestGroup): TReturn;
@@ -17,10 +17,10 @@ export interface TestingVisitor<TReturn> {
   visitFailure(node: Failure): TReturn;
 }
 
-export function TestingTraverser<TBase extends GConstructor<TraverseBase>>(
+export function TestingTraverser<TBase extends VisitorConstructor<TraverseBase>>(
   Base: TBase,
 ) {
-  return class TestingTraverser extends Base implements TestingVisitor<void> {
+  abstract class TestingTraverser extends Base implements TestingVisitor<void> {
     visitTestGroup(node: TestGroup): void {
       node.name.accept(this);
       node.group.accept(this);
@@ -46,4 +46,5 @@ export function TestingTraverser<TBase extends GConstructor<TraverseBase>>(
       node.message.accept(this);
     }
   };
+  return TestingTraverser
 }

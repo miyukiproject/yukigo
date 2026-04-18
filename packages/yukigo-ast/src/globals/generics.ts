@@ -6,12 +6,17 @@ import { Statement } from "./statements.js";
 
 type Metadata = Map<string, any>;
 
+export type SerializeNode = {
+  type: string;
+  [key: string]: any;
+}
+
 /**
  * @hidden
  */
 export abstract class ASTNode {
   /** @hidden */
-  public loc: SourceLocation;
+  public loc?: SourceLocation;
   /** @hidden */
   public metadata: Metadata = new Map();
 
@@ -32,21 +37,27 @@ export abstract class ASTNode {
     return this.metadata.has(key);
   }
 
-  public is<T extends ASTNode>( nodeType : new (...args: any[]) => T ): this is T {
+  public is<T extends ASTNode>(nodeType: new (...args: any[]) => T): this is T {
     return this instanceof nodeType;
   }
 
   /** @hidden */
   abstract accept<R>(visitor: Visitor<R>): R;
+  protected dispatchVisit<R>(visitor: Visitor<R>, callback?: (node: this) => R): R {
+    return callback ? callback(this) : visitor.fallback(this)
+  }
   /** @hidden */
-  abstract toJSON(): object;
+  abstract toJSON(): SerializeNode;
 }
 
 /**
  * Source location information
  */
 export class SourceLocation {
-  constructor(public line: number, public column: number) { }
+  constructor(
+    public line: number,
+    public column: number,
+  ) {}
   public toJSON() {
     return {
       type: "SourceLocation",

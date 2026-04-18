@@ -1,5 +1,5 @@
 import { Expression } from "../globals/expressions.js";
-import { ASTNode, SourceLocation } from "../globals/generics.js";
+import { ASTNode, SerializeNode, SourceLocation } from "../globals/generics.js";
 import { SymbolPrimitive } from "../globals/primitives.js";
 import { Sequence, Equation, Variable } from "../globals/statements.js";
 import { Visitor } from "../visitor/index.js";
@@ -24,9 +24,9 @@ export class EntryPoint extends ASTNode {
     this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitEntryPoint?.(this);
+    return this.dispatchVisit(visitor, visitor.visitEntryPoint);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "EntryPoint",
       identifier: this.identifier.toJSON(),
@@ -55,9 +55,9 @@ export class Procedure extends ASTNode {
     this.equations = equations;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitProcedure?.(this);
+    return this.dispatchVisit(visitor, visitor.visitProcedure);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Procedure",
       identifier: this.identifier.toJSON(),
@@ -87,9 +87,9 @@ export class Structure extends ASTNode {
     this.loc = loc;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitStructure?.(this);
+    return this.dispatchVisit(visitor, visitor.visitStructure);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Structure",
       identifier: this.identifier.toJSON(),
@@ -118,9 +118,9 @@ export class Enumeration extends ASTNode {
     this.contents = contents;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitEnumeration?.(this);
+    return this.dispatchVisit(visitor, visitor.visitEnumeration);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Enumeration",
       identifier: this.identifier.toJSON(),
@@ -148,9 +148,9 @@ export class While extends ASTNode {
     this.body = body;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitWhile?.(this);
+    return this.dispatchVisit(visitor, visitor.visitWhile);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "While",
       condition: this.condition.toJSON(),
@@ -174,9 +174,9 @@ export class Repeat extends ASTNode {
     this.body = body;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitRepeat?.(this);
+    return this.dispatchVisit(visitor, visitor.visitRepeat);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Repeat",
       count: this.count.toJSON(),
@@ -213,9 +213,9 @@ export class ForLoop extends ASTNode {
     this.body = body;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitForLoop?.(this);
+    return this.dispatchVisit(visitor, visitor.visitForLoop);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "ForLoop",
       initialization: this.initialization.toJSON(),

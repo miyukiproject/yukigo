@@ -1,4 +1,4 @@
-import { ASTNode, SourceLocation } from "./generics.js";
+import { ASTNode, SerializeNode, SourceLocation } from "./generics.js";
 import { Visitor } from "../visitor/index.js";
 import { Expression } from "./expressions.js";
 import { NilPrimitive, SymbolPrimitive } from "./primitives.js";
@@ -53,9 +53,9 @@ export class If extends ASTNode {
     this.elseExpr = elseExpr;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitIf?.(this);
+    return this.dispatchVisit(visitor, visitor.visitIf);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "If",
       condition: this.condition.toJSON(),
@@ -86,12 +86,12 @@ export class Return extends ASTNode {
     this.body = body;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitReturn?.(this);
+    return this.dispatchVisit(visitor, visitor.visitReturn);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Return",
-      body: this.body.toJSON(),
+      body: this.body?.toJSON(),
     };
   }
 }
@@ -119,9 +119,9 @@ export class Field extends ASTNode {
     this.value = value;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitField?.(this);
+    return this.dispatchVisit(visitor, visitor.visitField);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Field",
       name: this.name?.toJSON(),
@@ -149,9 +149,9 @@ export class Constructor extends ASTNode {
     this.fields = fields;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitConstructor?.(this);
+    return this.dispatchVisit(visitor, visitor.visitConstructor);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Constructor",
       name: this.name.toJSON(),
@@ -187,9 +187,9 @@ export class Record extends ASTNode {
     this.deriving = deriving;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitRecord?.(this);
+    return this.dispatchVisit(visitor, visitor.visitRecord);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Record",
       name: this.name.toJSON(),
@@ -220,9 +220,9 @@ export class UnguardedBody extends ASTNode {
     this.sequence = sequence;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitUnguardedBody?.(this);
+    return this.dispatchVisit(visitor, visitor.visitUnguardedBody);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "UnguardedBody",
       sequence: this.sequence.toJSON(),
@@ -257,9 +257,9 @@ export class GuardedBody extends ASTNode {
     this.body = body;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitGuardedBody?.(this);
+    return this.dispatchVisit(visitor, visitor.visitGuardedBody);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "GuardedBody",
       condition: this.condition.toJSON(),
@@ -297,10 +297,10 @@ export class Equation extends ASTNode {
   }
   /** @hidden */
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitEquation?.(this);
+    return this.dispatchVisit(visitor, visitor.visitEquation);
   }
   /** @hidden */
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Equation",
       patterns: this.patterns.map((pattern) => pattern.toJSON()),
@@ -340,9 +340,9 @@ export class Function extends ASTNode {
     this.equations = equations;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitFunction?.(this);
+    return this.dispatchVisit(visitor, visitor.visitFunction);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Function",
       identifier: this.identifier.toJSON(),
@@ -372,9 +372,9 @@ export class Case extends ASTNode {
     this.body = body;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitCase?.(this);
+    return this.dispatchVisit(visitor, visitor.visitCase);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Case",
       condition: this.condition.toJSON(),
@@ -406,9 +406,9 @@ export class Switch extends ASTNode {
     this.defaultExpr = defaultExpr;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitSwitch?.(this);
+    return this.dispatchVisit(visitor, visitor.visitSwitch);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Switch",
       value: this.value.toJSON(),
@@ -437,9 +437,9 @@ export class Catch extends ASTNode {
     this.body = body;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitCatch?.(this);
+    return this.dispatchVisit(visitor, visitor.visitCatch);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Catch",
       patterns: this.patterns.map((pat) => pat.toJSON()),
@@ -474,9 +474,9 @@ export class Try extends ASTNode {
     this.finallyExpr = finallyExpr;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitTry?.(this);
+    return this.dispatchVisit(visitor, visitor.visitTry);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Try",
       body: this.body.toJSON(),
@@ -502,9 +502,9 @@ export class Raise extends ASTNode {
     this.body = body;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitRaise?.(this);
+    return this.dispatchVisit(visitor, visitor.visitRaise);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Raise",
       body: this.body.toJSON(),
@@ -525,9 +525,9 @@ export class Print extends ASTNode {
     this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitPrint?.(this);
+    return this.dispatchVisit(visitor, visitor.visitPrint);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Print",
       expression: this.expression.toJSON(),
@@ -554,9 +554,9 @@ export class Input extends ASTNode {
     this.variable = variable;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitInput?.(this);
+    return this.dispatchVisit(visitor, visitor.visitInput);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Input",
       message: this.message.toJSON(),
@@ -581,9 +581,9 @@ export class For extends ASTNode {
     this.statements = statements;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitFor?.(this);
+    return this.dispatchVisit(visitor, visitor.visitFor);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "For",
       body: this.body.toJSON(),
@@ -604,12 +604,12 @@ export class Break extends ASTNode {
     this.body = body;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitBreak?.(this);
+    return this.dispatchVisit(visitor, visitor.visitBreak);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Break",
-      body: this.body.toJSON(),
+      body: this.body?.toJSON(),
     };
   }
 }
@@ -626,12 +626,12 @@ export class Continue extends ASTNode {
     this.body = body;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitContinue?.(this);
+    return this.dispatchVisit(visitor, visitor.visitContinue);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Continue",
-      body: this.body.toJSON(),
+      body: this.body?.toJSON(),
     };
   }
 }
@@ -660,14 +660,14 @@ export class Variable extends ASTNode {
     this.variableType = variableType;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitVariable?.(this);
+    return this.dispatchVisit(visitor, visitor.visitVariable);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Variable",
       identifier: this.identifier.toJSON(),
       expression: this.expression.toJSON(),
-      variableType: this.variableType.toJSON(),
+      variableType: this.variableType?.toJSON(),
     };
   }
 }
@@ -695,9 +695,9 @@ export class Assignment extends ASTNode {
     this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitAssignment?.(this);
+    return this.dispatchVisit(visitor, visitor.visitAssignment);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Assignment",
       identifier: this.identifier.toJSON(),
@@ -719,9 +719,9 @@ export class Sequence extends ASTNode {
     this.statements = statements;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitSequence?.(this);
+    return this.dispatchVisit(visitor, visitor.visitSequence);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Sequence",
       statements: this.statements.map((stmt) => stmt.toJSON()),
