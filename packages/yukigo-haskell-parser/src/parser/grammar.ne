@@ -77,7 +77,6 @@ const loc = (token) => new SourceLocation(token.line, token.col);
 const HSLexer = new HaskellLayoutLexer();
 
 %}
-@preprocessor typescript
 @lexer HSLexer
 
 program -> declaration (";" declaration):* ";":? {% (d) => [d[0], ...d[1].map(x => x[1])].flat(Infinity) %}

@@ -12,11 +12,14 @@ import {
   SymbolPrimitive,
   Application,
   StringPrimitive,
-  BooleanPrimitive
+  BooleanPrimitive,
 } from "yukigo-ast";
 
 describe("HSpec Parsing", () => {
-  const parser = new YukigoHaskellParser("", { typecheck: true, includePrims: false });
+  const parser = new YukigoHaskellParser("", {
+    typecheck: true,
+    includePrims: false,
+  });
 
   it("should parse describe and it blocks", () => {
     const code = `
@@ -27,26 +30,26 @@ describe "Math" do
     const ast = parser.parse(code);
     expect(ast).to.have.lengthOf(1);
     expect(ast[0]).to.be.instanceOf(TestGroup);
-    
+
     const group = ast[0] as TestGroup;
     expect(group.name).to.be.instanceOf(StringPrimitive);
     expect((group.name as StringPrimitive).value).to.equal("Math");
-    
+
     expect(group.group.statements).to.have.lengthOf(1);
     expect(group.group.statements[0]).to.be.instanceOf(Test);
-    
+
     const test = group.group.statements[0] as Test;
     expect(test.name).to.be.instanceOf(StringPrimitive);
     expect((test.name as StringPrimitive).value).to.equal("adds 1 and 1");
-    
+
     expect(test.body.statements).to.have.lengthOf(1);
     expect(test.body.statements[0]).to.be.instanceOf(Assert);
-    
+
     const assert = test.body.statements[0] as Assert;
     expect(assert.negated).to.be.instanceOf(BooleanPrimitive);
     expect((assert.negated as BooleanPrimitive).value).to.be.false;
     expect(assert.body).to.be.instanceOf(Equality);
-    
+
     const equality = assert.body as Equality;
     expect(equality.expected).to.be.instanceOf(NumberPrimitive);
     expect((equality.expected as NumberPrimitive).value).to.equal(2);
@@ -67,7 +70,7 @@ describe "Math" do
     const test = ast[0] as Test;
     const assert = test.body.statements[0] as Assert;
     expect(assert.body).to.be.instanceOf(Truth);
-    
+
     const truth = assert.body as Truth;
     expect(truth.body).to.be.instanceOf(Application);
     const app = truth.body as Application;
@@ -83,7 +86,7 @@ describe "Math" do
     const test = ast[0] as Test;
     const assert = test.body.statements[0] as Assert;
     expect(assert.body).to.be.instanceOf(Failure);
-    
+
     const failure = assert.body as Failure;
     expect(failure.func).to.be.instanceOf(Raise);
     expect(failure.message).to.be.instanceOf(SymbolPrimitive);

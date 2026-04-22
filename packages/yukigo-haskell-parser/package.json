@@ -10,14 +10,17 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "nearleyc ./src/parser/grammar.ne -o ./src/parser/grammar.ts && tsc",
+    "build": "nearleyc ./src/parser/grammar.ne -o ./src/parser/grammar.js && tsc",
     "test": "mocha --import=tsx"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@types/moo": "^0.5.10"
+    "@types/chai": "^5.2.3",
+    "@types/mocha": "^10.0.10",
+    "@types/moo": "^0.5.10",
+    "@types/nearley": "^2.11.5"
   },
   "dependencies": {
     "moo": "^0.5.2",

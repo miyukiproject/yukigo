@@ -24,6 +24,7 @@ import {
 import { CoreHM } from "./core.js";
 import { TypeBuilder } from "./TypeBuilder.js";
 import { typeMappings } from "../utils/types.js";
+import { UnexpectedNode } from "../utils/helpers.js";
 
 const builder = new TypeBuilder(new CoreHM());
 
@@ -33,7 +34,7 @@ export class DeclarationCollectorVisitor implements Visitor<void> {
     private typeAliasMap: Map<string, Type>,
     private recordMap: Map<string, Type>,
     private signatureMap: Map<string, TypeScheme>,
-    private coreHM: CoreHM
+    private coreHM: CoreHM,
   ) {}
 
   visitTypeAlias(node: TypeAlias) {
@@ -82,7 +83,7 @@ export class DeclarationCollectorVisitor implements Visitor<void> {
 
       const funcType: Type = paramTypes.reduceRight(
         (acc, param) => functionType(param.type, acc),
-        returnType
+        returnType,
       );
 
       // Generalize all free variables in the constructor type
@@ -94,7 +95,7 @@ export class DeclarationCollectorVisitor implements Visitor<void> {
   visitTypeClass(node: TypeClass) {
     const className = node.name.value;
     if (!this.coreHM.typeClasses.has(className)) {
-       this.coreHM.typeClasses.set(className, []);
+      this.coreHM.typeClasses.set(className, []);
     }
 
     // Register method signatures
@@ -128,7 +129,7 @@ export class DeclarationCollectorVisitor implements Visitor<void> {
     const functionName = node.identifier.value;
     if (this.signatureMap.has(functionName)) {
       this.errors.push(
-        `Function '${functionName}' has multiple type signatures`
+        `Function '${functionName}' has multiple type signatures`,
       );
       return;
     }
@@ -153,5 +154,8 @@ export class DeclarationCollectorVisitor implements Visitor<void> {
   }
   visit(node: ASTNode): void {
     node.accept(this);
+  }
+  fallback(node: ASTNode): Type {
+    throw new UnexpectedNode(node.constructor.toString(), "DeclarationCollector");
   }
 }
