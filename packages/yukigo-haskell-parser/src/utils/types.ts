@@ -34,30 +34,44 @@ export const keywords = [
   "shouldThrow"
 ];
 
-export const typeMappings: { [key: string]: YukigoPrimitive } = {
-  Float: "YuNumber",
-  Double: "YuNumber",
-  Int: "YuNumber",
-  Integer: "YuNumber",
-  String: "YuString",
-  Char: "YuChar",
-  Boolean: "YuBoolean",
-  Bool: "YuBoolean",
+export enum YUTYPES { // primitivos 
+  YuNumber = "YuNumber", 
+  YuString = "YuString", 
+  YuChar = "YuChar", 
+  YuBoolean = "YuBoolean", 
+  YuNil = "YuNil", 
+  // constructores 
+  Tuple = "Tuple", 
+  List = "List", 
+  Arrow = "->" 
+}
+
+export const typeMappings: { [key: string]: YUTYPES } = {
+  Float: YUTYPES.YuNumber,
+  Double: YUTYPES.YuNumber,
+  Int: YUTYPES.YuNumber,
+  Integer: YUTYPES.YuNumber,
+  String: YUTYPES.YuString,
+  Char: YUTYPES.YuChar,
+  Boolean: YUTYPES.YuBoolean,
+  Bool: YUTYPES.YuBoolean,
 };
 
-export const typeClasses: Map<string, string[]> = new Map([
-  ["Bounded", ["YuChar", "YuNumber"]],
-  ["Enum", ["YuChar", "YuNumber"]],
-  ["Ord", ["YuNumber", "YuString", "YuChar"]],
-  ["Eq", ["YuNumber", "YuString", "YuChar", "YuBoolean"]],
-  ["Floating", ["YuNumber"]],
-  ["Fractional", ["YuNumber"]],
-  ["Integral", ["YuNumber"]],
-  ["Num", ["YuNumber"]],
-  ["Random", ["YuBoolean", "YuChar", "YuNumber"]],
-  ["Read", ["YuList", "YuChar", "YuNumber"]],
-  ["Real", ["YuNumber"]],
-  ["RealFloat", ["YuNumber"]],
-  ["RealFrac", ["YuNumber"]],
-  ["Show", ["YuNumber", "YuString", "YuChar", "YuList"]],
+export const typeClasses: Map<string, YUTYPES[]> = new Map([
+  ["Bounded", [YUTYPES.YuChar, YUTYPES.YuNumber]],
+  ["Enum", [YUTYPES.YuChar, YUTYPES.YuNumber]],
+  ["Ord", [YUTYPES.YuNumber, YUTYPES.YuString, YUTYPES.YuChar]],
+  ["Eq", [YUTYPES.YuNumber, YUTYPES.YuString, YUTYPES.YuChar, YUTYPES.YuBoolean]],
+  ["Floating", [YUTYPES.YuNumber]],
+  ["Fractional", [YUTYPES.YuNumber]],
+  ["Integral", [YUTYPES.YuNumber]],
+  ["Num", [YUTYPES.YuNumber]],
+  ["Random", [YUTYPES.YuBoolean, YUTYPES.YuChar, YUTYPES.YuNumber]],
+  ["Read", [YUTYPES.YuChar, YUTYPES.YuNumber]],
+  
+  ["Real", [YUTYPES.YuNumber]],
+  ["RealFloat", [YUTYPES.YuNumber]],
+  ["RealFrac", [YUTYPES.YuNumber]],
+  ["Show", [YUTYPES.YuNumber, YUTYPES.YuString, YUTYPES.YuChar]],
+  
 ]);

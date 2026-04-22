@@ -13,7 +13,7 @@ import {
 import { InferenceEngine, PatternVisitor } from "./inference.js";
 import { CoreHM } from "./core.js";
 import { DeclarationCollectorVisitor } from "./DeclarationCollector.js";
-import { typeClasses as staticTypeClasses } from "../utils/types.js";
+import { typeClasses as staticTypeClasses, YUTYPES } from "../utils/types.js";
 
 export interface TypeVar {
   type: "TypeVar";
@@ -29,17 +29,17 @@ export interface TypeConstructor {
 }
 export interface FunctionType {
   type: "TypeConstructor";
-  name: "->";
+  name: YUTYPES.Arrow;
   args: [Type, Type];
 }
 export interface ListType {
   type: "TypeConstructor";
-  name: "List";
+  name: YUTYPES.List;
   args: [Type];
 }
 export interface TupleType {
   type: "TypeConstructor";
-  name: "Tuple";
+  name: YUTYPES.Tuple;
   args: Type[];
 }
 
@@ -62,17 +62,17 @@ export type Result<T> =
 
 export const booleanType: TypeConstructor = {
   type: "TypeConstructor",
-  name: "YuBoolean",
+  name: YUTYPES.YuBoolean,
   args: [],
 };
 export const numberType: TypeConstructor = {
   type: "TypeConstructor",
-  name: "YuNumber",
+  name: YUTYPES.YuNumber,
   args: [],
 };
 export const charType: TypeConstructor = {
   type: "TypeConstructor",
-  name: "YuChar",
+  name: YUTYPES.YuChar,
   args: [],
 };
 export const stringType: Type = listType(charType);
@@ -394,12 +394,7 @@ export class TypeChecker {
 }
 
 type SeenTypeNames = Map<number, string>;
-const YuNameMap = {
-  YuNumber: "YuNumber",
-  YuString: "YuString",
-  YuBoolean: "YuBoolean",
-  YuChar: "YuChar",
-};
+
 const getVarName = (
   id: number,
   name: string | undefined,
@@ -429,14 +424,14 @@ const formatBody = (t: Type, seen: SeenTypeNames): string => {
       : `${left} -> ${right}`;
   }
   if (isListType(t)) {
-    if (t.args[0].type === "TypeConstructor" && t.args[0].name === "YuChar") {
-      return "YuString";
+    if (t.args[0].type === "TypeConstructor" && t.args[0].name === YUTYPES.YuChar) {
+      return YUTYPES.YuString;
     }
     return `[${showType(t.args[0])}]`;
   }
   if (isTupleType(t)) return `(${t.args.map(showType.bind(this)).join(", ")})`;
 
-  const name = YuNameMap[t.name] || t.name;
+  const name = t.name;
   return t.args.length
     ? `${name} ${t.args.map((a) => formatBody(a, seen)).join(" ")}`
     : name;
@@ -476,26 +471,35 @@ export function getArity(type: Type): number {
 }
 
 export function isFunctionType(t: Type): t is FunctionType {
-  return t.type === "TypeConstructor" && t.name === "->" && t.args.length === 2;
+  return t.type === "TypeConstructor" && t.name === YUTYPES.Arrow && t.args.length === 2;
 }
 export function isListType(t: Type): t is ListType {
-  return t.name === "List";
+  return t.name === YUTYPES.List;
 }
 export function isTupleType(t: Type): t is TupleType {
-  return t.name === "Tuple";
+  return t.name === YUTYPES.Tuple;
 }
+
+// If either side is a string primitive or already inferred as stringType,
+// we treat the whole operation as string concatenation.
+export const isString = (t: Type) =>
+  (t.type === "TypeConstructor" && t.name === YUTYPES.YuString) ||
+  (t.type === "TypeConstructor" &&
+  t.name === YUTYPES.List &&
+  t.args[0].type === "TypeConstructor" &&
+  t.args[0].name === YUTYPES.YuChar);
 
 export function functionType(params: Type, returnType: Type): FunctionType {
   return {
     type: "TypeConstructor",
-    name: "->",
+    name: YUTYPES.Arrow,
     args: [params, returnType],
   };
 }
 export function listType(elementsType: Type): ListType {
   return {
     type: "TypeConstructor",
-    name: "List",
+    name: YUTYPES.List,
     args: [elementsType],
   };
 }
