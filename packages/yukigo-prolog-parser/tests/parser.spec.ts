@@ -1,8 +1,6 @@
 import { describe, it } from "mocha";
 import { assert } from "chai";
 import { YukigoPrologParser } from "../src/index.js";
-import { inspect } from "util";
-import { readFileSync } from "fs";
 import {
   ArithmeticBinaryOperation,
   ArithmeticUnaryOperation,
@@ -35,6 +33,7 @@ import {
   LogicConstraint,
 } from "yukigo-ast";
 import { stdCode } from "../src/std.js";
+
 const _deepEqual = assert.deepEqual;
 assert.deepEqual = function (actual: any, expected: any, ...args: any[]) {
   function stripLoc(obj: any): any {

@@ -12,4 +12,4 @@ tsconfig.tsbuildinfo
 
 packages/yukigo-mini-parser/src/grammar.ts
 packages/yukigo-haskell-parser/src/parser/grammar.js
-packages/yukigo-prolog-parser/src/parser/grammar.ts
+packages/yukigo-prolog-parser/src/parser/grammar.js

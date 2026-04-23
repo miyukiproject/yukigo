@@ -1,4 +1,5 @@
-@{% import { 
+@{% 
+const { 
     NumberPrimitive, 
     StringPrimitive, 
     Rule, 
@@ -31,10 +32,10 @@
     TuplePattern,
     Test,
     Assert,
-    Truth
- } from "yukigo-ast"
+    Truth 
+} = require("yukigo-ast")
 
-import { PrologLexer } from "./lexer.js"
+const { PrologLexer } = require("./lexer.js")
 
 const asSequence = (d) => {
     if (d instanceof Sequence) return d;
@@ -43,7 +44,6 @@ const asSequence = (d) => {
 };
 
 %}
-@preprocessor typescript
 @lexer PrologLexer
 
 program -> _ (clause _):* {% (d) => d[1].map(x => x[0]).filter(x => x !== null).flat(Infinity) %}
