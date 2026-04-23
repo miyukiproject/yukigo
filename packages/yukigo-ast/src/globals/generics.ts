@@ -44,7 +44,7 @@ export abstract class ASTNode {
   /** @hidden */
   abstract accept<R>(visitor: Visitor<R>): R;
   protected dispatchVisit<R>(visitor: Visitor<R>, callback?: (node: this) => R): R {
-    return callback ? callback(this) : visitor.fallback(this)
+    return callback ? callback.call(visitor, this) : visitor.fallback(this)
   }
   /** @hidden */
   abstract toJSON(): SerializeNode;

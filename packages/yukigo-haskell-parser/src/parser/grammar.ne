@@ -1,6 +1,6 @@
 @{%
-import { HaskellLayoutLexer } from "./lexer.js"
-import {
+const { HaskellLayoutLexer } = require("./lexer.js")
+const {
   TypeCast,
   Application,
   ConsExpression,
@@ -67,7 +67,7 @@ import {
   Equality,
   Truth,
   Failure
-} from "yukigo-ast";
+} = require("yukigo-ast");
 
 const filter = d => {
     return d.filter((token) => token !== null);

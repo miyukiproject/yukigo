@@ -155,7 +155,5 @@ export class DeclarationCollectorVisitor implements Visitor<void> {
   visit(node: ASTNode): void {
     node.accept(this);
   }
-  fallback(node: ASTNode): Type {
-    throw new UnexpectedNode(node.constructor.toString(), "DeclarationCollector");
-  }
+  fallback(node: ASTNode): void {}
 }
