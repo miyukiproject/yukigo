@@ -1,4 +1,5 @@
 import moo from "moo";
+// @ts-ignore
 import { makeLexer } from "moo-ignore";
 
 const keywords = [
