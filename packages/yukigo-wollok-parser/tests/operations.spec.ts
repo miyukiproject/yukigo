@@ -11,6 +11,9 @@ import {
   Parameter,
   Return,
   Singleton,
+  LiteralValue,
+  Expression,
+  List,
 } from "wollok-ts";
 
 describe("WollokToYukigoTransformer - Native Operations", () => {
@@ -20,11 +23,12 @@ describe("WollokToYukigoTransformer - Native Operations", () => {
     transformer = new WollokToYukigoTransformer();
   });
 
-  const transformExpression = (node: any) => {
+  const transformExpression = (node: Expression) => {
     const pkg = new Package({
       name: "test",
       members: [
         new Singleton({
+          name: "singletonPrueba",
           members: [
             new Method({
               name: "t",
@@ -44,9 +48,9 @@ describe("WollokToYukigoTransformer - Native Operations", () => {
     return returnExpr.body;
   };
 
-  const ref = (n) => new Reference({ name: n });
-  const lit = (v) => new Literal({ value: v });
-  const send = (rec, msg, args = []) =>
+  const ref = (n: string) => new Reference({ name: n });
+  const lit = (v: LiteralValue) => new Literal({ value: v });
+  const send = (rec: Expression, msg: string, args: List<Expression> = []) =>
     new Send({ receiver: rec, message: msg, args });
 
   describe("Arithmetic Operations", () => {

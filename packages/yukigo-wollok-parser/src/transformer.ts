@@ -4,10 +4,13 @@ import {
   Body,
   Catch,
   Class,
+  Expression,
   Field,
   If,
   Import,
+  List,
   Literal,
+  LiteralValue,
   Method,
   Mixin,
   NamedArgument,
@@ -69,7 +72,7 @@ function mapLocation(wollokNode: Node): Yu.SourceLocation | undefined {
   if (wollokNode.sourceMap && wollokNode.sourceMap.start) {
     return new Yu.SourceLocation(
       wollokNode.sourceMap.start.line,
-      wollokNode.sourceMap.start.column
+      wollokNode.sourceMap.start.column,
     );
   }
   return undefined;
@@ -168,7 +171,7 @@ export class WollokToYukigoTransformer {
       identifier,
       expression,
       undefined,
-      mapLocation(node)
+      mapLocation(node),
     );
   }
 
@@ -176,7 +179,7 @@ export class WollokToYukigoTransformer {
     const refName = node.variable.name || node.variable;
     const identifier = new Yu.SymbolPrimitive(
       refName.toString(),
-      mapLocation(node)
+      mapLocation(node),
     );
 
     const expression = this.visit(node.value);
@@ -187,7 +190,7 @@ export class WollokToYukigoTransformer {
   private visitNew(node: New): Yu.New {
     const className = new Yu.SymbolPrimitive(
       node.instantiated.name,
-      mapLocation(node)
+      mapLocation(node),
     );
     const args = (node.args || []).map((arg: any) => this.visit(arg));
 
@@ -213,7 +216,7 @@ export class WollokToYukigoTransformer {
     return new Yu.NamedArgument(
       new Yu.SymbolPrimitive(node.name),
       expr,
-      mapLocation(node)
+      mapLocation(node),
     );
   }
 
@@ -226,7 +229,7 @@ export class WollokToYukigoTransformer {
     const body = this.visit(node.body);
 
     const catchExprs: Yu.Catch[] = (node.catches || []).map((c: any) =>
-      this.visitCatch(c)
+      this.visitCatch(c),
     );
 
     let finallyExpr: Yu.Expression;
@@ -243,7 +246,7 @@ export class WollokToYukigoTransformer {
     const paramName = node.parameter.name;
     const pattern = new Yu.VariablePattern(
       new Yu.SymbolPrimitive(paramName, mapLocation(node.parameter)),
-      mapLocation(node.parameter)
+      mapLocation(node.parameter),
     );
 
     const body = this.visit(node.body);
@@ -253,11 +256,14 @@ export class WollokToYukigoTransformer {
   private visitSuper(node: Super): Yu.Super {
     return new Yu.Super(
       node.args.map((arg) => this.visit(arg)),
-      mapLocation(node)
+      mapLocation(node),
     );
   }
 
   private visitSingleton(node: Singleton): Yu.Object {
+    const name = node.name;
+    if (!name)
+      throw new Error("Parser: In Singleton, name cannot be undefined");
     const identifier = new Yu.SymbolPrimitive(node.name, mapLocation(node));
 
     const members = node.members.map((m: Node) => this.visit(m));
@@ -272,7 +278,7 @@ export class WollokToYukigoTransformer {
     const superclass = node.supertypes[0]
       ? new Yu.SymbolPrimitive(
           node.supertypes[0].reference.name,
-          mapLocation(node.supertypes[0])
+          mapLocation(node.supertypes[0]),
         )
       : undefined;
 
@@ -284,32 +290,33 @@ export class WollokToYukigoTransformer {
       undefined,
       [],
       bodyExpression,
-      mapLocation(node)
+      mapLocation(node),
     );
     return classInstance;
   }
 
   private visitMethod(node: Method): Yu.Method {
     const identifier = new Yu.SymbolPrimitive(node.name, mapLocation(node));
-
+    const body = node.body;
     const patterns: Yu.Pattern[] = (node.parameters || []).map((param) =>
-      this.visit(param)
+      this.visit(param),
     );
 
     if (node.body === "native")
       throw Error("Native methods not supported yet.");
-
-    const bodySequence = this.visit(node.body);
-    const unguardedBody = new Yu.UnguardedBody(
-      bodySequence,
-      mapLocation(node.body)
-    );
+    if (!body) throw new Error("Parser: In Method, body cannot be undefined.");
+    if (body === "native")
+      throw new Error(
+        "Parser: In Method, native bodies are not supported yet.",
+      );
+    const bodySequence = this.visit(body);
+    const unguardedBody = new Yu.UnguardedBody(bodySequence, mapLocation(body));
 
     const equation = new Yu.Equation(
       patterns,
       unguardedBody,
       undefined,
-      mapLocation(node)
+      mapLocation(node),
     );
 
     return new Yu.Method(identifier, [equation], mapLocation(node));
@@ -319,6 +326,9 @@ export class WollokToYukigoTransformer {
     return new Yu.VariablePattern(nameSymbol, mapLocation(node));
   }
   private visitReturn(node: Return): Yu.Return {
+    const value = node.value;
+    if (!value)
+      throw new Error("Parser: In Return, value cannot be undefined.");
     const expression = this.visit(node.value);
     return new Yu.Return(expression, mapLocation(node));
   }
@@ -361,15 +371,10 @@ export class WollokToYukigoTransformer {
     const val = node.value;
     const loc = mapLocation(node);
 
-    const isCollection =
-      Array.isArray(val) &&
-      "name" in val[0] &&
-      WollokListTypes.includes(val[0].name);
-
-    if (isCollection)
+    if (isCollection(val))
       return new Yu.ListPrimitive(
         val[1].map((element) => this.visit(element)),
-        loc
+        loc,
       );
     if (typeof val === "number") return new Yu.NumberPrimitive(val, loc);
     if (typeof val === "boolean") return new Yu.BooleanPrimitive(val, loc);
@@ -380,12 +385,17 @@ export class WollokToYukigoTransformer {
 }
 
 const WollokListTypes = ["wollok.lang.List", "wollok.lang.Set"];
+type WollokList = readonly [Reference<Class>, List<Expression>]
+const isCollection = (val: LiteralValue): val is WollokList =>
+  Array.isArray(val) &&
+  "name" in val[0] &&
+  WollokListTypes.includes(val[0].name);
 
 function transformBinary(
   op: string,
   left: Yu.Expression,
   right: Yu.Expression,
-  loc: Yu.SourceLocation | undefined
+  loc: Yu.SourceLocation | undefined,
 ): Yu.Expression | null {
   // RangeExpression
   if (op === "..") return new Yu.RangeExpression(left, right, undefined, loc);
@@ -396,7 +406,7 @@ function transformBinary(
       ARITHMETIC_BINARY_OPS[op],
       left,
       right,
-      loc
+      loc,
     );
 
   // Comparison
@@ -409,7 +419,7 @@ function transformBinary(
       LOGICAL_BINARY_OPS[op],
       left,
       right,
-      loc
+      loc,
     );
 
   // Bitwise
@@ -418,7 +428,7 @@ function transformBinary(
       BITWISE_BINARY_OPS[op],
       left,
       right,
-      loc
+      loc,
     );
 
   // String Concatenation
@@ -431,7 +441,7 @@ function transformBinary(
 function transformUnary(
   op: string,
   receiver: Yu.Expression,
-  loc: Yu.SourceLocation | undefined
+  loc: Yu.SourceLocation | undefined,
 ): Yu.Expression | null {
   // Logical Negation
   if (["!", "negate"].includes(op))
