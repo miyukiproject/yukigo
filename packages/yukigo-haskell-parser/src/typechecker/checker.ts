@@ -406,6 +406,7 @@ export class TypeChecker {
 }
 
 type SeenTypeNames = Map<number, string>;
+
 const getVarName = (
   id: number,
   name: string | undefined,
