@@ -1,5 +1,6 @@
 import {
   Assert,
+  ASTNode,
   Equality,
   Failure,
   isLazyList,
@@ -18,6 +19,7 @@ import {
   Thunk,
 } from "../trampoline.js";
 import { LazyRuntime } from "./runtimes/LazyRuntime.js";
+import { UnexpectedNode } from "../../utils/helpers.js";
 
 export class FailedAssert extends Error {
   constructor(
@@ -88,14 +90,15 @@ class AssertionVisitor extends TraverseVisitor {
             this.lazyRuntime.deepEqual(value, expected, (passed) => {
               if (this.negated === passed) {
                 throw new FailedAssert(
-                  value, expected,
+                  value,
+                  expected,
                   this.negated
                     ? `Expected ${JSON.stringify(value)} NOT to be equal to ${JSON.stringify(expected)}`
                     : `Expected ${JSON.stringify(expected)}, but got ${JSON.stringify(value)}`,
                 );
               }
               return k(undefined);
-            })
+            });
           });
       });
   }
@@ -115,6 +118,9 @@ class AssertionVisitor extends TraverseVisitor {
         }
         return k(undefined);
       });
+  }
+  public fallback(node: ASTNode): CPSThunk<void> {
+    throw new UnexpectedNode(node.constructor.name, "AssertionVisitor");
   }
 }
 
@@ -147,5 +153,8 @@ export class TestRunner extends TraverseVisitor {
         );
         return (node.body.accept(visitor) as any)(k);
       });
+  }
+  public fallback(node: ASTNode): CPSThunk<PrimitiveValue> {
+    throw new UnexpectedNode(node.constructor.name, "TestRunner");
   }
 }

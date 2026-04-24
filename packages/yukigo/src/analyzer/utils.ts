@@ -11,8 +11,14 @@ import {
   ASTNode,
 } from "yukigo-ast";
 
+export class InspectionVisitor extends TraverseVisitor {
+  public fallback(node: ASTNode): void {}
+}
+
 export interface VisitorConstructor {
-  new (...args: any[]): TraverseVisitor & { setBinding?(binding: string): void };
+  new (
+    ...args: any[]
+  ): TraverseVisitor & { setBinding?(binding: string): void };
   IS_INTRANSITIVE?: boolean;
 }
 export type InspectionMap = Record<string, VisitorConstructor>;
@@ -26,20 +32,19 @@ type TopNode =
   | Rule
   | Fact
   | Procedure;
-export class ScopedVisitor extends TraverseVisitor {
+export class ScopedVisitor extends InspectionVisitor {
   protected binding?: string;
-  public inScope: boolean;
+  public inScope: boolean = false;
 
   constructor(binding?: string) {
     super();
-    this.setBinding(binding)
+    this.setBinding(binding);
   }
 
   setBinding(binding?: string) {
     this.binding = binding;
     this.inScope = !binding;
   }
-  
 
   visitVariable(node: Variable): void {
     this.manageScope(node, () => super.visitVariable(node));
@@ -65,6 +70,7 @@ export class ScopedVisitor extends TraverseVisitor {
   visitProcedure(node: Procedure): void {
     this.manageScope(node, () => super.visitProcedure(node));
   }
+  public fallback(node: ASTNode): void {}
 
   private manageScope(node: TopNode, traverse: () => void) {
     const isTarget = node.identifier.value === this.binding;
@@ -75,7 +81,7 @@ export class ScopedVisitor extends TraverseVisitor {
 }
 
 export function AutoScoped<T extends { new (...args: any[]): any }>(
-  constructor: T
+  constructor: T,
 ) {
   const proto = constructor.prototype;
   const methodNames = Object.getOwnPropertyNames(proto);

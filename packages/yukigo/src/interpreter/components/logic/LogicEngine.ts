@@ -30,7 +30,6 @@ import { InterpreterVisitor } from "../Visitor.js";
 import { LogicTranslator } from "./LogicTranslator.js";
 import { trampoline, Continuation, Thunk } from "../../trampoline.js";
 import { RuntimeContext, LogicSearchMode } from "../RuntimeContext.js";
-import { inspect } from "util";
 import { PatternResolver } from "../PatternMatcher.js";
 
 export type LogicExecutable = Expression | Statement | Goal | Exist | Findall;

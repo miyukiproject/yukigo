@@ -1,5 +1,6 @@
 import {
   AST,
+  ASTNode,
   Expression,
   Test,
   TestGroup,
@@ -9,6 +10,7 @@ import {
 import { Interpreter } from "../interpreter/index.js";
 import { FailedAssert } from "../interpreter/components/TestRunner.js";
 import { InterpreterConfig } from "../interpreter/components/RuntimeContext.js";
+import { UnexpectedNode } from "../utils/helpers.js";
 
 export type TestStatus = "passed" | "failed" | "error";
 
@@ -96,6 +98,9 @@ class TestExecutor extends TraverseVisitor {
     const message = error instanceof Error ? error.message : String(error);
     return { name, status: "error", message, duration };
   }
+  public fallback(node: ASTNode): void {
+    throw new UnexpectedNode(node.constructor.name, "TestExecutor");
+  }
 }
 
 /**
@@ -120,7 +125,7 @@ export class Tester {
         const interpreter = new Interpreter(this.ast, this.config);
         const visitor = new TestExecutor(interpreter);
         node.accept(visitor);
-        reports.push(visitor.report);
+        if (visitor.report) reports.push(visitor.report);
       }
     }
     return reports;

@@ -1,17 +1,20 @@
 import {
   Enumeration,
   ForLoop,
-  Function,
   Procedure,
   Repeat,
   StopTraversalException,
   Switch,
-  TraverseVisitor,
   While,
 } from "yukigo-ast";
-import { AutoScoped, ScopedVisitor, VisitorConstructor } from "../../utils.js";
+import {
+  AutoScoped,
+  ScopedVisitor,
+  VisitorConstructor,
+  InspectionVisitor,
+} from "../../utils.js";
 
-export class DeclaresEnumeration extends TraverseVisitor {
+export class DeclaresEnumeration extends InspectionVisitor {
   private readonly enumName: string;
   constructor(enumName: string) {
     super();

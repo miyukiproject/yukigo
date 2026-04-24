@@ -9,12 +9,11 @@ import {
   Return,
   StopTraversalException,
   StringPrimitive,
-  TraverseVisitor,
 } from "yukigo-ast";
-import { AutoScoped, ScopedVisitor, VisitorConstructor } from "../../utils.js";
+import { AutoScoped, InspectionVisitor, ScopedVisitor, VisitorConstructor } from "../../utils.js";
 import { Uses } from "../generic/generic.js";
 
-class MethodCollector extends TraverseVisitor {
+class MethodCollector extends InspectionVisitor {
   private collectedMethods: Method[] = [];
   collect(node: Class | Object | Interface): Method[] {
     node.expression.accept(this);
@@ -59,7 +58,7 @@ export class ReturnsNil extends ScopedVisitor {
 
 @AutoScoped
 export class HasTooManyMethods extends ScopedVisitor {
-  private counter: number;
+  private counter: number = 0;
   private readonly maxMethods: number;
 
   constructor(maxMethods: number = 10, scopeName?: string) {

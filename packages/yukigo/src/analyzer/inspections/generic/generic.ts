@@ -27,7 +27,6 @@ import {
   SimpleType,
   StopTraversalException,
   SymbolPrimitive,
-  TraverseVisitor,
   Try,
   TypeAlias,
   TypeSignature,
@@ -35,7 +34,12 @@ import {
   Variable,
   VariablePattern,
 } from "yukigo-ast";
-import { VisitorConstructor, ScopedVisitor, AutoScoped } from "../../utils.js";
+import {
+  VisitorConstructor,
+  ScopedVisitor,
+  InspectionVisitor,
+  AutoScoped,
+} from "../../utils.js";
 
 @AutoScoped
 export class Assigns extends ScopedVisitor {
@@ -180,7 +184,7 @@ export class DeclaresComputationWithArity extends ScopedVisitor {
       throw new StopTraversalException();
   }
 }
-export class DeclaresEntryPoint extends TraverseVisitor {
+export class DeclaresEntryPoint extends InspectionVisitor {
   visitEntryPoint(node: EntryPoint): void {
     throw new StopTraversalException();
   }
@@ -234,7 +238,7 @@ export class DeclaresRecursively extends ScopedVisitor {
       throw new StopTraversalException();
   }
 }
-export class HasDirectRecursion extends TraverseVisitor {
+export class HasDirectRecursion extends InspectionVisitor {
   private isInsideBody: boolean = false;
   constructor(private readonly binding: string) {
     super();
@@ -275,7 +279,7 @@ export class HasDirectRecursion extends TraverseVisitor {
   }
 }
 
-export class DeclaresTypeAlias extends TraverseVisitor {
+export class DeclaresTypeAlias extends InspectionVisitor {
   private readonly typeAliasName: string;
   constructor(typeAliasName: string) {
     super();
@@ -286,7 +290,7 @@ export class DeclaresTypeAlias extends TraverseVisitor {
       throw new StopTraversalException();
   }
 }
-export class DeclaresTypeSignature extends TraverseVisitor {
+export class DeclaresTypeSignature extends InspectionVisitor {
   private readonly targetBinding: string;
   constructor(targetBinding: string) {
     super();
@@ -413,8 +417,11 @@ export class HasBinding extends ScopedVisitor {
   }
 }
 
-export class SubordinatesDeclarationsTo extends TraverseVisitor {
-  constructor(private childName: string, private parentName: string) {
+export class SubordinatesDeclarationsTo extends InspectionVisitor {
+  constructor(
+    private childName: string,
+    private parentName: string,
+  ) {
     super();
   }
 
@@ -428,7 +435,7 @@ export class SubordinatesDeclarationsTo extends TraverseVisitor {
   }
 }
 
-export class SubordinatesDeclarationsToEntryPoint extends TraverseVisitor {
+export class SubordinatesDeclarationsToEntryPoint extends InspectionVisitor {
   constructor(private childName: string) {
     super();
   }
@@ -439,8 +446,11 @@ export class SubordinatesDeclarationsToEntryPoint extends TraverseVisitor {
   }
 }
 
-export class TypesAs extends TraverseVisitor {
-  constructor(private typeName: string, private bindingName: string) {
+export class TypesAs extends InspectionVisitor {
+  constructor(
+    private typeName: string,
+    private bindingName: string,
+  ) {
     super();
   }
 
@@ -457,11 +467,11 @@ export class TypesAs extends TraverseVisitor {
   }
 }
 
-export class TypesParameterAs extends TraverseVisitor {
+export class TypesParameterAs extends InspectionVisitor {
   constructor(
     private paramIndex: number,
     private typeName: string,
-    private bindingName: string
+    private bindingName: string,
   ) {
     super();
   }
@@ -484,8 +494,11 @@ export class TypesParameterAs extends TraverseVisitor {
   }
 }
 
-export class TypesReturnAs extends TraverseVisitor {
-  constructor(private typeName: string, private bindingName: string) {
+export class TypesReturnAs extends InspectionVisitor {
+  constructor(
+    private typeName: string,
+    private bindingName: string,
+  ) {
     super();
   }
 
@@ -506,7 +519,10 @@ export class TypesReturnAs extends TraverseVisitor {
 
 @AutoScoped
 export class Rescues extends ScopedVisitor {
-  constructor(private exceptionName: string, scope?: string) {
+  constructor(
+    private exceptionName: string,
+    scope?: string,
+  ) {
     super(scope);
   }
   visitCatch(node: Catch): void {

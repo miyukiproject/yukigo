@@ -46,7 +46,7 @@ export class FunctionRuntime {
     const tryNextEquation = (eqIndex: number): Thunk<PrimitiveValue> => {
       if (eqIndex >= equations.length) {
         this.context.setEnv(oldEnv);
-        throw new NonExhaustivePatterns(funcName);
+        throw new NonExhaustivePatterns(funcName ?? "<anonymous>");
       }
 
       const eq = equations[eqIndex];
@@ -214,6 +214,7 @@ export class FunctionRuntime {
         return () => evaluateNext(index + 1, lastResult);
 
       if (stmt instanceof Return) {
+        if(!stmt.body) throw new Error("[FunctionRuntime]: Return \`body\` was undefined")
         return evaluator.evaluate(stmt.body, k);
       } else {
         return evaluator.evaluate(stmt, (result) => {

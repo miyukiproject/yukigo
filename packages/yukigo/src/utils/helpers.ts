@@ -1,6 +1,12 @@
 import { parseDocument } from "yaml";
 import { InspectionRule } from "../analyzer/index.js";
 
+export class UnexpectedNode extends Error {
+  constructor(nodeCons: string, context: string) {
+    super(`${nodeCons} not expected in ${context}.`)
+  }
+}
+
 type MulangInspection = {
   inspection: string;
   binding: string;

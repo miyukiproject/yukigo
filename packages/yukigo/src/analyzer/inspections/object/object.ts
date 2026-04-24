@@ -1,4 +1,5 @@
 import {
+  ASTNode,
   Attribute,
   Class,
   Interface,
@@ -10,12 +11,14 @@ import {
   Send,
   StopTraversalException,
   SymbolPrimitive,
-  TraverseVisitor,
 } from "yukigo-ast";
-import { AutoScoped, ScopedVisitor, VisitorConstructor } from "../../utils.js";
+import { AutoScoped, InspectionVisitor, ScopedVisitor, VisitorConstructor } from "../../utils.js";
 @AutoScoped
 export class DeclaresAttribute extends ScopedVisitor {
-  constructor(private attributeName: string, scope?: string) {
+  constructor(
+    private attributeName: string,
+    scope?: string,
+  ) {
     super(scope);
   }
   visitAttribute(node: Attribute): void {
@@ -25,7 +28,10 @@ export class DeclaresAttribute extends ScopedVisitor {
 }
 @AutoScoped
 export class DeclaresClass extends ScopedVisitor {
-  constructor(private className: string, scope?: string) {
+  constructor(
+    private className: string,
+    scope?: string,
+  ) {
     super(scope);
   }
   visitClass(node: Class): void {
@@ -34,7 +40,7 @@ export class DeclaresClass extends ScopedVisitor {
   }
 }
 
-export class DeclaresInterface extends TraverseVisitor {
+export class DeclaresInterface extends InspectionVisitor {
   constructor(private interfaceName: string) {
     super();
   }
@@ -42,10 +48,14 @@ export class DeclaresInterface extends TraverseVisitor {
     if (node.identifier.value === this.interfaceName)
       throw new StopTraversalException();
   }
+  public fallback(node: ASTNode): void {}
 }
 @AutoScoped
 export class DeclaresMethod extends ScopedVisitor {
-  constructor(private methodName: string, scope?: string) {
+  constructor(
+    private methodName: string,
+    scope?: string,
+  ) {
     super(scope);
   }
   visitMethod(node: Method): void {
@@ -54,7 +64,7 @@ export class DeclaresMethod extends ScopedVisitor {
   }
 }
 
-export class DeclaresObject extends TraverseVisitor {
+export class DeclaresObject extends InspectionVisitor {
   constructor(private objectName: string) {
     super();
   }
@@ -62,10 +72,14 @@ export class DeclaresObject extends TraverseVisitor {
     if (node.identifier.value === this.objectName)
       throw new StopTraversalException();
   }
+  public fallback(node: ASTNode): void {}
 }
 @AutoScoped
 export class DeclaresPrimitive extends ScopedVisitor {
-  constructor(private operatorName: string, scope?: string) {
+  constructor(
+    private operatorName: string,
+    scope?: string,
+  ) {
     super(scope);
   }
   visitPrimitiveMethod(node: PrimitiveMethod): void {
@@ -74,7 +88,10 @@ export class DeclaresPrimitive extends ScopedVisitor {
 }
 @AutoScoped
 export class DeclaresSuperclass extends ScopedVisitor {
-  constructor(private superclassName: string, scope?: string) {
+  constructor(
+    private superclassName: string,
+    scope?: string,
+  ) {
     super(scope);
   }
   visitClass(node: Class): void {
@@ -84,7 +101,10 @@ export class DeclaresSuperclass extends ScopedVisitor {
 }
 @AutoScoped
 export class Implements extends ScopedVisitor {
-  constructor(private interfaceName: string, scope?: string) {
+  constructor(
+    private interfaceName: string,
+    scope?: string,
+  ) {
     super(scope);
   }
   visitClass(node: Class): void {
@@ -97,7 +117,10 @@ export class Implements extends ScopedVisitor {
 }
 @AutoScoped
 export class IncludeMixin extends ScopedVisitor {
-  constructor(private mixinsName: string, scope?: string) {
+  constructor(
+    private mixinsName: string,
+    scope?: string,
+  ) {
     super(scope);
   }
   visitClass(node: Class): void {
@@ -107,7 +130,10 @@ export class IncludeMixin extends ScopedVisitor {
 }
 @AutoScoped
 export class Instantiates extends ScopedVisitor {
-  constructor(private className: string, scope?: string) {
+  constructor(
+    private className: string,
+    scope?: string,
+  ) {
     super(scope);
   }
   visitNew(node: New): void {
@@ -119,7 +145,10 @@ export class Instantiates extends ScopedVisitor {
 export class UsesDynamicPolymorphism extends ScopedVisitor {
   private count = 0;
 
-  constructor(private selectorName: string, scope?: string) {
+  constructor(
+    private selectorName: string,
+    scope?: string,
+  ) {
     super(scope);
   }
 
@@ -162,7 +191,7 @@ export class UsesObjectComposition extends ScopedVisitor {
   }
 }
 
-export class UsesStaticMethodOverload extends TraverseVisitor {
+export class UsesStaticMethodOverload extends InspectionVisitor {
   private scopes: Set<string>[] = [];
   visitClass(node: Class): void {
     this.scopes.push(new Set());
