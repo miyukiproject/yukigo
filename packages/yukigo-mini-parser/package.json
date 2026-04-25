@@ -3,7 +3,7 @@
   "version": "0.1.2",
   "description": "",
   "scripts": {
-    "build": "nearleyc src/grammar.ne -o src/grammar.ts && tsc",
+    "build": "nearleyc src/grammar.ne -o src/grammar.js && tsc",
     "test": "mocha --import=tsx"
   },
   "type": "module",

@@ -1,3 +1,4 @@
+// @ts-ignore
 import { makeLexer } from "moo-ignore";
 import moo from "moo";
 export const PrologLexerConfig = {

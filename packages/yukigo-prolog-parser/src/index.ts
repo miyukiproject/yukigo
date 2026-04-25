@@ -1,8 +1,14 @@
 import { AST, Expression, Rule, YukigoParser } from "yukigo-ast";
 import nearley from "nearley";
-import grammar from "./parser/grammar.js";
+import * as grammar from "./parser/grammar.js";
 import { Token } from "moo";
 import { stdCode } from "./std.js";
+
+interface NearleyError {
+  token?: any;
+  offset?: number;
+  [key: string]: any;
+}
 
 class UnexpectedToken extends Error {
   constructor(token: Token) {
@@ -44,8 +50,11 @@ export class YukigoPrologParser implements YukigoParser {
     try {
       parser.feed(code);
       parser.finish();
-    } catch (error) {
-      if ("token" in error) throw new UnexpectedToken(error.token);
+    } catch (e: unknown) {
+      const error = e as NearleyError; // Assert the shape
+      if (error.token) {
+        throw new UnexpectedToken(error.token);
+      }
       throw error;
     }
     const { results } = parser;

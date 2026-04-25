@@ -1,6 +1,6 @@
 import { Visitor } from "../visitor/index.js";
 import { Expression } from "./expressions.js";
-import { ASTNode, SourceLocation } from "./generics.js";
+import { ASTNode, SerializeNode, SourceLocation } from "./generics.js";
 
 export type YukigoPrimitive =
   | "YuNumber"
@@ -36,7 +36,7 @@ abstract class BasePrimitive<T> extends ASTNode {
     return this.value === (other as any).value;
   }
 
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: this.jsonType,
       value: this.value,
@@ -54,7 +54,7 @@ export class NumberPrimitive extends BasePrimitive<number> {
   }
 
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitNumberPrimitive?.(this) as R;
+    return this.dispatchVisit(visitor, visitor.visitNumberPrimitive);
   }
 }
 
@@ -68,7 +68,7 @@ export class BooleanPrimitive extends BasePrimitive<boolean> {
   }
 
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitBooleanPrimitive?.(this) as R;
+    return this.dispatchVisit(visitor, visitor.visitBooleanPrimitive);
   }
 }
 
@@ -81,7 +81,7 @@ export class CharPrimitive extends BasePrimitive<string> {
     return "YuChar";
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitCharPrimitive?.(this) as R;
+    return this.dispatchVisit(visitor, visitor.visitCharPrimitive);
   }
 }
 
@@ -94,7 +94,7 @@ export class StringPrimitive extends BasePrimitive<string> {
     return "YuString";
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitStringPrimitive?.(this) as R;
+    return this.dispatchVisit(visitor, visitor.visitStringPrimitive);
   }
 }
 
@@ -107,7 +107,7 @@ export class NilPrimitive extends BasePrimitive<undefined | null> {
     return "YuNil";
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitNilPrimitive?.(this) as R;
+    return this.dispatchVisit(visitor, visitor.visitNilPrimitive);
   }
 }
 
@@ -120,7 +120,7 @@ export class SymbolPrimitive extends BasePrimitive<string> {
     return "YuSymbol";
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitSymbolPrimitive?.(this) as R;
+    return this.dispatchVisit(visitor, visitor.visitSymbolPrimitive);
   }
 }
 
@@ -134,7 +134,7 @@ export class ListPrimitive extends BasePrimitive<Expression[]> {
   }
 
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitListPrimitive?.(this) as R;
+    return this.dispatchVisit(visitor, visitor.visitListPrimitive);
   }
 
   public override equals(other: Primitive): boolean {

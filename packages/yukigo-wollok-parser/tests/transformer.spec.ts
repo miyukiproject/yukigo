@@ -6,25 +6,35 @@ import {
   Body,
   Catch,
   Class,
+  Entity,
+  Expression,
   Field,
   If,
   Import,
+  List,
   Literal,
+  LiteralValue,
   Method,
   Mixin,
+  NamedArgument,
   New,
   Node,
   Package,
   Parameter,
+  ParameterizedType,
   Reference,
   Return,
   Send,
+  Sentence,
   Singleton,
+  SourceMap,
   Super,
   Throw,
   Try,
   Variable,
 } from "wollok-ts";
+
+type WollokFieldMethods = List<Field | Method>;
 
 describe("WollokToYukigoTransformer", () => {
   let transformer: WollokToYukigoTransformer;
@@ -33,38 +43,52 @@ describe("WollokToYukigoTransformer", () => {
     transformer = new WollokToYukigoTransformer();
   });
 
-  const p = (members, imports?, sourceMap?) =>
-    new Package({ name: "example", imports, members, sourceMap });
-  const lit = (value, sourceMap?) => new Literal({ value, sourceMap });
-  const ref = (name) => new Reference<any>({ name });
-  const send = (receiver, message, args) =>
-    new Send({ receiver, message, args });
-  const met = (name, parameters: Parameter[], body) =>
+  const p = (
+    members: List<Entity>,
+    imports?: List<Import>,
+    sourceMap?: SourceMap,
+  ) => new Package({ name: "example", imports, members, sourceMap });
+  const lit = (value: LiteralValue, sourceMap?: SourceMap) =>
+    new Literal({ value, sourceMap });
+  const ref = (name: string) => new Reference<any>({ name });
+  const send = (
+    receiver: Expression,
+    message: string,
+    args: List<Expression>,
+  ) => new Send({ receiver, message, args });
+  const met = (name: string, parameters: Parameter[], body: Body) =>
     new Method({ name, parameters, body });
-  const param = (name) => new Parameter({ name });
-  const unguardedBody = (sentences) => new Body({ sentences });
-  const singleton = (name, members) => new Singleton({ name, members });
-  const wollokClass = (name, members, supertypes) =>
-    new Class({ name, members, supertypes });
-  const ret = (value) => new Return({ value });
-  const imp = (name) => new Import({ entity: ref(name) });
-  const mixin = (name, members) => new Mixin({ name, members });
-  const field = (name, isConstant: boolean, value?) =>
+  const param = (name: string) => new Parameter({ name });
+  const unguardedBody = (sentences: List<Sentence>) => new Body({ sentences });
+  const singleton = (name: string, members: WollokFieldMethods) =>
+    new Singleton({ name, members });
+  const wollokClass = (
+    name: string,
+    members: WollokFieldMethods,
+    supertypes: List<ParameterizedType>,
+  ) => new Class({ name, members, supertypes });
+  const ret = (value: Expression) => new Return({ value });
+  const imp = (name: string) => new Import({ entity: ref(name) });
+  const mixin = (name: string, members: WollokFieldMethods) =>
+    new Mixin({ name, members });
+  const field = (name: string, isConstant: boolean, value?: Expression) =>
     new Field({ name, value, isConstant });
-  const variable = (name, isConstant: boolean, value) =>
+  const variable = (name: string, isConstant: boolean, value: Expression) =>
     new Variable({ name, value, isConstant });
-  const assign = (variable, value) => new Assignment({ variable, value });
-  const newExpr = (className, args) =>
+  const assign = (variable: Reference<Variable | Field>, value: Expression) =>
+    new Assignment({ variable, value });
+  const newExpr = (className: string, args: List<NamedArgument>) =>
     new New({ instantiated: ref(className), args });
-  const ifStmt = (condition, thenBody, elseBody?) =>
+  const ifStmt = (condition: Expression, thenBody: Body, elseBody?: Body) =>
     new If({ condition, thenBody, elseBody });
-  const throwStmt = (exception) => new Throw({ exception });
-  const catchClause = (parameter, body) => new Catch({ parameter, body });
-  const tryStmt = (body, catches, always?) =>
+  const throwStmt = (exception: Expression) => new Throw({ exception });
+  const catchClause = (parameter: Parameter, body: Body) =>
+    new Catch({ parameter, body });
+  const tryStmt = (body: Body, catches: List<Catch>, always?: Body) =>
     new Try({ body, catches, always });
-  const superInv = (args) => new Super({ args });
+  const superInv = (args: List<Expression>) => new Super({ args });
 
-  const transformNode = (node: Node) => {
+  const transformNode = (node: any) => {
     const pkg = p([node]);
     const resultAST = transformer.transform(pkg);
     return resultAST[0];
@@ -135,7 +159,7 @@ describe("WollokToYukigoTransformer", () => {
       const input = met(
         "greet",
         [param("name"), param("age")],
-        unguardedBody([send(ref("self"), "call", [])])
+        unguardedBody([send(ref("self"), "call", [])]),
       );
 
       const result = transformNode(input) as Yu.Method;
@@ -147,10 +171,10 @@ describe("WollokToYukigoTransformer", () => {
 
       expect(equation.patterns).to.have.lengthOf(2);
       expect((equation.patterns[0] as Yu.VariablePattern).name.value).to.equal(
-        "name"
+        "name",
       );
       expect((equation.patterns[1] as Yu.VariablePattern).name.value).to.equal(
-        "age"
+        "age",
       );
 
       expect(equation.body).to.be.instanceOf(Yu.UnguardedBody);
@@ -177,7 +201,7 @@ describe("WollokToYukigoTransformer", () => {
     });
 
     it("should transform a Class", () => {
-      const input = wollokClass("MyClass", [], undefined);
+      const input = wollokClass("MyClass", [], []);
       const result = transformNode(input) as Yu.Class;
       expect(result).to.be.instanceOf(Yu.Class);
       expect(result.identifier.value).to.equal("MyClass");
@@ -187,10 +211,13 @@ describe("WollokToYukigoTransformer", () => {
 
   describe("SourceMap/SourceLocation", () => {
     it("should map SourceMap to SourceLocation", () => {
-      const input = lit(100, {
-        start: { line: 10, column: 5 },
-        end: { line: 10, column: 8 },
-      });
+      const input = lit(
+        100,
+        new SourceMap({
+          start: { line: 10, column: 5, offset: 0 },
+          end: { line: 10, column: 8, offset: 3 },
+        }),
+      );
 
       const result = transformNode(input);
 
@@ -202,7 +229,7 @@ describe("WollokToYukigoTransformer", () => {
 
   describe("Package", () => {
     it("should return an array of Statements from a Package", () => {
-      const pkg = p([wollokClass("A", [], undefined), singleton("B", [])]);
+      const pkg = p([wollokClass("A", [], []), singleton("B", [])]);
 
       const result = transformer.transform(pkg);
 
@@ -218,7 +245,7 @@ describe("WollokToYukigoTransformer", () => {
       const input = met(
         "calculation",
         [param("a")],
-        unguardedBody([ret(send(ref("a"), "+", [lit(2)]))])
+        unguardedBody([ret(send(ref("a"), "+", [lit(2)]))]),
       );
 
       const result = transformNode(input) as Yu.Method;
@@ -229,7 +256,7 @@ describe("WollokToYukigoTransformer", () => {
       expect(equation.patterns).to.have.lengthOf(1);
       expect(equation.patterns[0]).to.be.instanceOf(Yu.VariablePattern);
       expect((equation.patterns[0] as Yu.VariablePattern).name.value).to.equal(
-        "a"
+        "a",
       );
 
       const bodySeq = (equation.body as Yu.UnguardedBody).sequence;
@@ -327,7 +354,7 @@ describe("WollokToYukigoTransformer", () => {
     });
 
     it("should transform New -> Yu.New", () => {
-      const input = newExpr("Bird", [lit("Tweety")]);
+      const input = newExpr("Bird", [new NamedArgument({name: "twenty", value: lit("Tweety")})]);
       const result = transformNode(input) as Yu.New;
 
       expect(result).to.be.instanceOf(Yu.New);
@@ -356,7 +383,7 @@ describe("WollokToYukigoTransformer", () => {
       const input = tryStmt(
         unguardedBody([]),
         [catchClause(param("e"), unguardedBody([]))],
-        unguardedBody([])
+        unguardedBody([]),
       );
 
       const result = transformNode(input) as Yu.Try;
@@ -368,7 +395,7 @@ describe("WollokToYukigoTransformer", () => {
       const catchBlock = result.catchExpr[0];
       expect(catchBlock.patterns).to.have.lengthOf(1);
       expect(
-        (catchBlock.patterns[0] as Yu.VariablePattern).name.value
+        (catchBlock.patterns[0] as Yu.VariablePattern).name.value,
       ).to.equal("e");
 
       expect(result.finallyExpr).to.be.instanceOf(Yu.Sequence);

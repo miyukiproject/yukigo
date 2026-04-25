@@ -1,11 +1,9 @@
 import { AST, Expression, YukigoParser } from "yukigo-ast";
 import { parse } from "wollok-ts";
 import { WollokToYukigoTransformer } from "./transformer.js";
-import { Token } from "moo";
-import { inspect } from "util";
 
 class UnexpectedToken extends Error {
-  constructor(line, column, expectation) {
+  constructor(line: number, column: number, expectation: string) {
     super(
       `Parse error at line ${line} column ${column}: expected ${expectation}.`
     );

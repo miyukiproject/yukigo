@@ -9,10 +9,12 @@ import {
   Type as YukigoType,
   ConstrainedType,
   ASTNode,
+  Visitor,
 } from "yukigo-ast";
 import { typeMappings, YUTYPES } from "../utils/types.js";
 import { CoreHM } from "./core.js";
 import { functionType, Type, TypeConstructor, TypeVar, stringType, charType } from "./checker.js";
+import { UnexpectedNode } from "../utils/helpers.js";
 
 export class TypeBuilder {
   constructor(private coreHM: CoreHM) {}
@@ -24,13 +26,12 @@ export class TypeBuilder {
     const constraintsMap = new Map<number, string[]>();
 
     // Local visitor to walk Yukigo type AST
-    const visitor = {
+    const visitor: Visitor<Type> = {
       visitSimpleType: (n: SimpleType): Type => {
         if (/^[a-z]/.test(n.value)) {
           // Lowercase = type variable
           if (!typeVarMap.has(n.value)) {
             typeVarMap.set(n.value, {
-              type: "TypeVar",
               ...this.coreHM.freshVar(),
               name: n.value,
             });
@@ -57,7 +58,6 @@ export class TypeBuilder {
         // Same as SimpleType for type variables
         if (!typeVarMap.has(n.value)) {
           typeVarMap.set(n.value, {
-            type: "TypeVar",
             ...this.coreHM.freshVar(),
             name: n.value,
           });
@@ -118,6 +118,9 @@ export class TypeBuilder {
       visit(node: ASTNode): Type {
         return node.accept(visitor);
       },
+      fallback(node: ASTNode): Type {
+        throw new UnexpectedNode(node.constructor.toString(), "TypeBuilder")
+      }
     };
 
     const type = node.accept(visitor);

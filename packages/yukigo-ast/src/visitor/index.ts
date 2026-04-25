@@ -20,7 +20,8 @@ export * from "./testing.js";
 export * from "./typeclasses.js";
 
 export interface StrictVisitor<TReturn>
-    extends BaseVisitor<TReturn>,
+  extends
+    BaseVisitor<TReturn>,
     ExpressionVisitor<TReturn>,
     OperationVisitor<TReturn>,
     PatternVisitor<TReturn>,
@@ -28,25 +29,31 @@ export interface StrictVisitor<TReturn>
     StatementVisitor<TReturn>,
     TypeVisitor<TReturn>,
     TestingVisitor<TReturn>,
-    TypeClassVisitor<TReturn> { }
+    TypeClassVisitor<TReturn> {}
 
-export type Visitor<TReturn> = Partial<StrictVisitor<TReturn>>;
+export type Visitor<TReturn> = Partial<StrictVisitor<TReturn>> & {
+  fallback: (node: ASTNode) => TReturn;
+};
 
 export class StopTraversalException extends Error {
-    constructor() {
-        super("Inspection found, aborting traversal.");
-    }
+  constructor() {
+    super("Inspection found, aborting traversal.");
+  }
 }
 
 // Combine Traversal Logic via Mixins
-export class TraverseVisitor
-    extends TypeClassTraverser(TestingTraverser(TypeTraverser(
+export abstract class TraverseVisitor
+  extends TypeClassTraverser(
+    TestingTraverser(
+      TypeTraverser(
         StatementTraverser(
-            PatternTraverser(
-                OperationTraverser(
-                    PrimitiveTraverser(ExpressionTraverser(TraverseBase))
-                )
-            )
-        )
-    )))
-    implements StrictVisitor<void> {}
+          PatternTraverser(
+            OperationTraverser(
+              PrimitiveTraverser(ExpressionTraverser(TraverseBase)),
+            ),
+          ),
+        ),
+      ),
+    ),
+  )
+  implements StrictVisitor<void> {}

@@ -1,5 +1,6 @@
 import {
   ASTNode,
+  SerializeNode,
   SourceLocation,
 } from "../globals/generics.js";
 import { Visitor } from "../visitor/index.js";
@@ -37,10 +38,10 @@ export class TypeClass extends ASTNode {
   }
 
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitTypeClass?.(this);
+    return this.dispatchVisit(visitor, visitor.visitTypeClass);
   }
 
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "TypeClass",
       name: this.name.toJSON(),
@@ -81,10 +82,10 @@ export class Instance extends ASTNode {
   }
 
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitInstance?.(this);
+    return this.dispatchVisit(visitor, visitor.visitInstance);
   }
 
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Instance",
       className: this.className.toJSON(),

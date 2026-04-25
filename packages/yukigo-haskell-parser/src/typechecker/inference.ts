@@ -55,7 +55,7 @@ import {
   Yield,
   Truth,
   Equality,
-  Failure
+  Failure,
 } from "yukigo-ast";
 import {
   Environment,
@@ -82,6 +82,7 @@ import {
 } from "./checker.js";
 import { CoreHM } from "./core.js";
 import { TypeBuilder } from "./TypeBuilder.js";
+import { UnexpectedNode } from "../utils/helpers.js";
 import { YUTYPES } from "../utils/types.js";
 
 export class PatternVisitor implements Visitor<void> {
@@ -321,8 +322,8 @@ export class PatternVisitor implements Visitor<void> {
     ).visit(node.right);
   }
   visitTypePattern(node: TypePattern) {
-    const builder = new TypeBuilder(this.coreHM)
-    const type = builder.build(node.targetType)
+    const builder = new TypeBuilder(this.coreHM);
+    const type = builder.build(node.targetType);
     const unifyResult = this.coreHM.unify(type.type, this.expectedType);
     if (unifyResult.success === false)
       throw new Error(`Pattern type mismatch: ${unifyResult.error}`);
@@ -332,19 +333,22 @@ export class PatternVisitor implements Visitor<void> {
       // Apply substitution from unification to expected type
       const newExpectedType = this.coreHM.applySubst(
         unifyResult.value,
-        this.expectedType
+        this.expectedType,
       );
       new PatternVisitor(
         this.coreHM,
         this.signatureMap,
         newExpectedType,
         this.envs,
-        this.inferenceEngine
+        this.inferenceEngine,
       ).visit(node.innerPattern);
     }
   }
   visit(node: Pattern): void {
     node.accept(this);
+  }
+  fallback(node: ASTNode): void {
+    throw new UnexpectedNode(node.constructor.toString(), "PatternVisitor");
   }
 }
 
@@ -551,7 +555,7 @@ export class InferenceEngine implements Visitor<Result<Type>> {
             error: `${node.operator}'s right operand must be a list`,
           };
 
-        const elementType = unifyRight.value.get(freshInputVar.id);
+        const elementType = unifyRight.value.get(freshInputVar.id)!;
 
         // Left-hand side must be a function: elementType -> outputType
         const freshOutputVar = this.coreHM.freshVar();
@@ -607,7 +611,7 @@ export class InferenceEngine implements Visitor<Result<Type>> {
             error: `${node.operator}'s right operand must be a list`,
           };
 
-        const elementType = unifyRight.value.get(freshInputVar.id);
+        const elementType = unifyRight.value.get(freshInputVar.id)!;
 
         // Left-hand side must be a function: elementType -> Bool
         const funcType: TypeConstructor = functionType(
@@ -659,7 +663,7 @@ export class InferenceEngine implements Visitor<Result<Type>> {
             error: `${node.operator}'s right operand must be a list`,
           };
 
-        const elementType = unifyRight.value.get(freshInputVar.id);
+        const elementType = unifyRight.value.get(freshInputVar.id)!;
 
         // Left-hand side must be a function: elementType -> Bool
         const funcType: TypeConstructor = functionType(
@@ -709,7 +713,7 @@ export class InferenceEngine implements Visitor<Result<Type>> {
             error: `${node.operator}'s right operand must be a list`,
           };
 
-        const elementType = unifyRight.value.get(freshInputVar.id);
+        const elementType = unifyRight.value.get(freshInputVar.id)!;
 
         // Left-hand side must be a function: elementType -> Bool
         const funcType: TypeConstructor = functionType(
@@ -1025,7 +1029,7 @@ export class InferenceEngine implements Visitor<Result<Type>> {
         new FunctionRegistrarVisitor(this.envs[0], signatureMap, this.coreHM),
       ),
     );
-    const errors = [];
+    const errors: string[] = [];
     node.declarations.statements.forEach((stmt) =>
       stmt.accept(
         new FunctionCheckerVisitor(
@@ -1097,7 +1101,7 @@ export class InferenceEngine implements Visitor<Result<Type>> {
       } catch (error) {
         return {
           success: false,
-          error: error.message,
+          error: error instanceof Error ? error.message : String(error),
         };
       }
     });
@@ -1189,7 +1193,9 @@ export class InferenceEngine implements Visitor<Result<Type>> {
   // }
 
   visitReturn(node: Return): Result<Type> {
-    return node.body.accept(this);
+    return node.body
+      ? node.body.accept(this)
+      : { success: false, error: "Return body is undefined" };
   }
   visitTypeCast(node: TypeCast): Result<Type> {
     return {
@@ -1271,7 +1277,10 @@ export class InferenceEngine implements Visitor<Result<Type>> {
         ),
       );
     } catch (error) {
-      return { success: false, error: error.message };
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
     }
 
     // Infer first branch result
@@ -1292,7 +1301,10 @@ export class InferenceEngine implements Visitor<Result<Type>> {
           ),
         );
       } catch (error) {
-        return { success: false, error: error.message };
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : String(error),
+        };
       }
       // Unify branch result with first branch
       const branchType = branch.body.accept(this);
@@ -1395,6 +1407,9 @@ export class InferenceEngine implements Visitor<Result<Type>> {
   }
   visit(node: ASTNode): Result<Type> {
     return node.accept(this);
+  }
+  fallback(node: ASTNode): Result<Type> {
+    throw new UnexpectedNode(node.constructor.toString(), "PatternVisitor");
   }
 }
 

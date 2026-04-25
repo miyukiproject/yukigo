@@ -1,4 +1,4 @@
-import grammar from "./parser/grammar.js";
+import * as grammar from "./parser/grammar.js";
 import nearley from "nearley";
 import { groupFunctionDeclarations } from "./utils/helpers.js";
 import { TypeChecker } from "./typechecker/checker.js";
@@ -24,6 +24,12 @@ import {
 import { preludeCode } from "./prelude.js";
 import { typeMappings } from "./utils/types.js";
 import { Token } from "moo";
+
+interface NearleyError {
+  token?: any;
+  offset?: number;
+  [key: string]: any;
+}
 
 class UnexpectedToken extends Error {
   constructor(token: Token) {
@@ -79,18 +85,28 @@ export class YukigoHaskellParser implements YukigoParser {
     const result = this.feedParser(processedCode);
     const fullAst = this.prelude.concat(result);
 
-    const makePrim = (name: string) => new Function(new SymbolPrimitive(name), [
-      new Equation(
-        [new VariablePattern(new SymbolPrimitive("x"))],
-        new UnguardedBody(new Sequence([new Return(new ArithmeticUnaryOperation("ToString", new SymbolPrimitive("x")))]))
-      )
-    ]);
+    const makePrim = (name: string) =>
+      new Function(new SymbolPrimitive(name), [
+        new Equation(
+          [new VariablePattern(new SymbolPrimitive("x"))],
+          new UnguardedBody(
+            new Sequence([
+              new Return(
+                new ArithmeticUnaryOperation(
+                  "ToString",
+                  new SymbolPrimitive("x"),
+                ),
+              ),
+            ]),
+          ),
+        ),
+      ]);
 
     const prims = [
       makePrim("primShow"),
-      makePrim("primShowChar"), 
+      makePrim("primShowChar"),
       makePrim("primShowString"),
-      makePrim("primShowList")
+      makePrim("primShowList"),
     ];
 
     const resolveYukigoType = (t: any): any => {
@@ -106,20 +122,28 @@ export class YukigoHaskellParser implements YukigoParser {
     const primShowString = new Function(new SymbolPrimitive("primShowString"), [
       new Equation(
         [new VariablePattern(new SymbolPrimitive("s"))],
-        new UnguardedBody(new Sequence([
-          new Return(
-            new StringOperation(
-              "Concat", 
-              new StringPrimitive("\""),
-              new StringOperation("Concat", new SymbolPrimitive("s"), new StringPrimitive("\""))
-            )
-          )
-        ]))
-      )
+        new UnguardedBody(
+          new Sequence([
+            new Return(
+              new StringOperation(
+                "Concat",
+                new StringPrimitive('"'),
+                new StringOperation(
+                  "Concat",
+                  new SymbolPrimitive("s"),
+                  new StringPrimitive('"'),
+                ),
+              ),
+            ),
+          ]),
+        ),
+      ),
     ]);
 
     // Transform Instance nodes into Function nodes with TypePatterns
-    const transformedAst: AST = this.config.includePrims ? [...prims, primShowString] : [];
+    const transformedAst: AST = this.config.includePrims
+      ? [...prims, primShowString]
+      : [];
     for (const node of fullAst) {
       if (node instanceof Instance) {
         const instanceNode = node as Instance;
@@ -128,19 +152,16 @@ export class YukigoHaskellParser implements YukigoParser {
         for (const func of instanceNode.functions) {
           const overloadedEquations = func.equations.map((eq) => {
             const firstPattern = eq.patterns[0];
-            const typePattern = new TypePattern(
-              yukigoType,
-              firstPattern
-            );
+            const typePattern = new TypePattern(yukigoType, firstPattern);
             return new Equation(
               [typePattern, ...eq.patterns.slice(1)],
               eq.body,
               eq.returnExpr,
-              eq.loc
+              eq.loc,
             );
           });
           transformedAst.unshift(
-            new Function(func.identifier, overloadedEquations, func.loc)
+            new Function(func.identifier, overloadedEquations, func.loc),
           );
         }
       } else {
@@ -169,8 +190,11 @@ export class YukigoHaskellParser implements YukigoParser {
     try {
       parser.feed(code);
       parser.finish();
-    } catch (error) {
-      if ("token" in error && error.token) throw new UnexpectedToken(error.token);
+    } catch (e: unknown) {
+      const error = e as NearleyError; // Assert the shape
+      if (error.token) {
+        throw new UnexpectedToken(error.token);
+      }
       throw error;
     }
     const { results } = parser;

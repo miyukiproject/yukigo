@@ -28,7 +28,7 @@ export type PrimitiveValue =
 
 export function isLogicResult(value: PrimitiveValue): value is LogicResult {
   return (
-    value &&
+    value !== null &&
     typeof value === "object" &&
     "success" in value &&
     typeof value.success === "boolean" &&
@@ -54,7 +54,7 @@ export interface RuntimePredicate {
 }
 
 export const isRuntimePredicate = (
-  prim: PrimitiveValue
+  prim: PrimitiveValue,
 ): prim is RuntimePredicate => {
   return (
     typeof prim === "object" &&
@@ -99,7 +99,10 @@ export interface RuntimeClass {
 
 export function isRuntimeClass(val: PrimitiveValue): val is RuntimeClass {
   return (
-    val && typeof val === "object" && "type" in val && val.type === "Class"
+    val !== null &&
+    typeof val === "object" &&
+    "type" in val &&
+    val.type === "Class"
   );
 }
 
@@ -113,7 +116,10 @@ export interface RuntimeObject {
 
 export function isRuntimeObject(val: PrimitiveValue): val is RuntimeObject {
   return (
-    val && typeof val === "object" && "type" in val && val.type === "Object"
+    val !== null &&
+    typeof val === "object" &&
+    "type" in val &&
+    val.type === "Object"
   );
 }
 
@@ -124,7 +130,7 @@ export interface LazyList {
 
 export function isLazyList(prim: unknown): prim is LazyList {
   return (
-    prim &&
+    prim !== null &&
     typeof prim === "object" &&
     "type" in prim &&
     prim.type === "LazyList"

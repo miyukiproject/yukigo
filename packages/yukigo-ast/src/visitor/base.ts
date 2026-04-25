@@ -1,12 +1,13 @@
 import { ASTNode } from "../globals/generics.js";
 
-export type GConstructor<T = {}> = new (...args: any[]) => T;
+export type VisitorConstructor<T = {}> = abstract new (...args: any[]) => T;
 
 export interface BaseVisitor<TReturn> {
     visit(node: ASTNode): TReturn;
+    fallback(node: ASTNode): TReturn;
 }
 
-export class TraverseBase implements BaseVisitor<void> {
+export abstract class TraverseBase implements BaseVisitor<void> {
     visit(node: ASTNode): void {
         node.accept(this);
     }
@@ -14,4 +15,5 @@ export class TraverseBase implements BaseVisitor<void> {
     public traverseCollection(nodes: ASTNode[]): void {
         nodes.forEach((node) => node.accept(this));
     }
+    abstract fallback(node: ASTNode): void;
 }

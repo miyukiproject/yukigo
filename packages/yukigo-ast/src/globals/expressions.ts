@@ -2,7 +2,7 @@ import { CompositionExpression, Lambda, Application } from "../paradigms/functio
 import { Exist, Forall, Findall, Not } from "../paradigms/logic.js";
 import { Self, New, Implement } from "../paradigms/object.js";
 import { Visitor } from "../visitor/index.js";
-import { ASTNode, SourceLocation } from "./generics.js";
+import { ASTNode, SerializeNode, SourceLocation } from "./generics.js";
 import { Operation } from "./operators.js";
 import { SymbolPrimitive, Primitive } from "./primitives.js";
 import { Sequence, Print, For } from "./statements.js";
@@ -25,9 +25,9 @@ export class TupleExpression extends ASTNode {
     this.elements = elements;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitTupleExpr?.(this);
+    return this.dispatchVisit(visitor, visitor.visitTupleExpr);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "TupleExpression",
       elements: this.elements.map((expr) => expr.toJSON()),
@@ -55,9 +55,9 @@ export class FieldExpression extends ASTNode {
     this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitFieldExpr?.(this);
+    return this.dispatchVisit(visitor, visitor.visitFieldExpr);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "FieldExpression",
       name: this.name.toJSON(),
@@ -88,9 +88,9 @@ export class DataExpression extends ASTNode {
     this.contents = contents;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitDataExpr?.(this);
+    return this.dispatchVisit(visitor, visitor.visitDataExpr);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "DataExpression",
       name: this.name.toJSON(),
@@ -117,9 +117,9 @@ export class ConsExpression extends ASTNode {
     this.tail = tail;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitConsExpr?.(this);
+    return this.dispatchVisit(visitor, visitor.visitConsExpr);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "ConsExpression",
       head: this.head.toJSON(),
@@ -150,9 +150,9 @@ export class LetInExpression extends ASTNode {
     this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitLetInExpr?.(this);
+    return this.dispatchVisit(visitor, visitor.visitLetInExpr);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "LetInExpression",
       declarations: this.declarations.toJSON(),
@@ -171,9 +171,9 @@ export class LetInExpression extends ASTNode {
  */
 export class Otherwise extends ASTNode {
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitOtherwise?.(this);
+    return this.dispatchVisit(visitor, visitor.visitOtherwise);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Otherwise",
     };
@@ -203,9 +203,9 @@ export class ListComprehension extends ASTNode {
     this.generators = generators;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitListComprehension?.(this);
+    return this.dispatchVisit(visitor, visitor.visitListComprehension);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "ListComprehension",
       projection: this.projection.toJSON(),
@@ -236,9 +236,9 @@ export class Generator extends ASTNode {
     this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitGenerator?.(this);
+    return this.dispatchVisit(visitor, visitor.visitGenerator);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Generator",
       variable: this.variable.toJSON(),
@@ -277,9 +277,9 @@ export class RangeExpression extends ASTNode {
     this.step = step;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitRangeExpression?.(this);
+    return this.dispatchVisit(visitor, visitor.visitRangeExpression);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "RangeExpression",
       start: this.start.toJSON(),
@@ -302,9 +302,9 @@ export class NamedArgument extends ASTNode {
     this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitNamedArgument?.(this);
+    return this.dispatchVisit(visitor, visitor.visitNamedArgument);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "NamedArgument",
       identifier: this.identifier.toJSON(),

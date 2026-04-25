@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "../../node_modules/.bin/tsc --build tsconfig.json",
     "docs:dev": "vitepress dev docs --host",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",

@@ -39,7 +39,7 @@ export const HaskellLexerConfig = {
   fatArrow: "=>",
   op: {
     match:
-    /,|>>=|>>|\\\\|\\|\.\.|\.|\+\+|\+|\-|\*\*|\*|===|!==|==|\/=|<=|>=|<|>|&&|\/|\|\||\$!|\$|\^\^|\^|#|@|~|!!|!|%|\?|:|&|`/,
+      /,|>>=|>>|\\\\|\\|\.\.|\.|\+\+|\+|\-|\*\*|\*|===|!==|==|\/=|<=|>=|<|>|&&|\/|\|\||\$!|\$|\^\^|\^|#|@|~|!!|!|%|\?|:|&|`/,
     lineBreaks: false,
   },
   assign: "=",
@@ -64,7 +64,13 @@ export const HaskellLexerConfig = {
 };
 
 export class HaskellLayoutLexer implements Lexer {
-  public index: number;
+  get index(): number {
+    return this.mooLexer.index;
+  }
+
+  set index(value: number) {
+    this.mooLexer.index = value;
+  }
   private mooLexer: Lexer;
   private state: LayoutState;
 
@@ -177,12 +183,10 @@ export class HaskellLayoutLexer implements Lexer {
   }
 
   private fetchAndProcessNextToken(): Token | undefined {
-    let { token: rawToken, crossedNewline } =
-      this.advanceSkippingWhitespace();
+    let { token: rawToken, crossedNewline } = this.advanceSkippingWhitespace();
 
     if (!rawToken) return this.emitEOF();
 
-    
     if (this.state.expectingBlock) return this.handleBlockStart(rawToken);
 
     if (this.isInToken(rawToken)) return this.handleInKeyword(rawToken);
@@ -243,7 +247,7 @@ export class HaskellLayoutLexer implements Lexer {
 
     this.state.tokenBuffer.unshift(...ops);
 
-    return this.state.tokenBuffer.shift();
+    return this.state.tokenBuffer.shift()!;
   }
 
   private emitEOF(): Token | undefined {
@@ -337,7 +341,7 @@ export class HaskellLayoutLexer implements Lexer {
   private createVirtualToken(
     type: string,
     value: string,
-    source: Token
+    source: Token,
   ): Token {
     return {
       type,

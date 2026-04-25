@@ -1,6 +1,6 @@
 @{%
-import { HaskellLayoutLexer } from "./lexer.js"
-import {
+const { HaskellLayoutLexer } = require("./lexer.js")
+const {
   TypeCast,
   Application,
   ConsExpression,
@@ -67,7 +67,7 @@ import {
   Equality,
   Truth,
   Failure
-} from "yukigo-ast";
+} = require("yukigo-ast");
 
 const filter = d => {
     return d.filter((token) => token !== null);
@@ -77,7 +77,6 @@ const loc = (token) => new SourceLocation(token.line, token.col);
 const HSLexer = new HaskellLayoutLexer();
 
 %}
-@preprocessor typescript
 @lexer HSLexer
 
 program -> declaration (";" declaration):* ";":? {% (d) => [d[0], ...d[1].map(x => x[1])].flat(Infinity) %}

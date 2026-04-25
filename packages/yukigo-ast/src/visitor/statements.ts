@@ -47,7 +47,7 @@ import {
     Self,
     PrimitiveMethod,
 } from "../paradigms/object.js";
-import { TraverseBase, GConstructor } from "./base.js";
+import { TraverseBase, VisitorConstructor } from "./base.js";
 
 export interface StatementVisitor<TReturn> {
     visitSequence(node: Sequence): TReturn;
@@ -93,10 +93,10 @@ export interface StatementVisitor<TReturn> {
     visitLogicConstraint(node: LogicConstraint): TReturn;
 }
 
-export function StatementTraverser<TBase extends GConstructor<TraverseBase>>(
+export function StatementTraverser<TBase extends VisitorConstructor<TraverseBase>>(
     Base: TBase
 ) {
-    return class StatementTraverser extends Base implements StatementVisitor<void> {
+    abstract class StatementTraverser extends Base implements StatementVisitor<void> {
         visitSequence(node: Sequence): void {
             this.traverseCollection(node.statements);
         }
@@ -258,4 +258,5 @@ export function StatementTraverser<TBase extends GConstructor<TraverseBase>>(
             node.expression.accept(this)
         }
     };
+    return  StatementTraverser
 }

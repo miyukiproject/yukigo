@@ -1,6 +1,6 @@
 @{%
-import { MiniLexer } from "./lexer.js"
-import { 
+const { MiniLexer } = require("./lexer.js")
+const { 
     SimpleType, 
     Assignment, 
     Variable,
@@ -24,10 +24,9 @@ import {
     CharPrimitive,
     NilPrimitive,
     Return
-} from "yukigo-ast"
+} = require("yukigo-ast")
 %}
 
-@preprocessor typescript
 @lexer MiniLexer
 
 program -> _ statements _ %EOF {% (d) => d[1].flat(Infinity) %}

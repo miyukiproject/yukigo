@@ -121,6 +121,7 @@ export class FunctionRegistrarVisitor implements Visitor<void> {
     node.body.accept(this);
   }
   visitAssert(node: Assert): void {}
+  fallback(node: ASTNode): void {}
 }
 export class FunctionCheckerVisitor implements Visitor<void> {
   constructor(
@@ -139,7 +140,7 @@ export class FunctionCheckerVisitor implements Visitor<void> {
     const inferenceEngine = new InferenceEngine(
       this.signatureMap,
       this.coreHM,
-      this.environments
+      this.environments,
     );
     node.body.accept(inferenceEngine);
   }
@@ -167,7 +168,9 @@ export class FunctionCheckerVisitor implements Visitor<void> {
             inferenceEngine,
           ).visit(firstEq.patterns[i]);
         } catch (error) {
-          this.errors.push(`Type error in '${functionName}': ${error.message}`);
+          this.errors.push(
+            `Type error in '${functionName}': ${error instanceof Error ? error.message : String(error)}`,
+          );
         }
       });
 
@@ -184,9 +187,12 @@ export class FunctionCheckerVisitor implements Visitor<void> {
             ),
           ),
         );
-        const returnResult = equationStatements
-          .find((stmt) => stmt instanceof Return)
-          .accept(inferenceEngine);
+        const returnNode = equationStatements.find(
+          (stmt) => stmt instanceof Return,
+        );
+        if (!returnNode) return;
+
+        const returnResult = returnNode.accept(inferenceEngine);
         if (returnResult.success === false) {
           this.errors.push(
             `Type error in '${functionName}': ${returnResult.error}`,
@@ -254,7 +260,7 @@ export class FunctionCheckerVisitor implements Visitor<void> {
             );
           } catch (error) {
             this.errors.push(
-              `Type error in '${functionName}': ${error.message}`,
+              `Type error in '${functionName}': ${error instanceof Error ? error.message : String(error)}`,
             );
           }
         });
@@ -270,9 +276,11 @@ export class FunctionCheckerVisitor implements Visitor<void> {
               ),
             ),
           );
-          const returnResult = equationStatements
-            .find((stmt) => stmt instanceof Return)
-            .accept(inferenceEngine);
+          const returnNode = equationStatements.find(
+            (stmt) => stmt instanceof Return,
+          );
+          if (!returnNode) return;
+          const returnResult = returnNode.accept(inferenceEngine);
           if (returnResult.success === false) {
             this.errors.push(
               `Type error in '${functionName}': ${returnResult.error}`,
@@ -296,9 +304,11 @@ export class FunctionCheckerVisitor implements Visitor<void> {
             if (conditionSub.success === false) throw Error(conditionSub.error);
             let body = guard.body;
             if (guard.body instanceof Sequence) {
-              body = guard.body.statements.find(
+              const returnNode = guard.body.statements.find(
                 (stmt) => stmt instanceof Return,
               );
+              if (!returnNode) return;
+              body = returnNode;
             }
             const bodyResult = body.accept(inferenceEngine);
             if (bodyResult.success === false) throw Error(bodyResult.error);
@@ -312,26 +322,26 @@ export class FunctionCheckerVisitor implements Visitor<void> {
       }
     }
   }
+  fallback(node: ASTNode): void {}
 }
 
 export class TypeChecker {
   private signatureMap: Map<string, TypeScheme>;
-  private coreHM: CoreHM;
   private errors: string[];
+  private typeAliasMap = new Map<string, Type>();
+  private coreHM = new CoreHM(this.typeAliasMap, new Map(staticTypeClasses));
 
   constructor() {
     this.signatureMap = new Map<string, TypeScheme>();
     this.errors = [];
   }
   check(ast: AST): string[] {
-    const typeAliasMap = new Map<string, Type>();
-    this.coreHM = new CoreHM(typeAliasMap, new Map(staticTypeClasses));
     const recordMap = new Map<string, Type>();
 
     // Phase 1: Collect declarations
     const collector = new DeclarationCollectorVisitor(
       this.errors,
-      typeAliasMap,
+      this.typeAliasMap,
       recordMap,
       this.signatureMap,
       this.coreHM,
@@ -340,7 +350,9 @@ export class TypeChecker {
       try {
         node.accept(collector);
       } catch (error) {
-        this.errors.push(error);
+        this.errors.push(
+          error instanceof Error ? error.message : String(error),
+        );
       }
     }
 
@@ -429,7 +441,8 @@ const formatBody = (t: Type, seen: SeenTypeNames): string => {
     }
     return `[${showType(t.args[0])}]`;
   }
-  if (isTupleType(t)) return `(${t.args.map(showType.bind(this)).join(", ")})`;
+  if (isTupleType(t)) 
+    return `(${t.args.map((arg) => showType(arg, seen)).join(", ")})`;
 
   const name = t.name;
   return t.args.length

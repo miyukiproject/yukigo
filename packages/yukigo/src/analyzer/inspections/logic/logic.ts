@@ -1,6 +1,4 @@
 import {
-  Assignment,
-  AssignOperation,
   Exist,
   Fact,
   Findall,
@@ -8,14 +6,10 @@ import {
   Not,
   Rule,
   StopTraversalException,
-  SymbolPrimitive,
-  TraverseVisitor,
-  UnifyOperation,
 } from "yukigo-ast";
-import { AutoScoped, ScopedVisitor, VisitorConstructor } from "../../utils.js";
-import { isYukigoPrimitive } from "yukigo-ast";
+import { AutoScoped, ScopedVisitor, VisitorConstructor, InspectionVisitor } from "../../utils.js";
 
-export class DeclaresFact extends TraverseVisitor {
+export class DeclaresFact extends InspectionVisitor {
   constructor(private readonly target?: string) {
     super();
   }
@@ -25,7 +19,7 @@ export class DeclaresFact extends TraverseVisitor {
       throw new StopTraversalException();
   }
 }
-export class DeclaresRule extends TraverseVisitor {
+export class DeclaresRule extends InspectionVisitor {
   constructor(private readonly target?: string) {
     super();
   }
@@ -35,7 +29,7 @@ export class DeclaresRule extends TraverseVisitor {
       throw new StopTraversalException();
   }
 }
-export class DeclaresPredicate extends TraverseVisitor {
+export class DeclaresPredicate extends InspectionVisitor {
   constructor(private readonly target?: string) {
     super();
   }

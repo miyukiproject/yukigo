@@ -29,7 +29,7 @@ import {
     New,
     Implement,
 } from "../paradigms/object.js";
-import { TraverseBase, GConstructor } from "./base.js";
+import { TraverseBase, VisitorConstructor } from "./base.js";
 
 export interface ExpressionVisitor<TReturn> {
     visitTupleExpr(node: TupleExpression): TReturn;
@@ -57,10 +57,10 @@ export interface ExpressionVisitor<TReturn> {
     visitYield(node: Yield): TReturn;
 }
 
-export function ExpressionTraverser<TBase extends GConstructor<TraverseBase>>(
+export function ExpressionTraverser<TBase extends VisitorConstructor<TraverseBase>>(
     Base: TBase
 ) {
-    return class ExpressionTraverser extends Base implements ExpressionVisitor<void> {
+    abstract class ExpressionTraverser extends Base implements ExpressionVisitor<void> {
         visitTupleExpr(node: TupleExpression): void {
             this.traverseCollection(node.elements);
         }
@@ -150,4 +150,5 @@ export function ExpressionTraverser<TBase extends GConstructor<TraverseBase>>(
             node.expression.accept(this);
         }
     };
+    return ExpressionTraverser
 }

@@ -36,7 +36,7 @@ export class ReinitializedConfig extends Error {
 }
 
 export class RuntimeContext {
-  public readonly config: InterpreterConfig | null = null;
+  public readonly config: InterpreterConfig = DefaultConfiguration;
   public env: EnvStack;
   public lazyRuntime: LazyRuntime;
   public funcRuntime: FunctionRuntime;

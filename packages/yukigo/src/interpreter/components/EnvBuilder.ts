@@ -26,6 +26,7 @@ import { InterpreterVisitor } from "./Visitor.js";
 import { idContinuation, trampoline } from "../trampoline.js";
 import { RuntimeContext } from "./RuntimeContext.js";
 import { InterpreterError } from "../errors.js";
+import { UnexpectedNode } from "../../utils/helpers.js";
 
 /**
  * Builds the initial environment by collecting all top-level function declarations.
@@ -56,7 +57,7 @@ export class EnvBuilderVisitor extends TraverseVisitor {
     if (node.equations.some((eq) => eq.patterns.length !== arity))
       throw new Error(`All equations of ${name} must have the same arity`);
 
-    let placeholder: RuntimeFunction;
+    let placeholder: RuntimeFunction = {type: "Function", arity: 0, equations: []};
     this.ctx.define(name, placeholder);
 
     const equations: EquationRuntime[] = node.equations.map((eq) => ({
@@ -178,6 +179,9 @@ export class EnvBuilderVisitor extends TraverseVisitor {
   visit(node: ASTNode): void {
     return node.accept(this);
   }
+  public fallback(node: ASTNode): string {
+    throw new UnexpectedNode(node.constructor.name, "EnvBuilderVisitor");
+  }
 }
 
 class OOPCollector extends TraverseVisitor {
@@ -198,5 +202,8 @@ class OOPCollector extends TraverseVisitor {
       node.identifier.value,
       InterpreterVisitor.evaluateLiteral(node.expression),
     );
+  }
+  public fallback(node: ASTNode): string {
+    throw new UnexpectedNode(node.constructor.name, "OOPCollector");
   }
 }

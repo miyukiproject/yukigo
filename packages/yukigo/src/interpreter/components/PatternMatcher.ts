@@ -28,6 +28,7 @@ import { InterpreterVisitor } from "./Visitor.js";
 import { CPSThunk, Thunk, Continuation } from "../trampoline.js";
 import { RuntimeContext } from "./RuntimeContext.js";
 import { ExpressionEvaluator, getYukigoType } from "../utils.js";
+import { UnexpectedNode } from "../../utils/helpers.js";
 
 class SharedSequence {
   private cache: PrimitiveValue[] = [];
@@ -75,7 +76,7 @@ export interface MemoizedLazyList extends LazyList {
 
 export function isMemoizedList(list: unknown): list is MemoizedLazyList {
   return (
-    list &&
+    list !== null &&
     typeof list === "object" &&
     "type" in list &&
     "_offset" in list &&
@@ -188,6 +189,9 @@ export class PatternResolver implements Visitor<string> {
   visit(node: ASTNode): string {
     return node.accept(this);
   }
+  public fallback(node: ASTNode): string {
+    throw new UnexpectedNode(node.constructor.name, "PatternResolver");
+  }
 }
 /**
  * Recursively matches a value against a pattern node.
@@ -266,7 +270,7 @@ export class PatternMatcher implements Visitor<CPSThunk<boolean>> {
 
         if (isLazyList(value)) {
           const iter = value.generator();
-          return k(iter.next().done);
+          return k(Boolean(iter.next().done));
         }
         return k(false);
       }
@@ -292,11 +296,7 @@ export class PatternMatcher implements Visitor<CPSThunk<boolean>> {
     if (value.length !== elements.length) return k(false);
     const matchNext = (index: number): Thunk<boolean> => {
       if (index >= elements.length) return k(true);
-      const matcher = new PatternMatcher(
-        value[index],
-        this.bindings,
-        this.ctx,
-      );
+      const matcher = new PatternMatcher(value[index], this.bindings, this.ctx);
       return elements[index].accept(matcher)((isMatch) => {
         if (!isMatch) return k(false);
         return () => matchNext(index + 1);
@@ -310,18 +310,10 @@ export class PatternMatcher implements Visitor<CPSThunk<boolean>> {
       const [head, tail] = this.resolveCons(this.value);
       if (head === null || tail === null) return k(false);
 
-      const headMatcher = new PatternMatcher(
-        head,
-        this.bindings,
-        this.ctx,
-      );
+      const headMatcher = new PatternMatcher(head, this.bindings, this.ctx);
       return node.left.accept(headMatcher)((headMatches) => {
         if (!headMatches) return k(false);
-        const tailMatcher = new PatternMatcher(
-          tail,
-          this.bindings,
-          this.ctx,
-        );
+        const tailMatcher = new PatternMatcher(tail, this.bindings, this.ctx);
         return node.right.accept(tailMatcher)(k);
       });
     };
@@ -471,5 +463,8 @@ export class PatternMatcher implements Visitor<CPSThunk<boolean>> {
 
   visit(node: ASTNode): CPSThunk<boolean> {
     return node.accept(this);
+  }
+  public fallback(node: ASTNode): CPSThunk<boolean> {
+    throw new UnexpectedNode(node.constructor.name, "PatternMatcher");
   }
 }

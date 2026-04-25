@@ -139,4 +139,5 @@ export class GraphBuilder extends TraverseVisitor {
     const arr = this.calls.get(this.scope) || [];
     this.calls.set(this.scope, [node.identifier.value, ...arr]);
   }
+  public fallback(node: ASTNode): void {}
 }

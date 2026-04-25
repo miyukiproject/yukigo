@@ -1,12 +1,18 @@
 import { AST, Expression, YukigoParser } from "yukigo-ast";
 import nearley from "nearley";
-import grammar from "./grammar.js";
+import * as grammar from "./grammar.js";
 import { Token } from "moo";
+
+interface NearleyError {
+  token?: any;
+  offset?: number;
+  [key: string]: any;
+}
 
 class UnexpectedToken extends Error {
   constructor(token: Token) {
     super(
-      `Parser: Unexpected '${token.type}' token '${token.value}' at line ${token.line} col ${token.col}.`
+      `Parser: Unexpected '${token.type}' token '${token.value}' at line ${token.line} col ${token.col}.`,
     );
   }
 }
@@ -25,14 +31,17 @@ export class YukigoMiniParser implements YukigoParser {
     try {
       parser.feed(code);
       parser.finish();
-    } catch (error) {
-      if ("token" in error) throw new UnexpectedToken(error.token);
-      throw error
+    } catch (e: unknown) {
+      const error = e as NearleyError; // Assert the shape
+      if (error.token) {
+        throw new UnexpectedToken(error.token);
+      }
+      throw error;
     }
     const results = parser.results;
     if (results.length > 1)
       throw Error(
-        `Ambiguous grammar. The parser generated ${results.length} ASTs`
+        `Ambiguous grammar. The parser generated ${results.length} ASTs`,
       );
     return results[0];
   }

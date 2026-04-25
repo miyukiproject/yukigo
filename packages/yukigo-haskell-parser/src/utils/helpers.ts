@@ -1,6 +1,11 @@
-import { inspect } from "util";
 import { AST } from "yukigo-ast";
 import { Function } from "yukigo-ast";
+
+export class UnexpectedNode extends Error {
+  constructor(nodeCons: string, context: string) {
+    super(`${nodeCons} not expected in ${context}.`)
+  }
+}
 
 export function groupFunctionDeclarations(ast: AST): AST {
   const groups: Record<string, Function[]> = {};

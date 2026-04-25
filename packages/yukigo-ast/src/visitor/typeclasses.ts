@@ -2,17 +2,17 @@ import {
   TypeClass,
   Instance,
 } from "../paradigms/typeclasses.js";
-import { TraverseBase, GConstructor } from "./base.js";
+import { TraverseBase, VisitorConstructor } from "./base.js";
 
 export interface TypeClassVisitor<TReturn> {
   visitTypeClass(node: TypeClass): TReturn;
   visitInstance(node: Instance): TReturn;
 }
 
-export function TypeClassTraverser<TBase extends GConstructor<TraverseBase>>(
+export function TypeClassTraverser<TBase extends VisitorConstructor<TraverseBase>>(
   Base: TBase
 ) {
-  return class TypeClassTraverser extends Base implements TypeClassVisitor<void> {
+  abstract class TypeClassTraverser extends Base implements TypeClassVisitor<void> {
     visitTypeClass(node: TypeClass): void {
       this.traverseCollection(node.signatures);
     }
@@ -20,4 +20,5 @@ export function TypeClassTraverser<TBase extends GConstructor<TraverseBase>>(
       this.traverseCollection(node.functions);
     }
   };
+  return TypeClassTraverser
 }

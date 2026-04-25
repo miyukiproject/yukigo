@@ -52,10 +52,12 @@ import {
   Visitor,
   isUnguardedBody,
   GuardedBody,
+  ASTNode,
 } from "yukigo-ast";
 import { Thunk } from "../../trampoline.js";
 import { LogicExecutable } from "./LogicEngine.js";
 import { RuntimeContext } from "../RuntimeContext.js";
+import { UnexpectedNode } from "../../../utils/helpers.js";
 
 /**
  * A Substitution maps variable names to their bound patterns.
@@ -294,7 +296,9 @@ class Instantiator implements PatternVisitor<Pattern> {
       node.loc,
     );
   }
-
+  public fallback(node: ASTNode): Pattern {
+    throw new UnexpectedNode(node.constructor.name, "Instantiator");
+  }
   instantiate(pattern: Pattern): Pattern {
     return pattern.accept(this);
   }
@@ -502,7 +506,11 @@ class LogicVariableRenamer implements PatternVisitor<Pattern> {
   }
 
   visitForall(node: Forall): any {
-    return new Forall(this.rename(node.condition), this.rename(node.action), node.loc);
+    return new Forall(
+      this.rename(node.condition),
+      this.rename(node.action),
+      node.loc,
+    );
   }
 
   visitCall(node: Call): any {
@@ -662,6 +670,9 @@ class LogicVariableRenamer implements PatternVisitor<Pattern> {
       node.loc,
     );
   }
+  public fallback(node: ASTNode): Thunk<any> {
+    throw new UnexpectedNode(node.constructor.name, "LogicVariableRenamer");
+  }
 }
 
 /**
@@ -671,7 +682,7 @@ export function renameVariables<T extends Rule | Fact>(clause: T): T {
   const renames = new Map<string, string>();
   const freshId = ++variableCounter;
   const renamer = new LogicVariableRenamer(renames, freshId);
-  const renamedClause = clause.accept(renamer)
+  const renamedClause = clause.accept(renamer);
   return renamedClause;
 }
 
@@ -706,6 +717,9 @@ class CPSBodyVisitor implements Visitor<Thunk<any>> {
       },
       this.onNextEq,
     );
+  }
+  public fallback(node: ASTNode): Thunk<any> {
+    throw new UnexpectedNode(node.constructor.name, "CPSBodyVisitor");
   }
 }
 
@@ -761,6 +775,9 @@ class GoalSolverVisitor implements Visitor<Thunk<any>> {
     };
 
     return () => tryRuleEq(0);
+  }
+  public fallback(node: ASTNode): Thunk<any> {
+    throw new UnexpectedNode(node.constructor.name, "GoalSolverVisitor");
   }
 }
 

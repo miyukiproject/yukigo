@@ -1,6 +1,7 @@
 import { Expression } from "../globals/expressions.js";
 import {
   ASTNode,
+  SerializeNode,
   SourceLocation,
 } from "../globals/generics.js";
 import { Pattern } from "../globals/patterns.js";
@@ -26,9 +27,9 @@ export class CompositionExpression extends ASTNode {
     this.right = right;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitCompositionExpression?.(this);
+    return this.dispatchVisit(visitor, visitor.visitCompositionExpression);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "CompositionExpression",
       left: this.left.toJSON(),
@@ -60,9 +61,9 @@ export class Lambda extends ASTNode {
     this.body = body;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitLambda?.(this);
+    return this.dispatchVisit(visitor, visitor.visitLambda);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Lambda",
       body: this.body.toJSON(),
@@ -83,9 +84,9 @@ export class Yield extends ASTNode {
     this.expression = expression;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitYield?.(this);
+    return this.dispatchVisit(visitor, visitor.visitYield);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Yield",
       expression: this.expression.toJSON(),
@@ -116,9 +117,9 @@ export class Application extends ASTNode {
     this.parameter = parameter;
   }
   public accept<R>(visitor: Visitor<R>): R {
-    return visitor.visitApplication?.(this);
+    return this.dispatchVisit(visitor, visitor.visitApplication);
   }
-  public toJSON() {
+  public toJSON(): SerializeNode {
     return {
       type: "Application",
       function: this.functionExpr.toJSON(),

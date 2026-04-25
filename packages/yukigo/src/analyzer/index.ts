@@ -66,7 +66,7 @@ export class Analyzer {
    */
   public registerInspection(
     name: string,
-    visitorConstructor: VisitorConstructor
+    visitorConstructor: VisitorConstructor,
   ) {
     this.inspectionConstructors[name] = visitorConstructor;
   }
@@ -132,13 +132,13 @@ export class Analyzer {
 
         while (workList.length > 0) {
           const currentBinding = workList.shift();
-          if (visited.has(currentBinding)) continue;
+          if (!currentBinding || visited.has(currentBinding)) continue;
           visited.add(currentBinding);
 
           const node = defs.get(currentBinding);
           if (node)
             node.forEach((n) =>
-              targets.push({ node: n, binding: currentBinding })
+              targets.push({ node: n, binding: currentBinding }),
             );
 
           if (isTransitive) {
@@ -149,17 +149,17 @@ export class Analyzer {
       }
 
       let actual = false;
-      let error: string;
+      let error: string | undefined = undefined;
 
       // Execution Loop
       const isGlobalVisitor = !rule.binding || rule.binding === "*";
       const normalizedBinding = isGlobalVisitor ? undefined : rule.binding;
-      const args = rule.args ?? []
+      const args = rule.args ?? [];
       const visitor = new InspectionClass(...args, normalizedBinding);
 
       for (const { node, binding } of targets) {
         try {
-          if (!isGlobalVisitor && visitor.setBinding) {
+          if (!isGlobalVisitor && visitor.setBinding && binding) {
             visitor.setBinding(binding);
           }
           node.accept(visitor);

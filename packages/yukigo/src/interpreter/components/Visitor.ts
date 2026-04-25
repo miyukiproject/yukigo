@@ -97,6 +97,7 @@ import {
   valueToCPS,
 } from "../trampoline.js";
 import { RuntimeContext } from "./RuntimeContext.js";
+import { UnexpectedNode } from "../../utils/helpers.js";
 
 export class InterpreterVisitor
   implements Visitor<CPSThunk<PrimitiveValue>>, ExpressionEvaluator
@@ -242,7 +243,7 @@ export class InterpreterVisitor
       }
       if (this.context.config.debug) {
         console.log(
-          `[Interpreter] Found \`${node.value}\`: ${typeof val === "object" && "type" in val ? val.type : val}`,
+          `[Interpreter] Found \`${node.value}\`: ${val && typeof val === "object" && "type" in val ? val.type : val}`,
         );
       }
       return valueToCPS(val);
@@ -354,7 +355,8 @@ export class InterpreterVisitor
   ): CPSThunk<PrimitiveValue> {
     if (node.operator === "Concat") {
       if (this.context.config.lazyLoading) {
-        return (k) => this.context.lazyRuntime.evaluateConcatLazy(node, this, k);
+        return (k) =>
+          this.context.lazyRuntime.evaluateConcatLazy(node, this, k);
       }
       return (k) =>
         this.evaluate(node.left, (left) => {
@@ -380,12 +382,14 @@ export class InterpreterVisitor
   ): CPSThunk<PrimitiveValue> {
     if (node.operator === "Equal" || node.operator === "NotEqual") {
       return (k) =>
-        this.evaluate(node.left, (left) => () =>
-          this.evaluate(node.right, (right) =>
-            this.context.lazyRuntime.deepEqual(left, right, (eq) =>
-              k(node.operator === "Equal" ? eq : !eq)
-            )
-          )
+        this.evaluate(
+          node.left,
+          (left) => () =>
+            this.evaluate(node.right, (right) =>
+              this.context.lazyRuntime.deepEqual(left, right, (eq) =>
+                k(node.operator === "Equal" ? eq : !eq),
+              ),
+            ),
         );
     }
 
@@ -695,7 +699,7 @@ export class InterpreterVisitor
   }
 
   visitApplication(node: Application): CPSThunk<PrimitiveValue> {
-    const { funcRuntime } = this.context
+    const { funcRuntime } = this.context;
     if (this.context.config.debug) {
       console.log(`[Interpreter] Visiting Application`);
     }
@@ -707,16 +711,21 @@ export class InterpreterVisitor
             "Cannot apply non-function",
           );
 
-        const applyFuncToNode = (func: RuntimeFunction): CPSThunk<PrimitiveValue> => (k) =>
-          this.evaluate(node.parameter, (arg) => {
-            const argThunk = () => arg;
-            const allPendingArgs = func.pendingArgs
-              ? [...func.pendingArgs, argThunk]
-              : [argThunk];
-            return funcRuntime.applyArguments(func, allPendingArgs)(k);
-          });
+        const applyFuncToNode =
+          (func: RuntimeFunction): CPSThunk<PrimitiveValue> =>
+          (k) =>
+            this.evaluate(node.parameter, (arg) => {
+              const argThunk = () => arg;
+              const allPendingArgs = func.pendingArgs
+                ? [...func.pendingArgs, argThunk]
+                : [argThunk];
+              return funcRuntime.applyArguments(func, allPendingArgs)(k);
+            });
         if (func.arity === 0) {
-          return funcRuntime.applyArguments(func, [])(resultOfFunc => {
+          return funcRuntime.applyArguments(
+            func,
+            [],
+          )((resultOfFunc) => {
             if (!isRuntimeFunction(resultOfFunc))
               throw new InterpreterError(
                 "Application",
@@ -732,9 +741,7 @@ export class InterpreterVisitor
 
   visitQuery(node: Query): CPSThunk<PrimitiveValue> {
     if (this.context.config.debug) {
-      console.log(
-        `[Interpreter] Visiting Query.`,
-      );
+      console.log(`[Interpreter] Visiting Query.`);
     }
     return (k) =>
       this.getLogicEngine().solveQuery(node, (res) => {
@@ -993,7 +1000,9 @@ export class InterpreterVisitor
   visit(node: Expression): CPSThunk<PrimitiveValue> {
     return node.accept(this);
   }
-
+  public fallback(node: ASTNode): CPSThunk<PrimitiveValue> {
+    throw new UnexpectedNode(node.constructor.name, "InterpreterVisitor");
+  }
   public realizeList<R = PrimitiveValue[]>(
     val: PrimitiveValue,
     k: Continuation<PrimitiveValue[], R>,
