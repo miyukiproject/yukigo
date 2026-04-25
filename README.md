@@ -54,7 +54,7 @@ const expectations = [
 const parser = new YukigoHaskellParser();
 const ast = parser.parse(code);
 
-const analyzer = new ASTAnalyzer(ast);
+const analyzer = new Analyzer(ast);
 const result = analyzer.analyse(expectations);
 
 console.log(results);
@@ -83,7 +83,7 @@ console.log(results);
 ## Example with Mulang's Inspections (in a YAML file)
 
 ```ts
-import { Analyzer, translateMulangToInspectionRules } from "yukigo";
+import { Analyzer, MulangAdapter } from "yukigo";
 import { YukigoHaskellParser } from "yukigo-haskell-parser";
 
 const code = `
@@ -98,7 +98,7 @@ squareList2 = map square
 `;
 
 // Assuming the expectations are in a yaml file. Implement a way to load the actual file.
-const mulangInspections = `
+const mulangExpectations = `
 expectations:
 - !ruby/hash:ActiveSupport::HashWithIndifferentAccess
   binding: squareList
@@ -119,8 +119,8 @@ expectations:
   binding: squareList2
   inspection: Uses:map
 `;
-
-const expectations = translateMulangToInspectionRules(mulangInspections);
+const adapter = new MulangAdapter()
+const expectations = adapter.translateMulangExpectations(mulangExpectations);
 
 const parser = new YukigoHaskellParser();
 const ast = parser.parse(code);
@@ -177,6 +177,7 @@ console.log(results);
 ## Parsers
 - Haskell
 - Prolog
+- Wollok
 
 # How to make a parser
 
