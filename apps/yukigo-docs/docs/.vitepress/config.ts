@@ -86,6 +86,10 @@ const sidebarDef: SidebarDef[] = [
     key: "astReference",
     items: getAstSidebar(),
   },
+  {
+    key: "contributing",
+    items: [{ key: "release", link: "/release" }],
+  },
 ];
 
 const sidebarTranslations = {
@@ -106,6 +110,8 @@ const sidebarTranslations = {
     interpreter: "Intérprete",
     patternMatching: "Pattern matching",
     astReference: "Referencia AST",
+    contributing: "Contribuir",
+    release: "Release",
   },
   en: {
     introduction: "Introduction",
@@ -124,6 +130,8 @@ const sidebarTranslations = {
     interpreter: "Interpreter",
     patternMatching: "Pattern matching",
     astReference: "AST Reference",
+    contributing: "Contributing",
+    release: "Release",
   },
 };
 
