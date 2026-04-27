@@ -26,11 +26,13 @@
     "tsx": "^4.20.6",
     "typescript": "^5.9.2"
   },
+  "peerDependencies": {
+    "yukigo-ast": "^0.2.0"
+  },
   "dependencies": {
     "moo": "^0.5.2",
     "moo-ignore": "^2.5.3",
     "moo-indentation-lexer": "^6.0.0",
-    "nearley": "^2.20.1",
-    "yukigo-ast": "^0.2.0"
+    "nearley": "^2.20.1"
   }
 }

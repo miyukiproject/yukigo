@@ -29,7 +29,9 @@
   "dependencies": {
     "moo": "^0.5.2",
     "nearley": "^2.20.1",
-    "wollok-ts": "^4.2.3",
+    "wollok-ts": "^4.2.3"
+  },
+  "peerDependencies": {
     "yukigo-ast": "^0.2.0"
   }
 }

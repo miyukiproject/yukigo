@@ -27,9 +27,11 @@
   },
   "dependencies": {
     "@types/moo": "^0.5.10",
-    "yukigo-ast": "^0.2.0",
     "moo": "^0.5.2",
     "moo-ignore": "^2.5.3",
     "nearley": "^2.20.1"
+  },
+  "peerDependencies": {
+    "yukigo-ast": "^0.2.0"
   }
 }
