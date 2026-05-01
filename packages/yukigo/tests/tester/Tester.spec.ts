@@ -12,13 +12,8 @@ import {
   SymbolPrimitive,
   ArithmeticBinaryOperation,
   Lambda,
-  Call,
   Application,
   VariablePattern,
-  Function,
-  Equation,
-  UnguardedBody,
-  Return,
 } from "yukigo-ast";
 import { Tester } from "../../src/tester/index.js";
 
@@ -153,37 +148,5 @@ describe("Tester class", () => {
 
     expect(results[0].status).to.equal("error");
     expect(results[0].message).to.contain("Type mismatch");
-  });
-  it("TEMP", () => {
-    const func = new Function(new SymbolPrimitive("cantidadDiasEnero"), [
-      new Equation(
-        [],
-        new UnguardedBody(new Sequence([new Return(new NumberPrimitive(23))])),
-      ),
-    ]);
-    // test "Error" { 1 + "a" }
-    const errorTest = new TestGroup(
-      new StringPrimitive("cantidadDiasEnero"),
-      new Sequence([
-        new Test(
-          new StringPrimitive("es igual a 31"),
-          new Sequence([
-            new Assert(
-              new BooleanPrimitive(false),
-              new Equality(
-                new NumberPrimitive(31),
-                new SymbolPrimitive("cantidadDiasEnero"),
-              ),
-            ),
-          ]),
-          [],
-        ),
-      ]),
-    );
-
-    const tester = new Tester([func]);
-    const results = tester.test([errorTest]);
-
-    console.log(results)
   });
 });
