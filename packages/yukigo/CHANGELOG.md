@@ -1,3 +1,17 @@
+## 0.2.2 (2026-05-01)
+
+### 🩹 Fixes
+
+- **yukigo:** MulangAdapter handle v1 and v2 inspections ([872558f](https://github.com/miyukiproject/yukigo/commit/872558f))
+
+### 🧱 Updated Dependencies
+
+- Updated yukigo-ast to 0.2.1
+
+### ❤️ Thank You
+
+- noiseArch
+
 ## 0.2.1 (2026-05-01)
 
 ### 🩹 Fixes
