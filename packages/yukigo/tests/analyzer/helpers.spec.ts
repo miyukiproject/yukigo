@@ -31,48 +31,54 @@ expectations:
 
     const yukigoExpectations =
       mulangAdapter.translateMulangExpectations(mulangExpectations);
+
     assert.deepEqual(yukigoExpectations, [
       {
-        inspection: "HasBinding",
+        inspection: "Declares",
+        binding: "*",
+        args: ["squareList"],
+        expected: true,
+        targetSuffix: "named",
+      },
+      {
+        inspection: "UsesLambdaExpression",
         binding: "squareList",
         args: [],
         expected: true,
       },
       {
-        inspection: "HasLambdaExpression",
-        binding: "squareList",
-        args: [],
-        expected: true,
-      },
-      {
-        inspection: "HasArithmetic",
+        inspection: "UsesArithmetic",
         binding: "square",
         args: [],
         expected: true,
       },
       {
-        inspection: "HasBinding",
-        binding: "doble",
-        args: [],
+        inspection: "Declares",
+        binding: "*",
+        args: ["doble"],
         expected: false,
+        targetSuffix: "named",
       },
       {
         inspection: "Uses",
         binding: "square",
         args: ["x"],
         expected: true,
+        targetSuffix: "named",
       },
       {
         inspection: "Uses",
         binding: "squareList",
         args: ["map"],
         expected: true,
+        targetSuffix: "named",
       },
       {
         inspection: "Uses",
         binding: "squareList",
         args: ["map"],
         expected: false,
+        targetSuffix: "named",
       },
     ]);
   });
