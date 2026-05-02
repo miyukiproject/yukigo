@@ -1,3 +1,13 @@
+## 0.2.3 (2026-05-02)
+
+### 🩹 Fixes
+
+- **yukigo:** fix bugs on MulangAdapter ([7fc193d](https://github.com/miyukiproject/yukigo/commit/7fc193d))
+
+### ❤️ Thank You
+
+- noiseArch
+
 ## 0.2.2 (2026-05-01)
 
 ### 🩹 Fixes
