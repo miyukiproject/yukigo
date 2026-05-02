@@ -25,5 +25,8 @@
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     }
+  },
+  "peerDependencies": {
+    "yukigo-ast": "^0.2.1"
   }
 }

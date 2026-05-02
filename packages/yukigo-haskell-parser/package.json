@@ -24,7 +24,7 @@
     "@types/nearley": "^2.11.5"
   },
   "peerDependencies": {
-    "yukigo-ast": "^0.2.0"
+    "yukigo-ast": "^0.2.1"
   },
   "dependencies": {
     "moo": "^0.5.2",
