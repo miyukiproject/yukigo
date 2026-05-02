@@ -12,10 +12,10 @@ expectations:
     inspection: HasBinding
   - !ruby/hash:ActiveSupport::HashWithIndifferentAccess
     binding: squareList
-    inspection: HasLambdaExpression
+    inspection: HasLambda
   - !ruby/hash:ActiveSupport::HashWithIndifferentAccess
     binding: square
-    inspection: HasArithmetic
+    inspection: UsesArithmetic
   - !ruby/hash:ActiveSupport::HashWithIndifferentAccess
     binding: doble
     inspection: Not:HasBinding
@@ -41,7 +41,7 @@ expectations:
         targetSuffix: "named",
       },
       {
-        inspection: "UsesLambdaExpression",
+        inspection: "UsesLambda",
         binding: "squareList",
         args: [],
         expected: true,

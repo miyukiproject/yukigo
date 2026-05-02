@@ -9,8 +9,14 @@ const declareMap: Record<string, string> = {
   HasTypeDeclaration: "DeclaresTypeAlias",
   HasTypeSignature: "DeclaresTypeSignature",
   HasVariable: "DeclaresVariable",
-  HasDirectRecursion: "DeclaresRecursively",
 };
+const V0_HAS_INSPECTIONS = new Set([
+  "HasBinding", "HasTypeDeclaration", "HasTypeSignature", "HasVariable",
+  "HasArity", "HasDirectRecursion", "HasComposition", "HasComprehension",
+  "HasForeach", "HasIf", "HasGuards", "HasConditional", "HasLambda",
+  "HasRepeat", "HasWhile", "HasUsage", "HasAnonymousVariable",
+  "HasNot", "HasForall", "HasFindall",
+]);
 
 type MulangInspection = {
   inspection: string;
@@ -113,18 +119,13 @@ export class MulangAdapter {
 
     if (inspection === "HasArity")
       return {
-        inspection: `DeclaresComputationWithArity${args[0]}`,
-        ...promoteBindingToTarget([], binding),
+        inspection: "DeclaresComputationWithArity",
+        args: [args[0], ...(binding && binding !== "*" ? [binding] : [])],
+        binding: "*",
       };
 
-    if (inspection.startsWith("Has"))
-      return {
-        inspection: inspection.replace(/^Has(Usage)?/, (_, usage) =>
-          usage ? "Uses" : "Uses",
-        ),
-        args,
-        binding,
-      };
+    if (V0_HAS_INSPECTIONS.has(inspection))
+      return { inspection: inspection === "HasUsage" ? "Uses" : inspection.replace(/^Has/, "Uses"), args, binding };
 
     return { inspection, args, binding };
   }

@@ -119,10 +119,6 @@ export class Declares extends ScopedVisitor {
   visitTypeAlias(node: TypeAlias): void {
     this.check(node);
   }
-
-  visitTypeSignature(node: TypeSignature): void {
-    this.check(node);
-  }
 }
 @AutoScoped
 export class DeclaresComputation extends ScopedVisitor {
@@ -234,7 +230,7 @@ export class DeclaresRecursively extends ScopedVisitor {
       throw new StopTraversalException();
   }
 }
-export class HasDirectRecursion extends TraverseVisitor {
+export class UsesDirectRecursion extends TraverseVisitor {
   private isInsideBody: boolean = false;
   constructor(private readonly binding: string) {
     super();
@@ -553,7 +549,7 @@ export const genericInspections: Record<string, VisitorConstructor> = {
   DeclaresEntryPoint: DeclaresEntryPoint,
   DeclaresFunction: DeclaresFunction,
   DeclaresRecursively: DeclaresRecursively,
-  HasDirectRecursion: HasDirectRecursion,
+  UsesDirectRecursion: UsesDirectRecursion,
   DeclaresTypeAlias: DeclaresTypeAlias,
   DeclaresTypeSignature: DeclaresTypeSignature,
   HasTypeSignature: DeclaresTypeSignature,
