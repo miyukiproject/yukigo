@@ -24,10 +24,11 @@ abstract class BasePattern extends ASTNode {
     super(loc);
   }
   protected abstract get jsonType(): YukigoPattern;
+  public abstract toString(): string;
 }
 
 abstract class NamedPattern<
-  T extends Primitive | SymbolPrimitive
+  T extends Primitive | SymbolPrimitive,
 > extends BasePattern {
   public name: T;
   constructor(name: T, loc?: SourceLocation) {
@@ -35,6 +36,7 @@ abstract class NamedPattern<
     this.name = name;
   }
   protected abstract get jsonType(): NamedPatternKind;
+  public abstract toString(): string;
   public toJSON(): SerializeNode {
     return {
       type: this.jsonType,
@@ -50,13 +52,14 @@ abstract class ArgsPattern extends BasePattern {
   constructor(
     identifier: SymbolPrimitive,
     args: Pattern[],
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ) {
     super(loc);
     this.identifier = identifier;
     this.args = args;
   }
   protected abstract get jsonType(): ArgsPatternKind;
+  public abstract toString(): string;
   public toJSON(): SerializeNode {
     return {
       type: this.jsonType,
@@ -73,6 +76,7 @@ abstract class ListBasedPattern extends BasePattern {
     this.elements = elements;
   }
   protected abstract get jsonType(): ListBasedPatternKind;
+  public abstract toString(): string;
   public toJSON(): SerializeNode {
     return {
       type: this.jsonType,
@@ -91,6 +95,7 @@ abstract class BinaryPattern extends BasePattern {
     this.right = right;
   }
   protected abstract get jsonType(): BinaryPatternKind;
+  public abstract toString(): string;
   public toJSON(): SerializeNode {
     return {
       type: this.jsonType,
@@ -117,6 +122,9 @@ export class VariablePattern extends NamedPattern<SymbolPrimitive> {
   public accept<R>(visitor: Visitor<R>): R {
     return this.dispatchVisit(visitor, visitor.visitVariablePattern);
   }
+  public toString(): string {
+    return this.name.value;
+  }
 }
 
 type LiteralPrimitive = Exclude<Primitive, ListPrimitive>;
@@ -134,6 +142,10 @@ export class LiteralPattern extends NamedPattern<LiteralPrimitive> {
   public accept<R>(visitor: Visitor<R>): R {
     return this.dispatchVisit(visitor, visitor.visitLiteralPattern);
   }
+  public toString(): string {
+    const { name } = this;
+    return String(name.value);
+  }
 }
 /**
  * Represents a pattern matching a function application or constructor with arguments.
@@ -148,6 +160,11 @@ export class ApplicationPattern extends ArgsPattern {
   }
   public accept<R>(visitor: Visitor<R>): R {
     return this.dispatchVisit(visitor, visitor.visitApplicationPattern);
+  }
+  public toString(): string {
+    const constr = this.identifier.value;
+    const args = this.args.map((pat) => pat.toString()).join(" ");
+    return `${constr} ${args}`;
   }
 }
 
@@ -164,6 +181,9 @@ export class TuplePattern extends ListBasedPattern {
   }
   public accept<R>(visitor: Visitor<R>): R {
     return this.dispatchVisit(visitor, visitor.visitTuplePattern);
+  }
+  public toString(): string {
+    return `(${this.elements.map((e) => e.toString()).join(", ")})`;
   }
 }
 
@@ -184,6 +204,12 @@ export class ListPattern extends ListBasedPattern {
   public accept<R>(visitor: Visitor<R>): R {
     return this.dispatchVisit(visitor, visitor.visitListPattern);
   }
+  public toString(): string {
+    const { elements } = this;
+    if (elements.length === 0) return "[]";
+
+    return `[${this.elements.map((e) => e.toString()).join(", ")}]`;
+  }
 }
 
 /**
@@ -199,6 +225,11 @@ export class FunctorPattern extends ArgsPattern {
   }
   public accept<R>(visitor: Visitor<R>): R {
     return this.dispatchVisit(visitor, visitor.visitFunctorPattern);
+  }
+  public toString(): string {
+    const constr = this.identifier.value;
+    const args = this.args.map((pat) => pat.toString()).join(" ");
+    return `${constr} ${args}`;
   }
 }
 
@@ -216,12 +247,17 @@ export class AsPattern extends BinaryPattern {
   constructor(
     left: VariablePattern | WildcardPattern,
     right: Pattern,
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ) {
     super(left, right, loc);
   }
   public accept<R>(visitor: Visitor<R>): R {
     return this.dispatchVisit(visitor, visitor.visitAsPattern);
+  }
+  public toString(): string {
+    const alias = this.left.toString();
+    const pattern = this.right.toString();
+    return `${alias}@${pattern}`;
   }
 }
 
@@ -245,6 +281,9 @@ export class WildcardPattern extends BasePattern {
       name: "_",
     };
   }
+  public toString(): string {
+    return "_";
+  }
 }
 
 /**
@@ -260,6 +299,10 @@ export class UnionPattern extends ListBasedPattern {
   }
   public accept<R>(visitor: Visitor<R>): R {
     return this.dispatchVisit(visitor, visitor.visitUnionPattern);
+  }
+  public toString(): string {
+    const inner = this.elements.map((pat) => pat.toString()).join(" | ");
+    return `(${inner})`;
   }
 }
 
@@ -280,6 +323,11 @@ export class ConstructorPattern extends ArgsPattern {
   public accept<R>(visitor: Visitor<R>): R {
     return this.dispatchVisit(visitor, visitor.visitConstructorPattern);
   }
+  public toString(): string {
+    const constr = this.identifier.value;
+    const args = this.args.map((pat) => pat.toString()).join(" ");
+    return `${constr} ${args}`;
+  }
 }
 
 /**
@@ -295,6 +343,11 @@ export class ConsPattern extends BinaryPattern {
   }
   public accept<R>(visitor: Visitor<R>): R {
     return this.dispatchVisit(visitor, visitor.visitConsPattern);
+  }
+  public toString(): string {
+    const head = this.left.toString();
+    const tail = this.right.toString();
+    return `(${head}:${tail})`;
   }
 }
 
@@ -325,6 +378,12 @@ export class TypePattern extends BasePattern {
       targetType: this.targetType.toJSON(),
       innerPattern: this.innerPattern?.toJSON(),
     };
+  }
+  public toString(): string {
+    const typeStr = this.targetType.toString();
+    return this.innerPattern
+      ? `(${typeStr} ${this.innerPattern.toString()})`
+      : typeStr;
   }
 }
 

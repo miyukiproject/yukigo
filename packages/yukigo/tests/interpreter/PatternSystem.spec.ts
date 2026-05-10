@@ -14,7 +14,6 @@ import {
 } from "yukigo-ast";
 import {
   PatternMatcher,
-  PatternResolver,
 } from "../../src/interpreter/components/PatternMatcher.js";
 import { createStream } from "../../src/interpreter/utils.js";
 import { idContinuation, trampoline } from "../../src/interpreter/trampoline.js";
@@ -29,37 +28,32 @@ const wildcard = () => new WildcardPattern();
 
 describe("Pattern System", () => {
   describe("PatternResolver (Pretty Printing)", () => {
-    let resolver: PatternResolver;
-
-    beforeEach(() => {
-      resolver = new PatternResolver();
-    });
 
     it("should resolve a variable pattern", () => {
       const p = variable("X");
-      expect(p.accept(resolver)).to.equal("X");
+      expect(p.toString()).to.equal("X");
     });
 
     it("should resolve a wildcard pattern", () => {
       const p = wildcard();
-      expect(p.accept(resolver)).to.equal("_");
+      expect(p.toString()).to.equal("_");
     });
 
     it("should resolve a literal pattern", () => {
       const p = lit(42);
-      expect(p.accept(resolver)).to.equal("42");
+      expect(p.toString()).to.equal("42");
     });
 
     it("should resolve a cons pattern", () => {
       // (1:X)
       const p = new ConsPattern(lit(1), variable("X"));
-      expect(p.accept(resolver)).to.equal("(1:X)");
+      expect(p.toString()).to.equal("(1:X)");
     });
 
     it("should resolve a constructor pattern", () => {
       // Just(X)
       const p = new ConstructorPattern(new SymbolPrimitive("Just"), [variable("X")]);
-      expect(p.accept(resolver)).to.equal("Just X");
+      expect(p.toString()).to.equal("Just X");
     });
 
     it("should resolve nested patterns", () => {
@@ -68,7 +62,7 @@ describe("Pattern System", () => {
         lit(1),
         new ConsPattern(lit(2), new ListPattern([]))
       );
-      expect(p.accept(resolver)).to.equal("(1:(2:[]))");
+      expect(p.toString()).to.equal("(1:(2:[]))");
     });
   });
 

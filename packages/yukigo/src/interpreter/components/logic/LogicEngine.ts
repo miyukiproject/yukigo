@@ -30,7 +30,6 @@ import { InterpreterVisitor } from "../Visitor.js";
 import { LogicTranslator } from "./LogicTranslator.js";
 import { trampoline, Continuation, Thunk } from "../../trampoline.js";
 import { RuntimeContext, LogicSearchMode } from "../RuntimeContext.js";
-import { PatternResolver } from "../PatternMatcher.js";
 
 export type LogicExecutable = Expression | Statement | Goal | Exist | Findall;
 
@@ -384,12 +383,12 @@ export class LogicEngine {
       (s, next) => {
         if (this.context.config.debug)
           console.log(
-            `[LogicEngine] Pushing { ${Array.from(s).map(([k, pat]) => `${k} -> ${pat.accept(new PatternResolver())}`)} } to results`,
+            `[LogicEngine] Pushing { ${Array.from(s).map(([k, pat]) => `${k} -> ${pat.toString()}`)} } to results`,
           );
         results.push(s);
         if (this.context.config.debug)
           console.log(
-            `[LogicEngine] Collected results: ${results.map((s) => `{ ${Array.from(s).map(([k, pat]) => `${k} -> ${pat.accept(new PatternResolver())}`)} }`)}`,
+            `[LogicEngine] Collected results: ${results.map((s) => `{ ${Array.from(s).map(([k, pat]) => `${k} -> ${pat.toString()}`)} }`)}`,
           );
         return next;
       },

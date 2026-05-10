@@ -1,16 +1,11 @@
-import { PrimitiveValue, AST, EnvStack, ASTNode } from "yukigo-ast";
+import { PrimitiveValue, AST, ASTNode } from "yukigo-ast";
 import { InterpreterVisitor } from "./components/Visitor.js";
 import { EnvBuilderVisitor } from "./components/EnvBuilder.js";
-import { InterpreterError } from "./errors.js";
-import { createGlobalEnv } from "./utils.js";
 import { idContinuation, trampoline } from "./trampoline.js";
 import {
   InterpreterConfig,
   RuntimeContext,
 } from "./components/RuntimeContext.js";
-import { LazyRuntime } from "./components/runtimes/LazyRuntime.js";
-import { FunctionRuntime } from "./components/runtimes/FunctionRuntime.js";
-import { ObjectRuntime } from "./components/runtimes/ObjectRuntime.js";
 
 export type Bindings = [string, PrimitiveValue][];
 

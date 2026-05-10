@@ -31,7 +31,6 @@ import {
 } from "../../src/interpreter/utils.js";
 import { LogicEngine } from "../../src/interpreter/components/logic/LogicEngine.js";
 import { unify } from "../../src/interpreter/components/logic/LogicResolver.js";
-import { PatternResolver } from "../../src/interpreter/components/PatternMatcher.js";
 import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
 import {
   idContinuation,
@@ -121,8 +120,7 @@ describe("Logic Engine & Unification", () => {
       expect(result).to.not.be.null;
       const resolved = result!.get("X");
       expect(resolved).to.be.instanceOf(LiteralPattern);
-      const resolver = new PatternResolver();
-      expect(resolved?.accept(resolver)).to.equal("cat");
+      expect(resolved?.toString()).to.equal("cat");
     });
 
     it("should unify two variables (aliasing)", () => {
