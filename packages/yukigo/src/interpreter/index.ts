@@ -40,13 +40,8 @@ export class Interpreter {
    * @returns The resulting primitive value (number, string, boolean, etc.) after evaluation.
    */
   public evaluate(expr: ASTNode): PrimitiveValue {
-    try {
-      const visitor = new InterpreterVisitor(this.context);
-      const evaluatedCPS = expr.accept(visitor);
-      return trampoline(evaluatedCPS(idContinuation));
-    } catch (error) {
-      if (error instanceof InterpreterError) console.log(error.formatStack());
-      throw error;
-    }
+    const visitor = new InterpreterVisitor(this.context);
+    const evaluatedCPS = expr.accept(visitor);
+    return trampoline(evaluatedCPS(idContinuation));
   }
 }
