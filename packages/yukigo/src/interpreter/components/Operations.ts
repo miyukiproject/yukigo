@@ -44,16 +44,21 @@ export const BitwiseBinaryTable: OperatorTable<BinaryOp<number>> = {
   BitwiseXor: (a, b) => a ^ b,
 };
 
+class StringConcatError extends Error {
+  constructor(a: any, b: any) {
+    super(
+      `String Concatenation: operands must be strings or numbers, got ${typeof a} and ${typeof b}`,
+    );
+  }
+}
+
 export const StringOperationTable: OperatorTable<BinaryOp<any, string>> = {
   Concat: (a, b) => {
-    if (
-      (typeof a !== "string" && typeof a !== "number") ||
-      (typeof b !== "string" && typeof b !== "number")
-    ) {
-      throw new Error(
-        `String Concatenation: operands must be strings or numbers, got ${typeof a} and ${typeof b}`,
-      );
-    }
+    const validConcatType = (operand: unknown) =>
+      typeof operand === "string" || typeof operand === "number";
+    if (!validConcatType(a) || !validConcatType(b))
+      throw new StringConcatError(a, b);
+
     return String(a) + String(b);
   },
 };
@@ -74,7 +79,9 @@ export const ListBinaryTable: OperatorTable<BinaryOp<any, PrimitiveValue>> = {
     return res;
   },
 };
-export const ListUnaryTable: OperatorTable<UnaryOp<PrimitiveValue[], PrimitiveValue>> = {
+export const ListUnaryTable: OperatorTable<
+  UnaryOp<PrimitiveValue[], PrimitiveValue>
+> = {
   Size: (a: PrimitiveValue[]) => a.length,
   DetectMax: (a: PrimitiveValue[]) => {
     if (!isArrayOfNumbers(a))
@@ -88,7 +95,9 @@ export const ListUnaryTable: OperatorTable<UnaryOp<PrimitiveValue[], PrimitiveVa
   },
   Flatten: (a: PrimitiveValue[]) => a.flat(),
 };
-export const ArithmeticUnaryTable: OperatorTable<UnaryOp<number, number | string>> = {
+export const ArithmeticUnaryTable: OperatorTable<
+  UnaryOp<number, number | string>
+> = {
   Round: (a) => Math.round(a),
   Absolute: (a) => Math.abs(a),
   Ceil: (a) => Math.ceil(a),
