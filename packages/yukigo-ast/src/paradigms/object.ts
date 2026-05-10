@@ -1,9 +1,5 @@
 import { Expression } from "../globals/expressions.js";
-import {
-  ASTNode,
-  SerializeNode,
-  SourceLocation,
-} from "../globals/generics.js";
+import { ASTNode, SerializeNode, SourceLocation } from "../globals/generics.js";
 import { Operator } from "../globals/operators.js";
 import { SymbolPrimitive } from "../globals/primitives.js";
 import { Equation } from "../globals/statements.js";
@@ -23,15 +19,18 @@ export class Method extends ASTNode {
   public equations: Equation[];
   /** @hidden */
   public identifier: SymbolPrimitive;
-
+  /** @hidden */
+  public isAbstract: boolean;
   constructor(
     identifier: SymbolPrimitive,
     equations: Equation[],
-    loc?: SourceLocation
+    loc?: SourceLocation,
+    isAbstract: boolean = false,
   ) {
     super(loc);
     this.identifier = identifier;
     this.equations = equations;
+    this.isAbstract = isAbstract;
   }
   public accept<R>(visitor: Visitor<R>): R {
     return this.dispatchVisit(visitor, visitor.visitMethod);
@@ -58,7 +57,7 @@ export class Attribute extends ASTNode {
   constructor(
     identifier: SymbolPrimitive,
     expression: Expression,
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ) {
     super(loc);
     this.identifier = identifier;
@@ -92,7 +91,7 @@ export class Object extends ASTNode {
   constructor(
     identifier: SymbolPrimitive,
     expression: Expression,
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ) {
     super(loc);
     this.identifier = identifier;
@@ -135,7 +134,7 @@ export class Class extends ASTNode {
     implementsNode: Implement | undefined,
     includes: SymbolPrimitive[],
     expression: Expression,
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ) {
     super(loc);
     this.identifier = identifier;
@@ -175,7 +174,7 @@ export class Interface extends ASTNode {
     identifier: SymbolPrimitive,
     extendsSymbol: SymbolPrimitive[],
     expression: Expression,
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ) {
     super(loc);
     this.identifier = identifier;
@@ -214,7 +213,7 @@ export class Send extends ASTNode {
     receiver: Expression,
     selector: SymbolPrimitive,
     args: Expression[],
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ) {
     super(loc);
     this.receiver = receiver;
@@ -250,7 +249,7 @@ export class New extends ASTNode {
   constructor(
     identifier: SymbolPrimitive,
     args: Expression[],
-    loc?: SourceLocation
+    loc?: SourceLocation,
   ) {
     super(loc);
     this.identifier = identifier;

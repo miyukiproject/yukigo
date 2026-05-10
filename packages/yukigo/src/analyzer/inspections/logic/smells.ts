@@ -15,10 +15,10 @@ export class HasRedundantReduction extends ScopedVisitor {
     const left = node.left;
     const right = node.right;
 
-    if (!(left instanceof SymbolPrimitive)) return;
+    if (!left.is(SymbolPrimitive)) return;
 
     const redundantReductionParameters = isYukigoPrimitive(right);
-    const redundantReductionFunctors = right instanceof Exist;
+    const redundantReductionFunctors = right.is(Exist);
 
     const isRedundant =
       redundantReductionParameters || redundantReductionFunctors;

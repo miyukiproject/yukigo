@@ -121,7 +121,7 @@ export class GraphBuilder extends TraverseVisitor {
     if (!this.scope) return;
 
     const arr = this.calls.get(this.scope) || [];
-    if (node.functionExpr instanceof SymbolPrimitive)
+    if (node.functionExpr.is(SymbolPrimitive))
       this.calls.set(this.scope, [node.functionExpr.value, ...arr]);
     else node.functionExpr.accept(this);
   }

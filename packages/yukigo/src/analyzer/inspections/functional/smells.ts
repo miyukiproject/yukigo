@@ -19,25 +19,20 @@ import { Uses } from "../generic/generic.js";
 export class HasRedundantLambda extends ScopedVisitor {
   visitLambda(node: Lambda): void {
     if (node.parameters.length !== 1) return;
-    if (!(node.body instanceof Application)) return;
+    if (!node.body.is(Application)) return;
 
     const param = node.parameters[0];
     const call = node.body;
 
-    if (
-      call.functionExpr instanceof Application ||
-      call.functionExpr instanceof Call
-    )
-      return;
+    if (call.functionExpr.is(Application) || call.functionExpr.is(Call)) return;
 
     const arg = call.parameter;
+    const hasRedudantParam =
+      param.is(VariablePattern) &&
+      arg.is(Variable) &&
+      param.name.value === arg.identifier.value;
 
-    if (
-      param instanceof VariablePattern &&
-      arg instanceof Variable &&
-      param.name.value === arg.identifier.value
-    )
-      throw new StopTraversalException();
+    if (hasRedudantParam) throw new StopTraversalException();
   }
 }
 
@@ -56,9 +51,9 @@ export class HasRedundantGuards extends ScopedVisitor {
 
   private isAlwaysTrue(node: ASTNode): boolean {
     // check for boolean literal 'True'
-    if (node instanceof BooleanPrimitive && node.value === true) return true;
+    if (node.is(BooleanPrimitive) && node.value === true) return true;
     // check for default case
-    if (node instanceof Otherwise) return true;
+    if (node.is(Otherwise)) return true;
     return false;
   }
 }
@@ -66,10 +61,7 @@ export class HasRedundantGuards extends ScopedVisitor {
 @AutoScoped
 export class ShouldUseOtherwise extends ScopedVisitor {
   visitGuardedBody(node: GuardedBody): void {
-    if (
-      node.condition instanceof BooleanPrimitive &&
-      node.condition.value === true
-    )
+    if (node.condition.is(BooleanPrimitive) && node.condition.value === true)
       throw new StopTraversalException();
   }
 }
@@ -78,17 +70,16 @@ export class ShouldUseOtherwise extends ScopedVisitor {
 export class HasRedundantParameter extends ScopedVisitor {
   visitEquation(node: Equation): void {
     for (const pattern of node.patterns) {
-      if (pattern instanceof VariablePattern) {
-        const paramName = pattern.name.value;
-        const usageChecker = new Uses(paramName, this.binding);
-        try {
-          node.accept(usageChecker);
-          // uses didnt throw so the param is not being used
-          throw new StopTraversalException();
-        } catch (e) {
-          if (e instanceof StopTraversalException) continue;
-          throw e;
-        }
+      if (!pattern.is(VariablePattern)) continue;
+      const paramName = pattern.name.value;
+      const usageChecker = new Uses(paramName, this.binding);
+      try {
+        node.accept(usageChecker);
+        // uses didnt throw so the param is not being used
+        throw new StopTraversalException();
+      } catch (e) {
+        if (e instanceof StopTraversalException) continue;
+        throw e;
       }
     }
   }

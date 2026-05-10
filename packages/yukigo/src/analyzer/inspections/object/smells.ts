@@ -10,7 +10,12 @@ import {
   StopTraversalException,
   StringPrimitive,
 } from "yukigo-ast";
-import { AutoScoped, InspectionVisitor, ScopedVisitor, VisitorConstructor } from "../../utils.js";
+import {
+  AutoScoped,
+  InspectionVisitor,
+  ScopedVisitor,
+  VisitorConstructor,
+} from "../../utils.js";
 import { Uses } from "../generic/generic.js";
 
 class MethodCollector extends InspectionVisitor {
@@ -27,22 +32,15 @@ class MethodCollector extends InspectionVisitor {
 @AutoScoped
 export class DoesNilTest extends ScopedVisitor {
   visitLogicalBinaryOperation(node: LogicalBinaryOperation): void {
-    if (
-      node.left instanceof NilPrimitive ||
-      node.right instanceof NilPrimitive
-    ) {
+    if (node.left.is(NilPrimitive) || node.right.is(NilPrimitive))
       throw new StopTraversalException();
-    }
   }
 }
 
 @AutoScoped
 export class DoesTypeTest extends ScopedVisitor {
   visitLogicalBinaryOperation(node: LogicalBinaryOperation): void {
-    if (
-      node.left instanceof StringPrimitive ||
-      node.right instanceof StringPrimitive
-    ) {
+    if (node.left.is(StringPrimitive) || node.right.is(StringPrimitive)) {
       throw new StopTraversalException();
     }
   }
@@ -51,7 +49,7 @@ export class DoesTypeTest extends ScopedVisitor {
 @AutoScoped
 export class ReturnsNil extends ScopedVisitor {
   visitReturn(node: Return): void {
-    if (!Boolean(node.body) || node.body instanceof NilPrimitive)
+    if (!node.body || node.body.is(NilPrimitive))
       throw new StopTraversalException();
   }
 }
@@ -98,15 +96,11 @@ export class OverridesEqualOrHashButNotBoth extends ScopedVisitor {
     const collector = new MethodCollector();
     const methods = collector.collect(node);
     const names = methods.map((m) => m.identifier.value);
-    const hasEquals =
-      names.includes("equals") ||
-      names.includes("==") ||
-      names.includes("eql?");
 
-    const hasHash = names.includes("hashCode") || names.includes("hash");
+    const hasEquals = names.some((n) => ["equals", "==", "eql?"].includes(n));
+    const hasHash = names.some((n) => ["hashCode", "hash"].includes(n));
 
-    if ((hasEquals && !hasHash) || (!hasEquals && hasHash))
-      throw new StopTraversalException();
+    if (hasEquals !== hasHash) throw new StopTraversalException();
   }
 }
 
@@ -122,14 +116,7 @@ export class UsesNamedSelfReference extends ScopedVisitor {
 
   private checkSelfReference(selfName: string, body: ASTNode): void {
     const checker = new Uses(selfName, this.binding);
-
-    try {
-      body.accept(checker);
-    } catch (e) {
-      if (e instanceof StopTraversalException)
-        throw new StopTraversalException();
-      throw e;
-    }
+    body.accept(checker);
   }
 }
 

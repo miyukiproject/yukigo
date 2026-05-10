@@ -202,12 +202,13 @@ export class DeclaresFunction extends ScopedVisitor {
   }
 }
 
+type CallableDeclaration = Function | Method | Procedure | Fact | Rule;
 @AutoScoped
 export class DeclaresRecursively extends ScopedVisitor {
-  private readonly targetBinding: string;
+  private readonly targetBinding: SymbolPrimitive;
   constructor(targetBinding: string, scope?: string) {
     super(scope);
-    this.targetBinding = targetBinding;
+    this.targetBinding = new SymbolPrimitive(targetBinding);
   }
   visitFunction(node: Function): void {
     super.visitFunction(node);
@@ -229,13 +230,9 @@ export class DeclaresRecursively extends ScopedVisitor {
     super.visitRule(node);
     this.visitNested(node);
   }
-  visitNested(node: ASTNode): void {
-    if (
-      "identifier" in node &&
-      node.identifier instanceof SymbolPrimitive &&
-      node.identifier.value === this.targetBinding
-    )
-      throw new StopTraversalException();
+  visitNested(node: CallableDeclaration): void {
+    const hasOwnIdentifier = node.identifier.equals(this.targetBinding);
+    if (hasOwnIdentifier) throw new StopTraversalException();
   }
 }
 export class HasDirectRecursion extends InspectionVisitor {
@@ -466,7 +463,10 @@ export class TypesAs extends InspectionVisitor {
     }
   }
 }
-
+function isFormatAgnosticMatch(actual: string, expected: string): boolean {
+  const normalize = (str: string) => str.replace(/\s+/g, " ").trim();
+  return normalize(actual) === normalize(expected);
+}
 export class TypesParameterAs extends InspectionVisitor {
   constructor(
     private paramIndex: number,
@@ -477,20 +477,13 @@ export class TypesParameterAs extends InspectionVisitor {
   }
 
   visitTypeSignature(node: TypeSignature): void {
-    if (node.identifier.value === this.bindingName) {
-      if (node.body instanceof ParameterizedType) {
-        const paramType = node.body.inputs[this.paramIndex];
-        if (paramType) {
-          const actualType = paramType.toString();
-          if (
-            actualType.replace(/\s+/g, " ").trim() ===
-            this.typeName.replace(/\s+/g, " ").trim()
-          ) {
-            throw new StopTraversalException();
-          }
-        }
-      }
-    }
+    if (node.identifier.value !== this.bindingName) return;
+    if (!node.body.is(ParameterizedType)) return;
+    const paramType = node.body.inputs[this.paramIndex];
+    if (!paramType) return;
+    const actualType = paramType.toString();
+    if (isFormatAgnosticMatch(actualType, this.typeName))
+      throw new StopTraversalException();
   }
 }
 
@@ -503,16 +496,11 @@ export class TypesReturnAs extends InspectionVisitor {
   }
 
   visitTypeSignature(node: TypeSignature): void {
-    if (node.identifier.value === this.bindingName) {
-      if (node.body instanceof ParameterizedType) {
-        const actualType = node.body.returnType.toString();
-        if (
-          actualType.replace(/\s+/g, " ").trim() ===
-          this.typeName.replace(/\s+/g, " ").trim()
-        ) {
-          throw new StopTraversalException();
-        }
-      }
+    if (node.identifier.value !== this.bindingName) return;
+    if (node.body.is(ParameterizedType)) {
+      const actualType = node.body.returnType.toString();
+      if (isFormatAgnosticMatch(actualType, this.typeName))
+        throw new StopTraversalException();
     }
   }
 }
@@ -527,10 +515,10 @@ export class Rescues extends ScopedVisitor {
   }
   visitCatch(node: Catch): void {
     for (const pattern of node.patterns) {
-      if (
-        pattern instanceof VariablePattern &&
-        pattern.name.value === this.exceptionName
-      ) {
+      const capturesExceptionAs =
+        pattern.is(VariablePattern) &&
+        pattern.name.value === this.exceptionName;
+      if (capturesExceptionAs) {
         throw new StopTraversalException();
       }
     }

@@ -21,7 +21,7 @@ import {
 import { AutoScoped, ScopedVisitor, VisitorConstructor } from "../../utils.js";
 
 function isSequenceEmpty(node: Expression): boolean {
-  return node instanceof Sequence && node.statements.length === 0;
+  return node.is(Sequence) && node.statements.length === 0;
 }
 
 /**
@@ -40,7 +40,7 @@ function getLevenshteinDistance(a: string, b: string): number {
         matrix[i][j] = Math.min(
           matrix[i - 1][j - 1] + 1,
           matrix[i][j - 1] + 1,
-          matrix[i - 1][j] + 1
+          matrix[i - 1][j] + 1,
         );
       }
     }
@@ -51,11 +51,9 @@ function getLevenshteinDistance(a: string, b: string): number {
 @AutoScoped
 export class DiscardsExceptions extends ScopedVisitor {
   visitCatch(node: Catch): void {
-    if (
-      !node.body ||
-      node.body instanceof NilPrimitive ||
-      isSequenceEmpty(node.body)
-    ) {
+    const doesNotCatch =
+      !node.body || node.body.is(NilPrimitive) || isSequenceEmpty(node.body);
+    if (doesNotCatch) {
       throw new StopTraversalException();
     }
   }
@@ -74,7 +72,7 @@ export class DoesConsolePrint extends ScopedVisitor {
 
   visitApplication(node: Application): void {
     const func = node.functionExpr;
-    if (!(func instanceof SymbolPrimitive)) return func.accept(this);
+    if (!func.is(SymbolPrimitive)) return func.accept(this);
     const name = func.value;
     if (this.isPrintFunc(name)) throw new StopTraversalException();
   }
@@ -100,23 +98,18 @@ export class HasDeclarationTypos extends ScopedVisitor {
    * (Levenshtein distance <= 2), indicating a possible typo (e.g., 'count' vs 'conut').
    */
   visitSequence(node: Sequence): void {
-    const declaredNames: string[] = [];
+    const names = node.statements
+      .filter((stmt) => stmt.is(Variable))
+      .map((stmt) => stmt.identifier.value);
 
-    for (const stmt of node.statements) {
-      if (stmt instanceof Variable) declaredNames.push(stmt.identifier.value);
-    }
+    names.forEach((nameA, i) => {
+      const hasTypo = names.slice(i + 1).some((nameB) => {
+        if (nameA.length <= 3 || nameB.length <= 3) return false;
+        return getLevenshteinDistance(nameA, nameB) <= 2;
+      });
 
-    for (let i = 0; i < declaredNames.length; i++) {
-      for (let j = i + 1; j < declaredNames.length; j++) {
-        const a = declaredNames[i];
-        const b = declaredNames[j];
-        if (a.length > 3 && b.length > 3) {
-          if (getLevenshteinDistance(a, b) <= 2) {
-            throw new StopTraversalException();
-          }
-        }
-      }
-    }
+      if (hasTypo) throw new StopTraversalException();
+    });
   }
 }
 
@@ -124,7 +117,7 @@ export class HasDeclarationTypos extends ScopedVisitor {
 export class HasEmptyIfBranches extends ScopedVisitor {
   visitIf(node: If): void {
     const isThenEmpty = !node.then || isSequenceEmpty(node.then);
-    const isElseEmpty = node.elseExpr && isSequenceEmpty(node.elseExpr);
+    const isElseEmpty = isSequenceEmpty(node.elseExpr);
     if (isThenEmpty || isElseEmpty) throw new StopTraversalException();
   }
 }
@@ -179,8 +172,8 @@ export class HasMisspelledIdentifiers extends ScopedVisitor {
 @AutoScoped
 export class HasRedundantBooleanComparison extends ScopedVisitor {
   visitLogicalBinaryOperation(node: LogicalBinaryOperation): void {
-    const isLeftBool = node.left instanceof BooleanPrimitive;
-    const isRightBool = node.right instanceof BooleanPrimitive;
+    const isLeftBool = node.left.is(BooleanPrimitive);
+    const isRightBool = node.right.is(BooleanPrimitive);
     if (isLeftBool || isRightBool) throw new StopTraversalException();
   }
 }
@@ -188,22 +181,16 @@ export class HasRedundantBooleanComparison extends ScopedVisitor {
 @AutoScoped
 export class HasRedundantIf extends ScopedVisitor {
   visitIf(node: If): void {
-    if (node.elseExpr) {
-      const thenStmt = node.then;
-      const elseStmt = node.elseExpr;
+    if (!node.elseExpr) return;
+    const { then, elseExpr } = node;
 
-      if (thenStmt instanceof Sequence && elseStmt instanceof Sequence) {
-        // Check if returning booleans
-        if (
-          thenStmt.statements.some(
-            (stmt) => stmt instanceof BooleanPrimitive
-          ) &&
-          elseStmt.statements.some((stmt) => stmt instanceof BooleanPrimitive)
-        ) {
-          throw new StopTraversalException();
-        }
-      }
-    }
+    if (this.isBooleanBlock(then) && this.isBooleanBlock(elseExpr))
+      throw new StopTraversalException();
+  }
+  private isBooleanBlock(node: ASTNode): boolean {
+    return (
+      node.is(Sequence) && node.statements.some((s) => s.is(BooleanPrimitive))
+    );
   }
 }
 
@@ -216,19 +203,24 @@ export class HasRedundantLocalVariableReturn extends ScopedVisitor {
    */
   visitSequence(node: Sequence): void {
     const stmts = node.statements;
-    for (let i = 0; i < stmts.length - 1; i++) {
-      const stmt = stmts[i];
-      const nextStmt = stmts[i + 1];
 
-      if (stmt instanceof Variable && nextStmt instanceof Return) {
-        if (
-          nextStmt.body instanceof SymbolPrimitive &&
-          nextStmt.body.value === stmt.identifier.value
-        ) {
-          throw new StopTraversalException();
-        }
+    stmts.forEach((stmt, i) => {
+      const next = stmts[i + 1];
+      if (!next) return;
+
+      if (this.isPointlessAssignment(stmt, next)) {
+        throw new StopTraversalException();
       }
-    }
+    });
+  }
+  private isPointlessAssignment(current: ASTNode, next: ASTNode): boolean {
+    return (
+      current.is(Variable) &&
+      next.is(Return) &&
+      next.body !== undefined &&
+      next.body.is(SymbolPrimitive) &&
+      next.body.value === current.identifier.value
+    );
   }
 }
 
@@ -255,28 +247,26 @@ export class HasTooShortIdentifiers extends ScopedVisitor {
 @AutoScoped
 export class HasUsageTypos extends ScopedVisitor {
   visitSequence(node: Sequence): void {
-    const declaredNames = new Set<string>();
-    const usedNames = new Set<string>();
+    const { statements } = node;
+    const declared = new Set(
+      statements
+        .filter((stmt) => stmt.is(Function) || stmt.is(Variable))
+        .map((stmt) => stmt.identifier.value),
+    );
 
-    for (const stmt of node.statements) {
-      if (stmt instanceof Function || stmt instanceof Variable) {
-        declaredNames.add(stmt.identifier.value);
-      }
-    }
+    const called = statements
+      .filter((stmt) => stmt.is(Call))
+      .map((stmt) => stmt.callee.value);
 
-    for (const stmt of node.statements) {
-      if (stmt instanceof Call) usedNames.add(stmt.callee.value);
-    }
+    const hasTypo = called.some((usage) => {
+      if (declared.has(usage) || usage.length <= 3) return false;
 
-    for (const usage of usedNames) {
-      if (!declaredNames.has(usage)) {
-        for (const decl of declaredNames) {
-          if (usage.length > 3 && getLevenshteinDistance(usage, decl) <= 1) {
-            throw new StopTraversalException();
-          }
-        }
-      }
-    }
+      return Array.from(declared).some(
+        (decl) => getLevenshteinDistance(usage, decl) <= 1,
+      );
+    });
+
+    if (hasTypo) throw new StopTraversalException();
   }
 }
 

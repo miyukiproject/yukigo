@@ -12,7 +12,12 @@ import {
   StopTraversalException,
   SymbolPrimitive,
 } from "yukigo-ast";
-import { AutoScoped, InspectionVisitor, ScopedVisitor, VisitorConstructor } from "../../utils.js";
+import {
+  AutoScoped,
+  InspectionVisitor,
+  ScopedVisitor,
+  VisitorConstructor,
+} from "../../utils.js";
 @AutoScoped
 export class DeclaresAttribute extends ScopedVisitor {
   constructor(
@@ -48,7 +53,6 @@ export class DeclaresInterface extends InspectionVisitor {
     if (node.identifier.value === this.interfaceName)
       throw new StopTraversalException();
   }
-  public fallback(node: ASTNode): void {}
 }
 @AutoScoped
 export class DeclaresMethod extends ScopedVisitor {
@@ -72,7 +76,6 @@ export class DeclaresObject extends InspectionVisitor {
     if (node.identifier.value === this.objectName)
       throw new StopTraversalException();
   }
-  public fallback(node: ASTNode): void {}
 }
 @AutoScoped
 export class DeclaresPrimitive extends ScopedVisitor {
@@ -108,9 +111,10 @@ export class Implements extends ScopedVisitor {
     super(scope);
   }
   visitClass(node: Class): void {
+    const { implementsNode } = node;
     if (
-      node.implementsNode &&
-      node.implementsNode.identifier.value === this.interfaceName
+      implementsNode &&
+      implementsNode.identifier.value === this.interfaceName
     )
       throw new StopTraversalException();
   }
@@ -187,7 +191,7 @@ export class UsesObjectComposition extends ScopedVisitor {
     super(scope);
   }
   visitAttribute(node: Attribute): void {
-    if (node.expression instanceof New) throw new StopTraversalException();
+    if (node.expression.is(New)) throw new StopTraversalException();
   }
 }
 
@@ -229,8 +233,7 @@ class AbstractMethodCollector extends ScopedVisitor {
     super(scope);
   }
   visitMethod(node: Method): void {
-    if (node.getMetadata<boolean>("isAbstract") === true)
-      this.abstractMethods.add(node.identifier.value);
+    if (node.isAbstract) this.abstractMethods.add(node.identifier.value);
   }
   // stop propagation to not mix scopes
   visitClass(node: Class) {
@@ -255,18 +258,17 @@ export class UsesTemplateMethod extends ScopedVisitor {
   }
 
   visitSend(node: Send): void {
-    if (node.receiver instanceof Self) {
-      if (this.abstractMethodsStack.length === 0) return;
-      const currentAbstractMethods = this.abstractMethodsStack[0];
+    if (!node.receiver.is(Self)) return;
+    if (this.abstractMethodsStack.length === 0) return;
+    const currentAbstractMethods = this.abstractMethodsStack[0];
 
-      // This doesnt match if message is complex expression
-      if (!(node.selector instanceof SymbolPrimitive)) return;
-      const selectorName = node.selector.value;
+    // This doesnt match if message is complex expression
+    if (!node.selector.is(SymbolPrimitive)) return;
+    const selectorName = node.selector.value;
 
-      const isMessageAbstract = currentAbstractMethods.has(selectorName);
+    const isMessageAbstract = currentAbstractMethods.has(selectorName);
 
-      if (isMessageAbstract) throw new StopTraversalException();
-    }
+    if (isMessageAbstract) throw new StopTraversalException();
   }
 }
 
