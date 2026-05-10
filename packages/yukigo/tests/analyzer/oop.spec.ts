@@ -51,8 +51,7 @@ describe("OOP Inspections", () => {
     const equations = new Array(equationsCount).fill(
       new Equation([], new UnguardedBody(new Sequence(stmts)))
     );
-    const method = new Method(identifier, equations);
-    method.setMetadata("isAbstract", isAbstract);
+    const method = new Method(identifier, equations, undefined, isAbstract);
     return method;
   };
 
@@ -79,11 +78,9 @@ describe("OOP Inspections", () => {
     const implementsNode = implementsName
       ? new Implement(createSymbol(implementsName))
       : undefined;
-    const includesMixin =
-      includes && includes.length > 0
-        ? includes.map((sym) => createSymbol(sym))
-        : undefined;
-
+    const includesMixin = includes
+      ? includes.map((sym) => createSymbol(sym))
+      : [];
     const expression = new Sequence(stmts);
 
     return new Class(
