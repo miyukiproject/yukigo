@@ -1,11 +1,12 @@
 import { PrimitiveValue, AST, ASTNode } from "yukigo-ast";
 import { InterpreterVisitor } from "./components/Visitor.js";
 import { EnvBuilderVisitor } from "./components/EnvBuilder.js";
-import { idContinuation, trampoline } from "./trampoline.js";
 import {
   InterpreterConfig,
   RuntimeContext,
 } from "./components/RuntimeContext.js";
+import { YukigoKernel } from "./components/kernel/index.js";
+import { EvalCommand } from "./components/kernel/commands.js";
 
 export type Bindings = [string, PrimitiveValue][];
 
@@ -36,7 +37,7 @@ export class Interpreter {
    */
   public evaluate(expr: ASTNode): PrimitiveValue {
     const visitor = new InterpreterVisitor(this.context);
-    const evaluatedCPS = expr.accept(visitor);
-    return trampoline(evaluatedCPS(idContinuation));
+    const kernel = new YukigoKernel(visitor);
+    return kernel.run(new EvalCommand(expr));
   }
 }
