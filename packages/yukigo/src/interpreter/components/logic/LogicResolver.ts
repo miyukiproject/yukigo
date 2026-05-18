@@ -1,3 +1,4 @@
+import { YukigoKernel } from "../kernel/index.js";
 import {
   EnvStack,
   Fact,
@@ -54,10 +55,17 @@ import {
   GuardedBody,
   ASTNode,
 } from "yukigo-ast";
-import { Thunk } from "../../trampoline.js";
 import { LogicExecutable } from "./LogicEngine.js";
 import { RuntimeContext } from "../RuntimeContext.js";
-import { UnexpectedNode } from "../../../utils/helpers.js";
+import { UnexpectedNode, InterpreterError } from "../../errors.js";
+import {
+  ExecutionCommand,
+  StepCommand,
+  BindCommand,
+  FailCommand,
+  ChoiceCommand,
+} from "../kernel/commands.js";
+import { Evaluator } from "../../utils.js";
 
 /**
  * A Substitution maps variable names to their bound patterns.
@@ -68,32 +76,6 @@ export type Substitution = Map<string, Pattern>;
  * Internal result of a logic operation.
  */
 export type InternalLogicResult = { success: true; substs: Substitution };
-
-/**
- * Backtracking continuations.
- */
-export type SuccessCont = (
-  substs: Substitution,
-  next: () => Thunk<any>,
-) => Thunk<any>;
-export type FailureCont = () => Thunk<any>;
-
-/**
- * A function that can solve a sequence of logic goals/expressions in CPS.
- */
-export type BodySolverCPS = (
-  expressions: LogicExecutable[],
-  env: Substitution,
-  onSuccess: SuccessCont,
-  onFailure: FailureCont,
-) => Thunk<any>;
-
-/**
- * Creates a successful logic result.
- */
-export function success(substs: Substitution): InternalLogicResult {
-  return { success: true, substs };
-}
 
 /**
  * Unifies two patterns given an existing set of substitutions.
@@ -296,8 +278,8 @@ class Instantiator implements PatternVisitor<Pattern> {
       node.loc,
     );
   }
-  public fallback(node: ASTNode): Pattern {
-    throw new UnexpectedNode(node.constructor.name, "Instantiator");
+  public fallback(node: ASTNode): any {
+    throw new InterpreterError("Instantiator", `${node.constructor.name} not expected.`);
   }
   instantiate(pattern: Pattern): Pattern {
     return pattern.accept(this);
@@ -342,7 +324,7 @@ class LogicVariableRenamer implements PatternVisitor<Pattern> {
     const renamedEquations = node.equations.map((eq) => {
       const body = eq.body;
       if (!isUnguardedBody(body))
-        throw new Error("GuardedBody renaming not implemented");
+        throw new InterpreterError("Logic", "GuardedBody renaming not implemented");
       return new Equation(
         eq.patterns.map((p) => this.rename(p)),
         body.accept(this),
@@ -385,11 +367,8 @@ class LogicVariableRenamer implements PatternVisitor<Pattern> {
     );
   }
 
-  visitTuplePattern(node: TuplePattern): Pattern {
-    return new TuplePattern(
-      node.elements.map((el) => this.rename(el)),
-      node.loc,
-    );
+  visitTuplePattern(node: TupleExpression): any {
+      return new TupleExpression(node.elements.map(el => this.rename(el)), node.loc);
   }
 
   visitListPattern(node: ListPattern): Pattern {
@@ -670,8 +649,8 @@ class LogicVariableRenamer implements PatternVisitor<Pattern> {
       node.loc,
     );
   }
-  public fallback(node: ASTNode): Thunk<any> {
-    throw new UnexpectedNode(node.constructor.name, "LogicVariableRenamer");
+  public fallback(node: ASTNode): any {
+    throw new InterpreterError("LogicVariableRenamer", `${node.constructor.name} not expected.`);
   }
 }
 
@@ -686,54 +665,50 @@ export function renameVariables<T extends Rule | Fact>(clause: T): T {
   return renamedClause;
 }
 
-class CPSBodyVisitor implements Visitor<Thunk<any>> {
+class KernelBodyVisitor implements Visitor<ExecutionCommand> {
   constructor(
-    private readonly solveBody: BodySolverCPS,
+    private readonly solveBody: (
+      expressions: LogicExecutable[],
+      env: Substitution,
+    ) => ExecutionCommand,
     private readonly substs: Substitution,
-    private readonly onSuccess: SuccessCont,
-    private readonly onNextEq: Thunk<any>,
   ) {}
 
-  public visitUnguardedBody(body: UnguardedBody): Thunk<any> {
+  public visitUnguardedBody(body: UnguardedBody): ExecutionCommand {
     return this.solveBody(
       body.sequence.statements,
       this.substs,
-      this.onSuccess,
-      this.onNextEq,
     );
   }
 
-  public visitGuardedBody(body: GuardedBody): Thunk<any> {
-    return this.solveBody(
-      [body.condition],
-      this.substs,
-      (guardSubsts: Substitution, _nextGuardChoice: Thunk<any>) => {
-        return this.solveBody(
-          [body.body],
-          guardSubsts,
-          this.onSuccess,
-          this.onNextEq,
-        );
-      },
-      this.onNextEq,
+  public visitGuardedBody(body: GuardedBody): ExecutionCommand {
+    return new BindCommand(
+       this.solveBody([body.condition], this.substs),
+       (res: any) => {
+          if (res && res.success) {
+            return this.solveBody([body.body], res.solutions_internal || this.substs);
+          }
+          return new FailCommand(new InterpreterError("Logic", "Guard failed"), true);
+       }
     );
   }
-  public fallback(node: ASTNode): Thunk<any> {
-    throw new UnexpectedNode(node.constructor.name, "CPSBodyVisitor");
+  public fallback(node: ASTNode): ExecutionCommand {
+    return new FailCommand(new InterpreterError("Logic", `Unexpected node ${node.constructor.name} in equation body`));
   }
 }
 
-class GoalSolverVisitor implements Visitor<Thunk<any>> {
+class GoalKernelVisitor implements Visitor<ExecutionCommand> {
   constructor(
     private readonly args: Pattern[],
     private readonly baseSubst: Substitution,
-    private readonly solveBody: BodySolverCPS,
-    private readonly onSuccess: SuccessCont,
-    private readonly onNextClause: Thunk<any>,
+    private readonly solveBody: (
+      expressions: LogicExecutable[],
+      env: Substitution,
+    ) => ExecutionCommand,
   ) {}
 
-  public visitFact(fact: Fact): Thunk<any> {
-    if (fact.patterns.length !== this.args.length) return this.onNextClause;
+  public visitFact(fact: Fact): ExecutionCommand {
+    if (fact.patterns.length !== this.args.length) return new FailCommand(new InterpreterError("Logic", "Arity mismatch"), true);
 
     const renamedFact = renameVariables(fact);
     const substs = unifyParameters(
@@ -742,85 +717,85 @@ class GoalSolverVisitor implements Visitor<Thunk<any>> {
       this.baseSubst,
     );
 
-    if (substs) return this.onSuccess(substs, this.onNextClause);
-    return this.onNextClause;
+    if (substs) return new StepCommand({ success: true, solutions_internal: substs });
+    return new FailCommand(new InterpreterError("Logic", "Fact unification failed"), true);
   }
 
-  public visitRule(rule: Rule): Thunk<any> {
-    if (rule.equations.length === 0) return this.onNextClause;
+  public visitRule(rule: Rule): ExecutionCommand {
+    if (rule.equations.length === 0) return new FailCommand(new InterpreterError("Logic", "Rule has no equations"), true);
 
     const arity = rule.equations[0].patterns.length;
-    if (arity !== this.args.length) return this.onNextClause;
+    if (arity !== this.args.length) return new FailCommand(new InterpreterError("Logic", "Arity mismatch"), true);
 
     const renamedRule = renameVariables(rule);
 
-    const tryRuleEq = (eqIndex: number): Thunk<any> => {
-      if (eqIndex >= renamedRule.equations.length) return this.onNextClause;
-
-      const eq = renamedRule.equations[eqIndex];
+    const alternatives: ExecutionCommand[] = [];
+    
+    for (const eq of renamedRule.equations) {
       const substs = unifyParameters(eq.patterns, this.args, this.baseSubst);
-      const onNextEq = () => tryRuleEq(eqIndex + 1);
+      if (substs) {
+        const bodyVisitor = new KernelBodyVisitor(
+          this.solveBody,
+          substs,
+        );
 
-      if (!substs) return onNextEq;
+        if (isUnguardedBody(eq.body)) {
+          alternatives.push(eq.body.accept(bodyVisitor));
+        } else {
+          const branches = (eq.body as GuardedBody[]).map(b => b.accept(bodyVisitor));
+          alternatives.push(new ChoiceCommand(branches));
+        }
+      }
+    }
 
-      const bodyVisitor = new CPSBodyVisitor(
-        this.solveBody,
-        substs,
-        this.onSuccess,
-        onNextEq,
-      );
-
-      if (isUnguardedBody(eq.body)) return eq.body.accept(bodyVisitor);
-      return eq.body.forEach((branch) => branch.accept(bodyVisitor));
-    };
-
-    return () => tryRuleEq(0);
+    if (alternatives.length === 0) return new FailCommand(new InterpreterError("Logic", "Clause head mismatch"), true);
+    return alternatives.length === 1 ? alternatives[0] : new ChoiceCommand(alternatives);
   }
-  public fallback(node: ASTNode): Thunk<any> {
-    throw new UnexpectedNode(node.constructor.name, "GoalSolverVisitor");
+  public fallback(node: ASTNode): ExecutionCommand {
+    return new FailCommand(new InterpreterError("Logic", `Unexpected node ${node.constructor.name} in predicate definition`));
   }
 }
 
 /**
- * Solves a single logic goal (predicate call) using CPS.
+ * Solves a single logic goal (predicate call) using the Kernel.
  */
-export function solveGoalCPS(
+export function solveGoalKernel(
   ctx: RuntimeContext,
   predicateName: string,
   args: Pattern[],
-  solveBody: BodySolverCPS,
+  solveBody: (
+    expressions: LogicExecutable[],
+    env: Substitution,
+  ) => ExecutionCommand,
   baseSubst: Substitution,
-  onSuccess: SuccessCont,
-  onFailure: FailureCont,
-): Thunk<any> {
-  const tryClause = (index: number): Thunk<any> => {
+): ExecutionCommand {
     let equations: (Rule | Fact)[];
 
     try {
       const pred = ctx.lookup(predicateName);
-      if (!pred || !isRuntimePredicate(pred)) return () => onFailure();
+      if (!pred || !isRuntimePredicate(pred)) return new FailCommand(new InterpreterError("Logic", `Predicate ${predicateName} not found`), true);
       equations = pred.equations;
     } catch (error) {
-      return () => onFailure();
+      return new FailCommand(new InterpreterError("Logic", `Predicate ${predicateName} lookup error`), true);
     }
 
-    if (index >= equations.length) return () => onFailure();
-
-    const clause = equations[index];
-    const onNextClause = () => tryClause(index + 1);
-
-    const clauseVisitor = new GoalSolverVisitor(
+    const clauseVisitor = new GoalKernelVisitor(
       args,
       baseSubst,
       solveBody,
-      onSuccess,
-      onNextClause,
     );
 
-    return clause.accept(clauseVisitor);
-  };
+    const choices: ExecutionCommand[] = [];
+    for (const clause of equations) {
+        const res = clause.accept(clauseVisitor);
+        // We only add to choices if it's NOT an immediate logic failure
+        if (!(res instanceof FailCommand && res.isLogicFailure)) {
+            choices.push(res);
+        }
+    }
 
-  return () => tryClause(0);
+    if (choices.length === 0) return new FailCommand(new InterpreterError("Logic", "Goal failed (no matching clauses)"), true);
+    return choices.length === 1 ? choices[0] : new ChoiceCommand(choices);
 }
 
 /**
@@ -841,35 +816,41 @@ function unifyParameters(
 }
 
 /**
- * Solves a findall/3 goal using CPS.
+ * Solves a findall/3 goal using the Kernel.
  */
-export function solveFindallCPS(
+export function solveFindallKernel(
   node: Findall,
   currentSubsts: Substitution,
-  solveBody: BodySolverCPS,
-  onSuccess: SuccessCont,
-  onFailure: FailureCont,
-): Thunk<any> {
+  evaluator: Evaluator,
+  context: RuntimeContext,
+  solveBody: (
+    expressions: LogicExecutable[],
+    env: Substitution,
+  ) => ExecutionCommand,
+  onSuccess: (s: Substitution) => ExecutionCommand,
+): ExecutionCommand {
+  // Findall is still complex to do "purely" with ChoicePoints because it needs to 
+  // exhaust all branches but NOT fail the main execution.
+  // For now, we can use a sub-kernel to collect results.
   const gathered: Pattern[] = [];
+  const kernel = new YukigoKernel(evaluator);
 
-  const collectResults = (): Thunk<any> => {
-    return solveBody(
-      [node.goal],
-      currentSubsts,
-      (resultSubsts, next) => {
-        gathered.push(instantiate(node.template, resultSubsts));
-        return () => next();
-      },
-      () => {
-        const resultList = new ListPattern(gathered);
-        const finalSubsts = unify(node.bag, resultList, currentSubsts);
-        if (finalSubsts) {
-          return onSuccess(finalSubsts, onFailure);
-        }
-        return () => onFailure();
-      },
-    );
-  };
+  let nextCmd = solveBody([node.goal], currentSubsts);
+  
+  while(true) {
+      const res = kernel.run(nextCmd);
+      if (res && (res as any).success) {
+          gathered.push(instantiate(node.template, (res as any).solutions_internal || currentSubsts));
+          nextCmd = kernel.handleBacktrack();
+      } else {
+          break;
+      }
+  }
 
-  return collectResults();
+  const resultList = new ListPattern(gathered);
+  const finalSubsts = unify(node.bag, resultList, currentSubsts);
+  if (finalSubsts) {
+    return onSuccess(finalSubsts);
+  }
+  return new FailCommand(new InterpreterError("Logic", "Findall bag unification failed"), true);
 }

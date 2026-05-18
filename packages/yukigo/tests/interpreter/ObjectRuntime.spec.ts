@@ -17,13 +17,10 @@ import {
   EnvStack,
 } from "yukigo-ast";
 import { createGlobalEnv } from "../../src/interpreter/utils.js";
-import {
-  Continuation,
-  idContinuation,
-  Thunk,
-  trampoline,
-} from "../../src/interpreter/trampoline.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
+import { YukigoKernel } from "../../src/interpreter/components/kernel/index.js";
+import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
+import { EvalCommand } from "../../src/interpreter/components/kernel/commands.js";
 
 const createEmptyEnv = () => ({ head: new Map(), tail: null });
 
@@ -64,6 +61,7 @@ const createClass = (
 
 describe("ctx.objRuntime", () => {
   let objectInstance: RuntimeObject;
+  let kernel: YukigoKernel;
   const className = "TestClass";
   const initialFields = new Map<string, PrimitiveValue>([
     ["count", 10],
@@ -89,6 +87,7 @@ describe("ctx.objRuntime", () => {
       initialFields,
       methods,
     );
+    kernel = new YukigoKernel(new InterpreterVisitor(ctx));
   });
 
   describe("instantiate()", () => {
@@ -156,14 +155,12 @@ describe("ctx.objRuntime", () => {
 
       objectInstance.methods.set("getCount", getCountMethod);
 
-      const result = trampoline(
+      const result = kernel.run(
         ctx.objRuntime.dispatch(
           objectInstance,
           "getCount",
           [],
           env,
-
-          idContinuation,
         ),
       );
 
@@ -172,14 +169,12 @@ describe("ctx.objRuntime", () => {
 
     it("debe fallar si el método no existe", () => {
       expect(() => {
-        trampoline(
+        kernel.run(
           ctx.objRuntime.dispatch(
             objectInstance,
             "unknownMethod",
             [],
             env,
-
-            idContinuation,
           ),
         );
       }).to.throw(/does not understand 'unknownMethod'/);
@@ -187,14 +182,12 @@ describe("ctx.objRuntime", () => {
 
     it("debe fallar si el receiver no es un objeto", () => {
       expect(() => {
-        trampoline(
+        kernel.run(
           ctx.objRuntime.dispatch(
             "soy un string" as any,
             "toString",
             [],
             createEmptyEnv() as any,
-
-            idContinuation,
           ),
         );
       }).to.throw(/is not an object/);
@@ -217,14 +210,12 @@ describe("ctx.objRuntime", () => {
 
       objectInstance.methods.set("echo", addMethod);
 
-      const result = trampoline(
+      const result = kernel.run(
         ctx.objRuntime.dispatch(
           objectInstance,
           "echo",
           [999],
           env,
-
-          idContinuation,
         ),
       );
 
@@ -250,14 +241,12 @@ describe("ctx.objRuntime", () => {
         new Map(),
       );
 
-      const res = trampoline(
+      const res = kernel.run(
         ctx.objRuntime.dispatch(
           perro,
           "speak",
           [],
           env,
-
-          idContinuation,
         ),
       );
       expect(res).to.equal("Guau");
@@ -282,14 +271,12 @@ describe("ctx.objRuntime", () => {
         new Map(),
       );
       expect(
-        trampoline(
+        kernel.run(
           ctx.objRuntime.dispatch(
             objC,
             "id",
             [],
             env,
-
-            idContinuation,
           ),
         ),
       ).to.equal(1);
@@ -316,14 +303,12 @@ describe("ctx.objRuntime", () => {
         new Map(),
       );
       expect(
-        trampoline(
+        kernel.run(
           ctx.objRuntime.dispatch(
             pepita,
             "volar",
             [],
             env,
-
-            idContinuation,
           ),
         ),
       ).to.equal("Wosh");
@@ -354,14 +339,12 @@ describe("ctx.objRuntime", () => {
         new Map(),
       );
       expect(
-        trampoline(
+        kernel.run(
           ctx.objRuntime.dispatch(
             heroe,
             "skill",
             [],
             env,
-
-            idContinuation,
           ),
         ),
       ).to.equal("Fire");
@@ -402,14 +385,12 @@ describe("ctx.objRuntime", () => {
         new Map(),
       );
       expect(
-        trampoline(
+        kernel.run(
           ctx.objRuntime.dispatch(
             child,
             "val",
             [],
             env,
-
-            idContinuation,
           ),
         ),
       ).to.equal(3);
@@ -444,14 +425,12 @@ describe("ctx.objRuntime", () => {
         new Map(),
       );
       expect(
-        trampoline(
+        kernel.run(
           ctx.objRuntime.dispatch(
             child,
             "val",
             [],
             env,
-
-            idContinuation,
           ),
         ),
       ).to.equal(2);
@@ -487,14 +466,12 @@ describe("ctx.objRuntime", () => {
         new Map(),
       );
       expect(
-        trampoline(
+        kernel.run(
           ctx.objRuntime.dispatch(
             obj,
             "val",
             [],
             env,
-
-            idContinuation,
           ),
         ),
       ).to.equal(20);
@@ -530,14 +507,12 @@ describe("ctx.objRuntime", () => {
         new Map(),
       );
       expect(
-        trampoline(
+        kernel.run(
           ctx.objRuntime.dispatch(
             obj,
             "val",
             [],
             env,
-
-            idContinuation,
           ),
         ),
       ).to.equal(10);
@@ -596,8 +571,8 @@ describe("ctx.objRuntime", () => {
         new Map(),
       );
 
-      const result = trampoline(
-        ctx.objRuntime.dispatch(hijoInstance, "calc", [], env, idContinuation),
+      const result = kernel.run(
+        ctx.objRuntime.dispatch(hijoInstance, "calc", [], env),
       );
 
       expect(result).to.equal(15);

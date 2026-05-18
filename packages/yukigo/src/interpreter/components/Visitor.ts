@@ -1,3 +1,4 @@
+import { YukigoKernel } from "./kernel/index.js";
 import {
   Visitor,
   PrimitiveValue,
@@ -83,228 +84,155 @@ import {
   LogicalUnaryTable,
   StringOperationTable,
 } from "./Operations.js";
-import { ExpressionEvaluator } from "../utils.js";
+import { Evaluator } from "../utils.js";
 import { LogicEngine } from "./logic/LogicEngine.js";
-import { ErrorFrame, InterpreterError, UnexpectedValue } from "../errors.js";
+import { ErrorFrame, InterpreterError, UnexpectedValue, UnexpectedNode } from "../errors.js";
 import { EnvBuilderVisitor } from "./EnvBuilder.js";
 import { FailedAssert, TestRunner } from "./TestRunner.js";
-import {
-  Continuation,
-  CPSThunk,
-  idContinuation,
-  Thunk,
-  trampoline,
-  valueToCPS,
-} from "../trampoline.js";
 import { RuntimeContext } from "./RuntimeContext.js";
-import { UnexpectedNode } from "../../utils/helpers.js";
+import {
+  BindCommand,
+  EvalCommand,
+  ExecutionCommand,
+  FailCommand,
+  StepCommand,
+} from "./kernel/commands.js";
 
-export class InterpreterVisitor
-  implements Visitor<CPSThunk<PrimitiveValue>>, ExpressionEvaluator
-{
-  constructor(
-    private context: RuntimeContext,
-    private frames: ErrorFrame[] = [],
-  ) {}
+export class InterpreterVisitor implements Evaluator {
+  constructor(private context: RuntimeContext) {}
 
-  evaluate<R = PrimitiveValue>(
-    node: ASTNode,
-    cont: Continuation<PrimitiveValue, R>,
-  ): Thunk<R> {
-    return () => {
-      try {
-        const cpsThunk = node.accept(this);
-        return cpsThunk(cont);
-      } catch (err) {
-        if (err instanceof InterpreterError || err instanceof FailedAssert) {
-          if (err instanceof InterpreterError) {
-            err.pushFrame({ nodeType: node.constructor.name, loc: node.loc });
-          }
-          throw err;
-        }
-        throw new InterpreterError(
-          node.constructor.name,
-          (err as Error).message,
-          [...this.frames, { nodeType: node.constructor.name, loc: node.loc }],
-        );
-      }
+  getContext(): RuntimeContext {
+    return this.context;
+  }
+
+  evaluate(node: ASTNode): ExecutionCommand {
+    return node.accept(this);
+  }
+
+  visitSequence(node: Sequence): ExecutionCommand {
+    if (node.statements.length === 0) return new StepCommand(undefined);
+
+    const evaluateNext = (
+      index: number,
+      lastResult: PrimitiveValue,
+    ): ExecutionCommand => {
+      if (index >= node.statements.length) return new StepCommand(lastResult);
+
+      const stmt = node.statements[index];
+      return new BindCommand(this.evaluate(stmt), (result) => {
+        if (stmt instanceof Return) return new StepCommand(result);
+        return evaluateNext(index + 1, result);
+      });
     };
+
+    return evaluateNext(0, undefined);
   }
 
-  visitSequence(node: Sequence): CPSThunk<PrimitiveValue> {
-    return (k) => {
-      if (node.statements.length === 0) return k(undefined);
+  visitAssert(node: Assert): ExecutionCommand {
+    return new TestRunner(this, this.context.lazyRuntime).visitAssert(node);
+  }
 
-      if (this.context.config.debug)
-        console.log(
-          `[Interpreter] Entering sequence with ${node.statements.length} statements`,
-        );
+  visitTest(node: Test): ExecutionCommand {
+    return new TestRunner(this, this.context.lazyRuntime).visitTest(node);
+  }
 
-      const evaluateNext = (
-        index: number,
-        lastResult: PrimitiveValue,
-      ): Thunk<PrimitiveValue> => {
-        if (index >= node.statements.length) return k(lastResult);
-        const stmt = node.statements[index];
+  visitTestGroup(node: TestGroup): ExecutionCommand {
+    return new TestRunner(this, this.context.lazyRuntime).visitTestGroup(node);
+  }
 
-        return this.evaluate(stmt, (result) => {
-          if (stmt instanceof Return) return k(result);
-          return () => evaluateNext(index + 1, result);
-        });
-      };
+  visitNumberPrimitive(node: NumberPrimitive): ExecutionCommand {
+    return new StepCommand(node.value);
+  }
 
-      return evaluateNext(0, undefined);
+  visitBooleanPrimitive(node: BooleanPrimitive): ExecutionCommand {
+    return new StepCommand(node.value);
+  }
+
+  visitStringPrimitive(node: StringPrimitive): ExecutionCommand {
+    return new StepCommand(node.value);
+  }
+
+  visitListPrimitive(node: ListPrimitive): ExecutionCommand {
+    if (node.value.length === 0) return new StepCommand([]);
+
+    const results: PrimitiveValue[] = [];
+    const evaluateNext = (index: number): ExecutionCommand => {
+      if (index >= node.value.length) return new StepCommand(results);
+
+      return new BindCommand(this.evaluate(node.value[index]), (val) => {
+        results.push(val);
+        return evaluateNext(index + 1);
+      });
     };
+
+    return evaluateNext(0);
   }
 
-  visitAssert(node: Assert): CPSThunk<PrimitiveValue> {
-    if (this.context.config.debug) {
-      console.log(`[Interpreter] Visiting Assert`);
-    }
-    return (k) =>
-      new TestRunner(this, this.context.lazyRuntime).visitAssert(node)((val) =>
-        k(val),
-      );
+  visitNilPrimitive(node: NilPrimitive): ExecutionCommand {
+    return new StepCommand(node.value);
   }
 
-  visitTest(node: Test): CPSThunk<PrimitiveValue> {
-    if (this.context.config.debug) {
-      console.log(`[Interpreter] Visiting Test`);
-    }
-    return (k) =>
-      new TestRunner(this, this.context.lazyRuntime).visitTest(node)((val) =>
-        k(val),
-      );
+  visitCharPrimitive(node: CharPrimitive): ExecutionCommand {
+    return new StepCommand(node.value);
   }
 
-  visitTestGroup(node: TestGroup): CPSThunk<PrimitiveValue> {
-    if (this.context.config.debug) {
-      console.log(`[Interpreter] Visiting TestGroup`);
-    }
-    return (k) =>
-      new TestRunner(this, this.context.lazyRuntime).visitTestGroup(node)(
-        (val) => k(val),
-      );
-  }
-
-  visitNumberPrimitive(node: NumberPrimitive): CPSThunk<PrimitiveValue> {
-    return valueToCPS(node.value);
-  }
-
-  visitBooleanPrimitive(node: BooleanPrimitive): CPSThunk<PrimitiveValue> {
-    return valueToCPS(node.value);
-  }
-
-  visitStringPrimitive(node: StringPrimitive): CPSThunk<PrimitiveValue> {
-    return valueToCPS(node.value);
-  }
-
-  visitListPrimitive(node: ListPrimitive): CPSThunk<PrimitiveValue> {
-    return (k) => {
-      if (node.value.length === 0) return k([]);
-
-      const results: PrimitiveValue[] = [];
-      const evaluateNext = (index: number): Thunk<PrimitiveValue> => {
-        if (index >= node.value.length) return k(results);
-
-        return this.evaluate(node.value[index], (val) => {
-          results.push(val);
-          return () => evaluateNext(index + 1);
-        });
-      };
-
-      return evaluateNext(0);
-    };
-  }
-
-  visitNilPrimitive(node: NilPrimitive): CPSThunk<PrimitiveValue> {
-    return valueToCPS(node.value);
-  }
-
-  visitCharPrimitive(node: CharPrimitive): CPSThunk<PrimitiveValue> {
-    return valueToCPS(node.value);
-  }
-
-  visitSymbolPrimitive(node: SymbolPrimitive): CPSThunk<PrimitiveValue> {
-    if (this.context.config.debug) {
-      console.log(
-        `[Interpreter] Looking for \`${node.value}\` in the environment`,
-      );
-    }
+  visitSymbolPrimitive(node: SymbolPrimitive): ExecutionCommand {
     try {
       const val = this.context.lookup(node.value);
       if (isRuntimeFunction(val) && val.arity === 0) {
-        if (this.context.config.debug) {
-          console.log(
-            `[Interpreter] Resolved symbol \`${node.value}\` as arity-0 function, applying...`,
-          );
-        }
-        return (k) => () => this.context.funcRuntime.apply(val, [], k);
+        return this.context.funcRuntime.apply(val, []);
       }
-      if (this.context.config.debug) {
-        console.log(
-          `[Interpreter] Found \`${node.value}\`: ${val && typeof val === "object" && "type" in val ? val.type : val}`,
-        );
-      }
-      return valueToCPS(val);
+      return new StepCommand(val);
     } catch (error) {
-      throw new InterpreterError(
-        "Symbol Lookup",
-        (error as Error).message,
-        this.frames,
+      return new FailCommand(
+        new InterpreterError("Symbol Lookup", (error as Error).message),
       );
     }
   }
 
-  visitVariable(node: Variable): CPSThunk<PrimitiveValue> {
+  visitVariable(node: Variable): ExecutionCommand {
     const name = node.identifier.value;
-    if (this.context.config.debug) {
-      console.log(`[Interpreter] Defining variable: ${name}`);
-    }
-    return (k) =>
-      this.evaluate(node.expression, (value) => {
-        this.context.define(name, value);
-        return k(true);
-      });
+    return new BindCommand(this.evaluate(node.expression), (value) => {
+      this.context.define(name, value);
+      return new StepCommand(true);
+    });
   }
 
-  visitAssignment(node: Assignment): CPSThunk<PrimitiveValue> {
+  visitAssignment(node: Assignment): ExecutionCommand {
     if (!this.context.config.mutability) {
-      throw new InterpreterError(
-        "Assignment",
-        `Cannot reassign variable '${node.identifier.value}': mutability is disabled`,
-        this.frames,
+      return new FailCommand(
+        new InterpreterError(
+          "Assignment",
+          `Cannot reassign variable '${node.identifier.value}': mutability is disabled`,
+        ),
       );
     }
 
     const name = node.identifier.value;
-    if (this.context.config.debug) {
-      console.log(`[Interpreter] Assigning variable: ${name}`);
-    }
-    return (k) =>
-      this.evaluate(node.expression, (value) => {
-        const onReplace = (scope: Environment) => {
-          if (scope.has("self")) {
-            const self = scope.get("self");
-            if (isRuntimeObject(self) && self.fields.has(name))
-              self.fields.set(name, value);
-          }
-        };
+    return new BindCommand(this.evaluate(node.expression), (value) => {
+      const onReplace = (scope: Environment) => {
+        if (scope.has("self")) {
+          const self = scope.get("self");
+          if (isRuntimeObject(self) && self.fields.has(name))
+            self.fields.set(name, value);
+        }
+      };
 
-        if (!this.context.replace(name, value, onReplace))
-          throw new InterpreterError(
+      if (!this.context.replace(name, value, onReplace))
+        return new FailCommand(
+          new InterpreterError(
             "Assignment",
             `Cannot assign to undefined variable: ${name}`,
-            this.frames,
-          );
+          ),
+        );
 
-        return k(value);
-      });
+      return new StepCommand(value);
+    });
   }
 
   visitArithmeticUnaryOperation(
     node: ArithmeticUnaryOperation,
-  ): CPSThunk<PrimitiveValue> {
+  ): ExecutionCommand {
     return this.processUnary(
       node,
       ArithmeticUnaryTable,
@@ -315,7 +243,7 @@ export class InterpreterVisitor
 
   visitArithmeticBinaryOperation(
     node: ArithmeticBinaryOperation,
-  ): CPSThunk<PrimitiveValue> {
+  ): ExecutionCommand {
     return this.processBinary(
       node,
       ArithmeticBinaryTable,
@@ -324,47 +252,54 @@ export class InterpreterVisitor
     );
   }
 
-  visitListUnaryOperation(node: ListUnaryOperation): CPSThunk<PrimitiveValue> {
-    return (k) =>
-      this.evaluate(node.operand, (operand) => {
-        if (
-          typeof operand !== "string" &&
-          !Array.isArray(operand) &&
-          !isLazyList(operand)
-        )
-          throw new UnexpectedValue(
+  visitListUnaryOperation(node: ListUnaryOperation): ExecutionCommand {
+    return new BindCommand(this.evaluate(node.operand), (operand) => {
+      if (
+        typeof operand !== "string" &&
+        !Array.isArray(operand) &&
+        !isLazyList(operand)
+      )
+        return new FailCommand(
+          new InterpreterError(
             "ListUnaryOperation",
-            "Array, String or LazyList",
-            typeof operand,
-          );
+            `Expected Array, String or LazyList but got ${typeof operand}`,
+          ),
+        );
 
-        return this.context.lazyRuntime.realizeList(operand, (arr) => {
+      return new BindCommand(
+        this.context.lazyRuntime.realizeList(operand),
+        (arr) => {
           const fn = ListUnaryTable[node.operator];
           if (!fn)
-            throw new InterpreterError(
-              "ListUnaryOperation",
-              `Unknown operator: ${node.operator}`,
+            return new FailCommand(
+              new InterpreterError(
+                "ListUnaryOperation",
+                `Unknown operator: ${node.operator}`,
+              ),
             );
-          return k(fn(arr));
-        });
-      });
+          if (!Array.isArray(arr))
+            return new FailCommand(
+              new InterpreterError(
+                "ListUnaryOperation",
+                "realizeList did not return an array",
+              ),
+            );
+          return new StepCommand(fn(arr));
+        },
+      );
+    });
   }
 
-  visitListBinaryOperation(
-    node: ListBinaryOperation,
-  ): CPSThunk<PrimitiveValue> {
+  visitListBinaryOperation(node: ListBinaryOperation): ExecutionCommand {
     if (node.operator === "Concat") {
       if (this.context.config.lazyLoading) {
-        return (k) =>
-          this.context.lazyRuntime.evaluateConcatLazy(node, this, k);
+        return this.context.lazyRuntime.evaluateConcatLazy(node, this);
       }
-      return (k) =>
-        this.evaluate(node.left, (left) => {
-          return () =>
-            this.evaluate(node.right, (right) => {
-              return this.context.lazyRuntime.evaluateConcat(left, right, k);
-            });
+      return new BindCommand(this.evaluate(node.left), (left) => {
+        return new BindCommand(this.evaluate(node.right), (right) => {
+          return this.context.lazyRuntime.evaluateConcat(left, right);
         });
+      });
     }
 
     return this.processBinary(
@@ -377,20 +312,20 @@ export class InterpreterVisitor
     );
   }
 
-  visitComparisonOperation(
-    node: ComparisonOperation,
-  ): CPSThunk<PrimitiveValue> {
+  visitComparisonOperation(node: ComparisonOperation): ExecutionCommand {
     if (node.operator === "Equal" || node.operator === "NotEqual") {
-      return (k) =>
-        this.evaluate(
-          node.left,
-          (left) => () =>
-            this.evaluate(node.right, (right) =>
-              this.context.lazyRuntime.deepEqual(left, right, (eq) =>
-                k(node.operator === "Equal" ? eq : !eq),
+      return new BindCommand(
+        this.evaluate(node.left),
+        (left) =>
+          new BindCommand(
+            this.evaluate(node.right),
+            (right) =>
+              new BindCommand(
+                this.context.lazyRuntime.deepEqual(left, right),
+                (eq) => new StepCommand(node.operator === "Equal" ? eq : !eq),
               ),
-            ),
-        );
+          ),
+      );
     }
 
     return this.processBinary(
@@ -401,43 +336,46 @@ export class InterpreterVisitor
     );
   }
 
-  visitLogicalBinaryOperation(
-    node: LogicalBinaryOperation,
-  ): CPSThunk<PrimitiveValue> {
-    return (k) =>
-      this.evaluate(node.left, (left) => {
-        if (typeof left !== "boolean")
-          throw new InterpreterError(
+  visitLogicalBinaryOperation(node: LogicalBinaryOperation): ExecutionCommand {
+    return new BindCommand(this.evaluate(node.left), (left) => {
+      if (typeof left !== "boolean")
+        return new FailCommand(
+          new InterpreterError(
             "LogicalBinaryOperation",
             `Expected left side to be boolean and got: ${left}`,
-          );
+          ),
+        );
 
-        const fn = LogicalBinaryTable[node.operator];
-        if (!fn)
-          throw new InterpreterError(
+      const fn = LogicalBinaryTable[node.operator];
+      if (!fn)
+        return new FailCommand(
+          new InterpreterError(
             "LogicalBinaryOperation",
             `Unknown operator '${node.operator}'`,
-          );
+          ),
+        );
 
-        if (this.context.config.lazyLoading) {
-          if (node.operator === "And" && left === false) return k(false);
-          if (node.operator === "Or" && left === true) return k(true);
-        }
+      if (this.context.config.lazyLoading) {
+        if (node.operator === "And" && left === false)
+          return new StepCommand(false);
+        if (node.operator === "Or" && left === true)
+          return new StepCommand(true);
+      }
 
-        return this.evaluate(node.right, (right) => {
-          if (typeof right !== "boolean")
-            throw new InterpreterError(
+      return new BindCommand(this.evaluate(node.right), (right) => {
+        if (typeof right !== "boolean")
+          return new FailCommand(
+            new InterpreterError(
               "LogicalBinaryOperation",
               `Expected right side to be boolean and got: ${right}`,
-            );
-          return k(fn(left, () => right));
-        });
+            ),
+          );
+        return new StepCommand(fn(left, () => right));
       });
+    });
   }
 
-  visitLogicalUnaryOperation(
-    node: LogicalUnaryOperation,
-  ): CPSThunk<PrimitiveValue> {
+  visitLogicalUnaryOperation(node: LogicalUnaryOperation): ExecutionCommand {
     return this.processUnary(
       node,
       LogicalUnaryTable,
@@ -446,9 +384,7 @@ export class InterpreterVisitor
     );
   }
 
-  visitBitwiseBinaryOperation(
-    node: BitwiseBinaryOperation,
-  ): CPSThunk<PrimitiveValue> {
+  visitBitwiseBinaryOperation(node: BitwiseBinaryOperation): ExecutionCommand {
     return this.processBinary(
       node,
       BitwiseBinaryTable,
@@ -457,9 +393,7 @@ export class InterpreterVisitor
     );
   }
 
-  visitBitwiseUnaryOperation(
-    node: BitwiseUnaryOperation,
-  ): CPSThunk<PrimitiveValue> {
+  visitBitwiseUnaryOperation(node: BitwiseUnaryOperation): ExecutionCommand {
     return this.processUnary(
       node,
       BitwiseUnaryTable,
@@ -468,7 +402,7 @@ export class InterpreterVisitor
     );
   }
 
-  visitStringOperation(node: StringOperation): CPSThunk<PrimitiveValue> {
+  visitStringOperation(node: StringOperation): ExecutionCommand {
     return this.processBinary(
       node,
       StringOperationTable,
@@ -477,218 +411,193 @@ export class InterpreterVisitor
     );
   }
 
-  visitUnifyOperation(node: UnifyOperation): CPSThunk<PrimitiveValue> {
-    return (k) => this.getLogicEngine().unifyExpr(node.left, node.right, k);
+  visitUnifyOperation(node: UnifyOperation): ExecutionCommand {
+    return this.getLogicEngine().unifyExpr(node.left, node.right);
   }
 
-  visitAssignOperation(node: AssignOperation): CPSThunk<PrimitiveValue> {
+  visitAssignOperation(node: AssignOperation): ExecutionCommand {
     if (!this.context.config.mutability) {
       throw new InterpreterError(
         "AssignOperation",
         `Cannot perform assignment operation: mutability is disabled`,
-        this.frames,
       );
     }
 
     if (!(node.left instanceof SymbolPrimitive))
-      throw new InterpreterError(
-        "AssignOperation",
-        "Left side must be a SymbolPrimitive",
+      return new FailCommand(
+        new InterpreterError(
+          "AssignOperation",
+          "Left side must be a SymbolPrimitive",
+        ),
       );
     const name = node.left.value;
 
-    return (k) =>
-      this.evaluate(node.right, (value) => {
-        const onReplace = (scope: Environment) => {
-          if (scope.has("self")) {
-            const self = scope.get("self");
-            if (isRuntimeObject(self) && self.fields.has(name)) {
-              self.fields.set(name, value);
-            }
+    return new BindCommand(this.evaluate(node.right), (value) => {
+      const onReplace = (scope: Environment) => {
+        if (scope.has("self")) {
+          const self = scope.get("self");
+          if (isRuntimeObject(self) && self.fields.has(name)) {
+            self.fields.set(name, value);
           }
-        };
-
-        if (!this.context.replace(name, value, onReplace)) {
-          this.context.define(name, value);
         }
-
-        return k(true);
-      });
-  }
-
-  visitTupleExpr(node: TupleExpression): CPSThunk<PrimitiveValue> {
-    return (k) => {
-      const results: PrimitiveValue[] = [];
-      const evaluateNext = (index: number): Thunk<PrimitiveValue> => {
-        if (index >= node.elements.length) return k(results);
-        return this.evaluate(node.elements[index], (val) => {
-          results.push(val);
-          return () => evaluateNext(index + 1);
-        });
-      };
-      return evaluateNext(0);
-    };
-  }
-
-  visitFieldExpression(node: FieldExpression): CPSThunk<PrimitiveValue> {
-    return (k) =>
-      this.evaluate(node.name, (obj) => {
-        return k(this.context.objRuntime.getField(obj, node.name.value));
-      });
-  }
-
-  visitDataExpr(node: DataExpression): CPSThunk<PrimitiveValue> {
-    return (k) => {
-      const fieldValues = new Map<string, PrimitiveValue>();
-
-      const evaluateFields = (index: number): Thunk<PrimitiveValue> => {
-        if (index >= node.contents.length) {
-          return k(
-            this.context.objRuntime.instantiate(
-              node.name.value,
-              node.name.value,
-              fieldValues,
-              new Map(),
-            ),
-          );
-        }
-        const field = node.contents[index];
-        return this.evaluate(field.expression, (value) => {
-          fieldValues.set(field.name.value, value);
-          return () => evaluateFields(index + 1);
-        });
       };
 
-      return evaluateFields(0);
-    };
+      if (!this.context.replace(name, value, onReplace)) {
+        this.context.define(name, value);
+      }
+
+      return new StepCommand(true);
+    });
   }
 
-  visitConsExpr(node: ConsExpression): CPSThunk<PrimitiveValue> {
-    return (k) => this.context.lazyRuntime.evaluateCons(node, this, k);
-  }
-
-  visitLetInExpr(node: LetInExpression): CPSThunk<PrimitiveValue> {
-    return (k) => {
-      const oldEnv = this.context.env;
-      this.context.pushEnv();
-      const envBuilder = new EnvBuilderVisitor(this.context);
-      node.declarations.accept(envBuilder);
-      return this.evaluate(node.expression, (result) => {
-        this.context.env = oldEnv;
-        return k(result);
+  visitTupleExpr(node: TupleExpression): ExecutionCommand {
+    const results: PrimitiveValue[] = [];
+    const evaluateNext = (index: number): ExecutionCommand => {
+      if (index >= node.elements.length) return new StepCommand(results);
+      return new BindCommand(this.evaluate(node.elements[index]), (val) => {
+        results.push(val);
+        return evaluateNext(index + 1);
       });
     };
+    return evaluateNext(0);
   }
 
-  visitIf(node: If): CPSThunk<PrimitiveValue> {
-    return (k) =>
-      this.evaluate(node.condition, (condition) => {
-        if (typeof condition !== "boolean")
-          throw new InterpreterError(
-            "If",
-            `Expected boolean in condition and got ${typeof condition}`,
-            this.frames,
-          );
-        if (this.context.config.debug) {
-          console.log(`[Interpreter] If condition: ${condition}`);
-        }
-        return condition
-          ? node.then.accept(this)(k)
-          : node.elseExpr.accept(this)(k);
+  visitFieldExpression(node: FieldExpression): ExecutionCommand {
+    return new BindCommand(this.evaluate(node.name), (obj) => {
+      return new StepCommand(
+        this.context.objRuntime.getField(obj, node.name.value),
+      );
+    });
+  }
+
+  visitDataExpr(node: DataExpression): ExecutionCommand {
+    const fieldValues = new Map<string, PrimitiveValue>();
+
+    const evaluateFields = (index: number): ExecutionCommand => {
+      if (index >= node.contents.length) {
+        return new StepCommand(
+          this.context.objRuntime.instantiate(
+            node.name.value,
+            node.name.value,
+            fieldValues,
+            new Map(),
+          ),
+        );
+      }
+      const field = node.contents[index];
+      return new BindCommand(this.evaluate(field.expression), (value) => {
+        fieldValues.set(field.name.value, value);
+        return evaluateFields(index + 1);
       });
+    };
+
+    return evaluateFields(0);
   }
 
-  visitCall(node: Call): CPSThunk<PrimitiveValue> {
-    return (k) =>
-      this.evaluate(node.callee, (callee) => {
-        const args: PrimitiveValue[] = [];
-        const evaluateArgs = (index: number): Thunk<PrimitiveValue> => {
-          if (index < node.args.length)
-            return this.evaluate(node.args[index], (val) => {
-              args.push(val);
-              return () => evaluateArgs(index + 1);
-            });
-
-          if (!isRuntimeFunction(callee))
-            throw new InterpreterError("Call", "Target is not a function");
-
-          if (this.context.config.debug)
-            console.log(
-              `[Interpreter] Calling function: ${callee.identifier} with ${args.length} args`,
-            );
-
-          return this.context.funcRuntime.apply(callee, args, k);
-        };
-        return evaluateArgs(0);
-      });
+  visitConsExpr(node: ConsExpression): ExecutionCommand {
+    return this.context.lazyRuntime.evaluateCons(node, this);
   }
 
-  visitOtherwise(node: Otherwise): CPSThunk<PrimitiveValue> {
-    return valueToCPS(true);
+  visitLetInExpr(node: LetInExpression): ExecutionCommand {
+    const oldEnv = this.context.env;
+    this.context.pushEnv();
+    const envBuilder = new EnvBuilderVisitor(this.context);
+    node.declarations.accept(envBuilder);
+    return new BindCommand(this.evaluate(node.expression), (result) => {
+      this.context.env = oldEnv;
+      return new StepCommand(result);
+    });
   }
 
-  visitCompositionExpression(
-    node: CompositionExpression,
-  ): CPSThunk<PrimitiveValue> {
-    return (k) =>
-      this.evaluate(node.left, (f) => {
-        return this.evaluate(node.right, (g) => {
-          if (!isRuntimeFunction(f) || !isRuntimeFunction(g)) {
-            throw new InterpreterError(
-              "Composition",
-              "Both operands of (.) must be functions",
-            );
-          }
+  visitIf(node: If): ExecutionCommand {
+    return new BindCommand(this.evaluate(node.condition), (condition) => {
+      if (typeof condition !== "boolean")
+        return new FailCommand(
+          new InterpreterError("If", `Expected boolean in condition and got ${typeof condition}`),
+        );
+      return condition
+        ? this.evaluate(node.then)
+        : this.evaluate(node.elseExpr);
+    });
+  }
 
-          const F_REF = "__internal_f";
-          const G_REF = "__internal_g";
-          const PARAM_NAME = "__x";
-
-          const compositionBody = new Application(
-            new SymbolPrimitive(F_REF),
-            new Application(
-              new SymbolPrimitive(G_REF),
-              new SymbolPrimitive(PARAM_NAME),
-            ),
-          );
-
-          const patterns = [
-            new VariablePattern(new SymbolPrimitive(PARAM_NAME)),
-          ];
-          const equation: EquationRuntime = {
-            patterns,
-            body: new UnguardedBody(
-              new Sequence([new Return(compositionBody)]),
-            ),
-          };
-
-          const privateScope = new Map<string, PrimitiveValue>();
-          privateScope.set(F_REF, f);
-          privateScope.set(G_REF, g);
-
-          const capturedEnv: EnvStack = {
-            head: privateScope,
-            tail: this.context.env,
-          };
-          return k({
-            type: "Function",
-            arity: 1,
-            identifier: `<(${f.identifier} . ${g.identifier})>`,
-            equations: [equation],
-            pendingArgs: [],
-            closure: capturedEnv,
+  visitCall(node: Call): ExecutionCommand {
+    return new BindCommand(this.evaluate(node.callee), (callee) => {
+      const args: PrimitiveValue[] = [];
+      const evaluateArgs = (index: number): ExecutionCommand => {
+        if (index < node.args.length)
+          return new BindCommand(this.evaluate(node.args[index]), (val) => {
+            args.push(val);
+            return evaluateArgs(index + 1);
           });
-        });
-      });
+
+        if (!isRuntimeFunction(callee))
+          return new FailCommand(new InterpreterError("Call", "Target is not a function"));
+
+        return this.context.funcRuntime.apply(callee, args);
+      };
+      return evaluateArgs(0);
+    });
   }
 
-  visitLambda(node: Lambda): CPSThunk<PrimitiveValue> {
+  visitOtherwise(node: Otherwise): ExecutionCommand {
+    return new StepCommand(true);
+  }
+
+  visitCompositionExpression(node: CompositionExpression): ExecutionCommand {
+    return new BindCommand(this.evaluate(node.left), (f) => {
+      return new BindCommand(this.evaluate(node.right), (g) => {
+        if (!isRuntimeFunction(f) || !isRuntimeFunction(g)) {
+          return new FailCommand(
+            new InterpreterError("Composition", "Both operands of (.) must be functions"),
+          );
+        }
+
+        const F_REF = "__internal_f";
+        const G_REF = "__internal_g";
+        const PARAM_NAME = "__x";
+
+        const compositionBody = new Application(
+          new SymbolPrimitive(F_REF),
+          new Application(
+            new SymbolPrimitive(G_REF),
+            new SymbolPrimitive(PARAM_NAME),
+          ),
+        );
+
+        const patterns = [new VariablePattern(new SymbolPrimitive(PARAM_NAME))];
+        const equation: EquationRuntime = {
+          patterns,
+          body: new UnguardedBody(new Sequence([new Return(compositionBody)])),
+        };
+
+        const privateScope = new Map<string, PrimitiveValue>();
+        privateScope.set(F_REF, f);
+        privateScope.set(G_REF, g);
+
+        const capturedEnv: EnvStack = {
+          head: privateScope,
+          tail: this.context.env,
+        };
+        return new StepCommand({
+          type: "Function",
+          arity: 1,
+          identifier: `<(${f.identifier} . ${g.identifier})>`,
+          equations: [equation],
+          pendingArgs: [],
+          closure: capturedEnv,
+        });
+      });
+    });
+  }
+
+  visitLambda(node: Lambda): ExecutionCommand {
     const patterns = node.parameters;
     const equation: EquationRuntime = {
       patterns,
       body: new UnguardedBody(new Sequence([new Return(node.body)])),
     };
-    return valueToCPS({
+    return new StepCommand({
       type: "Function",
       arity: patterns.length,
       equations: [equation],
@@ -698,218 +607,151 @@ export class InterpreterVisitor
     });
   }
 
-  visitApplication(node: Application): CPSThunk<PrimitiveValue> {
+  visitApplication(node: Application): ExecutionCommand {
     const { funcRuntime } = this.context;
-    if (this.context.config.debug) {
-      console.log(`[Interpreter] Visiting Application`);
-    }
-    return (k) =>
-      this.evaluate(node.functionExpr, (func) => {
-        if (!isRuntimeFunction(func))
-          throw new InterpreterError(
-            "Application",
-            "Cannot apply non-function",
-          );
+    return new BindCommand(this.evaluate(node.functionExpr), (func) => {
+      if (!isRuntimeFunction(func))
+        return new FailCommand(
+          new InterpreterError("Application", "Cannot apply non-function"),
+        );
 
-        const applyFuncToNode =
-          (func: RuntimeFunction): CPSThunk<PrimitiveValue> =>
-          (k) =>
-            this.evaluate(node.parameter, (arg) => {
-              const argThunk = () => arg;
-              const allPendingArgs = func.pendingArgs
-                ? [...func.pendingArgs, argThunk]
-                : [argThunk];
-              return funcRuntime.applyArguments(func, allPendingArgs)(k);
-            });
-        if (func.arity === 0) {
-          return funcRuntime.applyArguments(
-            func,
-            [],
-          )((resultOfFunc) => {
+      const applyFuncToNode = (func: RuntimeFunction): ExecutionCommand =>
+        new BindCommand(this.evaluate(node.parameter), (arg) => {
+          const argThunk = () => arg;
+          const allPendingArgs = func.pendingArgs
+            ? [...func.pendingArgs, argThunk]
+            : [argThunk];
+          // We need applyArguments to return ExecutionCommand too.
+          return funcRuntime.applyArguments(func, allPendingArgs);
+        });
+
+      if (func.arity === 0) {
+        return new BindCommand(
+          funcRuntime.applyArguments(func, []),
+          (resultOfFunc) => {
             if (!isRuntimeFunction(resultOfFunc))
-              throw new InterpreterError(
-                "Application",
-                `Cannot apply non-function result of arity-0 function`,
+              return new FailCommand(
+                new InterpreterError(
+                  "Application",
+                  "Cannot apply non-function result of arity-0 function",
+                ),
               );
-            return applyFuncToNode(resultOfFunc)(k);
-          });
-        }
-
-        return applyFuncToNode(func)(k);
-      });
-  }
-
-  visitQuery(node: Query): CPSThunk<PrimitiveValue> {
-    if (this.context.config.debug) {
-      console.log(`[Interpreter] Visiting Query.`);
-    }
-    return (k) =>
-      this.getLogicEngine().solveQuery(node, (res) => {
-        this.bindLogicResults(res);
-        return k(res);
-      });
-  }
-
-  visitExist(node: Exist): CPSThunk<PrimitiveValue> {
-    return (k) =>
-      this.getLogicEngine().solveExist(node, (res) => {
-        this.bindLogicResults(res);
-        return k(res);
-      });
-  }
-
-  visitNot(node: Not): CPSThunk<PrimitiveValue> {
-    return (k) => this.getLogicEngine().solveNot(node, k);
-  }
-
-  visitFindall(node: Findall): CPSThunk<PrimitiveValue> {
-    return (k) => this.getLogicEngine().solveFindall(node, k);
-  }
-
-  visitForall(node: Forall): CPSThunk<PrimitiveValue> {
-    return (k) => this.getLogicEngine().solveForall(node, k);
-  }
-
-  visitGoal(node: Goal): CPSThunk<PrimitiveValue> {
-    return (k) =>
-      this.getLogicEngine().solveGoal(node, (res) => {
-        this.bindLogicResults(res);
-        return k(res);
-      });
-  }
-
-  private bindLogicResults(res: PrimitiveValue) {
-    if (!res) return;
-    if (Array.isArray(res)) {
-      if (res.length > 0) this.bindLogicResults(res[0]);
-      return;
-    }
-    if (
-      typeof res === "object" &&
-      res !== null &&
-      "success" in res &&
-      res.success &&
-      "solutions" in res
-    ) {
-      for (const [name, val] of res.solutions) {
-        this.context.define(name, val);
+            return applyFuncToNode(resultOfFunc);
+          },
+        );
       }
-    }
+
+      return applyFuncToNode(func);
+    });
   }
 
-  visitLogicConstraint(node: LogicConstraint): CPSThunk<PrimitiveValue> {
-    return (k) =>
-      this.evaluate(node.expression, (val) => {
-        if (Array.isArray(val)) return k(val.length > 0);
-        return k(!!val);
-      });
+  visitQuery(node: Query): ExecutionCommand {
+    return this.getLogicEngine().solveQuery(node);
   }
 
-  visitSuper(node: Super): CPSThunk<PrimitiveValue> {
+  visitExist(node: Exist): ExecutionCommand {
+    return this.getLogicEngine().solveExist(node);
+  }
+
+  visitNot(node: Not): ExecutionCommand {
+    return this.getLogicEngine().solveNot(node);
+  }
+
+  visitFindall(node: Findall): ExecutionCommand {
+    return this.getLogicEngine().solveFindall(node);
+  }
+
+  visitForall(node: Forall): ExecutionCommand {
+    return this.getLogicEngine().solveForall(node);
+  }
+
+  visitGoal(node: Goal): ExecutionCommand {
+    return this.getLogicEngine().solveGoal(node);
+  }
+
+  visitLogicConstraint(node: LogicConstraint): ExecutionCommand {
+    return new BindCommand(this.evaluate(node.expression), (val) => {
+      const success = Array.isArray(val) ? val.length > 0 : !!val;
+      if (success) return new StepCommand({ success: true });
+      return new FailCommand(new InterpreterError("Logic", "Constraint failed"), true);
+    });
+  }
+
+  visitSuper(node: Super): ExecutionCommand {
     let methodName: string;
     try {
       methodName = this.context.lookup("__METHOD_NAME__") as string;
     } catch (e) {
-      throw new InterpreterError(
-        "Super",
-        "'super' keyword used outside of a method context",
-        this.frames,
+      return new FailCommand(
+        new InterpreterError("Super", "'super' keyword used outside of a method context"),
       );
     }
 
-    return (k) => {
+    const args: PrimitiveValue[] = [];
+    const evaluateNextArg = (index: number): ExecutionCommand => {
+      if (index >= node.args.length) {
+        return this.context.objRuntime.dispatchSuper(
+          this.context.env,
+          methodName,
+          args,
+        );
+      }
+      return new BindCommand(this.evaluate(node.args[index]), (val) => {
+        args.push(val);
+        return evaluateNextArg(index + 1);
+      });
+    };
+    return evaluateNextArg(0);
+  }
+
+  visitSend(node: Send): ExecutionCommand {
+    if (node.receiver instanceof Super) {
+      const methodName = node.selector.value;
       const args: PrimitiveValue[] = [];
-      const evaluateNextArg = (index: number): Thunk<PrimitiveValue> => {
+      const evaluateNextArg = (index: number): ExecutionCommand => {
         if (index >= node.args.length) {
-          if (this.context.config.debug) {
-            console.log(`[Interpreter] Dispatching super call: ${methodName}`);
-          }
           return this.context.objRuntime.dispatchSuper(
             this.context.env,
             methodName,
             args,
-            k,
           );
         }
-        return this.evaluate(node.args[index], (val) => {
+        return new BindCommand(this.evaluate(node.args[index]), (val) => {
           args.push(val);
-          return () => evaluateNextArg(index + 1);
+          return evaluateNextArg(index + 1);
         });
       };
       return evaluateNextArg(0);
-    };
+    }
+
+    return new BindCommand(this.evaluate(node.receiver), (receiver) => {
+      const methodName = node.selector.value;
+      const args: PrimitiveValue[] = [];
+      const evaluateNextArg = (index: number): ExecutionCommand => {
+        if (index >= node.args.length) {
+          return this.context.objRuntime.dispatch(
+            receiver,
+            methodName,
+            args,
+            this.context.env,
+          );
+        }
+        return new BindCommand(this.evaluate(node.args[index]), (val) => {
+          args.push(val);
+          return evaluateNextArg(index + 1);
+        });
+      };
+      return evaluateNextArg(0);
+    });
   }
 
-  visitSend(node: Send): CPSThunk<PrimitiveValue> {
-    return (k) => {
-      if (node.receiver instanceof Super) {
-        const methodName = node.selector.value;
-        const args: PrimitiveValue[] = [];
-        const evaluateNextArg = (index: number): Thunk<PrimitiveValue> => {
-          if (index >= node.args.length) {
-            if (this.context.config.debug) {
-              console.log(
-                `[Interpreter] Dispatching super call: ${methodName}`,
-              );
-            }
-            return this.context.objRuntime.dispatchSuper(
-              this.context.env,
-              methodName,
-              args,
-              k,
-            );
-          }
-          return this.evaluate(node.args[index], (val) => {
-            args.push(val);
-            return () => evaluateNextArg(index + 1);
-          });
-        };
-        return evaluateNextArg(0);
-      }
-
-      return this.evaluate(node.receiver, (receiver) => {
-        const methodName = node.selector.value;
-        const args: PrimitiveValue[] = [];
-        const evaluateNextArg = (index: number): Thunk<PrimitiveValue> => {
-          if (index >= node.args.length) {
-            if (this.context.config.debug) {
-              console.log(
-                `[Interpreter] Sending method call: ${methodName} to object`,
-              );
-            }
-            return this.context.objRuntime.dispatch(
-              receiver,
-              methodName,
-              args,
-              this.context.env,
-              k,
-            );
-          }
-          return this.evaluate(node.args[index], (val) => {
-            args.push(val);
-            return () => evaluateNextArg(index + 1);
-          });
-        };
-        return evaluateNextArg(0);
-      });
-    };
-  }
-
-  visitNew(node: New): CPSThunk<PrimitiveValue> {
+  visitNew(node: New): ExecutionCommand {
     const className = node.identifier.value;
     const classDef = this.context.lookup(className);
     if (!isRuntimeClass(classDef))
-      throw new InterpreterError(
-        "New",
-        `${className} is not a class.`,
-        this.frames,
-      );
+      return new FailCommand(new InterpreterError("New", `${className} is not a class.`));
 
-    if (this.context.config.debug) {
-      console.log(`[Interpreter] Instantiating class: ${className}`);
-    }
-
-    return valueToCPS(
+    return new StepCommand(
       this.context.objRuntime.instantiate(
         className,
         node.identifier.value,
@@ -919,122 +761,127 @@ export class InterpreterVisitor
     );
   }
 
-  visitSelf(node: Self): CPSThunk<PrimitiveValue> {
+  visitSelf(node: Self): ExecutionCommand {
     try {
-      return valueToCPS(this.context.lookup("self"));
+      return new StepCommand(this.context.lookup("self"));
     } catch {
-      throw new InterpreterError(
-        "Self",
-        "'self' is not defined in this context",
+      return new FailCommand(
+        new InterpreterError("Self", "'self' is not defined in this context"),
       );
     }
   }
 
-  visitListComprehension(node: ListComprehension): CPSThunk<PrimitiveValue> {
-    return (k) => {
-      const results: PrimitiveValue[] = [];
+  visitListComprehension(node: ListComprehension): ExecutionCommand {
+    const results: PrimitiveValue[] = [];
 
-      const process = (index: number): Thunk<PrimitiveValue> => {
-        if (index >= node.generators.length) {
-          return this.evaluate(node.projection, (proj) => {
-            results.push(proj);
-            return () => k(results);
-          });
-        }
+    const process = (index: number): ExecutionCommand => {
+      if (index >= node.generators.length) {
+        return new BindCommand(this.evaluate(node.projection), (proj) => {
+          results.push(proj);
+          return new StepCommand(results);
+        });
+      }
 
-        const current = node.generators[index];
+      const current = node.generators[index];
 
-        if (current instanceof YuGenerator) {
-          return this.evaluate(current.expression, (exprResult) => {
-            return this.context.lazyRuntime.realizeList(
-              exprResult,
+      if (current instanceof YuGenerator) {
+        return new BindCommand(
+          this.evaluate(current.expression),
+          (exprResult) => {
+            return new BindCommand(
+              this.context.lazyRuntime.realizeList(exprResult),
               (sourceList) => {
                 const iterateSource = (
                   sourceIndex: number,
-                ): Thunk<PrimitiveValue> => {
-                  if (sourceIndex >= sourceList.length) return () => k(results);
+                ): ExecutionCommand => {
+                  if (sourceIndex >= (sourceList as any[]).length)
+                    return new StepCommand(results);
 
-                  const item = sourceList[sourceIndex];
+                  const item = (sourceList as any[])[sourceIndex];
                   const varName = current.variable.value;
                   this.context.define(varName, item);
 
-                  return () => process(index + 1);
+                  return process(index + 1);
                 };
                 return iterateSource(0);
               },
             );
-          });
-        } else {
-          return this.evaluate(current as Expression, (condition) => {
+          },
+        );
+      } else {
+        return new BindCommand(
+          this.evaluate(current as Expression),
+          (condition) => {
             return condition === true
-              ? () => process(index + 1)
-              : () => k(results);
-          });
-        }
-      };
-
-      this.context.pushEnv();
-      return process(0);
+              ? process(index + 1)
+              : new StepCommand(results);
+          },
+        );
+      }
     };
+
+    this.context.pushEnv();
+    return process(0);
   }
-  visitTypeCast(node: TypeCast): CPSThunk<PrimitiveValue> {
+
+  visitTypeCast(node: TypeCast): ExecutionCommand {
     return node.expression.accept(this);
   }
-  visitGenerator(node: YuGenerator): CPSThunk<PrimitiveValue> {
-    return (k) => this.evaluate(node.expression, k);
+
+  visitGenerator(node: YuGenerator): ExecutionCommand {
+    return this.evaluate(node.expression);
   }
 
-  visitRaise(node: Raise): CPSThunk<PrimitiveValue> {
-    return (k) =>
-      this.evaluate(node.body, (msg) => {
-        if (typeof msg !== "string")
-          throw new UnexpectedValue("Raise", "string", typeof msg);
-        throw new InterpreterError("Raise", msg);
-      });
+  visitRaise(node: Raise): ExecutionCommand {
+    return new BindCommand(this.evaluate(node.body), (msg) => {
+      if (typeof msg !== "string")
+        return new FailCommand(
+          new InterpreterError("Raise", `Expected string but got ${typeof msg}`),
+        );
+      return new FailCommand(new InterpreterError("Raise", msg));
+    });
   }
 
-  visitRangeExpression(node: RangeExpression): CPSThunk<PrimitiveValue> {
-    return (k) => this.context.lazyRuntime.evaluateRange(node, this, k);
+  visitRangeExpression(node: RangeExpression): ExecutionCommand {
+    return this.context.lazyRuntime.evaluateRange(node, this);
   }
 
-  visit(node: Expression): CPSThunk<PrimitiveValue> {
-    return node.accept(this);
+  visit(node: Expression): ExecutionCommand {
+    return node.accept<ExecutionCommand>(this);
   }
-  public fallback(node: ASTNode): CPSThunk<PrimitiveValue> {
-    throw new UnexpectedNode(node.constructor.name, "InterpreterVisitor");
+  public fallback(node: ASTNode): ExecutionCommand {
+    return new FailCommand(
+      new UnexpectedNode(node.constructor.name, "InterpreterVisitor"),
+    );
   }
-  public realizeList<R = PrimitiveValue[]>(
-    val: PrimitiveValue,
-    k: Continuation<PrimitiveValue[], R>,
-  ): Thunk<R> {
-    return this.context.lazyRuntime.realizeList(val, k);
+  public realizeList(val: PrimitiveValue): ExecutionCommand {
+    return this.context.lazyRuntime.realizeList(val);
   }
 
   private processBinary(
     node: BinaryOperation,
-    table: any,
+    table: Record<string, any>,
     typeGuard: (a: any, b: any) => boolean,
     contextName: string,
-  ): CPSThunk<PrimitiveValue> {
-    return (k) =>
-      this.evaluate(node.left, (left) => {
-        return this.evaluate(node.right, (right) => {
-          if (!typeGuard(left, right))
-            throw new InterpreterError(
-              contextName,
-              `Type mismatch: ${left}, ${right}`,
-              this.frames,
-            );
+  ): ExecutionCommand {
+    return new BindCommand(this.evaluate(node.left), (left) => {
+      return new BindCommand(this.evaluate(node.right), (right) => {
+        if (!typeGuard(left, right)) {
+          return new FailCommand(
+            new InterpreterError(contextName, `Type mismatch: ${left}, ${right}`),
+          );
+        }
 
-          const fn = table[node.operator];
-          if (!fn)
-            throw new InterpreterError(
-              contextName,
-              `Unknown op: ${node.operator}`,
-            );
-          return k(fn(left, right));
-        });
+        const fn = table[node.operator];
+        if (!fn) {
+          return new FailCommand(
+            new InterpreterError(contextName, `Unknown op: ${node.operator}`),
+          );
+        }
+
+        return new StepCommand(fn(left, right));
       });
+    });
   }
 
   private processUnary(
@@ -1042,24 +889,21 @@ export class InterpreterVisitor
     table: any,
     typeGuard: (a: any) => boolean,
     contextName: string,
-  ): CPSThunk<PrimitiveValue> {
-    return (k) =>
-      this.evaluate(node.operand, (operand) => {
-        if (!typeGuard(operand))
-          throw new InterpreterError(
-            contextName,
-            `Type mismatch: ${operand}`,
-            this.frames,
-          );
+  ): ExecutionCommand {
+    return new BindCommand(this.evaluate(node.operand), (operand) => {
+      if (!typeGuard(operand))
+        return new FailCommand(
+          new InterpreterError(contextName, `Type mismatch: ${operand}`),
+        );
 
-        const fn = table[node.operator];
-        if (!fn)
-          throw new InterpreterError(
-            contextName,
-            `Unknown op: ${node.operator}`,
-          );
-        return k(fn(operand));
-      });
+      const fn = table[node.operator];
+      if (!fn)
+        return new FailCommand(
+          new InterpreterError(contextName, `Unknown op: ${node.operator}`),
+        );
+
+      return new StepCommand(fn(operand));
+    });
   }
 
   private getLogicEngine(): LogicEngine {
@@ -1069,6 +913,7 @@ export class InterpreterVisitor
   static evaluateLiteral(node: ASTNode): PrimitiveValue {
     const ctx = new RuntimeContext();
     const visitor = new InterpreterVisitor(ctx);
-    return trampoline(visitor.evaluate(node, idContinuation));
+    const kernel = new YukigoKernel(visitor);
+    return kernel.run(new EvalCommand(node));
   }
 }

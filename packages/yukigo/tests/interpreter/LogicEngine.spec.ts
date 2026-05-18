@@ -27,19 +27,17 @@ import {
 } from "yukigo-ast";
 import {
   createGlobalEnv,
-  ExpressionEvaluator,
+  Evaluator,
 } from "../../src/interpreter/utils.js";
 import { LogicEngine } from "../../src/interpreter/components/logic/LogicEngine.js";
 import { unify } from "../../src/interpreter/components/logic/LogicResolver.js";
 import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
 import {
-  idContinuation,
-  trampoline,
-} from "../../src/interpreter/trampoline.js";
-import {
   InterpreterConfig,
   RuntimeContext,
 } from "../../src/interpreter/components/RuntimeContext.js";
+import { YukigoKernel } from "../../src/interpreter/components/kernel/index.js";
+import { EvalCommand } from "../../src/interpreter/components/kernel/commands.js";
 
 const s = (val: string) => new SymbolPrimitive(val);
 const n = (val: number) => new NumberPrimitive(val);
@@ -90,11 +88,13 @@ context.define("parent", factsParent);
 
 describe("Logic Engine & Unification", () => {
   let engine: LogicEngine;
-  let evaluator: ExpressionEvaluator;
+  let evaluator: InterpreterVisitor;
+  let kernel: YukigoKernel;
 
   beforeEach(() => {
     evaluator = new InterpreterVisitor(context);
     engine = new LogicEngine(evaluator, context);
+    kernel = new YukigoKernel(evaluator);
   });
 
   describe("Unification Algorithm", () => {
@@ -195,17 +195,17 @@ describe("Logic Engine & Unification", () => {
          // Mock evaluator to return this lazy list for variable "Infinite"
          evaluator.evaluate = (node: any) => {
              if (node instanceof Variable && node.identifier.value === "Infinite") {
-                 return lazyList;
+                 return new StepCommand(lazyList);
              }
-             if (node instanceof SymbolPrimitive) return node.value;
-             return null;
+             if (node instanceof SymbolPrimitive) return new StepCommand(node.value);
+             return new StepCommand(null);
          };
          
          // Unify X = Infinite
          const infiniteVar = new Variable(s("Infinite"), new NilPrimitive(null));
          const xVar = new Variable(s("X"), new NilPrimitive(null));
          
-         const result = trampoline(engine.unifyExpr(xVar, infiniteVar, idContinuation)) as boolean;
+         const result = kernel.run(engine.unifyExpr(xVar, infiniteVar)) as boolean;
          expect(result).to.be.true;
       });
     });
@@ -214,8 +214,8 @@ describe("Logic Engine & Unification", () => {
   describe("LogicEngine Execution", () => {
     it("should solve a simple ground goal (Fact exists)", () => {
       const query = makeGoal("parent", [lit("zeus"), lit("ares")]);
-      const results = trampoline(
-        engine.solveGoal(query, idContinuation),
+      const results = kernel.run(
+        engine.solveGoal(query),
       ) as LogicResult[];
       expect(results).to.not.be.false;
       results.forEach((res) => expect(res.success).to.be.true);
@@ -223,16 +223,16 @@ describe("Logic Engine & Unification", () => {
 
     it("should fail a ground goal that does not exist", () => {
       const query = makeGoal("parent", [lit("zeus"), lit("thor")]);
-      const results = trampoline(
-        engine.solveGoal(query, idContinuation),
+      const results = kernel.run(
+        engine.solveGoal(query),
       ) as LogicResult[];
       results.forEach((res) => expect(res.success).to.be.false);
     });
 
     it("should solve a goal with a variable", () => {
       const query = makeGoal("parent", [lit("zeus"), varPat("Child")]);
-      const results = trampoline(
-        engine.solveGoal(query, idContinuation),
+      const results = kernel.run(
+        engine.solveGoal(query),
       ) as LogicResult[];
 
       results.forEach((res) => {
@@ -251,8 +251,8 @@ describe("Logic Engine & Unification", () => {
 
     it("should solve a rule using backtracking", () => {
       const query = makeGoal("sibling", [lit("ares"), lit("athena")]);
-      const results = trampoline(
-        engine.solveGoal(query, idContinuation),
+      const results = kernel.run(
+        engine.solveGoal(query),
       ) as LogicResult[];
       expect(results.length).to.be.eq(1);
       const solution = results[0] as SuccessLogicResult;
@@ -264,8 +264,8 @@ describe("Logic Engine & Unification", () => {
   });
   it("should solve a rule using backtracking with variable", () => {
     const query = makeGoal("sibling", [lit("ares"), varPat("Child")]);
-    const results = trampoline(
-      engine.solveGoal(query, idContinuation),
+    const results = kernel.run(
+      engine.solveGoal(query),
     ) as LogicResult[];
     results.forEach((res) => {
       if (!res.success) expect.fail("Result should be successful");
@@ -282,8 +282,8 @@ describe("Logic Engine & Unification", () => {
     it('should return all results when outputMode is "all"', () => {
       const query = makeGoal("parent", [lit("zeus"), varPat("X")]);
 
-      const results = trampoline(
-        engine.solveGoal(query, idContinuation),
+      const results = kernel.run(
+        engine.solveGoal(query),
       ) as LogicResult[];
       expect(results).to.be.an("array");
       expect(results).to.have.lengthOf(2);
@@ -303,8 +303,8 @@ describe("Logic Engine & Unification", () => {
         makeGoal("parent", [lit("zeus"), varPat("X")]), // Goal
         varPat("List"), // Bag variable
       );
-      const result = trampoline(
-        engine.solveFindall(findallNode, idContinuation),
+      const result = kernel.run(
+        engine.solveFindall(findallNode),
       ) as any;
       expect(Array.isArray(result)).to.be.true;
       expect(result).to.have.lengthOf(2);
@@ -317,7 +317,7 @@ describe("Logic Engine & Unification", () => {
         env.head.set("myList", "dummy");
         const X = new Variable(s("X"), new NilPrimitive(null));
         const myList = new Variable(s("myList"), new NilPrimitive(null));
-        const result = trampoline(engine.unifyExpr(X, myList, idContinuation));
+        const result = kernel.run(engine.unifyExpr(X, myList));
         expect(result).to.be.true;
       });
     });
