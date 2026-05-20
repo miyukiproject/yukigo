@@ -12,6 +12,7 @@ import {
   isRuntimePredicate,
 } from "yukigo-ast";
 import { ExecutionCommand } from "./components/kernel/commands.js";
+import { RuntimeContext } from "./components/RuntimeContext.js";
 
 export interface Evaluator {
   evaluate(node: ASTNode): ExecutionCommand;

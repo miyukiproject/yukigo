@@ -37,7 +37,7 @@ import {
   RuntimeContext,
 } from "../../src/interpreter/components/RuntimeContext.js";
 import { YukigoKernel } from "../../src/interpreter/components/kernel/index.js";
-import { EvalCommand } from "../../src/interpreter/components/kernel/commands.js";
+import { EvalCommand, StepCommand } from "../../src/interpreter/components/kernel/commands.js";
 
 const s = (val: string) => new SymbolPrimitive(val);
 const n = (val: number) => new NumberPrimitive(val);

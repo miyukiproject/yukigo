@@ -14,6 +14,7 @@ import {
   Sequence,
   SymbolPrimitive,
   VariablePattern,
+  LazyList,
 } from "yukigo-ast";
 import {
   Substitution,
@@ -21,6 +22,8 @@ import {
   instantiate,
   solveGoalKernel,
   solveFindallKernel,
+  isLogicStepResult,
+  LogicStepResult,
 } from "./LogicResolver.js";
 import { createStream, Evaluator } from "../../utils.js";
 import { InterpreterVisitor } from "../Visitor.js";
@@ -34,6 +37,7 @@ import {
   ChoiceCommand,
 } from "../kernel/commands.js";
 import { YukigoKernel } from "../kernel/index.js";
+import { InterpreterError } from "../../errors.js";
 
 export type LogicExecutable = Expression | Statement | Goal | Exist | Findall;
 
@@ -47,10 +51,7 @@ export class LogicEngine {
     this.translator = new LogicTranslator(evaluator, this.context);
   }
 
-  public unifyExpr(
-    left: Expression,
-    right: Expression,
-  ): ExecutionCommand {
+  public unifyExpr(left: Expression, right: Expression): ExecutionCommand {
     return this.translator.instantiateExpressionAsPattern(
       left,
       new Map(),
@@ -72,16 +73,29 @@ export class LogicEngine {
   ): ExecutionCommand {
     const mode = modeOverride || this.context.config.outputMode || "first";
     if (mode === "all") {
-      return this.collectAllResults(node.expressions, new Map(), (results) =>
-        new StepCommand(results.map((s) => this.formatLogicResult(s))),
+      return this.collectAllResults(
+        node.expressions,
+        new Map(),
+        (results) =>
+          new StepCommand(results.map((s) => this.formatLogicResult(s))),
       );
     } else if (mode === "stream") {
-      return new StepCommand(this.createLazyStream(node.expressions, new Map()));
+      return new StepCommand(
+        this.createLazyStream(node.expressions, new Map()),
+      );
     }
-    // "first" mode
-    return this.solveConjunction(
-      node.expressions,
-      new Map(),
+
+    return new BindCommand(
+      this.solveConjunction(node.expressions, new Map()),
+      (res: unknown) => {
+        if (isLogicStepResult(res)) {
+          return new StepCommand(this.formatLogicResult(res.solutions));
+        }
+        return new StepCommand({
+          success: false,
+          solutions: new Map(),
+        } as LogicResult);
+      },
     );
   }
 
@@ -89,93 +103,134 @@ export class LogicEngine {
     node: Goal,
     modeOverride?: LogicSearchMode,
   ): ExecutionCommand {
-    return this.prepareLogicTargetKernel(node, new Map(), ({ id, patterns }) => {
-      const mode = modeOverride || this.context.config.outputMode || "first";
-      if (mode === "all") {
-        return this.collectAllResultsForGoal(
-          id,
-          patterns,
-          new Map(),
-          (results) => new StepCommand(results.map((s) => this.formatLogicResult(s))),
+    return this.prepareLogicTargetKernel(
+      node,
+      new Map(),
+      ({ id, patterns }) => {
+        const mode = modeOverride || this.context.config.outputMode || "first";
+        if (mode === "all") {
+          return this.collectAllResultsForGoal(
+            id,
+            patterns,
+            new Map(),
+            (results) =>
+              new StepCommand(results.map((s) => this.formatLogicResult(s))),
+          );
+        } else if (mode === "stream") {
+          return new StepCommand(
+            this.createLazyStreamForGoal(id, patterns, new Map()),
+          );
+        }
+        return new BindCommand(
+          solveGoalKernel(
+            this.context,
+            id,
+            patterns,
+            (body, s) => this.solveConjunction(body, s),
+            new Map(),
+          ),
+          (res: unknown) => {
+            if (isLogicStepResult(res)) {
+              return new StepCommand(this.formatLogicResult(res.solutions));
+            }
+            return new StepCommand({
+              success: false,
+              solutions: new Map(),
+            } as LogicResult);
+          },
         );
-      } else if (mode === "stream") {
-        return new StepCommand(this.createLazyStreamForGoal(id, patterns, new Map()));
-      }
-      return solveGoalKernel(
-        this.context,
-        id,
-        patterns,
-        (body, s) => this.solveConjunction(body, s),
-        new Map(),
-      );
-    });
+      },
+    );
   }
 
-  public solveNot(
-    node: Not,
-  ): ExecutionCommand {
+  public solveNot(node: Not): ExecutionCommand {
     return new ChoiceCommand([
-       new BindCommand(this.solveConjunction([node.expression], new Map()), (res: any) => {
-          if (res && res.success === true) return new FailCommand(new InterpreterError("Logic", "Goal succeeded, failing NOT"), true);
-          return new StepCommand({ success: true });
-       }),
-       new StepCommand({ success: true })
+      new BindCommand(
+        this.solveConjunction([node.expression], new Map()),
+        (res: unknown) => {
+          if (isLogicStepResult(res) && res.success) {
+            return new FailCommand(
+              new InterpreterError("Logic", "Goal succeeded, failing NOT"),
+              true,
+            );
+          }
+          const stepRes: LogicStepResult = {
+            success: true,
+            solutions: new Map(),
+          };
+          return new StepCommand(stepRes as unknown as PrimitiveValue);
+        },
+      ),
+      new StepCommand({
+        success: true,
+        solutions: new Map(),
+      } as LogicStepResult as unknown as PrimitiveValue),
     ]);
   }
 
-  public solveFindall(
-    node: Findall,
-  ): ExecutionCommand {
+  public solveFindall(node: Findall): ExecutionCommand {
     return solveFindallKernel(
       node,
       new Map(),
       this.evaluator,
       this.context,
       (body, substs) => this.solveConjunction(body, substs),
-      (finalSubsts) => {
-        const pat = finalSubsts.get((node.bag as any).name.value);
-        const val = this.translator.patternToPrimitive(pat!, finalSubsts);
-        return new StepCommand(val!);
-      }
     );
   }
 
-  public solveForall(
-    node: Forall,
-  ): ExecutionCommand {
-    // forall(Cond, Action) is \+ (Cond, \+ Action)
-    return this.solveNot(new Not(
-       new Sequence([
-          node.condition as any,
-          new Not(node.action) as any
-       ])
-    ));
+  public solveForall(node: Forall): ExecutionCommand {
+    return this.solveNot(
+      new Not(
+        new Sequence([
+          node.condition as Expression,
+          new Not(node.action) as Expression,
+        ]),
+      ),
+    );
   }
 
   public solveExist(
     node: Exist,
     modeOverride?: LogicSearchMode,
   ): ExecutionCommand {
-    return this.prepareLogicTargetKernel(node, new Map(), ({ id, patterns }) => {
-      const mode = modeOverride || this.context.config.outputMode || "first";
-      if (mode === "all") {
-        return this.collectAllResultsForGoal(
-          id,
-          patterns,
-          new Map(),
-          (results) => new StepCommand(results.map((s) => this.formatLogicResult(s))),
+    return this.prepareLogicTargetKernel(
+      node,
+      new Map(),
+      ({ id, patterns }) => {
+        const mode = modeOverride || this.context.config.outputMode || "first";
+        if (mode === "all") {
+          return this.collectAllResultsForGoal(
+            id,
+            patterns,
+            new Map(),
+            (results) =>
+              new StepCommand(results.map((s) => this.formatLogicResult(s))),
+          );
+        } else if (mode === "stream") {
+          return new StepCommand(
+            this.createLazyStreamForGoal(id, patterns, new Map()),
+          );
+        }
+        return new BindCommand(
+          solveGoalKernel(
+            this.context,
+            id,
+            patterns,
+            (body, s) => this.solveConjunction(body, s),
+            new Map(),
+          ),
+          (res: unknown) => {
+            if (isLogicStepResult(res)) {
+              return new StepCommand(this.formatLogicResult(res.solutions));
+            }
+            return new StepCommand({
+              success: false,
+              solutions: new Map(),
+            } as LogicResult);
+          },
         );
-      } else if (mode === "stream") {
-        return new StepCommand(this.createLazyStreamForGoal(id, patterns, new Map()));
-      }
-      return solveGoalKernel(
-        this.context,
-        id,
-        patterns,
-        (body, s) => this.solveConjunction(body, s),
-        new Map(),
-      );
-    });
+      },
+    );
   }
 
   private solveConjunction(
@@ -183,20 +238,20 @@ export class LogicEngine {
     substs: Substitution,
   ): ExecutionCommand {
     if (nodes.length === 0) {
-      return new StepCommand(this.formatLogicResult(substs));
+      const res: LogicStepResult = { success: true, solutions: substs };
+      return new StepCommand(res as unknown as PrimitiveValue);
     }
 
     const [head, ...tail] = nodes;
 
-    return new BindCommand(this.solveSingle(head, substs), (res: any) => {
-      // Check if result indicates success
-      if (res && (res.success === true || res.success === undefined)) {
-         // res.solutions_internal should contain the substitution map from this goal
-         const newSubsts = res.solutions_internal || substs;
-         return this.solveConjunction(tail, newSubsts);
+    return new BindCommand(this.solveSingle(head, substs), (res: unknown) => {
+      if (isLogicStepResult(res) && res.success) {
+        return this.solveConjunction(tail, res.solutions);
       }
-      // If a goal in a conjunction fails, the WHOLE conjunction fails for THIS branch
-      return new FailCommand(new InterpreterError("Logic", "Conjunction branch failed"), true);
+      return new FailCommand(
+        new InterpreterError("Logic", "Conjunction branch failed"),
+        true,
+      );
     });
   }
 
@@ -204,8 +259,7 @@ export class LogicEngine {
     node: LogicExecutable,
     substs: Substitution,
   ): ExecutionCommand {
-    if (this.isLogicGoal(node))
-      return this.solveLogicGoal(node, substs);
+    if (this.isLogicGoal(node)) return this.solveLogicGoal(node, substs);
     return this.solveCondition(node, substs);
   }
 
@@ -225,8 +279,10 @@ export class LogicEngine {
       return solveFindallKernel(
         goal,
         substs,
-        (body, s) => this.solveConjunction(body, s),
-        (finalSubsts) => new StepCommand(this.formatLogicResult(finalSubsts))
+        this.evaluator,
+        this.context,
+        (body: LogicExecutable[], s: Substitution) =>
+          this.solveConjunction(body, s),
       );
     }
 
@@ -248,7 +304,7 @@ export class LogicEngine {
     this.createLocalEnv(substs);
     const localEvaluator = new InterpreterVisitor(this.context);
 
-    return new BindCommand(localEvaluator.evaluate(expr), (result) => {
+    return new BindCommand(localEvaluator.evaluate(expr), (result: unknown) => {
       if (result !== undefined && result !== false) {
         let currentSubsts = new Map(substs);
         for (const [name, val] of this.context.env.head) {
@@ -261,14 +317,22 @@ export class LogicEngine {
           if (unified) {
             currentSubsts = unified;
           } else {
-            return new FailCommand(new Error("Unification failed"), true);
+            return new FailCommand(
+              new InterpreterError("Logic", "Unification failed"),
+              true,
+            );
           }
         }
-        const res = this.formatLogicResult(currentSubsts);
-        (res as any).solutions_internal = currentSubsts;
-        return new StepCommand(res);
+        const res: LogicStepResult = {
+          success: true,
+          solutions: currentSubsts,
+        };
+        return new StepCommand(res as unknown as PrimitiveValue);
       }
-      return new FailCommand(new Error("Condition failed"), true);
+      return new FailCommand(
+        new InterpreterError("Logic", "Condition failed"),
+        true,
+      );
     });
   }
 
@@ -292,7 +356,6 @@ export class LogicEngine {
 
       this.context.define(name, value);
 
-      // map base name if it was standardized apart ("X_1" -> "X")
       const baseNameMatch = name.match(/^(.*)_\d+$/);
       if (baseNameMatch) {
         const baseName = baseNameMatch[1];
@@ -335,21 +398,17 @@ export class LogicEngine {
     k: (results: Substitution[]) => ExecutionCommand,
   ): ExecutionCommand {
     const results: Substitution[] = [];
-    
-    // This part is tricky: we want ALL results. 
-    // We can use a loop that manually calls backtrack or a special collector.
-    // For simplicity, let's keep a mini-loop here for now.
     const kernel = new YukigoKernel(this.evaluator);
     let nextCmd = this.solveConjunction(nodes, substs);
 
-    while(true) {
-        const res = kernel.run(nextCmd);
-        if (res && (res as any).success) {
-            results.push((res as any).solutions_internal || new Map());
-            nextCmd = kernel.handleBacktrack();
-        } else {
-            break;
-        }
+    while (true) {
+      const res: unknown = kernel.run(nextCmd);
+      if (isLogicStepResult(res) && res.success) {
+        results.push(res.solutions);
+        nextCmd = kernel.handleBacktrack();
+      } else {
+        break;
+      }
     }
     return k(results);
   }
@@ -362,16 +421,22 @@ export class LogicEngine {
   ): ExecutionCommand {
     const results: Substitution[] = [];
     const kernel = new YukigoKernel(this.evaluator);
-    let nextCmd = solveGoalKernel(this.context, id, patterns, (body, s) => this.solveConjunction(body, s), substs);
+    let nextCmd = solveGoalKernel(
+      this.context,
+      id,
+      patterns,
+      (body, s) => this.solveConjunction(body, s),
+      substs,
+    );
 
-    while(true) {
-        const res = kernel.run(nextCmd);
-        if (res && (res as any).success) {
-            results.push((res as any).solutions_internal || new Map());
-            nextCmd = kernel.handleBacktrack();
-        } else {
-            break;
-        }
+    while (true) {
+      const res: unknown = kernel.run(nextCmd);
+      if (isLogicStepResult(res) && res.success) {
+        results.push(res.solutions);
+        nextCmd = kernel.handleBacktrack();
+      } else {
+        break;
+      }
     }
     return k(results);
   }
@@ -379,46 +444,55 @@ export class LogicEngine {
   private createLazyStream(
     nodes: LogicExecutable[],
     substs: Substitution,
-  ): any {
+  ): LazyList {
+    const formatLogicResult = this.formatLogicResult;
+
     const kernel = new YukigoKernel(this.evaluator);
     let nextCmd = this.solveConjunction(nodes, substs);
 
-    return createStream(() => {
-      return {
-        next: () => {
-          const res = kernel.run(nextCmd);
-          if (res && (res as any).success) {
-            const formatted = this.formatLogicResult((res as any).solutions_internal || new Map());
+    return createStream(
+      function* () {
+        while (true) {
+          const res: unknown = kernel.run(nextCmd);
+          if (isLogicStepResult(res) && res.success) {
+            yield formatLogicResult(res.solutions);
             nextCmd = kernel.handleBacktrack();
-            return { value: formatted, done: false };
+          } else {
+            break;
           }
-          return { value: undefined, done: true };
-        },
-      } as any;
-    });
+        }
+      }.bind(this),
+    );
   }
 
   private createLazyStreamForGoal(
     id: string,
     patterns: Pattern[],
     substs: Substitution,
-  ): any {
+  ): LazyList {
+    const formatLogicResult = this.formatLogicResult;
     const kernel = new YukigoKernel(this.evaluator);
-    let nextCmd = solveGoalKernel(this.context, id, patterns, (body, s) => this.solveConjunction(body, s), substs);
+    let nextCmd = solveGoalKernel(
+      this.context,
+      id,
+      patterns,
+      (body, s) => this.solveConjunction(body, s),
+      substs,
+    );
 
-    return createStream(() => {
-      return {
-        next: () => {
-          const res = kernel.run(nextCmd);
-          if (res && (res as any).success) {
-            const formatted = this.formatLogicResult((res as any).solutions_internal || new Map());
+    return createStream(
+      function* () {
+        while (true) {
+          const res: unknown = kernel.run(nextCmd);
+          if (isLogicStepResult(res) && res.success) {
+            yield formatLogicResult(res.solutions);
             nextCmd = kernel.handleBacktrack();
-            return { value: formatted, done: false };
+          } else {
+            break;
           }
-          return { value: undefined, done: true };
-        },
-      } as any;
-    });
+        }
+      }.bind(this),
+    );
   }
 
   private formatLogicResult(substs: Substitution): LogicResult {
@@ -428,7 +502,6 @@ export class LogicEngine {
       if (val !== undefined) {
         solutions.set(key, val);
 
-        // Also map base name if it was standardized apart (e.g., "X_1" -> "X")
         const baseNameMatch = key.match(/^(.*)_\d+$/);
         if (baseNameMatch) {
           const baseName = baseNameMatch[1];

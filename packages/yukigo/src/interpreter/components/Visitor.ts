@@ -672,7 +672,7 @@ export class InterpreterVisitor implements Evaluator {
   visitLogicConstraint(node: LogicConstraint): ExecutionCommand {
     return new BindCommand(this.evaluate(node.expression), (val) => {
       const success = Array.isArray(val) ? val.length > 0 : !!val;
-      if (success) return new StepCommand({ success: true });
+      if (success) return new StepCommand({ success: true, solutions: new Map() });
       return new FailCommand(new InterpreterError("Logic", "Constraint failed"), true);
     });
   }
