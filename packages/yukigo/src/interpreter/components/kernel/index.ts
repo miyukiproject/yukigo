@@ -1,14 +1,15 @@
 import { EnvStack, PrimitiveValue } from "yukigo-ast";
 import {
   Continuation,
-  EvalCommand,
   ExecutionCommand,
   StepCommand,
 } from "./commands.js";
 import { Evaluator } from "../../utils.js";
 import { ErrorFrame, InterpreterError } from "../../errors.js";
 
-interface ChoicePoint {
+export type LogicSearchMode = "first" | "all" | "stream";
+
+export interface ChoicePoint {
   alternatives: ExecutionCommand[];
   continuationStack: Continuation[];
   envSnapshot: EnvStack;
@@ -18,9 +19,13 @@ export class YukigoKernel {
   private logicalTrace: ExecutionCommand[] = [];
   private continuationStack: Continuation[] = [];
   private choiceStack: ChoicePoint[] = [];
-  private finalResult: PrimitiveValue = undefined;
+  private finalResult: PrimitiveValue | undefined;
+  private searchExhausted = false;
 
-  constructor(public evaluator: Evaluator) {}
+  constructor(
+    public readonly evaluator: Evaluator,
+    private readonly mode: LogicSearchMode = "first",
+  ) {}
 
   /**
    * Pushes a continuation to the logical stack.
@@ -55,7 +60,7 @@ export class YukigoKernel {
       this.choiceStack.push({
         alternatives: rest,
         continuationStack: [...this.continuationStack],
-        envSnapshot: this.evaluator.getContext().clone(),
+        envSnapshot: this.evaluator.getContext().cloneEnv(),
       });
     }
 
@@ -69,13 +74,20 @@ export class YukigoKernel {
     const lastChoice = this.choiceStack.pop();
 
     if (!lastChoice) {
-      // No more choices, this is a final logic failure
+      // logic tree is empty sooo
+      this.searchExhausted = true;
+      this.continuationStack = [];
       return new StepCommand(false);
     }
 
-    // Restore state
-    this.continuationStack = lastChoice.continuationStack;
-    this.evaluator.getContext().setEnv(lastChoice.envSnapshot);
+    this.searchExhausted = false;
+
+    // clones the stack and environment
+    this.continuationStack = [...lastChoice.continuationStack];
+    const clonedEnv = this.evaluator
+      .getContext()
+      .cloneEnv(lastChoice.envSnapshot);
+    this.evaluator.getContext().setEnv(clonedEnv);
 
     const [next, ...remaining] = lastChoice.alternatives;
 
@@ -88,16 +100,45 @@ export class YukigoKernel {
 
     return next;
   }
+  // TODO: remove this f- any
+  public run(initialCommand: ExecutionCommand): any {
+    const stream = this.executionStream(initialCommand);
 
-  public run(initialCommand: ExecutionCommand): PrimitiveValue {
+    switch (this.mode) {
+      case "stream":
+        return stream;
+      case "first":
+        const result = stream.next();
+        return result.done ? undefined : result.value;
+      case "all":
+        return Array.from(stream);
+
+      default:
+        throw new Error(`Output mode "${this.mode}" not supported.`);
+    }
+  }
+
+  private *executionStream(
+    initialCommand: ExecutionCommand,
+  ): Generator<PrimitiveValue, void, unknown> {
     let current: ExecutionCommand | void = initialCommand;
+    this.searchExhausted = false;
+    let steps = 0;
 
     while (current) {
+      steps++;
       this.logicalTrace.push(current);
-      current = current.execute(this);
-    }
+      // cleans the older traces to avoid consuming memory
+      if (this.logicalTrace.length > 50) this.logicalTrace.shift();
 
-    return this.finalResult;
+      current = current.execute(this);
+
+      if (!current) {
+        if (this.searchExhausted) break;
+        yield this.finalResult;
+        current = this.handleBacktrack();
+      }
+    }
   }
 
   public getLogicalTrace() {
@@ -105,7 +146,7 @@ export class YukigoKernel {
   }
 
   public buildSemanticError(baseError: Error): Error {
-    if (baseError.name === "FailedAssert") return baseError;
+    if (baseError.constructor.name === "FailedAssert") return baseError;
 
     const frames = this.getStackFromTrace();
 
@@ -116,38 +157,23 @@ export class YukigoKernel {
       return baseError;
     }
 
-    const message = baseError.message.startsWith("[Yukigo VM Error]")
-      ? baseError.message
-      : `[Yukigo VM Error] ${baseError.message}`;
-
-    const enhanced = new InterpreterError("Runtime", message, frames);
-    enhanced.stack = baseError.stack;
-    return enhanced;
+    const newErr = new InterpreterError("Yukigo VM Error", baseError.message);
+    frames.forEach((f) => newErr.pushFrame(f));
+    return newErr;
   }
 
   private getStackFromTrace(): ErrorFrame[] {
     const frames: ErrorFrame[] = [];
-    const seen = new Set<string>();
-
-    // We traverse backwards to find the most recent EvalCommands
-    // that give context to the crash.
-    for (let i = this.logicalTrace.length - 1; i >= 0; i--) {
-      const cmd = this.logicalTrace[i];
-      if (cmd instanceof EvalCommand) {
-        const node = cmd.node;
-        const key = `${node.constructor.name}-${node.loc?.line}-${node.loc?.column}`;
-
-        if (!seen.has(key)) {
-          frames.push({
-            nodeType: node.constructor.name,
-            loc: node.loc,
-          });
-          seen.add(key);
-        }
-      }
+    let index = this.logicalTrace.length - 1
+    // loops through logicalTrace and collects traces
+    for (index; index >= 0; index--) {
+      const cmd = this.logicalTrace[index];
+      const trace = cmd.createTraceEntry();
+      // not all commands leave traces
+      if (!trace) continue;
+      frames.push(trace.frame);
       if (frames.length >= 10) break;
     }
-
     return frames;
   }
 }
