@@ -4,7 +4,6 @@ import {
   Findall,
   Forall,
   Goal,
-  Pattern,
   PrimitiveValue,
   Query,
   LogicResult,
@@ -12,505 +11,399 @@ import {
   Not,
   LogicConstraint,
   Sequence,
-  SymbolPrimitive,
-  VariablePattern,
-  LazyList,
-} from "yukigo-ast";
-import {
+  isLogicResult,
   Substitution,
-  unify,
-  instantiate,
-  solveGoalKernel,
-  solveFindallKernel,
-  isLogicStepResult,
-  LogicStepResult,
-} from "./LogicResolver.js";
-import { createStream, Evaluator } from "../../utils.js";
+  LogicAnswer,
+  LogicTerm,
+  isLogicTerm,
+  UnifyOperation,
+  AssignOperation,
+} from "yukigo-ast";
+import { solveGoalKernel } from "./LogicResolver.js";
 import { InterpreterVisitor } from "../Visitor.js";
 import { LogicTranslator } from "./LogicTranslator.js";
-import { RuntimeContext, LogicSearchMode } from "../RuntimeContext.js";
+import { RuntimeContext } from "../RuntimeContext.js";
 import {
   ExecutionCommand,
   StepCommand,
   BindCommand,
-  FailCommand,
   ChoiceCommand,
+  NotCommand,
+  FindallCommand,
+  BacktrackCommand,
 } from "../kernel/commands.js";
-import { YukigoKernel } from "../kernel/index.js";
-import { InterpreterError } from "../../errors.js";
+import { VariableTerm } from "./LogicTerm.js";
+import { Evaluator } from "../../utils.js";
 
-export type LogicExecutable = Expression | Statement | Goal | Exist | Findall;
+export type LogicExecutable =
+  | Expression
+  | Statement
+  | Goal
+  | Exist
+  | Findall
+  | Forall
+  | Not;
+
+export type Scope = Map<string, VariableTerm>;
+
+type NodeSolver = (
+  node: LogicExecutable,
+  substs: Substitution,
+  scope?: Scope,
+) => ExecutionCommand;
 
 export class LogicEngine {
   private translator: LogicTranslator;
+  private readonly dispatch: Map<Function, NodeSolver>;
 
   constructor(
-    private evaluator: Evaluator,
+    evaluator: Evaluator,
     private context: RuntimeContext,
   ) {
     this.translator = new LogicTranslator(evaluator, this.context);
+    this.dispatch = this.buildDispatch();
   }
 
-  public unifyExpr(left: Expression, right: Expression): ExecutionCommand {
-    return this.translator.instantiateExpressionAsPattern(
-      left,
-      new Map(),
-      (p1) => {
-        return this.translator.instantiateExpressionAsPattern(
-          right,
-          new Map(),
-          (p2) => {
-            return new StepCommand(unify(p1, p2, new Map()) !== null);
-          },
-        );
-      },
-    );
-  }
-
-  public solveQuery(
-    node: Query,
-    modeOverride?: LogicSearchMode,
-  ): ExecutionCommand {
-    const mode = modeOverride || this.context.config.outputMode || "first";
-    if (mode === "all") {
-      return this.collectAllResults(
-        node.expressions,
-        new Map(),
-        (results) =>
-          new StepCommand(results.map((s) => this.formatLogicResult(s))),
-      );
-    } else if (mode === "stream") {
-      return new StepCommand(
-        this.createLazyStream(node.expressions, new Map()),
-      );
-    }
-
-    return new BindCommand(
-      this.solveConjunction(node.expressions, new Map()),
-      (res: unknown) => {
-        if (isLogicStepResult(res)) {
-          return new StepCommand(this.formatLogicResult(res.solutions));
-        }
-        return new StepCommand({
-          success: false,
-          solutions: new Map(),
-        } as LogicResult);
-      },
-    );
-  }
-
-  public solveGoal(
-    node: Goal,
-    modeOverride?: LogicSearchMode,
-  ): ExecutionCommand {
-    return this.prepareLogicTargetKernel(
-      node,
-      new Map(),
-      ({ id, patterns }) => {
-        const mode = modeOverride || this.context.config.outputMode || "first";
-        if (mode === "all") {
-          return this.collectAllResultsForGoal(
-            id,
-            patterns,
-            new Map(),
-            (results) =>
-              new StepCommand(results.map((s) => this.formatLogicResult(s))),
-          );
-        } else if (mode === "stream") {
-          return new StepCommand(
-            this.createLazyStreamForGoal(id, patterns, new Map()),
-          );
-        }
-        return new BindCommand(
-          solveGoalKernel(
-            this.context,
-            id,
-            patterns,
-            (body, s) => this.solveConjunction(body, s),
-            new Map(),
-          ),
-          (res: unknown) => {
-            if (isLogicStepResult(res)) {
-              return new StepCommand(this.formatLogicResult(res.solutions));
-            }
-            return new StepCommand({
-              success: false,
-              solutions: new Map(),
-            } as LogicResult);
-          },
-        );
-      },
-    );
-  }
-
-  public solveNot(node: Not): ExecutionCommand {
-    return new ChoiceCommand([
+  private buildDispatch(): Map<Function, NodeSolver> {
+    const goalKernel = (
+      node: Goal | Exist,
+      substs: Substitution,
+      scope?: Scope,
+    ) =>
       new BindCommand(
-        this.solveConjunction([node.expression], new Map()),
-        (res: unknown) => {
-          if (isLogicStepResult(res) && res.success) {
-            return new FailCommand(
-              new InterpreterError("Logic", "Goal succeeded, failing NOT"),
-              true,
-            );
-          }
-          const stepRes: LogicStepResult = {
-            success: true,
-            solutions: new Map(),
-          };
-          return new StepCommand(stepRes as unknown as PrimitiveValue);
+        this.resolveTerms(node, substs, scope),
+        (terms: PrimitiveValue) =>
+          this.runKernel(node, terms as LogicTerm[], substs),
+      );
+
+    return new Map<Function, NodeSolver>([
+      [
+        Sequence,
+        (node, substs, scope) =>
+          this.solveConjunction((node as Sequence).statements, substs, scope),
+      ],
+      [
+        LogicConstraint,
+        (node, substs, scope) =>
+          this.solveConjunction(
+            [(node as LogicConstraint).expression],
+            substs,
+            scope,
+          ),
+      ],
+      [
+        UnifyOperation,
+        (node, substs, scope) => {
+          const op = node as UnifyOperation;
+          return new BindCommand(
+            this.unifyExpr(op.left, op.right, substs, scope),
+            (res) => {
+              if (res)
+                return new StepCommand(
+                  new LogicResult([new LogicAnswer(true, substs)]),
+                );
+              return new BacktrackCommand();
+            },
+          );
         },
-      ),
-      new StepCommand({
-        success: true,
-        solutions: new Map(),
-      } as LogicStepResult as unknown as PrimitiveValue),
+      ],
+      [
+        AssignOperation,
+        (node, substs, scope) =>
+          this.solveAssign(node as AssignOperation, substs, scope),
+      ],
+      [
+        Findall,
+        (node, substs, scope) =>
+          this.solveFindall(node as Findall, substs, scope),
+      ],
+      [
+        Forall,
+        (node, substs, scope) =>
+          this.solveForall(node as Forall, substs, scope),
+      ],
+      [Not, (node, substs, scope) => this.solveNot(node as Not, substs, scope)],
+      [Goal, (node, substs, scope) => goalKernel(node as Goal, substs, scope)],
+      [
+        Exist,
+        (node, substs, scope) => goalKernel(node as Exist, substs, scope),
+      ],
     ]);
   }
 
-  public solveFindall(node: Findall): ExecutionCommand {
-    return solveFindallKernel(
-      node,
-      new Map(),
-      this.evaluator,
-      this.context,
-      (body, substs) => this.solveConjunction(body, substs),
-    );
-  }
-
-  public solveForall(node: Forall): ExecutionCommand {
-    return this.solveNot(
-      new Not(
-        new Sequence([
-          node.condition as Expression,
-          new Not(node.action) as Expression,
-        ]),
-      ),
-    );
-  }
-
-  public solveExist(
-    node: Exist,
-    modeOverride?: LogicSearchMode,
+  public unifyExpr(
+    left: Expression,
+    right: Expression,
+    substs: Substitution = new Map(),
+    scope?: Scope,
   ): ExecutionCommand {
-    return this.prepareLogicTargetKernel(
-      node,
-      new Map(),
-      ({ id, patterns }) => {
-        const mode = modeOverride || this.context.config.outputMode || "first";
-        if (mode === "all") {
-          return this.collectAllResultsForGoal(
-            id,
-            patterns,
-            new Map(),
-            (results) =>
-              new StepCommand(results.map((s) => this.formatLogicResult(s))),
-          );
-        } else if (mode === "stream") {
-          return new StepCommand(
-            this.createLazyStreamForGoal(id, patterns, new Map()),
-          );
-        }
+    return new BindCommand(
+      this.translator.expressionToTerm(left, scope),
+      (leftTerm: PrimitiveValue) => {
+        if (!isLogicTerm(leftTerm)) return new BacktrackCommand();
         return new BindCommand(
-          solveGoalKernel(
-            this.context,
-            id,
-            patterns,
-            (body, s) => this.solveConjunction(body, s),
-            new Map(),
-          ),
-          (res: unknown) => {
-            if (isLogicStepResult(res)) {
-              return new StepCommand(this.formatLogicResult(res.solutions));
-            }
-            return new StepCommand({
-              success: false,
-              solutions: new Map(),
-            } as LogicResult);
+          this.translator.expressionToTerm(right, scope),
+          (rightTerm: PrimitiveValue) => {
+            if (!isLogicTerm(rightTerm)) return new BacktrackCommand();
+
+            return new StepCommand(leftTerm.unify(rightTerm, substs));
           },
         );
       },
+    );
+  }
+
+  public solveQuery(node: Query): ExecutionCommand {
+    const scope: Scope = new Map();
+    const compiled = this.solveConjunction(node.expressions, new Map(), scope);
+    return this.aggregateResults(compiled, scope);
+  }
+
+  public solveGoalLike(
+    node: Goal | Exist,
+    outerSubsts?: Substitution,
+    outerScope?: Scope,
+  ): ExecutionCommand {
+    const scope: Scope = outerScope ?? new Map();
+    const substs: Substitution = outerSubsts ?? new Map();
+    return new BindCommand(
+      this.resolveTerms(node, substs, scope),
+      (terms: PrimitiveValue) => {
+        if (!Array.isArray(terms) || !terms.every(isLogicTerm))
+          return new BacktrackCommand();
+        return this.runKernel(node, terms as LogicTerm[], substs);
+      },
+    );
+  }
+
+  public solveNot(
+    node: Not,
+    substs: Substitution = new Map(),
+    scope: Scope = new Map(),
+  ): ExecutionCommand {
+    const clonedSubsts = new Map(substs);
+    const innerGoalCmd = this.solveConjunction(
+      [node.expression],
+      clonedSubsts,
+      scope,
+    );
+    return new NotCommand(innerGoalCmd, substs);
+  }
+
+  public solveFindall(
+    node: Findall,
+    substs: Substitution = new Map(),
+    scope: Scope = new Map(),
+  ): ExecutionCommand {
+    const clonedSubsts = new Map(substs);
+    const innerGoalCmd = this.solveConjunction(
+      [node.goal],
+      clonedSubsts,
+      scope,
+    );
+    return new FindallCommand(
+      node.template,
+      node.bag,
+      innerGoalCmd,
+      substs,
+      scope,
+      this.translator,
+    );
+  }
+
+  private solveAssign(
+    op: AssignOperation,
+    substs: Substitution,
+    scope?: Scope,
+  ): ExecutionCommand {
+    const localEnv = this.createLocalEnv(substs);
+    const isolatedContext = new RuntimeContext(this.context.config);
+    isolatedContext.setEnv({ head: localEnv, tail: this.context.env });
+    const localEvaluator = new InterpreterVisitor(isolatedContext);
+
+    return new BindCommand(localEvaluator.evaluate(op.right), (val) => {
+      const resultTerm = this.translator.primitiveToTerm(val);
+      return new BindCommand(
+        this.translator.expressionToTerm(op.left, scope),
+        (leftTerm: PrimitiveValue) => {
+          if (!isLogicTerm(leftTerm)) return new BacktrackCommand();
+          if (leftTerm.unify(resultTerm, substs)) {
+            return new StepCommand(
+              new LogicResult([new LogicAnswer(true, substs)]),
+            );
+          }
+          return new BacktrackCommand();
+        },
+      );
+    });
+  }
+
+  public solveForall(
+    node: Forall,
+    substs: Substitution = new Map(),
+    scope: Scope = new Map(),
+  ): ExecutionCommand {
+    // a forall(Cond, Action) is equivalent to \+ (Cond, \+ Action)
+    return this.solveNot(
+      new Not(new Sequence([node.condition, new Not(node.action)])),
+      substs,
+      scope,
+    );
+  }
+
+  private aggregateResults(
+    command: ExecutionCommand,
+    scope: Scope,
+  ): ExecutionCommand {
+    return new BindCommand(command, (res: PrimitiveValue) => {
+      if (!isLogicResult(res)) return new StepCommand(res);
+      const mappedAnswers = res.allAnswers.map((ans) =>
+        this.finalizeUserResult(ans, scope),
+      );
+      return new StepCommand(new LogicResult(mappedAnswers));
+    });
+  }
+
+  private branchSolutions(
+    solutions: Substitution[],
+    tail: LogicExecutable[],
+    scope?: Scope,
+  ): ExecutionCommand {
+    if (solutions.length === 0) return new BacktrackCommand();
+
+    if (solutions.length === 1) {
+      return this.solveConjunction(tail, solutions[0], scope);
+    }
+    return new ChoiceCommand(
+      solutions.map((s) => this.solveConjunction(tail, s, scope)),
     );
   }
 
   private solveConjunction(
     nodes: LogicExecutable[],
     substs: Substitution,
+    scope?: Scope,
   ): ExecutionCommand {
     if (nodes.length === 0) {
-      const res: LogicStepResult = { success: true, solutions: substs };
-      return new StepCommand(res as unknown as PrimitiveValue);
+      return new StepCommand(new LogicResult([new LogicAnswer(true, substs)]));
     }
 
     const [head, ...tail] = nodes;
+    const solver: NodeSolver =
+      this.dispatch.get(head.constructor) ??
+      ((node, s) => this.solveCondition(node as Expression | Statement, s));
 
-    return new BindCommand(this.solveSingle(head, substs), (res: unknown) => {
-      if (isLogicStepResult(res) && res.success) {
-        return this.solveConjunction(tail, res.solutions);
-      }
-      return new FailCommand(
-        new InterpreterError("Logic", "Conjunction branch failed"),
-        true,
-      );
-    });
-  }
+    const currentSubst = new Map(substs);
 
-  private solveSingle(
-    node: LogicExecutable,
-    substs: Substitution,
-  ): ExecutionCommand {
-    if (this.isLogicGoal(node)) return this.solveLogicGoal(node, substs);
-    return this.solveCondition(node, substs);
-  }
+    return new BindCommand(
+      solver(head, currentSubst, scope),
+      (res: PrimitiveValue) => {
+        // fail if result not a LogicResult or if some conditionfail
+        if (!isLogicResult(res) || !res.allSuccessful())
+          return new BacktrackCommand();
 
-  private solveLogicGoal(
-    goal: Goal | Exist | Findall | LogicConstraint | Sequence,
-    substs: Substitution,
-  ): ExecutionCommand {
-    if (goal instanceof LogicConstraint) {
-      return this.solveConjunction([goal.expression], substs);
-    }
-
-    if (goal instanceof Sequence) {
-      return this.solveConjunction(goal.statements, substs);
-    }
-
-    if (goal instanceof Findall) {
-      return solveFindallKernel(
-        goal,
-        substs,
-        this.evaluator,
-        this.context,
-        (body: LogicExecutable[], s: Substitution) =>
-          this.solveConjunction(body, s),
-      );
-    }
-
-    return this.prepareLogicTargetKernel(goal, substs, ({ id, patterns }) => {
-      return solveGoalKernel(
-        this.context,
-        id,
-        patterns,
-        (body, s) => this.solveConjunction(body, s),
-        substs,
-      );
-    });
+        return this.branchSolutions(res.getSuccessfulSolutions(), tail, scope);
+      },
+    );
   }
 
   private solveCondition(
     expr: Expression | Statement,
     substs: Substitution,
   ): ExecutionCommand {
-    this.createLocalEnv(substs);
-    const localEvaluator = new InterpreterVisitor(this.context);
+    const localEnv = this.createLocalEnv(substs);
+    const isolatedContext = new RuntimeContext(this.context.config);
+    isolatedContext.setEnv({ head: localEnv, tail: this.context.env });
+    const localEvaluator = new InterpreterVisitor(isolatedContext);
 
-    return new BindCommand(localEvaluator.evaluate(expr), (result: unknown) => {
-      if (result !== undefined && result !== false) {
-        let currentSubsts = new Map(substs);
-        for (const [name, val] of this.context.env.head) {
-          const pat = this.translator.primitiveToPattern(val);
-          const unified = unify(
-            new VariablePattern(new SymbolPrimitive(name)),
-            pat,
-            currentSubsts,
-          );
-          if (unified) {
-            currentSubsts = unified;
-          } else {
-            return new FailCommand(
-              new InterpreterError("Logic", "Unification failed"),
-              true,
-            );
-          }
-        }
-        const res: LogicStepResult = {
-          success: true,
-          solutions: currentSubsts,
-        };
-        return new StepCommand(res as unknown as PrimitiveValue);
-      }
-      return new FailCommand(
-        new InterpreterError("Logic", "Condition failed"),
-        true,
-      );
-    });
-  }
+    return new BindCommand(
+      localEvaluator.evaluate(expr),
+      (result: PrimitiveValue) => {
+        // fail if result is falsy
+        if (!Boolean(result)) return new BacktrackCommand();
 
-  private isLogicGoal(
-    node: LogicExecutable,
-  ): node is Goal | Exist | Findall | LogicConstraint | Sequence {
-    return (
-      node instanceof Goal ||
-      node instanceof Exist ||
-      node instanceof Findall ||
-      node instanceof LogicConstraint ||
-      node instanceof Sequence
+        return new StepCommand(
+          new LogicResult([new LogicAnswer(true, substs)]),
+        );
+      },
     );
   }
 
-  private createLocalEnv(substs: Substitution) {
-    this.context.pushEnv(new Map());
-    for (const [name, pattern] of substs) {
-      const resolvedPattern = instantiate(pattern, substs);
-      const value = this.translator.patternToPrimitive(resolvedPattern);
-
-      this.context.define(name, value);
-
-      const baseNameMatch = name.match(/^(.*)_\d+$/);
-      if (baseNameMatch) {
-        const baseName = baseNameMatch[1];
-        if (!this.context.env.head.has(baseName)) {
-          this.context.define(baseName, value);
-        }
-      }
+  private createLocalEnv(substs: Substitution): Map<string, PrimitiveValue> {
+    const env = new Map<string, PrimitiveValue>();
+    for (const [id, term] of substs) {
+      const name = typeof id === "string" ? id : this.translator.getName(id);
+      if (name) env.set(name, term.instantiate(substs).toPrimitive(substs));
     }
+    return env;
   }
 
-  private prepareLogicTargetKernel(
+  private finalizeUserResult(ans: LogicAnswer, scope: Scope): LogicAnswer {
+    const solution = ans.getSolution();
+
+    const fromScope: [string, LogicTerm][] = Array.from(scope.entries()).map(
+      ([name, term]) => [name, term.instantiate(solution)],
+    );
+
+    const fromSolution: [string, LogicTerm][] = Array.from(
+      solution.entries(),
+    ).map(([id, term]) => [
+      typeof id === "number" ? this.translator.getName(id)! : (id as string),
+      term.instantiate(solution),
+    ]);
+
+    const userMapped: Substitution = new Map(
+      [fromSolution, fromScope].flatMap((s) => [...s]),
+    );
+
+    return new LogicAnswer(ans.isSuccessful(), userMapped);
+  }
+
+  private resolveTerms(
     node: Goal | Exist,
     substs: Substitution,
-    k: (res: { id: string; patterns: Pattern[] }) => ExecutionCommand,
+    scope?: Scope,
   ): ExecutionCommand {
-    const id = node.identifier.value;
-    if (node instanceof Goal) {
-      const patterns: Pattern[] = [];
-      const next = (index: number): ExecutionCommand => {
-        if (index >= node.args.length) return k({ id, patterns });
-        return this.translator.instantiateExpressionAsPattern(
-          node.args[index],
-          substs,
-          (p) => {
-            patterns.push(p);
-            return next(index + 1);
-          },
-        );
-      };
-      return next(0);
-    } else {
-      const patterns = node.patterns.map((pat) => instantiate(pat, substs));
-      return k({ id, patterns });
-    }
+    if (node.is(Goal))
+      return this.resolveArgSequentially(node.args, substs, scope);
+
+    return new StepCommand(
+      node.patterns.map((pat) =>
+        this.translator.patternToTerm(pat, scope).instantiate(substs),
+      ),
+    );
+  }
+  private resolveArgSequentially(
+    args: Expression[],
+    substs: Substitution,
+    scope?: Scope,
+  ): ExecutionCommand {
+    const terms: LogicTerm[] = [];
+    const next = (index: number): ExecutionCommand => {
+      if (index >= args.length) return new StepCommand(terms);
+      return new BindCommand(
+        this.translator.instantiateExpressionAsTerm(args[index], substs, scope),
+        (t) => {
+          if (isLogicTerm(t)) terms.push(t);
+          return next(index + 1);
+        },
+      );
+    };
+    return next(0);
   }
 
-  private collectAllResults(
-    nodes: LogicExecutable[],
+  private runKernel(
+    node: Goal | Exist,
+    terms: LogicTerm[],
     substs: Substitution,
-    k: (results: Substitution[]) => ExecutionCommand,
   ): ExecutionCommand {
-    const results: Substitution[] = [];
-    const kernel = new YukigoKernel(this.evaluator);
-    let nextCmd = this.solveConjunction(nodes, substs);
-
-    while (true) {
-      const res: unknown = kernel.run(nextCmd);
-      if (isLogicStepResult(res) && res.success) {
-        results.push(res.solutions);
-        nextCmd = kernel.handleBacktrack();
-      } else {
-        break;
-      }
-    }
-    return k(results);
-  }
-
-  private collectAllResultsForGoal(
-    id: string,
-    patterns: Pattern[],
-    substs: Substitution,
-    k: (results: Substitution[]) => ExecutionCommand,
-  ): ExecutionCommand {
-    const results: Substitution[] = [];
-    const kernel = new YukigoKernel(this.evaluator);
-    let nextCmd = solveGoalKernel(
+    return solveGoalKernel(
       this.context,
-      id,
-      patterns,
-      (body, s) => this.solveConjunction(body, s),
+      node.identifier.value,
+      terms,
+      (body, s, scp) => this.solveConjunction(body, s, scp),
       substs,
+      this.translator,
     );
-
-    while (true) {
-      const res: unknown = kernel.run(nextCmd);
-      if (isLogicStepResult(res) && res.success) {
-        results.push(res.solutions);
-        nextCmd = kernel.handleBacktrack();
-      } else {
-        break;
-      }
-    }
-    return k(results);
-  }
-
-  private createLazyStream(
-    nodes: LogicExecutable[],
-    substs: Substitution,
-  ): LazyList {
-    const formatLogicResult = this.formatLogicResult;
-
-    const kernel = new YukigoKernel(this.evaluator);
-    let nextCmd = this.solveConjunction(nodes, substs);
-
-    return createStream(
-      function* () {
-        while (true) {
-          const res: unknown = kernel.run(nextCmd);
-          if (isLogicStepResult(res) && res.success) {
-            yield formatLogicResult(res.solutions);
-            nextCmd = kernel.handleBacktrack();
-          } else {
-            break;
-          }
-        }
-      }.bind(this),
-    );
-  }
-
-  private createLazyStreamForGoal(
-    id: string,
-    patterns: Pattern[],
-    substs: Substitution,
-  ): LazyList {
-    const formatLogicResult = this.formatLogicResult;
-    const kernel = new YukigoKernel(this.evaluator);
-    let nextCmd = solveGoalKernel(
-      this.context,
-      id,
-      patterns,
-      (body, s) => this.solveConjunction(body, s),
-      substs,
-    );
-
-    return createStream(
-      function* () {
-        while (true) {
-          const res: unknown = kernel.run(nextCmd);
-          if (isLogicStepResult(res) && res.success) {
-            yield formatLogicResult(res.solutions);
-            nextCmd = kernel.handleBacktrack();
-          } else {
-            break;
-          }
-        }
-      }.bind(this),
-    );
-  }
-
-  private formatLogicResult(substs: Substitution): LogicResult {
-    const solutions = new Map<string, PrimitiveValue>();
-    substs.forEach((pattern, key) => {
-      const val = this.translator.patternToPrimitive(pattern, substs);
-      if (val !== undefined) {
-        solutions.set(key, val);
-
-        const baseNameMatch = key.match(/^(.*)_\d+$/);
-        if (baseNameMatch) {
-          const baseName = baseNameMatch[1];
-          if (!solutions.has(baseName)) {
-            solutions.set(baseName, val);
-          }
-        }
-      }
-    });
-    return { success: true, solutions };
   }
 }
