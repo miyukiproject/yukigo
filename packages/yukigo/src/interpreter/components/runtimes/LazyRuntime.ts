@@ -118,7 +118,7 @@ export class LazyRuntime {
     evaluator: Evaluator,
   ): ExecutionCommand {
     const ctx = this.context;
-    const capturedEnv = ctx.clone();
+    const capturedEnv = ctx.clone().env;
     return new BindCommand(evaluator.evaluate(node.head), (head) => {
       if (ctx.config.lazyLoading) {
         const consState: InternalConsState = {
@@ -240,7 +240,7 @@ export class LazyRuntime {
     const ctx = this.context;
 
     return new BindCommand(evaluator.evaluate(node.left), (left) => {
-      const capturedEnv = ctx.clone();
+      const capturedEnv = ctx.clone().env;
       return new StepCommand(
         createMemoizedStream(function* () {
           if (Array.isArray(left)) yield* left;

@@ -71,6 +71,8 @@ import {
   TestGroup,
   LogicConstraint,
   isLazyList,
+  LogicResult,
+  LogicAnswer,
 } from "yukigo-ast";
 import {
   ArithmeticBinaryTable,
@@ -91,6 +93,7 @@ import { EnvBuilderVisitor } from "./EnvBuilder.js";
 import { FailedAssert, TestRunner } from "./TestRunner.js";
 import { RuntimeContext } from "./RuntimeContext.js";
 import {
+  BacktrackCommand,
   BindCommand,
   EvalCommand,
   ExecutionCommand,
@@ -650,7 +653,7 @@ export class InterpreterVisitor implements Evaluator {
   }
 
   visitExist(node: Exist): ExecutionCommand {
-    return this.getLogicEngine().solveExist(node);
+    return this.getLogicEngine().solveGoalLike(node);
   }
 
   visitNot(node: Not): ExecutionCommand {
@@ -666,14 +669,14 @@ export class InterpreterVisitor implements Evaluator {
   }
 
   visitGoal(node: Goal): ExecutionCommand {
-    return this.getLogicEngine().solveGoal(node);
+    return this.getLogicEngine().solveGoalLike(node);
   }
 
   visitLogicConstraint(node: LogicConstraint): ExecutionCommand {
     return new BindCommand(this.evaluate(node.expression), (val) => {
       const success = Array.isArray(val) ? val.length > 0 : !!val;
-      if (success) return new StepCommand({ success: true, solutions: new Map() });
-      return new FailCommand(new InterpreterError("Logic", "Constraint failed"), true);
+      if (success) return new StepCommand(new LogicResult([new LogicAnswer(true, new Map())]));
+      return new BacktrackCommand();
     });
   }
 
