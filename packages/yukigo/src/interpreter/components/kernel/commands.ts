@@ -1,14 +1,31 @@
-import { ASTNode, PrimitiveValue } from "yukigo-ast";
+import {
+  ASTNode,
+  isLogicResult,
+  LogicAnswer,
+  LogicResult,
+  LogicTerm,
+  Pattern,
+  PrimitiveValue,
+  Substitution,
+} from "yukigo-ast";
 import { YukigoKernel } from "./index.js";
+import { ErrorFrame } from "../../errors.js";
+import { LogicTranslator } from "../logic/LogicTranslator.js";
+import { Scope } from "../logic/LogicEngine.js";
+import { ListTerm } from "../logic/LogicTerm.js";
+import { InterpreterVisitor } from "../Visitor.js";
 
 /**
  * A Continuation is a function that receives a value and decides what is the next Command to execute
  */
 export type Continuation = (result: PrimitiveValue) => ExecutionCommand;
 
+export type TraceEntry = { frame: ErrorFrame; key: string };
+
 export interface ExecutionCommand {
   readonly name: string;
   execute(kernel: YukigoKernel): ExecutionCommand | void;
+  createTraceEntry(): TraceEntry | void;
 }
 
 /**
@@ -21,6 +38,16 @@ export class EvalCommand implements ExecutionCommand {
 
   execute(kernel: YukigoKernel): ExecutionCommand {
     return kernel.evaluator.evaluate(this.node);
+  }
+  createTraceEntry(): TraceEntry {
+    const { constructor, loc } = this.node;
+    const frame = {
+      nodeType: constructor.name,
+      loc,
+    };
+    const startLoc = loc ? `${loc.line}:${loc.column}:` : "";
+    const key = `${startLoc}${constructor.name}`;
+    return { key, frame };
   }
 }
 
@@ -36,6 +63,7 @@ export class StepCommand implements ExecutionCommand {
   execute(kernel: YukigoKernel): ExecutionCommand | void {
     return kernel.popAndExecute(this.value);
   }
+  createTraceEntry() {}
 }
 
 /**
@@ -54,6 +82,7 @@ export class BindCommand implements ExecutionCommand {
     kernel.pushContinuation(this.next);
     return this.command;
   }
+  createTraceEntry() {}
 }
 
 /**
@@ -68,23 +97,115 @@ export class ChoiceCommand implements ExecutionCommand {
   execute(kernel: YukigoKernel): ExecutionCommand | void {
     return kernel.handleChoice(this.alternatives);
   }
+  createTraceEntry() {}
 }
 
 /**
- * Commands the Kernel to halt execution due to an error or a logic failure.
+ * Commands the Kernel to halt execution due to an error.
  */
 export class FailCommand implements ExecutionCommand {
   readonly name = "FAIL";
 
-  constructor(
-    public readonly error: Error,
-    public readonly isLogicFailure: boolean = false,
-  ) {}
+  constructor(public readonly error: Error) {}
 
   execute(kernel: YukigoKernel): ExecutionCommand | void {
-    if (this.isLogicFailure) {
-      return kernel.handleBacktrack();
-    }
     throw kernel.buildSemanticError(this.error);
   }
+  createTraceEntry() {}
+}
+
+// Specific commands for LogicRuntime
+
+/**
+ * Commands the Kernel to stop execution and backtrack due to logical failure.
+ */
+export class BacktrackCommand implements ExecutionCommand {
+  readonly name = "BACKTRACK";
+
+  constructor() {}
+
+  execute(kernel: YukigoKernel): ExecutionCommand | void {
+    // the backtracking is delegated to the kernel because it manipulates the execution stack
+    return kernel.handleBacktrack();
+  }
+  createTraceEntry() {}
+}
+
+export class NotCommand implements ExecutionCommand {
+  readonly name = "NOT";
+
+  constructor(
+    public readonly innerGoalCmd: ExecutionCommand,
+    public readonly currentSubsts: Substitution,
+  ) {}
+
+  execute(kernel: YukigoKernel): ExecutionCommand {
+    const isolatedContext = kernel.evaluator.getContext().clone();
+    const isolatedEvaluator = new InterpreterVisitor(isolatedContext);
+    const isolatedKernel = new YukigoKernel(isolatedEvaluator, "first");
+
+    // Clone substs to avoid leaking bindings from the inner search
+    const result = isolatedKernel.run(this.innerGoalCmd);
+    if (isLogicResult(result) && result.allSuccessful())
+      return new BacktrackCommand();
+
+    return new StepCommand(
+      new LogicResult([new LogicAnswer(true, new Map(this.currentSubsts))]),
+    );
+  }
+  createTraceEntry() {}
+}
+
+export class FindallCommand implements ExecutionCommand {
+  readonly name = "FINDALL";
+
+  constructor(
+    public readonly template: Pattern,
+    public readonly bag: Pattern,
+    public readonly innerGoalCmd: ExecutionCommand,
+    public readonly currentSubsts: Substitution,
+    public readonly scope: Scope,
+    public readonly translator: LogicTranslator,
+  ) {}
+
+  execute(kernel: YukigoKernel): ExecutionCommand {
+    // we need to _find all_ (jaja lol) successful branches
+    const isolatedContext = kernel.evaluator.getContext().clone();
+    const isolatedEvaluator = new InterpreterVisitor(isolatedContext);
+    const isolatedKernel = new YukigoKernel(isolatedEvaluator, "all");
+
+    // run inner goal - it will return an array of LogicResult if successful
+    const results = isolatedKernel.run(this.innerGoalCmd);
+    const gathered: LogicTerm[] = [];
+
+    if (Array.isArray(results)) {
+      for (const res of results) {
+        if (isLogicResult(res) && res.allSuccessful()) {
+          // then we extract all solutions and instantiate the template
+          res.getSuccessfulSolutions().forEach((solutionEnv) => {
+            const templateTerm = this.translator.patternToTerm(
+              this.template,
+              this.scope,
+            );
+            gathered.push(templateTerm.instantiate(solutionEnv));
+          });
+        }
+      }
+    }
+
+    // then we build a logic list
+    const resultList = new ListTerm(gathered);
+    const bagTerm = this.translator.patternToTerm(this.bag, this.scope);
+
+    // then we try to unify the list with the bag
+    const finalSubsts = new Map(this.currentSubsts);
+    if (bagTerm.unify(resultList, finalSubsts))
+      return new StepCommand(
+        new LogicResult([new LogicAnswer(true, finalSubsts)]),
+      );
+
+    // finally if unification fails, findall fails
+    return new BacktrackCommand();
+  }
+  createTraceEntry() {}
 }
