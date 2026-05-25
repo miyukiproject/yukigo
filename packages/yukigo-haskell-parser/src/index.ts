@@ -1,4 +1,4 @@
-import * as grammar from "./parser/grammar.js";
+import grammar from "./parser/grammar.cjs";
 import nearley from "nearley";
 import { groupFunctionDeclarations } from "./utils/helpers.js";
 import { TypeChecker } from "./typechecker/checker.js";
@@ -186,7 +186,9 @@ export class YukigoHaskellParser implements YukigoParser {
     return expr;
   }
   private feedParser(code: string): any {
-    const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar));
+    const parser = new nearley.Parser(
+      nearley.Grammar.fromCompiled(grammar as any),
+    );
     try {
       parser.feed(code);
       parser.finish();
