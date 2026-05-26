@@ -1,26 +1,27 @@
 import { expect } from "chai";
 import {
-  PrimitiveValue,
-  RuntimeFunction,
   UnguardedBody,
   Sequence,
   Return,
   SymbolPrimitive,
   NumberPrimitive,
   VariablePattern,
-  RuntimeObject,
-  RuntimeClass,
   StringPrimitive,
   Primitive,
   Super,
   ArithmeticBinaryOperation,
-  EnvStack,
 } from "yukigo-ast";
 import { createGlobalEnv } from "../../src/interpreter/utils.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
 import { YukigoKernel } from "../../src/interpreter/components/kernel/index.js";
 import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
-import { EvalCommand } from "../../src/interpreter/components/kernel/commands.js";
+import {
+  RuntimeFunction,
+  RuntimeClass,
+  RuntimeObject,
+  PrimitiveValue,
+  EnvStack,
+} from "../../src/interpreter/runtime.js";
 
 const createEmptyEnv = () => ({ head: new Map(), tail: null });
 
@@ -156,12 +157,7 @@ describe("ctx.objRuntime", () => {
       objectInstance.methods.set("getCount", getCountMethod);
 
       const result = kernel.run(
-        ctx.objRuntime.dispatch(
-          objectInstance,
-          "getCount",
-          [],
-          env,
-        ),
+        ctx.objRuntime.dispatch(objectInstance, "getCount", [], env),
       );
 
       expect(result).to.equal(10);
@@ -170,12 +166,7 @@ describe("ctx.objRuntime", () => {
     it("debe fallar si el método no existe", () => {
       expect(() => {
         kernel.run(
-          ctx.objRuntime.dispatch(
-            objectInstance,
-            "unknownMethod",
-            [],
-            env,
-          ),
+          ctx.objRuntime.dispatch(objectInstance, "unknownMethod", [], env),
         );
       }).to.throw(/does not understand 'unknownMethod'/);
     });
@@ -211,12 +202,7 @@ describe("ctx.objRuntime", () => {
       objectInstance.methods.set("echo", addMethod);
 
       const result = kernel.run(
-        ctx.objRuntime.dispatch(
-          objectInstance,
-          "echo",
-          [999],
-          env,
-        ),
+        ctx.objRuntime.dispatch(objectInstance, "echo", [999], env),
       );
 
       expect(result).to.equal(999);
@@ -241,14 +227,7 @@ describe("ctx.objRuntime", () => {
         new Map(),
       );
 
-      const res = kernel.run(
-        ctx.objRuntime.dispatch(
-          perro,
-          "speak",
-          [],
-          env,
-        ),
-      );
+      const res = kernel.run(ctx.objRuntime.dispatch(perro, "speak", [], env));
       expect(res).to.equal("Guau");
     });
 
@@ -270,16 +249,9 @@ describe("ctx.objRuntime", () => {
         new Map(),
         new Map(),
       );
-      expect(
-        kernel.run(
-          ctx.objRuntime.dispatch(
-            objC,
-            "id",
-            [],
-            env,
-          ),
-        ),
-      ).to.equal(1);
+      expect(kernel.run(ctx.objRuntime.dispatch(objC, "id", [], env))).to.equal(
+        1,
+      );
     });
 
     it("debe encontrar métodos definidos en un Mixin", () => {
@@ -303,14 +275,7 @@ describe("ctx.objRuntime", () => {
         new Map(),
       );
       expect(
-        kernel.run(
-          ctx.objRuntime.dispatch(
-            pepita,
-            "volar",
-            [],
-            env,
-          ),
-        ),
+        kernel.run(ctx.objRuntime.dispatch(pepita, "volar", [], env)),
       ).to.equal("Wosh");
     });
 
@@ -339,14 +304,7 @@ describe("ctx.objRuntime", () => {
         new Map(),
       );
       expect(
-        kernel.run(
-          ctx.objRuntime.dispatch(
-            heroe,
-            "skill",
-            [],
-            env,
-          ),
-        ),
+        kernel.run(ctx.objRuntime.dispatch(heroe, "skill", [], env)),
       ).to.equal("Fire");
     });
 
@@ -385,14 +343,7 @@ describe("ctx.objRuntime", () => {
         new Map(),
       );
       expect(
-        kernel.run(
-          ctx.objRuntime.dispatch(
-            child,
-            "val",
-            [],
-            env,
-          ),
-        ),
+        kernel.run(ctx.objRuntime.dispatch(child, "val", [], env)),
       ).to.equal(3);
     });
 
@@ -425,14 +376,7 @@ describe("ctx.objRuntime", () => {
         new Map(),
       );
       expect(
-        kernel.run(
-          ctx.objRuntime.dispatch(
-            child,
-            "val",
-            [],
-            env,
-          ),
-        ),
+        kernel.run(ctx.objRuntime.dispatch(child, "val", [], env)),
       ).to.equal(2);
     });
 
@@ -465,16 +409,9 @@ describe("ctx.objRuntime", () => {
         new Map(),
         new Map(),
       );
-      expect(
-        kernel.run(
-          ctx.objRuntime.dispatch(
-            obj,
-            "val",
-            [],
-            env,
-          ),
-        ),
-      ).to.equal(20);
+      expect(kernel.run(ctx.objRuntime.dispatch(obj, "val", [], env))).to.equal(
+        20,
+      );
     });
 
     it("Prioridad: Orden inverso de Mixines", () => {
@@ -506,16 +443,9 @@ describe("ctx.objRuntime", () => {
         new Map(),
         new Map(),
       );
-      expect(
-        kernel.run(
-          ctx.objRuntime.dispatch(
-            obj,
-            "val",
-            [],
-            env,
-          ),
-        ),
-      ).to.equal(10);
+      expect(kernel.run(ctx.objRuntime.dispatch(obj, "val", [], env))).to.equal(
+        10,
+      );
     });
   });
   describe("Super", () => {

@@ -1,7 +1,5 @@
 import { YukigoKernel } from "./kernel/index.js";
 import {
-  Visitor,
-  PrimitiveValue,
   NumberPrimitive,
   BooleanPrimitive,
   StringPrimitive,
@@ -35,7 +33,6 @@ import {
   Expression,
   Application,
   Lambda,
-  EquationRuntime,
   UnguardedBody,
   Sequence,
   Return,
@@ -46,11 +43,9 @@ import {
   Goal,
   Send,
   New,
-  Implement,
   Self,
   ListComprehension,
   RangeExpression,
-  RuntimeFunction,
   Generator as YuGenerator,
   BinaryOperation,
   UnaryOperation,
@@ -58,21 +53,12 @@ import {
   Raise,
   Query,
   TypeCast,
-  isRuntimeObject,
-  isRuntimeClass,
-  isRuntimePredicate,
   Super,
-  EnvStack,
-  Environment,
   If,
-  isRuntimeFunction,
   Assert,
   Test,
   TestGroup,
   LogicConstraint,
-  isLazyList,
-  LogicResult,
-  LogicAnswer,
 } from "yukigo-ast";
 import {
   ArithmeticBinaryTable,
@@ -88,9 +74,9 @@ import {
 } from "./Operations.js";
 import { Evaluator } from "../utils.js";
 import { LogicEngine } from "./logic/LogicEngine.js";
-import { ErrorFrame, InterpreterError, UnexpectedValue, UnexpectedNode } from "../errors.js";
+import { InterpreterError, UnexpectedNode } from "../errors.js";
 import { EnvBuilderVisitor } from "./EnvBuilder.js";
-import { FailedAssert, TestRunner } from "./TestRunner.js";
+import { TestRunner } from "./TestRunner.js";
 import { RuntimeContext } from "./RuntimeContext.js";
 import {
   BacktrackCommand,
@@ -100,6 +86,19 @@ import {
   FailCommand,
   StepCommand,
 } from "./kernel/commands.js";
+import {
+  PrimitiveValue,
+  isRuntimeFunction,
+  Environment,
+  isRuntimeObject,
+  isLazyList,
+  EquationRuntime,
+  EnvStack,
+  RuntimeFunction,
+  LogicResult,
+  LogicAnswer,
+  isRuntimeClass,
+} from "../runtime.js";
 
 export class InterpreterVisitor implements Evaluator {
   constructor(private context: RuntimeContext) {}
@@ -516,7 +515,10 @@ export class InterpreterVisitor implements Evaluator {
     return new BindCommand(this.evaluate(node.condition), (condition) => {
       if (typeof condition !== "boolean")
         return new FailCommand(
-          new InterpreterError("If", `Expected boolean in condition and got ${typeof condition}`),
+          new InterpreterError(
+            "If",
+            `Expected boolean in condition and got ${typeof condition}`,
+          ),
         );
       return condition
         ? this.evaluate(node.then)
@@ -535,7 +537,9 @@ export class InterpreterVisitor implements Evaluator {
           });
 
         if (!isRuntimeFunction(callee))
-          return new FailCommand(new InterpreterError("Call", "Target is not a function"));
+          return new FailCommand(
+            new InterpreterError("Call", "Target is not a function"),
+          );
 
         return this.context.funcRuntime.apply(callee, args);
       };
@@ -552,7 +556,10 @@ export class InterpreterVisitor implements Evaluator {
       return new BindCommand(this.evaluate(node.right), (g) => {
         if (!isRuntimeFunction(f) || !isRuntimeFunction(g)) {
           return new FailCommand(
-            new InterpreterError("Composition", "Both operands of (.) must be functions"),
+            new InterpreterError(
+              "Composition",
+              "Both operands of (.) must be functions",
+            ),
           );
         }
 
@@ -675,7 +682,10 @@ export class InterpreterVisitor implements Evaluator {
   visitLogicConstraint(node: LogicConstraint): ExecutionCommand {
     return new BindCommand(this.evaluate(node.expression), (val) => {
       const success = Array.isArray(val) ? val.length > 0 : !!val;
-      if (success) return new StepCommand(new LogicResult([new LogicAnswer(true, new Map())]));
+      if (success)
+        return new StepCommand(
+          new LogicResult([new LogicAnswer(true, new Map())]),
+        );
       return new BacktrackCommand();
     });
   }
@@ -686,7 +696,10 @@ export class InterpreterVisitor implements Evaluator {
       methodName = this.context.lookup("__METHOD_NAME__") as string;
     } catch (e) {
       return new FailCommand(
-        new InterpreterError("Super", "'super' keyword used outside of a method context"),
+        new InterpreterError(
+          "Super",
+          "'super' keyword used outside of a method context",
+        ),
       );
     }
 
@@ -752,7 +765,9 @@ export class InterpreterVisitor implements Evaluator {
     const className = node.identifier.value;
     const classDef = this.context.lookup(className);
     if (!isRuntimeClass(classDef))
-      return new FailCommand(new InterpreterError("New", `${className} is not a class.`));
+      return new FailCommand(
+        new InterpreterError("New", `${className} is not a class.`),
+      );
 
     return new StepCommand(
       this.context.objRuntime.instantiate(
@@ -839,7 +854,10 @@ export class InterpreterVisitor implements Evaluator {
     return new BindCommand(this.evaluate(node.body), (msg) => {
       if (typeof msg !== "string")
         return new FailCommand(
-          new InterpreterError("Raise", `Expected string but got ${typeof msg}`),
+          new InterpreterError(
+            "Raise",
+            `Expected string but got ${typeof msg}`,
+          ),
         );
       return new FailCommand(new InterpreterError("Raise", msg));
     });
@@ -871,7 +889,10 @@ export class InterpreterVisitor implements Evaluator {
       return new BindCommand(this.evaluate(node.right), (right) => {
         if (!typeGuard(left, right)) {
           return new FailCommand(
-            new InterpreterError(contextName, `Type mismatch: ${left}, ${right}`),
+            new InterpreterError(
+              contextName,
+              `Type mismatch: ${left}, ${right}`,
+            ),
           );
         }
 

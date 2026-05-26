@@ -10,15 +10,13 @@ import {
   ConstructorPattern,
   UnionPattern,
   AsPattern,
-  LazyList,
 } from "yukigo-ast";
-import {
-  PatternMatcher,
-} from "../../src/interpreter/components/PatternMatcher.js";
+import { PatternMatcher } from "../../src/interpreter/components/PatternMatcher.js";
 import { createStream } from "../../src/interpreter/utils.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
 import { YukigoKernel } from "../../src/interpreter/components/kernel/index.js";
 import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
+import { LazyList } from "../../src/interpreter/runtime.js";
 
 const s = (v: string) => new SymbolPrimitive(v);
 const n = (v: number) => new NumberPrimitive(v);
@@ -29,7 +27,6 @@ const wildcard = () => new WildcardPattern();
 
 describe("Pattern System", () => {
   describe("PatternResolver (Pretty Printing)", () => {
-
     it("should resolve a variable pattern", () => {
       const p = variable("X");
       expect(p.toString()).to.equal("X");
@@ -53,7 +50,9 @@ describe("Pattern System", () => {
 
     it("should resolve a constructor pattern", () => {
       // Just(X)
-      const p = new ConstructorPattern(new SymbolPrimitive("Just"), [variable("X")]);
+      const p = new ConstructorPattern(new SymbolPrimitive("Just"), [
+        variable("X"),
+      ]);
       expect(p.toString()).to.equal("Just X");
     });
 
@@ -61,7 +60,7 @@ describe("Pattern System", () => {
       // (1:(2:[]))
       const p = new ConsPattern(
         lit(1),
-        new ConsPattern(lit(2), new ListPattern([]))
+        new ConsPattern(lit(2), new ListPattern([])),
       );
       expect(p.toString()).to.equal("(1:(2:[]))");
     });
@@ -70,10 +69,10 @@ describe("Pattern System", () => {
   describe("PatternMatcher (Logic)", () => {
     const match = (
       pattern: any,
-      value: any
+      value: any,
     ): { success: boolean; bindings: [string, any][] } => {
       const bindings: [string, any][] = [];
-      const ctx = new RuntimeContext({lazyLoading: false});
+      const ctx = new RuntimeContext({ lazyLoading: false });
       const matcher = new PatternMatcher(value, bindings, ctx);
       const kernel = new YukigoKernel(new InterpreterVisitor(ctx));
 
@@ -126,7 +125,9 @@ describe("Pattern System", () => {
     });
 
     it("should match a Constructor pattern", () => {
-      const p = new ConstructorPattern(new SymbolPrimitive("Just"), [variable("X")]);
+      const p = new ConstructorPattern(new SymbolPrimitive("Just"), [
+        variable("X"),
+      ]);
       const val = ["Just", 10];
 
       const { success, bindings } = match(p, val);
@@ -137,7 +138,7 @@ describe("Pattern System", () => {
     it("should match an AsPattern (@)", () => {
       const p = new AsPattern(
         variable("List"),
-        new ListPattern([variable("X"), wildcard()])
+        new ListPattern([variable("X"), wildcard()]),
       );
       const { success, bindings } = match(p, [1, 2]);
       expect(success).to.be.true;

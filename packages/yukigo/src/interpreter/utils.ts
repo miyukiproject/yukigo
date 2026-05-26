@@ -1,18 +1,17 @@
-import {
-  Expression,
-  LazyList,
-  PrimitiveValue,
-  Environment,
-  EnvStack,
-  ASTNode,
-  isRuntimeFunction,
-  isRuntimeObject,
-  isLazyList,
-  isRuntimeClass,
-  isRuntimePredicate,
-} from "yukigo-ast";
+import { ASTNode } from "yukigo-ast";
 import { ExecutionCommand } from "./components/kernel/commands.js";
 import { RuntimeContext } from "./components/RuntimeContext.js";
+import {
+  PrimitiveValue,
+  LazyList,
+  Environment,
+  EnvStack,
+  isLazyList,
+  isRuntimeFunction,
+  isRuntimeObject,
+  isRuntimeClass,
+  isRuntimePredicate,
+} from "./runtime.js";
 
 export interface Evaluator {
   evaluate(node: ASTNode): ExecutionCommand;

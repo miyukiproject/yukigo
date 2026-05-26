@@ -6,7 +6,7 @@ import {
   isRuntimeClass,
   RuntimeClass,
   EnvStack,
-} from "yukigo-ast";
+} from "../../runtime.js";
 import { InterpreterError } from "../../errors.js";
 import { RuntimeContext } from "../RuntimeContext.js";
 import { ExecutionCommand } from "../kernel/commands.js";

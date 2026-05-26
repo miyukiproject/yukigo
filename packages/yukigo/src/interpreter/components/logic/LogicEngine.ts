@@ -4,18 +4,11 @@ import {
   Findall,
   Forall,
   Goal,
-  PrimitiveValue,
   Query,
-  LogicResult,
   Statement,
   Not,
   LogicConstraint,
   Sequence,
-  isLogicResult,
-  Substitution,
-  LogicAnswer,
-  LogicTerm,
-  isLogicTerm,
   UnifyOperation,
   AssignOperation,
 } from "yukigo-ast";
@@ -34,6 +27,15 @@ import {
 } from "../kernel/commands.js";
 import { VariableTerm } from "./LogicTerm.js";
 import { Evaluator } from "../../utils.js";
+import {
+  Substitution,
+  PrimitiveValue,
+  LogicTerm,
+  LogicResult,
+  LogicAnswer,
+  isLogicTerm,
+  isLogicResult,
+} from "../../runtime.js";
 
 export type LogicExecutable =
   | Expression

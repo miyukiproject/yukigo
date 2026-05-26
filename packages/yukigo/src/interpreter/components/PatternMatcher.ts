@@ -6,22 +6,16 @@ import {
   ConstructorPattern,
   Expression,
   FunctorPattern,
-  isLazyList,
-  LazyList,
   ListPattern,
-  ListPrimitive,
   LiteralPattern,
   Pattern,
-  PrimitiveValue,
   TuplePattern,
   UnionPattern,
   VariablePattern,
-  Visitor,
   WildcardPattern,
   TypePattern,
   SimpleType,
   ListType,
-  EnvStack,
 } from "yukigo-ast";
 import { Bindings } from "../index.js";
 import { InterpreterVisitor } from "./Visitor.js";
@@ -34,6 +28,7 @@ import {
 import { RuntimeContext } from "./RuntimeContext.js";
 import { Evaluator, getYukigoType } from "../utils.js";
 import { InterpreterError, UnexpectedNode } from "../errors.js";
+import { PrimitiveValue, EnvStack, LazyList, isLazyList } from "../runtime.js";
 
 class SharedSequence {
   private cache: PrimitiveValue[] = [];
@@ -153,14 +148,16 @@ export class PatternMatcher {
   visitTuplePattern(node: TuplePattern): ExecutionCommand {
     const processValue = (val: PrimitiveValue): ExecutionCommand => {
       if (!Array.isArray(val)) return new StepCommand(false);
-      if (val.length !== node.elements.length)
-        return new StepCommand(false);
+      if (val.length !== node.elements.length) return new StepCommand(false);
 
       return this.matchList(node.elements, val, 0);
     };
 
     if (isLazyList(this.value)) {
-      return new BindCommand(this.ctx.lazyRuntime.realizeList(this.value), processValue);
+      return new BindCommand(
+        this.ctx.lazyRuntime.realizeList(this.value),
+        processValue,
+      );
     }
     return processValue(this.value);
   }
@@ -170,7 +167,11 @@ export class PatternMatcher {
     const neededLength = node.elements.length;
 
     const finishMatching = (valArr: PrimitiveValue): ExecutionCommand => {
-      if(!Array.isArray(valArr)) throw new InterpreterError("[PatternMatcher]", `Expected ${valArr} to be a list.`)
+      if (!Array.isArray(valArr))
+        throw new InterpreterError(
+          "[PatternMatcher]",
+          `Expected ${valArr} to be a list.`,
+        );
       if (valArr.length !== neededLength) return new StepCommand(false);
       return this.matchList(node.elements, valArr, 0);
     };
@@ -190,7 +191,10 @@ export class PatternMatcher {
     if (typeof value === "string") return finishMatching(value.split(""));
 
     if (isLazyList(value)) {
-      return new BindCommand(this.ctx.lazyRuntime.realizeList(value), finishMatching);
+      return new BindCommand(
+        this.ctx.lazyRuntime.realizeList(value),
+        finishMatching,
+      );
     }
 
     return new StepCommand(false);
@@ -303,8 +307,7 @@ export class PatternMatcher {
   visitConstructorPattern(node: ConstructorPattern): ExecutionCommand {
     if (!Array.isArray(this.value) || this.value.length === 0)
       return new StepCommand(false);
-    if (this.value[0] !== node.identifier.value)
-      return new StepCommand(false);
+    if (this.value[0] !== node.identifier.value) return new StepCommand(false);
 
     const args = this.value.slice(1);
     return this.matchList(node.args, args, 0);
@@ -365,6 +368,8 @@ export class PatternMatcher {
     return node.accept(this);
   }
   public fallback(node: ASTNode): ExecutionCommand {
-    return new FailCommand(new UnexpectedNode(node.constructor.name, "PatternMatcher"));
+    return new FailCommand(
+      new UnexpectedNode(node.constructor.name, "PatternMatcher"),
+    );
   }
 }

@@ -11,7 +11,6 @@ import {
   CompositionExpression,
   Equation,
   Function,
-  isLazyList,
   Lambda,
   ListPrimitive,
   ListUnaryOperation,
@@ -33,6 +32,17 @@ import {
 } from "yukigo-ast";
 import { Interpreter } from "../../src/interpreter/index.js";
 import { assert } from "chai";
+import {
+  RuntimeFunction,
+  RuntimePredicate,
+  LogicResult,
+  LazyList,
+  LogicTerm,
+  PrimitiveValue,
+  RuntimeObject,
+  RuntimeClass,
+  isLazyList,
+} from "../../src/interpreter/runtime.js";
 
 describe("Interpreter Spec", () => {
   let interpreter: Interpreter;
@@ -45,131 +55,131 @@ describe("Interpreter Spec", () => {
         new ArithmeticBinaryOperation(
           "Plus",
           new NumberPrimitive(3),
-          new NumberPrimitive(4)
-        )
+          new NumberPrimitive(4),
+        ),
       ),
-      7
+      7,
     );
     assert.equal(
       interpreter.evaluate(
         new ArithmeticBinaryOperation(
           "Minus",
           new NumberPrimitive(3),
-          new NumberPrimitive(4)
-        )
+          new NumberPrimitive(4),
+        ),
       ),
-      -1
+      -1,
     );
     assert.equal(
       interpreter.evaluate(
         new ArithmeticBinaryOperation(
           "Multiply",
           new NumberPrimitive(3),
-          new NumberPrimitive(4)
-        )
+          new NumberPrimitive(4),
+        ),
       ),
-      12
+      12,
     );
     assert.equal(
       interpreter.evaluate(
         new ArithmeticBinaryOperation(
           "Divide",
           new NumberPrimitive(3),
-          new NumberPrimitive(4)
-        )
+          new NumberPrimitive(4),
+        ),
       ),
-      0.75
+      0.75,
     );
     assert.equal(
       interpreter.evaluate(
         new ArithmeticBinaryOperation(
           "Modulo",
           new NumberPrimitive(3),
-          new NumberPrimitive(4)
-        )
+          new NumberPrimitive(4),
+        ),
       ),
-      3
+      3,
     );
     assert.equal(
       interpreter.evaluate(
         new ArithmeticBinaryOperation(
           "Power",
           new NumberPrimitive(3),
-          new NumberPrimitive(4)
-        )
+          new NumberPrimitive(4),
+        ),
       ),
-      81
+      81,
     );
     assert.equal(
       interpreter.evaluate(
         new ArithmeticBinaryOperation(
           "Min",
           new NumberPrimitive(3),
-          new NumberPrimitive(4)
-        )
+          new NumberPrimitive(4),
+        ),
       ),
-      3
+      3,
     );
     assert.equal(
       interpreter.evaluate(
         new ArithmeticBinaryOperation(
           "Max",
           new NumberPrimitive(3),
-          new NumberPrimitive(4)
-        )
+          new NumberPrimitive(4),
+        ),
       ),
-      4
+      4,
     );
   });
 
   it("Evaluates ArithmeticUnaryOperation", () => {
     assert.equal(
       interpreter.evaluate(
-        new ArithmeticUnaryOperation("Round", new NumberPrimitive(3.4))
+        new ArithmeticUnaryOperation("Round", new NumberPrimitive(3.4)),
       ),
-      3
+      3,
     );
     assert.equal(
       interpreter.evaluate(
-        new ArithmeticUnaryOperation("Round", new NumberPrimitive(3.5))
+        new ArithmeticUnaryOperation("Round", new NumberPrimitive(3.5)),
       ),
-      4
+      4,
     );
     assert.equal(
       interpreter.evaluate(
-        new ArithmeticUnaryOperation("Absolute", new NumberPrimitive(-3))
+        new ArithmeticUnaryOperation("Absolute", new NumberPrimitive(-3)),
       ),
-      3
+      3,
     );
     assert.equal(
       interpreter.evaluate(
-        new ArithmeticUnaryOperation("Absolute", new NumberPrimitive(3))
+        new ArithmeticUnaryOperation("Absolute", new NumberPrimitive(3)),
       ),
-      3
+      3,
     );
     assert.equal(
       interpreter.evaluate(
-        new ArithmeticUnaryOperation("Ceil", new NumberPrimitive(3.3))
+        new ArithmeticUnaryOperation("Ceil", new NumberPrimitive(3.3)),
       ),
-      4
+      4,
     );
     assert.equal(
       interpreter.evaluate(
-        new ArithmeticUnaryOperation("Floor", new NumberPrimitive(3.3))
+        new ArithmeticUnaryOperation("Floor", new NumberPrimitive(3.3)),
       ),
-      3
+      3,
     );
     assert.equal(
       interpreter.evaluate(
-        new ArithmeticUnaryOperation("Negation", new NumberPrimitive(3.3))
+        new ArithmeticUnaryOperation("Negation", new NumberPrimitive(3.3)),
       ),
-      -3.3
+      -3.3,
     );
     assert.equal(
       interpreter.evaluate(
-        new ArithmeticUnaryOperation("Sqrt", new NumberPrimitive(25))
+        new ArithmeticUnaryOperation("Sqrt", new NumberPrimitive(25)),
       ),
-      5
+      5,
     );
   });
   describe("Evaluates ComparisonOperation", () => {
@@ -179,40 +189,40 @@ describe("Interpreter Spec", () => {
           new ComparisonOperation(
             "Equal",
             new NumberPrimitive(3.4),
-            new NumberPrimitive(3.4)
-          )
+            new NumberPrimitive(3.4),
+          ),
         ),
-        true
+        true,
       );
       assert.equal(
         interpreter.evaluate(
           new ComparisonOperation(
             "Equal",
             new NumberPrimitive(3.4),
-            new NumberPrimitive(4)
-          )
+            new NumberPrimitive(4),
+          ),
         ),
-        false
+        false,
       );
       assert.equal(
         interpreter.evaluate(
           new ComparisonOperation(
             "Equal",
             new NumberPrimitive(3),
-            new StringPrimitive("3")
-          )
+            new StringPrimitive("3"),
+          ),
         ),
-        true
+        true,
       );
       assert.equal(
         interpreter.evaluate(
           new ComparisonOperation(
             "Equal",
             new NumberPrimitive(3),
-            new StringPrimitive("4")
-          )
+            new StringPrimitive("4"),
+          ),
         ),
-        false
+        false,
       );
     });
     it("NotEqual Operator", () => {
@@ -221,40 +231,40 @@ describe("Interpreter Spec", () => {
           new ComparisonOperation(
             "NotEqual",
             new NumberPrimitive(3.4),
-            new NumberPrimitive(3.4)
-          )
+            new NumberPrimitive(3.4),
+          ),
         ),
-        false
+        false,
       );
       assert.equal(
         interpreter.evaluate(
           new ComparisonOperation(
             "NotEqual",
             new NumberPrimitive(3.4),
-            new NumberPrimitive(4)
-          )
+            new NumberPrimitive(4),
+          ),
         ),
-        true
+        true,
       );
       assert.equal(
         interpreter.evaluate(
           new ComparisonOperation(
             "NotEqual",
             new NumberPrimitive(3),
-            new StringPrimitive("3")
-          )
+            new StringPrimitive("3"),
+          ),
         ),
-        false
+        false,
       );
       assert.equal(
         interpreter.evaluate(
           new ComparisonOperation(
             "NotEqual",
             new NumberPrimitive(3),
-            new StringPrimitive("4")
-          )
+            new StringPrimitive("4"),
+          ),
         ),
-        true
+        true,
       );
     });
     it("Same Operator", () => {
@@ -263,40 +273,40 @@ describe("Interpreter Spec", () => {
           new ComparisonOperation(
             "Same",
             new NumberPrimitive(3.4),
-            new NumberPrimitive(3.4)
-          )
+            new NumberPrimitive(3.4),
+          ),
         ),
-        true
+        true,
       );
       assert.equal(
         interpreter.evaluate(
           new ComparisonOperation(
             "Same",
             new NumberPrimitive(3.4),
-            new NumberPrimitive(4)
-          )
+            new NumberPrimitive(4),
+          ),
         ),
-        false
+        false,
       );
       assert.equal(
         interpreter.evaluate(
           new ComparisonOperation(
             "Same",
             new NumberPrimitive(3),
-            new StringPrimitive("3")
-          )
+            new StringPrimitive("3"),
+          ),
         ),
-        false
+        false,
       );
       assert.equal(
         interpreter.evaluate(
           new ComparisonOperation(
             "Same",
             new NumberPrimitive(3),
-            new StringPrimitive("4")
-          )
+            new StringPrimitive("4"),
+          ),
         ),
-        false
+        false,
       );
     });
     it("NotSame Operator", () => {
@@ -305,40 +315,40 @@ describe("Interpreter Spec", () => {
           new ComparisonOperation(
             "NotSame",
             new NumberPrimitive(3.4),
-            new NumberPrimitive(3.4)
-          )
+            new NumberPrimitive(3.4),
+          ),
         ),
-        false
+        false,
       );
       assert.equal(
         interpreter.evaluate(
           new ComparisonOperation(
             "NotSame",
             new NumberPrimitive(3.4),
-            new NumberPrimitive(4)
-          )
+            new NumberPrimitive(4),
+          ),
         ),
-        true
+        true,
       );
       assert.equal(
         interpreter.evaluate(
           new ComparisonOperation(
             "NotSame",
             new NumberPrimitive(3),
-            new StringPrimitive("3")
-          )
+            new StringPrimitive("3"),
+          ),
         ),
-        true
+        true,
       );
       assert.equal(
         interpreter.evaluate(
           new ComparisonOperation(
             "NotSame",
             new NumberPrimitive(3),
-            new StringPrimitive("4")
-          )
+            new StringPrimitive("4"),
+          ),
         ),
-        true
+        true,
       );
     });
     it("GreaterOrEqualThan Operator", () => {
@@ -347,40 +357,40 @@ describe("Interpreter Spec", () => {
           new ComparisonOperation(
             "GreaterOrEqualThan",
             new NumberPrimitive(3.4),
-            new NumberPrimitive(3.4)
-          )
+            new NumberPrimitive(3.4),
+          ),
         ),
-        true
+        true,
       );
       assert.equal(
         interpreter.evaluate(
           new ComparisonOperation(
             "GreaterOrEqualThan",
             new NumberPrimitive(3.4),
-            new NumberPrimitive(4)
-          )
+            new NumberPrimitive(4),
+          ),
         ),
-        false
+        false,
       );
       assert.equal(
         interpreter.evaluate(
           new ComparisonOperation(
             "GreaterOrEqualThan",
             new NumberPrimitive(3),
-            new StringPrimitive("3")
-          )
+            new StringPrimitive("3"),
+          ),
         ),
-        true
+        true,
       );
       assert.equal(
         interpreter.evaluate(
           new ComparisonOperation(
             "GreaterOrEqualThan",
             new NumberPrimitive(3),
-            new StringPrimitive("4")
-          )
+            new StringPrimitive("4"),
+          ),
         ),
-        false
+        false,
       );
     });
     it("GreaterThan Operator", () => {
@@ -389,40 +399,40 @@ describe("Interpreter Spec", () => {
           new ComparisonOperation(
             "GreaterThan",
             new NumberPrimitive(3.4),
-            new NumberPrimitive(3.4)
-          )
+            new NumberPrimitive(3.4),
+          ),
         ),
-        false
+        false,
       );
       assert.equal(
         interpreter.evaluate(
           new ComparisonOperation(
             "GreaterThan",
             new NumberPrimitive(3.4),
-            new NumberPrimitive(4)
-          )
+            new NumberPrimitive(4),
+          ),
         ),
-        false
+        false,
       );
       assert.equal(
         interpreter.evaluate(
           new ComparisonOperation(
             "GreaterThan",
             new NumberPrimitive(3),
-            new StringPrimitive("3")
-          )
+            new StringPrimitive("3"),
+          ),
         ),
-        false
+        false,
       );
       assert.equal(
         interpreter.evaluate(
           new ComparisonOperation(
             "GreaterThan",
             new NumberPrimitive(3),
-            new StringPrimitive("4")
-          )
+            new StringPrimitive("4"),
+          ),
         ),
-        false
+        false,
       );
     });
     it("LessOrEqualThan Operator", () => {
@@ -431,40 +441,40 @@ describe("Interpreter Spec", () => {
           new ComparisonOperation(
             "LessOrEqualThan",
             new NumberPrimitive(3.4),
-            new NumberPrimitive(3.4)
-          )
+            new NumberPrimitive(3.4),
+          ),
         ),
-        true
+        true,
       );
       assert.equal(
         interpreter.evaluate(
           new ComparisonOperation(
             "LessOrEqualThan",
             new NumberPrimitive(3.4),
-            new NumberPrimitive(4)
-          )
+            new NumberPrimitive(4),
+          ),
         ),
-        true
+        true,
       );
       assert.equal(
         interpreter.evaluate(
           new ComparisonOperation(
             "LessOrEqualThan",
             new NumberPrimitive(3),
-            new StringPrimitive("3")
-          )
+            new StringPrimitive("3"),
+          ),
         ),
-        true
+        true,
       );
       assert.equal(
         interpreter.evaluate(
           new ComparisonOperation(
             "LessOrEqualThan",
             new NumberPrimitive(3),
-            new StringPrimitive("4")
-          )
+            new StringPrimitive("4"),
+          ),
         ),
-        true
+        true,
       );
     });
     it("LessThan Operator", () => {
@@ -473,40 +483,40 @@ describe("Interpreter Spec", () => {
           new ComparisonOperation(
             "LessThan",
             new NumberPrimitive(3.4),
-            new NumberPrimitive(3.4)
-          )
+            new NumberPrimitive(3.4),
+          ),
         ),
-        false
+        false,
       );
       assert.equal(
         interpreter.evaluate(
           new ComparisonOperation(
             "LessThan",
             new NumberPrimitive(3.4),
-            new NumberPrimitive(4)
-          )
+            new NumberPrimitive(4),
+          ),
         ),
-        true
+        true,
       );
       assert.equal(
         interpreter.evaluate(
           new ComparisonOperation(
             "LessThan",
             new NumberPrimitive(3),
-            new StringPrimitive("3")
-          )
+            new StringPrimitive("3"),
+          ),
         ),
-        false
+        false,
       );
       assert.equal(
         interpreter.evaluate(
           new ComparisonOperation(
             "LessThan",
             new NumberPrimitive(3),
-            new StringPrimitive("4")
-          )
+            new StringPrimitive("4"),
+          ),
         ),
-        true
+        true,
       );
     });
   });
@@ -517,40 +527,40 @@ describe("Interpreter Spec", () => {
           new LogicalBinaryOperation(
             "And",
             new BooleanPrimitive(true),
-            new BooleanPrimitive(true)
-          )
+            new BooleanPrimitive(true),
+          ),
         ),
-        true
+        true,
       );
       assert.equal(
         interpreter.evaluate(
           new LogicalBinaryOperation(
             "And",
             new BooleanPrimitive(true),
-            new BooleanPrimitive(false)
-          )
+            new BooleanPrimitive(false),
+          ),
         ),
-        false
+        false,
       );
       assert.equal(
         interpreter.evaluate(
           new LogicalBinaryOperation(
             "And",
             new BooleanPrimitive(false),
-            new BooleanPrimitive(true)
-          )
+            new BooleanPrimitive(true),
+          ),
         ),
-        false
+        false,
       );
       assert.equal(
         interpreter.evaluate(
           new LogicalBinaryOperation(
             "And",
             new BooleanPrimitive(false),
-            new BooleanPrimitive(false)
-          )
+            new BooleanPrimitive(false),
+          ),
         ),
-        false
+        false,
       );
     });
     it("Or Operator", () => {
@@ -559,40 +569,40 @@ describe("Interpreter Spec", () => {
           new LogicalBinaryOperation(
             "Or",
             new BooleanPrimitive(true),
-            new BooleanPrimitive(true)
-          )
+            new BooleanPrimitive(true),
+          ),
         ),
-        true
+        true,
       );
       assert.equal(
         interpreter.evaluate(
           new LogicalBinaryOperation(
             "Or",
             new BooleanPrimitive(true),
-            new BooleanPrimitive(false)
-          )
+            new BooleanPrimitive(false),
+          ),
         ),
-        true
+        true,
       );
       assert.equal(
         interpreter.evaluate(
           new LogicalBinaryOperation(
             "Or",
             new BooleanPrimitive(false),
-            new BooleanPrimitive(true)
-          )
+            new BooleanPrimitive(true),
+          ),
         ),
-        true
+        true,
       );
       assert.equal(
         interpreter.evaluate(
           new LogicalBinaryOperation(
             "Or",
             new BooleanPrimitive(false),
-            new BooleanPrimitive(false)
-          )
+            new BooleanPrimitive(false),
+          ),
         ),
-        false
+        false,
       );
     });
   });
@@ -600,15 +610,15 @@ describe("Interpreter Spec", () => {
     it("Negation Operator", () => {
       assert.equal(
         interpreter.evaluate(
-          new LogicalUnaryOperation("Negation", new BooleanPrimitive(true))
+          new LogicalUnaryOperation("Negation", new BooleanPrimitive(true)),
         ),
-        false
+        false,
       );
       assert.equal(
         interpreter.evaluate(
-          new LogicalUnaryOperation("Negation", new BooleanPrimitive(false))
+          new LogicalUnaryOperation("Negation", new BooleanPrimitive(false)),
         ),
-        true
+        true,
       );
     });
   });
@@ -619,10 +629,10 @@ describe("Interpreter Spec", () => {
           new StringOperation(
             "Concat",
             new StringPrimitive("Hello"),
-            new StringPrimitive(" world!")
-          )
+            new StringPrimitive(" world!"),
+          ),
         ),
-        "Hello world!"
+        "Hello world!",
       );
     });
   });
@@ -635,10 +645,10 @@ describe("Interpreter Spec", () => {
             new ListPrimitive([
               new StringPrimitive("Hello"),
               new StringPrimitive("world!"),
-            ])
-          )
+            ]),
+          ),
         ),
-        2
+        2,
       );
     });
     it("DetectMax Operator", () => {
@@ -646,10 +656,10 @@ describe("Interpreter Spec", () => {
         interpreter.evaluate(
           new ListUnaryOperation(
             "DetectMax",
-            new ListPrimitive([new NumberPrimitive(2), new NumberPrimitive(4)])
-          )
+            new ListPrimitive([new NumberPrimitive(2), new NumberPrimitive(4)]),
+          ),
         ),
-        4
+        4,
       );
     });
     it("DetectMin Operator", () => {
@@ -657,10 +667,10 @@ describe("Interpreter Spec", () => {
         interpreter.evaluate(
           new ListUnaryOperation(
             "DetectMin",
-            new ListPrimitive([new NumberPrimitive(2), new NumberPrimitive(4)])
-          )
+            new ListPrimitive([new NumberPrimitive(2), new NumberPrimitive(4)]),
+          ),
         ),
-        2
+        2,
       );
     });
     it("Flatten Operator", () => {
@@ -674,10 +684,10 @@ describe("Interpreter Spec", () => {
                 new NumberPrimitive(3),
                 new NumberPrimitive(8),
               ]),
-            ])
-          )
+            ]),
+          ),
         ),
-        [2, 3, 8]
+        [2, 3, 8],
       );
     });
   });
@@ -688,10 +698,10 @@ describe("Interpreter Spec", () => {
           new BitwiseBinaryOperation(
             "BitwiseOr",
             new NumberPrimitive(5),
-            new NumberPrimitive(1)
-          )
+            new NumberPrimitive(1),
+          ),
         ),
-        5
+        5,
       );
     });
     it("BitwiseAnd Operator", () => {
@@ -700,10 +710,10 @@ describe("Interpreter Spec", () => {
           new BitwiseBinaryOperation(
             "BitwiseAnd",
             new NumberPrimitive(5),
-            new NumberPrimitive(1)
-          )
+            new NumberPrimitive(1),
+          ),
         ),
-        1
+        1,
       );
     });
     it("BitwiseLeftShift Operator", () => {
@@ -712,10 +722,10 @@ describe("Interpreter Spec", () => {
           new BitwiseBinaryOperation(
             "BitwiseLeftShift",
             new NumberPrimitive(5),
-            new NumberPrimitive(1)
-          )
+            new NumberPrimitive(1),
+          ),
         ),
-        10
+        10,
       );
     });
     it("BitwiseRightShift Operator", () => {
@@ -724,10 +734,10 @@ describe("Interpreter Spec", () => {
           new BitwiseBinaryOperation(
             "BitwiseRightShift",
             new NumberPrimitive(5),
-            new NumberPrimitive(1)
-          )
+            new NumberPrimitive(1),
+          ),
         ),
-        2
+        2,
       );
     });
     it("BitwiseUnsignedRightShift Operator", () => {
@@ -736,10 +746,10 @@ describe("Interpreter Spec", () => {
           new BitwiseBinaryOperation(
             "BitwiseUnsignedRightShift",
             new NumberPrimitive(5),
-            new NumberPrimitive(1)
-          )
+            new NumberPrimitive(1),
+          ),
         ),
-        2
+        2,
       );
     });
     it("BitwiseXor Operator", () => {
@@ -748,10 +758,10 @@ describe("Interpreter Spec", () => {
           new BitwiseBinaryOperation(
             "BitwiseXor",
             new NumberPrimitive(5),
-            new NumberPrimitive(1)
-          )
+            new NumberPrimitive(1),
+          ),
         ),
-        4
+        4,
       );
     });
   });
@@ -759,9 +769,9 @@ describe("Interpreter Spec", () => {
     it("BitwiseNot Operator", () => {
       assert.equal(
         interpreter.evaluate(
-          new BitwiseUnaryOperation("BitwiseNot", new NumberPrimitive(5))
+          new BitwiseUnaryOperation("BitwiseNot", new NumberPrimitive(5)),
         ),
-        -6
+        -6,
       );
     });
   });
@@ -772,9 +782,9 @@ describe("Interpreter Spec", () => {
           new Equation(
             [new LiteralPattern(new NumberPrimitive(3))],
             new UnguardedBody(
-              new Sequence([new Return(new NumberPrimitive(6))])
+              new Sequence([new Return(new NumberPrimitive(6))]),
             ),
-            new Return(new NumberPrimitive(6))
+            new Return(new NumberPrimitive(6)),
           ),
           new Equation(
             [new VariablePattern(new SymbolPrimitive("y"))],
@@ -784,18 +794,18 @@ describe("Interpreter Spec", () => {
                   new ArithmeticBinaryOperation(
                     "Plus",
                     new SymbolPrimitive("y"),
-                    new NumberPrimitive(3)
-                  )
+                    new NumberPrimitive(3),
+                  ),
                 ),
-              ])
+              ]),
             ),
             new Return(
               new ArithmeticBinaryOperation(
                 "Plus",
                 new SymbolPrimitive("y"),
-                new NumberPrimitive(3)
-              )
-            )
+                new NumberPrimitive(3),
+              ),
+            ),
           ),
         ]),
       ]);
@@ -812,10 +822,10 @@ describe("Interpreter Spec", () => {
           new ArithmeticBinaryOperation(
             "Plus",
             new SymbolPrimitive("x"),
-            new SymbolPrimitive("y")
+            new SymbolPrimitive("y"),
           ),
-          new SymbolPrimitive("z")
-        )
+          new SymbolPrimitive("z"),
+        ),
       );
       const app1 = new Application(lambda, new NumberPrimitive(1));
       const app2 = new Application(app1, new NumberPrimitive(2));
@@ -825,7 +835,7 @@ describe("Interpreter Spec", () => {
     it("Application of Function", () => {
       const app1 = new Application(
         new SymbolPrimitive("f"),
-        new NumberPrimitive(3)
+        new NumberPrimitive(3),
       );
       assert.equal(interpreter.evaluate(app1), 6);
     });
@@ -843,18 +853,18 @@ describe("Interpreter Spec", () => {
                     new ArithmeticBinaryOperation(
                       "Multiply",
                       new SymbolPrimitive("x"),
-                      new NumberPrimitive(2)
-                    )
+                      new NumberPrimitive(2),
+                    ),
                   ),
-                ])
+                ]),
               ),
               new Return(
                 new ArithmeticBinaryOperation(
                   "Multiply",
                   new SymbolPrimitive("x"),
-                  new NumberPrimitive(2)
-                )
-              )
+                  new NumberPrimitive(2),
+                ),
+              ),
             ),
           ]),
           new Function(new SymbolPrimitive("cuadrado"), [
@@ -866,31 +876,31 @@ describe("Interpreter Spec", () => {
                     new ArithmeticBinaryOperation(
                       "Power",
                       new SymbolPrimitive("x"),
-                      new NumberPrimitive(2)
-                    )
+                      new NumberPrimitive(2),
+                    ),
                   ),
-                ])
+                ]),
               ),
               new Return(
                 new ArithmeticBinaryOperation(
                   "Power",
                   new SymbolPrimitive("x"),
-                  new NumberPrimitive(2)
-                )
-              )
+                  new NumberPrimitive(2),
+                ),
+              ),
             ),
           ]),
         ],
-        { debug: true }
+        { debug: true },
       );
     });
     it("Composition (cuadrado . doble) 2 should be 16", () => {
       const fog = new CompositionExpression(
         new SymbolPrimitive("cuadrado"),
-        new SymbolPrimitive("doble")
+        new SymbolPrimitive("doble"),
       );
       const app = new Application(fog, new NumberPrimitive(2));
-      const res = interpreter.evaluate(app)
+      const res = interpreter.evaluate(app);
       assert.equal(res, 16);
     });
   });
@@ -906,7 +916,7 @@ describe("Interpreter Spec", () => {
     it("Evaluates [1..5] to full range", () => {
       const range = new RangeExpression(
         new NumberPrimitive(1),
-        new NumberPrimitive(5)
+        new NumberPrimitive(5),
       );
       assert.deepEqual(interpreter.evaluate(range), [1, 2, 3, 4, 5]);
     });
@@ -914,7 +924,7 @@ describe("Interpreter Spec", () => {
       const range = new RangeExpression(
         new NumberPrimitive(0),
         new NumberPrimitive(2),
-        new NumberPrimitive(0.5)
+        new NumberPrimitive(0.5),
       );
       assert.deepEqual(interpreter.evaluate(range), [0, 0.5, 1, 1.5, 2]);
     });
@@ -937,7 +947,7 @@ describe("Interpreter Spec", () => {
         new Assignment(new SymbolPrimitive("x"), new NumberPrimitive(10)),
       ];
       interpreter = new Interpreter(ast, { mutability: true });
-      
+
       // Should not throw
       assert.doesNotThrow(() => {
         interpreter.evaluate(new SymbolPrimitive("x"));
@@ -949,19 +959,13 @@ describe("Interpreter Spec", () => {
         new Variable(new SymbolPrimitive("x"), new NumberPrimitive(5)),
       ];
       interpreter = new Interpreter(ast, { mutability: false });
-      
+
       // Attempting reassignment should throw
-      assert.throws(
-        () => {
-          interpreter.evaluate(
-            new Assignment(
-              new SymbolPrimitive("x"),
-              new NumberPrimitive(10)
-            )
-          );
-        },
-        /Cannot reassign variable 'x': mutability is disabled/
-      );
+      assert.throws(() => {
+        interpreter.evaluate(
+          new Assignment(new SymbolPrimitive("x"), new NumberPrimitive(10)),
+        );
+      }, /Cannot reassign variable 'x': mutability is disabled/);
     });
 
     it("Should throw when attempting assignment operation with mutability disabled", () => {
@@ -969,23 +973,17 @@ describe("Interpreter Spec", () => {
         new Variable(new SymbolPrimitive("x"), new NumberPrimitive(5)),
       ];
       interpreter = new Interpreter(ast, { mutability: false });
-      
+
       // Attempting assignment operation should throw
-      assert.throws(
-        () => {
-          interpreter.evaluate(
-            new AssignOperation(
-              "Assign",
-              new Variable(
-                new SymbolPrimitive("x"),
-                new NumberPrimitive(5)
-              ),
-              new NumberPrimitive(3)
-            )
-          );
-        },
-        /Cannot perform assignment operation: mutability is disabled/
-      );
+      assert.throws(() => {
+        interpreter.evaluate(
+          new AssignOperation(
+            "Assign",
+            new Variable(new SymbolPrimitive("x"), new NumberPrimitive(5)),
+            new NumberPrimitive(3),
+          ),
+        );
+      }, /Cannot perform assignment operation: mutability is disabled/);
     });
   });
 });

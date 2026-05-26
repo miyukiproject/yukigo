@@ -1,4 +1,4 @@
-import { PrimitiveValue, AST, ASTNode } from "yukigo-ast";
+import { AST, ASTNode } from "yukigo-ast";
 import { InterpreterVisitor } from "./components/Visitor.js";
 import { EnvBuilderVisitor } from "./components/EnvBuilder.js";
 import {
@@ -7,6 +7,7 @@ import {
 } from "./components/RuntimeContext.js";
 import { YukigoKernel } from "./components/kernel/index.js";
 import { EvalCommand } from "./components/kernel/commands.js";
+import { PrimitiveValue } from "./runtime.js";
 
 export type Bindings = [string, PrimitiveValue][];
 

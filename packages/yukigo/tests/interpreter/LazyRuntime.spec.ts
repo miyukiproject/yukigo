@@ -3,17 +3,11 @@ import { LazyRuntime } from "../../src/interpreter/components/runtimes/LazyRunti
 import {
   RangeExpression,
   ConsExpression,
-  LazyList,
   NumberPrimitive,
   ListPrimitive,
   Expression,
-  isLazyList,
 } from "yukigo-ast";
-import {
-  createGlobalEnv,
-  createStream,
-  Evaluator,
-} from "../../src/interpreter/utils.js";
+import { createStream, Evaluator } from "../../src/interpreter/utils.js";
 import {
   isMemoizedList,
   MemoizedLazyList,
@@ -22,7 +16,7 @@ import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js"
 import { fail } from "assert";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
 import { YukigoKernel } from "../../src/interpreter/components/kernel/index.js";
-import { EvalCommand } from "../../src/interpreter/components/kernel/commands.js";
+import { LazyList, isLazyList } from "../../src/interpreter/runtime.js";
 
 const num = (value: number) => new NumberPrimitive(value);
 
@@ -64,16 +58,14 @@ describe("LazyRuntime", () => {
         yield 20;
       });
 
-      const result = kernel.run(
-        lazyRuntime.realizeList(lazyList),
-      );
+      const result = kernel.run(lazyRuntime.realizeList(lazyList));
       expect(result).to.deep.equal([10, 20]);
     });
 
     it("should throw if value is not a list or lazy list", () => {
-      expect(() =>
-        kernel.run(lazyRuntime.realizeList(123 as any)),
-      ).to.throw(/Expected List or LazyList/);
+      expect(() => kernel.run(lazyRuntime.realizeList(123 as any))).to.throw(
+        /Expected List or LazyList/,
+      );
     });
   });
 
@@ -86,34 +78,26 @@ describe("LazyRuntime", () => {
       });
       it("should create a simple range [1..5]", () => {
         const node = range(1, 5);
-        const result = kernel.run(
-          lazyRuntime.evaluateRange(node, evaluator),
-        );
+        const result = kernel.run(lazyRuntime.evaluateRange(node, evaluator));
         expect(result).to.deep.equal([1, 2, 3, 4, 5]);
       });
 
       it("should handle custom steps [0, 2 .. 10]", () => {
         const node = range(0, 10, 2);
-        const result = kernel.run(
-          lazyRuntime.evaluateRange(node, evaluator),
-        );
+        const result = kernel.run(lazyRuntime.evaluateRange(node, evaluator));
         expect(result).to.deep.equal([0, 2, 4, 6, 8, 10]);
       });
 
       it("should handle negative steps [5, 4 .. 1]", () => {
         const node = range(5, 1, 4);
-        const result = kernel.run(
-          lazyRuntime.evaluateRange(node, evaluator),
-        );
+        const result = kernel.run(lazyRuntime.evaluateRange(node, evaluator));
         expect(result).to.deep.equal([5, 4, 3, 2, 1]);
       });
 
       it("should throw if step is zero", () => {
         const node = range(5, 10, 5);
         expect(() =>
-          kernel.run(
-            lazyRuntime.evaluateRange(node, evaluator),
-          ),
+          kernel.run(lazyRuntime.evaluateRange(node, evaluator)),
         ).to.throw(/Range step cannot be zero/);
       });
     });
@@ -126,9 +110,7 @@ describe("LazyRuntime", () => {
       });
       it("should return a LazyList object", () => {
         const node = range(1);
-        const result = kernel.run(
-          lazyRuntime.evaluateRange(node, evaluator),
-        );
+        const result = kernel.run(lazyRuntime.evaluateRange(node, evaluator));
 
         expect(result).to.have.property("type", "LazyList");
         expect(result).to.have.property("generator");
@@ -178,9 +160,7 @@ describe("LazyRuntime", () => {
         const node = cons(num(1), lazyListMock);
 
         expect(() =>
-          kernelEager.run(
-            lazyRuntimeEager.evaluateCons(node, eagerEvaluator),
-          ),
+          kernelEager.run(lazyRuntimeEager.evaluateCons(node, eagerEvaluator)),
         ).to.throw(/Expected Array in eager Cons/);
       });
     });
@@ -193,9 +173,7 @@ describe("LazyRuntime", () => {
       });
       it("should return an array if tail is an array (hybrid)", () => {
         const node = cons(num(1), list([num(2), num(3)]));
-        const result = kernel.run(
-          lazyRuntime.evaluateCons(node, evaluator),
-        );
+        const result = kernel.run(lazyRuntime.evaluateCons(node, evaluator));
         expect(isMemoizedList(result)).to.be.true;
         const memoList = result as MemoizedLazyList;
         const generator = memoList.generator();
@@ -208,9 +186,7 @@ describe("LazyRuntime", () => {
         const tailLazy = range(2, 3);
 
         const node = cons(num(1), tailLazy);
-        const result = kernel.run(
-          lazyRuntime.evaluateCons(node, evaluator),
-        );
+        const result = kernel.run(lazyRuntime.evaluateCons(node, evaluator));
         if (!isLazyList(result)) fail("result is not a lazy list");
         const gen = result.generator();
         expect(gen.next().value).to.equal(1);
@@ -221,9 +197,7 @@ describe("LazyRuntime", () => {
 
       it("should throw if tail is invalid", () => {
         const node = cons(num(1), num(123));
-        const result = kernel.run(
-          lazyRuntime.evaluateCons(node, evaluator),
-        );
+        const result = kernel.run(lazyRuntime.evaluateCons(node, evaluator));
         expect(isMemoizedList(result)).to.be.true;
         const gen = (result as MemoizedLazyList).generator();
         gen.next();

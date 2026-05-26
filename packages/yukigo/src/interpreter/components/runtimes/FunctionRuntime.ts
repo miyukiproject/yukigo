@@ -1,13 +1,4 @@
-import {
-  EquationRuntime,
-  PrimitiveValue,
-  UnguardedBody,
-  Sequence,
-  Return,
-  Function,
-  RuntimeFunction,
-  isRuntimeFunction,
-} from "yukigo-ast";
+import { UnguardedBody, Sequence, Return, Function } from "yukigo-ast";
 import { Bindings } from "../../index.js";
 import { PatternMatcher } from "../PatternMatcher.js";
 import { Evaluator } from "../../utils.js";
@@ -21,6 +12,12 @@ import {
   BindCommand,
   FailCommand,
 } from "../kernel/commands.js";
+import {
+  RuntimeFunction,
+  PrimitiveValue,
+  isRuntimeFunction,
+  EquationRuntime,
+} from "../../runtime.js";
 
 class NonExhaustivePatterns extends InterpreterError {
   constructor(funcName: string) {
@@ -53,61 +50,78 @@ export class FunctionRuntime {
 
       const bindings: Bindings = [];
 
-      return new BindCommand(this.patternsMatch(eq, args, bindings), (isMatch) => {
-        if (!isMatch) return tryNextEquation(eqIndex + 1);
+      return new BindCommand(
+        this.patternsMatch(eq, args, bindings),
+        (isMatch) => {
+          if (!isMatch) return tryNextEquation(eqIndex + 1);
 
-        const localEnv = new Map<string, PrimitiveValue>(bindings);
-        if (func.closure) this.context.setEnv(func.closure);
-        this.context.pushEnv(localEnv);
+          const localEnv = new Map<string, PrimitiveValue>(bindings);
+          if (func.closure) this.context.setEnv(func.closure);
+          this.context.pushEnv(localEnv);
 
-        const evaluatorFactory: EvaluatorFactory = (ctx) =>
-          new InterpreterVisitor(ctx);
+          const evaluatorFactory: EvaluatorFactory = (ctx) =>
+            new InterpreterVisitor(ctx);
 
-        const body = eq.body;
+          const body = eq.body;
 
-        // Restore env after body execution
-        const nextWithEnvRestore = (res: PrimitiveValue) => {
-           this.context.setEnv(oldEnv);
-           return new StepCommand(res);
-        }
-
-        // UnguardedBody
-        if (body instanceof UnguardedBody)
-          return new BindCommand(
-            this.evaluateSequence(body.sequence, this.context, evaluatorFactory),
-            nextWithEnvRestore
-          );
-
-        // GuardedBody
-        if (Array.isArray(body) && body.length > 0) {
-          const prototypeBody = body[0].body;
-          if (prototypeBody instanceof Sequence)
-            this.preloadDefinitions(prototypeBody, evaluatorFactory);
-        }
-
-        const tryNextGuard = (guardIndex: number): ExecutionCommand => {
-          if (guardIndex >= body.length) {
+          // Restore env after body execution
+          const nextWithEnvRestore = (res: PrimitiveValue) => {
             this.context.setEnv(oldEnv);
-            return tryNextEquation(eqIndex + 1);
+            return new StepCommand(res);
+          };
+
+          // UnguardedBody
+          if (body instanceof UnguardedBody)
+            return new BindCommand(
+              this.evaluateSequence(
+                body.sequence,
+                this.context,
+                evaluatorFactory,
+              ),
+              nextWithEnvRestore,
+            );
+
+          // GuardedBody
+          if (Array.isArray(body) && body.length > 0) {
+            const prototypeBody = body[0].body;
+            if (prototypeBody instanceof Sequence)
+              this.preloadDefinitions(prototypeBody, evaluatorFactory);
           }
 
-          const evaluator = evaluatorFactory(this.context);
-          const guard = body[guardIndex];
-          return new BindCommand(evaluator.evaluate(guard.condition), (cond) => {
-            if (cond !== true) return tryNextGuard(guardIndex + 1);
+          const tryNextGuard = (guardIndex: number): ExecutionCommand => {
+            if (guardIndex >= body.length) {
+              this.context.setEnv(oldEnv);
+              return tryNextEquation(eqIndex + 1);
+            }
 
-            if (!(guard.body instanceof Sequence))
-              return new BindCommand(evaluator.evaluate(guard.body), nextWithEnvRestore);
-
+            const evaluator = evaluatorFactory(this.context);
+            const guard = body[guardIndex];
             return new BindCommand(
-              this.evaluateSequence(guard.body, this.context, evaluatorFactory),
-              nextWithEnvRestore
-            );
-          });
-        };
+              evaluator.evaluate(guard.condition),
+              (cond) => {
+                if (cond !== true) return tryNextGuard(guardIndex + 1);
 
-        return tryNextGuard(0);
-      });
+                if (!(guard.body instanceof Sequence))
+                  return new BindCommand(
+                    evaluator.evaluate(guard.body),
+                    nextWithEnvRestore,
+                  );
+
+                return new BindCommand(
+                  this.evaluateSequence(
+                    guard.body,
+                    this.context,
+                    evaluatorFactory,
+                  ),
+                  nextWithEnvRestore,
+                );
+              },
+            );
+          };
+
+          return tryNextGuard(0);
+        },
+      );
     };
 
     return tryNextEquation(0);
@@ -141,7 +155,9 @@ export class FunctionRuntime {
           return this.applyArguments(result, nextArgs);
         } else {
           return new FailCommand(
-            new Error(`[Application] Too many arguments provided. Result was '${result}' (not a function), but had ${remainingArgs.length} args left.`),
+            new Error(
+              `[Application] Too many arguments provided. Result was '${result}' (not a function), but had ${remainingArgs.length} args left.`,
+            ),
           );
         }
       }
@@ -160,7 +176,7 @@ export class FunctionRuntime {
     for (const stmt of seq.statements) {
       if (stmt instanceof Function || stmt instanceof Return) continue;
       // We ignore the result of preload
-      evaluator.evaluate(stmt); 
+      evaluator.evaluate(stmt);
     }
   }
 
@@ -198,8 +214,7 @@ export class FunctionRuntime {
       if (index >= seq.statements.length) return new StepCommand(lastResult);
 
       const stmt = seq.statements[index];
-      if (stmt instanceof Function)
-        return evaluateNext(index + 1, lastResult);
+      if (stmt instanceof Function) return evaluateNext(index + 1, lastResult);
 
       if (stmt instanceof Return) {
         if (!stmt.body)

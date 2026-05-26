@@ -1,6 +1,6 @@
-import { Fact, Rule } from "../paradigms/logic.js";
-import { Pattern } from "./patterns.js";
-import { GuardedBody, UnguardedBody } from "./statements.js";
+import { Fact, Rule } from "../../../yukigo-ast/src/paradigms/logic.js";
+import { Pattern } from "../../../yukigo-ast/src/globals/patterns.js";
+import { GuardedBody, UnguardedBody } from "../../../yukigo-ast/src/globals/statements.js";
 
 /**
  * Substitution map that supports numeric IDs (internally) and string names (for results).

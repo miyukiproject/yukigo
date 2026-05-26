@@ -3,28 +3,28 @@ import {
   ASTNode,
   Attribute,
   Class,
-  EquationRuntime,
   Fact,
   Function,
-  isRuntimePredicate,
   Method,
-  PrimitiveValue,
   Rule,
-  RuntimeClass,
-  RuntimeFunction,
   TraverseVisitor,
   Object,
-  RuntimeObject,
   Variable,
-  Return,
   Sequence,
-  SymbolPrimitive,
 } from "yukigo-ast";
 import { InterpreterVisitor } from "./Visitor.js";
 import { RuntimeContext } from "./RuntimeContext.js";
 import { InterpreterError, UnexpectedNode } from "../errors.js";
 import { YukigoKernel } from "./kernel/index.js";
 import { EvalCommand } from "./kernel/commands.js";
+import {
+  RuntimeFunction,
+  EquationRuntime,
+  RuntimeClass,
+  RuntimeObject,
+  isRuntimePredicate,
+  PrimitiveValue,
+} from "../runtime.js";
 
 /**
  * Builds the initial environment by collecting all top-level function declarations.
@@ -55,7 +55,11 @@ export class EnvBuilderVisitor extends TraverseVisitor {
     if (node.equations.some((eq) => eq.patterns.length !== arity))
       throw new Error(`All equations of ${name} must have the same arity`);
 
-    let placeholder: RuntimeFunction = {type: "Function", arity: 0, equations: []};
+    let placeholder: RuntimeFunction = {
+      type: "Function",
+      arity: 0,
+      equations: [],
+    };
     this.ctx.define(name, placeholder);
 
     const equations: EquationRuntime[] = node.equations.map((eq) => ({

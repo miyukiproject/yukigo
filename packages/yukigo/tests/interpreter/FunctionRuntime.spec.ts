@@ -1,6 +1,5 @@
 import { expect } from "chai";
 import {
-  EquationRuntime,
   UnguardedBody,
   Sequence,
   Return,
@@ -9,11 +8,7 @@ import {
   LiteralPattern,
   VariablePattern,
   GuardedBody,
-  EnvStack,
-  RuntimeFunction,
   StringPrimitive,
-  Variable,
-  Expression,
   BooleanPrimitive,
   Equation,
 } from "yukigo-ast";
@@ -22,7 +17,7 @@ import { createGlobalEnv } from "../../src/interpreter/utils.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
 import { YukigoKernel } from "../../src/interpreter/components/kernel/index.js";
 import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
-import { EvalCommand } from "../../src/interpreter/components/kernel/commands.js";
+import { EquationRuntime, RuntimeFunction, EnvStack } from "../../src/interpreter/runtime.js";
 
 const symbol = (val: string) => new SymbolPrimitive(val);
 const num = (val: number) => new NumberPrimitive(val);
@@ -30,13 +25,9 @@ const str = (val: string) => new StringPrimitive(val);
 const litPat = (val: number | string) =>
   new LiteralPattern(typeof val === "number" ? num(val) : symbol(val));
 const varPat = (name: string) => new VariablePattern(symbol(name));
-const varExpr = (name: string, expr: Expression) =>
-  new Variable(symbol(name), expr);
+
 const seq = (stmts: any[]) => new Sequence(stmts);
 const unguarded = (stmts: any[]) => new UnguardedBody(seq(stmts));
-const guarded = (guards: { cond: any; body: Expression }[]): GuardedBody[] => {
-  return guards.map((g) => new GuardedBody(g.cond, g.body));
-};
 
 const makeRunFunc = (
   identifier: string,

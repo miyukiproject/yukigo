@@ -6,7 +6,7 @@ import {
   ConsTerm,
   CompoundTerm,
 } from "../../src/interpreter/components/logic/LogicTerm.js";
-import { LogicTerm, Substitution } from "yukigo-ast";
+import { LogicTerm, Substitution } from "../../src/interpreter/runtime.js";
 
 describe("Logic Substitution (instantiate)", () => {
   it("should recursively substitute in ListTerm", () => {

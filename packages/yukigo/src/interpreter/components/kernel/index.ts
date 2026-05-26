@@ -1,4 +1,4 @@
-import { EnvStack, PrimitiveValue } from "yukigo-ast";
+import { EnvStack, PrimitiveValue } from "../../runtime.js";
 import {
   Continuation,
   ExecutionCommand,

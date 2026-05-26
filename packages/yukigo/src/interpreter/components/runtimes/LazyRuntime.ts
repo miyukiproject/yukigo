@@ -1,10 +1,7 @@
 import {
-  PrimitiveValue,
   RangeExpression,
   ConsExpression,
-  isLazyList,
   ListBinaryOperation,
-  LazyList,
 } from "yukigo-ast";
 import { Evaluator } from "../../utils.js";
 import {
@@ -20,6 +17,7 @@ import {
   BindCommand,
 } from "../kernel/commands.js";
 import { YukigoKernel } from "../kernel/index.js";
+import { PrimitiveValue, isLazyList, LazyList } from "../../runtime.js";
 
 export class LazyRuntime {
   constructor(private context: RuntimeContext) {}
@@ -144,11 +142,7 @@ export class LazyRuntime {
                   try {
                     current.realizedTail = new YukigoKernel(
                       current.evaluator,
-                    ).run(
-                      new EvalCommand(
-                        current.tailExpr,
-                      ),
-                    );
+                    ).run(new EvalCommand(current.tailExpr));
                   } finally {
                     ctx.setEnv(prevEnv);
                   }
@@ -227,7 +221,9 @@ export class LazyRuntime {
     return new BindCommand(this.realizeList(left), (lArr) => {
       return new BindCommand(this.realizeList(right), (rArr) => {
         if (!Array.isArray(lArr) || !Array.isArray(rArr))
-           throw new Error("[LazyRuntime] realizeList returned non-array result for Concat");
+          throw new Error(
+            "[LazyRuntime] realizeList returned non-array result for Concat",
+          );
         return new StepCommand(lArr.concat(rArr));
       });
     });
@@ -276,13 +272,17 @@ export class LazyRuntime {
     const eitherIsCollection = this.isCollection(a) || this.isCollection(b);
 
     if (eitherIsCollection && aIsListLike && bIsListLike) {
-      return new BindCommand(this.realizeList(a), (valA) =>
-        new BindCommand(this.realizeList(b), (valB) => {
-          if (!Array.isArray(valA) || !Array.isArray(valB))
-            throw new Error("[LazyRuntime] realizeList returned non-array result for deepEqual");
-          if (valA.length !== valB.length) return new StepCommand(false);
-          return this.deepEqualCollection(valA, valB, 0);
-        }),
+      return new BindCommand(
+        this.realizeList(a),
+        (valA) =>
+          new BindCommand(this.realizeList(b), (valB) => {
+            if (!Array.isArray(valA) || !Array.isArray(valB))
+              throw new Error(
+                "[LazyRuntime] realizeList returned non-array result for deepEqual",
+              );
+            if (valA.length !== valB.length) return new StepCommand(false);
+            return this.deepEqualCollection(valA, valB, 0);
+          }),
       );
     }
 

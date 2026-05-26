@@ -1,18 +1,12 @@
 import {
   Fact,
   Rule,
-  isRuntimePredicate,
   UnguardedBody,
   Visitor,
   isUnguardedBody,
   GuardedBody,
   ASTNode,
-  Substitution,
-  isLogicResult,
-  LogicResult,
-  LogicAnswer,
   Pattern,
-  LogicTerm,
 } from "yukigo-ast";
 import { LogicExecutable } from "./LogicEngine.js";
 import { RuntimeContext } from "../RuntimeContext.js";
@@ -27,6 +21,14 @@ import {
 } from "../kernel/commands.js";
 import { LogicTranslator } from "./LogicTranslator.js";
 import { VariableTerm } from "./LogicTerm.js";
+import {
+  LogicTerm,
+  Substitution,
+  isLogicResult,
+  LogicResult,
+  LogicAnswer,
+  isRuntimePredicate,
+} from "../../runtime.js";
 
 /**
  * Unified parameter list unification.

@@ -9,19 +9,14 @@ import {
   Goal,
   Pattern,
   Rule,
-  LogicResult,
   Equation,
   Sequence,
   UnguardedBody,
   Statement,
   Variable,
   NilPrimitive,
-  LazyList,
   LogicConstraint,
   Expression,
-  RuntimePredicate,
-  LogicTerm,
-  Substitution,
   Query,
 } from "yukigo-ast";
 import { createGlobalEnv } from "../../src/interpreter/utils.js";
@@ -37,6 +32,13 @@ import {
   ConsTerm,
   CompoundTerm,
 } from "../../src/interpreter/components/logic/LogicTerm.js";
+import {
+  RuntimePredicate,
+  LogicTerm,
+  Substitution,
+  LazyList,
+  LogicResult,
+} from "../../src/interpreter/runtime.js";
 
 const s = (val: string) => new SymbolPrimitive(val);
 const n = (val: number) => new NumberPrimitive(val);

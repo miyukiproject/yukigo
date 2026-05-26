@@ -1,6 +1,5 @@
 import {
   Expression,
-  PrimitiveValue,
   Variable,
   ListPrimitive,
   ConsExpression,
@@ -17,9 +16,7 @@ import {
   ConstructorPattern,
   ASTNode,
   PatternVisitor,
-  LogicTerm,
   Visitor,
-  isLogicTerm,
 } from "yukigo-ast";
 import {
   VariableTerm,
@@ -29,7 +26,6 @@ import {
   WildcardTerm,
   CompoundTerm,
 } from "./LogicTerm.js";
-import { Substitution } from "yukigo-ast";
 import { Evaluator } from "../../utils.js";
 import { InterpreterError } from "../../errors.js";
 import { RuntimeContext } from "../RuntimeContext.js";
@@ -38,6 +34,7 @@ import {
   StepCommand,
   BindCommand,
 } from "../kernel/commands.js";
+import { LogicTerm, isLogicTerm, PrimitiveValue, Substitution } from "../../runtime.js";
 
 /**
  * Sync visitor to convert Patterns to LogicTerms.

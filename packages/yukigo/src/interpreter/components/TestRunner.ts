@@ -3,7 +3,6 @@ import {
   ASTNode,
   Equality,
   Failure,
-  PrimitiveValue,
   Test,
   TestGroup,
   Truth,
@@ -19,6 +18,7 @@ import {
 import { LazyRuntime } from "./runtimes/LazyRuntime.js";
 import { UnexpectedNode } from "../errors.js";
 import { YukigoKernel } from "./kernel/index.js";
+import { PrimitiveValue } from "../runtime.js";
 
 export class FailedAssert extends Error {
   constructor(

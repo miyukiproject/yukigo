@@ -1,4 +1,4 @@
-import { PrimitiveValue, LogicTerm, Substitution } from "yukigo-ast";
+import { PrimitiveValue, LogicTerm, Substitution } from "../../runtime.js";
 
 /**
  * Represents a logic variable with a unique numeric ID.
