@@ -13,6 +13,7 @@ export class InterpreterError extends Error {
     super(`[${context}] ${message}`);
     this.context = context;
     this.frames = frames;
+    this.name = "InterpreterError";
   }
 
   pushFrame(frame: ErrorFrame) {
@@ -32,6 +33,13 @@ export class InterpreterError extends Error {
 
   override toString(): string {
     return `${this.message}${this.formatStack()}`;
+  }
+}
+
+export class UnexpectedNode extends InterpreterError {
+  constructor(nodeCons: string, context: string) {
+    super(context, `${nodeCons} not expected in ${context}.`);
+    this.name = "UnexpectedNode";
   }
 }
 export class UnexpectedValue extends InterpreterError {

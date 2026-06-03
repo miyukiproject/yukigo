@@ -10,12 +10,17 @@ import {
 } from "yukigo-ast";
 import { Bindings } from "../../index.js";
 import { PatternMatcher } from "../PatternMatcher.js";
-import { ExpressionEvaluator } from "../../utils.js";
+import { Evaluator } from "../../utils.js";
 import { InterpreterError } from "../../errors.js";
 import { EnvBuilderVisitor } from "../EnvBuilder.js";
-import { Continuation, CPSThunk, Thunk, valueToCPS } from "../../trampoline.js";
 import { RuntimeContext } from "../RuntimeContext.js";
 import { InterpreterVisitor } from "../Visitor.js";
+import {
+  ExecutionCommand,
+  StepCommand,
+  BindCommand,
+  FailCommand,
+} from "../kernel/commands.js";
 
 class NonExhaustivePatterns extends InterpreterError {
   constructor(funcName: string) {
@@ -23,7 +28,7 @@ class NonExhaustivePatterns extends InterpreterError {
   }
 }
 
-type EvaluatorFactory = (ctx: RuntimeContext) => ExpressionEvaluator;
+type EvaluatorFactory = (ctx: RuntimeContext) => Evaluator;
 
 export class FunctionRuntime {
   constructor(private context: RuntimeContext) {}
@@ -31,19 +36,12 @@ export class FunctionRuntime {
   public apply(
     func: RuntimeFunction,
     args: PrimitiveValue[],
-    k: Continuation<PrimitiveValue>,
-  ): Thunk<PrimitiveValue> {
+  ): ExecutionCommand {
     const funcName = func.identifier;
     const equations = func.equations;
     const oldEnv = this.context.env;
 
-    if (this.context.config.debug)
-      console.log(
-        `[FunctionRuntime] Applying function: ${funcName} with args:`,
-        args,
-      );
-
-    const tryNextEquation = (eqIndex: number): Thunk<PrimitiveValue> => {
+    const tryNextEquation = (eqIndex: number): ExecutionCommand => {
       if (eqIndex >= equations.length) {
         this.context.setEnv(oldEnv);
         throw new NonExhaustivePatterns(funcName ?? "<anonymous>");
@@ -51,74 +49,64 @@ export class FunctionRuntime {
 
       const eq = equations[eqIndex];
       if (eq.patterns.length !== args.length)
-        return () => tryNextEquation(eqIndex + 1);
+        return tryNextEquation(eqIndex + 1);
 
       const bindings: Bindings = [];
 
-      return this.patternsMatch(eq, args, bindings, (isMatch) => {
-        if (!isMatch) return () => tryNextEquation(eqIndex + 1);
-
-        if (this.context.config.debug)
-          console.log(
-            `[FunctionRuntime] Match successful for ${funcName} equation ${eqIndex}`,
-          );
+      return new BindCommand(this.patternsMatch(eq, args, bindings), (isMatch) => {
+        if (!isMatch) return tryNextEquation(eqIndex + 1);
 
         const localEnv = new Map<string, PrimitiveValue>(bindings);
         if (func.closure) this.context.setEnv(func.closure);
         this.context.pushEnv(localEnv);
-
-        const wrappedK = (res: PrimitiveValue) => {
-          this.context.setEnv(oldEnv);
-          return k(res);
-        };
 
         const evaluatorFactory: EvaluatorFactory = (ctx) =>
           new InterpreterVisitor(ctx);
 
         const body = eq.body;
 
+        // Restore env after body execution
+        const nextWithEnvRestore = (res: PrimitiveValue) => {
+           this.context.setEnv(oldEnv);
+           return new StepCommand(res);
+        }
+
         // UnguardedBody
         if (body instanceof UnguardedBody)
-          return this.evaluateSequence(
-            body.sequence,
-            this.context,
-            evaluatorFactory,
-            wrappedK,
+          return new BindCommand(
+            this.evaluateSequence(body.sequence, this.context, evaluatorFactory),
+            nextWithEnvRestore
           );
 
         // GuardedBody
-        return () => {
-          if (Array.isArray(body) && body.length > 0) {
-            const prototypeBody = body[0].body;
-            if (prototypeBody instanceof Sequence)
-              this.preloadDefinitions(prototypeBody, evaluatorFactory);
+        if (Array.isArray(body) && body.length > 0) {
+          const prototypeBody = body[0].body;
+          if (prototypeBody instanceof Sequence)
+            this.preloadDefinitions(prototypeBody, evaluatorFactory);
+        }
+
+        const tryNextGuard = (guardIndex: number): ExecutionCommand => {
+          if (guardIndex >= body.length) {
+            this.context.setEnv(oldEnv);
+            return tryNextEquation(eqIndex + 1);
           }
 
-          const tryNextGuard = (guardIndex: number): Thunk<PrimitiveValue> => {
-            if (guardIndex >= body.length) {
-              this.context.setEnv(oldEnv);
-              return () => tryNextEquation(eqIndex + 1);
-            }
+          const evaluator = evaluatorFactory(this.context);
+          const guard = body[guardIndex];
+          return new BindCommand(evaluator.evaluate(guard.condition), (cond) => {
+            if (cond !== true) return tryNextGuard(guardIndex + 1);
 
-            const evaluator = evaluatorFactory(this.context);
-            const guard = body[guardIndex];
-            return evaluator.evaluate(guard.condition, (cond) => {
-              if (cond !== true) return () => tryNextGuard(guardIndex + 1);
+            if (!(guard.body instanceof Sequence))
+              return new BindCommand(evaluator.evaluate(guard.body), nextWithEnvRestore);
 
-              if (!(guard.body instanceof Sequence))
-                return evaluator.evaluate(guard.body, wrappedK);
-
-              return this.evaluateSequence(
-                guard.body,
-                this.context,
-                evaluatorFactory,
-                wrappedK,
-              );
-            });
-          };
-
-          return tryNextGuard(0);
+            return new BindCommand(
+              this.evaluateSequence(guard.body, this.context, evaluatorFactory),
+              nextWithEnvRestore
+            );
+          });
         };
+
+        return tryNextGuard(0);
       });
     };
 
@@ -128,9 +116,9 @@ export class FunctionRuntime {
   public applyArguments(
     func: RuntimeFunction,
     args: (PrimitiveValue | (() => PrimitiveValue))[],
-  ): CPSThunk<PrimitiveValue> {
+  ): ExecutionCommand {
     if (args.length < func.arity) {
-      return valueToCPS({
+      return new StepCommand({
         ...func,
         pendingArgs: args,
       });
@@ -143,24 +131,22 @@ export class FunctionRuntime {
       typeof arg === "function" ? arg() : arg,
     );
 
-    return (cont) => () =>
-      this.apply(func, evaluatedArgs, (result) => {
-        if (remainingArgs.length > 0) {
-          if (isRuntimeFunction(result)) {
-            const nextArgs = result.pendingArgs
-              ? [...result.pendingArgs, ...remainingArgs]
-              : remainingArgs;
+    return new BindCommand(this.apply(func, evaluatedArgs), (result) => {
+      if (remainingArgs.length > 0) {
+        if (isRuntimeFunction(result)) {
+          const nextArgs = result.pendingArgs
+            ? [...result.pendingArgs, ...remainingArgs]
+            : remainingArgs;
 
-            return this.applyArguments(result, nextArgs)(cont);
-          } else {
-            throw new InterpreterError(
-              "Application",
-              `Too many arguments provided. Result was '${result}' (not a function), but had ${remainingArgs.length} args left.`,
-            );
-          }
+          return this.applyArguments(result, nextArgs);
+        } else {
+          return new FailCommand(
+            new Error(`[Application] Too many arguments provided. Result was '${result}' (not a function), but had ${remainingArgs.length} args left.`),
+          );
         }
-        return cont(result);
-      });
+      }
+      return new StepCommand(result);
+    });
   }
 
   private preloadDefinitions(
@@ -173,7 +159,8 @@ export class FunctionRuntime {
 
     for (const stmt of seq.statements) {
       if (stmt instanceof Function || stmt instanceof Return) continue;
-      evaluator.evaluate(stmt, (val) => val);
+      // We ignore the result of preload
+      evaluator.evaluate(stmt); 
     }
   }
 
@@ -181,16 +168,18 @@ export class FunctionRuntime {
     eq: EquationRuntime,
     args: PrimitiveValue[],
     bindings: Bindings,
-    k: Continuation<boolean>,
-  ): Thunk<boolean> {
-    const matchNext = (index: number): Thunk<boolean> => {
-      if (index >= args.length) return k(true);
+  ): ExecutionCommand {
+    const matchNext = (index: number): ExecutionCommand => {
+      if (index >= args.length) return new StepCommand(true);
+
       const matcher = new PatternMatcher(args[index], bindings, this.context);
-      return eq.patterns[index].accept(matcher)((isMatch) => {
-        if (!isMatch) return k(false);
-        return () => matchNext(index + 1);
+
+      return new BindCommand(eq.patterns[index].accept(matcher), (isMatch) => {
+        if (!isMatch) return new StepCommand(false);
+        return matchNext(index + 1);
       });
     };
+
     return matchNext(0);
   }
 
@@ -198,27 +187,27 @@ export class FunctionRuntime {
     seq: Sequence,
     ctx: RuntimeContext,
     evaluatorFactory: EvaluatorFactory,
-    k: Continuation<PrimitiveValue>,
-  ): Thunk<PrimitiveValue> {
+  ): ExecutionCommand {
     new EnvBuilderVisitor(ctx).build(seq.statements);
     const evaluator = evaluatorFactory(ctx);
 
     const evaluateNext = (
       index: number,
       lastResult: PrimitiveValue,
-    ): Thunk<PrimitiveValue> => {
-      if (index >= seq.statements.length) return k(lastResult);
+    ): ExecutionCommand => {
+      if (index >= seq.statements.length) return new StepCommand(lastResult);
 
       const stmt = seq.statements[index];
       if (stmt instanceof Function)
-        return () => evaluateNext(index + 1, lastResult);
+        return evaluateNext(index + 1, lastResult);
 
       if (stmt instanceof Return) {
-        if(!stmt.body) throw new Error("[FunctionRuntime]: Return \`body\` was undefined")
-        return evaluator.evaluate(stmt.body, k);
+        if (!stmt.body)
+          throw new Error("[FunctionRuntime]: Return \`body\` was undefined");
+        return evaluator.evaluate(stmt.body);
       } else {
-        return evaluator.evaluate(stmt, (result) => {
-          return () => evaluateNext(index + 1, result);
+        return new BindCommand(evaluator.evaluate(stmt), (result) => {
+          return evaluateNext(index + 1, result);
         });
       }
     };

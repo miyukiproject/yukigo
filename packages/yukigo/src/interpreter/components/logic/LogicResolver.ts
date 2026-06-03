@@ -1,5 +1,5 @@
+import { YukigoKernel } from "../kernel/index.js";
 import {
-  EnvStack,
   Fact,
   FunctorPattern,
   ListPattern,
@@ -33,7 +33,6 @@ import {
   ArithmeticUnaryOperation,
   ConsExpression,
   ListPrimitive,
-  TupleExpression,
   If,
   Forall,
   Call,
@@ -45,19 +44,31 @@ import {
   BitwiseUnaryOperation,
   StringOperation,
   NumberPrimitive,
-  StringPrimitive,
   BooleanPrimitive,
   NilPrimitive,
   CharPrimitive,
+  StringPrimitive,
   Visitor,
   isUnguardedBody,
   GuardedBody,
   ASTNode,
+  Expression,
+  Statement,
+  PrimitiveValue,
+  TupleExpression,
 } from "yukigo-ast";
-import { Thunk } from "../../trampoline.js";
 import { LogicExecutable } from "./LogicEngine.js";
 import { RuntimeContext } from "../RuntimeContext.js";
-import { UnexpectedNode } from "../../../utils/helpers.js";
+import { UnexpectedNode, InterpreterError } from "../../errors.js";
+import {
+  ExecutionCommand,
+  StepCommand,
+  BindCommand,
+  FailCommand,
+  ChoiceCommand,
+} from "../kernel/commands.js";
+import { Evaluator } from "../../utils.js";
+import { LogicTranslator } from "./LogicTranslator.js";
 
 /**
  * A Substitution maps variable names to their bound patterns.
@@ -65,34 +76,24 @@ import { UnexpectedNode } from "../../../utils/helpers.js";
 export type Substitution = Map<string, Pattern>;
 
 /**
- * Internal result of a logic operation.
+ * Result of a single step in the logic resolution.
  */
-export type InternalLogicResult = { success: true; substs: Substitution };
+export interface LogicStepResult {
+  success: boolean;
+  solutions: Substitution;
+}
 
 /**
- * Backtracking continuations.
+ * Type guard for LogicStepResult.
  */
-export type SuccessCont = (
-  substs: Substitution,
-  next: () => Thunk<any>,
-) => Thunk<any>;
-export type FailureCont = () => Thunk<any>;
-
-/**
- * A function that can solve a sequence of logic goals/expressions in CPS.
- */
-export type BodySolverCPS = (
-  expressions: LogicExecutable[],
-  env: Substitution,
-  onSuccess: SuccessCont,
-  onFailure: FailureCont,
-) => Thunk<any>;
-
-/**
- * Creates a successful logic result.
- */
-export function success(substs: Substitution): InternalLogicResult {
-  return { success: true, substs };
+export function isLogicStepResult(obj: unknown): obj is LogicStepResult {
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    "success" in obj &&
+    "solutions" in obj &&
+    (obj as any).solutions instanceof Map
+  );
 }
 
 /**
@@ -256,7 +257,7 @@ class Instantiator implements PatternVisitor<Pattern> {
 
   visitAsPattern(node: AsPattern): Pattern {
     return new AsPattern(
-      this.instantiate(node.left) as any,
+      this.instantiate(node.left) as VariablePattern,
       this.instantiate(node.right),
       node.loc,
     );
@@ -296,9 +297,14 @@ class Instantiator implements PatternVisitor<Pattern> {
       node.loc,
     );
   }
+
   public fallback(node: ASTNode): Pattern {
-    throw new UnexpectedNode(node.constructor.name, "Instantiator");
+    throw new InterpreterError(
+      "Instantiator",
+      `${node.constructor.name} not expected.`,
+    );
   }
+
   instantiate(pattern: Pattern): Pattern {
     return pattern.accept(this);
   }
@@ -317,45 +323,46 @@ export function instantiate(
 
 let variableCounter = 0;
 
-class LogicVariableRenamer implements PatternVisitor<Pattern> {
+class LogicVariableRenamer implements Visitor<ASTNode> {
   constructor(
     private renames: Map<string, string>,
     private freshId: number,
   ) {}
 
-  public rename(node: any): any {
-    if (!node || typeof node !== "object") return node;
-    if (typeof node.accept === "function") {
-      return node.accept(this);
-    }
-    return node;
+  public rename(node: ASTNode): ASTNode {
+    return node.accept(this);
   }
 
   visitFact(node: Fact): Fact {
     return new Fact(
       node.identifier,
-      node.patterns.map((p) => this.rename(p)),
+      node.patterns.map((p) => this.rename(p) as Pattern),
       node.loc,
     );
   }
+
   visitRule(node: Rule): Rule {
     const renamedEquations = node.equations.map((eq) => {
       const body = eq.body;
       if (!isUnguardedBody(body))
-        throw new Error("GuardedBody renaming not implemented");
+        throw new InterpreterError(
+          "Logic",
+          "GuardedBody renaming not implemented",
+        );
       return new Equation(
-        eq.patterns.map((p) => this.rename(p)),
-        body.accept(this),
+        eq.patterns.map((p) => this.rename(p) as Pattern),
+        this.rename(body) as UnguardedBody,
         eq.returnExpr,
         eq.loc,
       );
     });
     return new Rule(node.identifier, renamedEquations, node.loc);
   }
+
   visitUnguardedBody(node: UnguardedBody): UnguardedBody {
     return new UnguardedBody(
       new Sequence(
-        node.sequence.statements.map((stmt) => this.rename(stmt)),
+        node.sequence.statements.map((stmt) => this.rename(stmt) as Statement),
         node.sequence.loc,
       ),
       node.loc,
@@ -380,21 +387,21 @@ class LogicVariableRenamer implements PatternVisitor<Pattern> {
   visitApplicationPattern(node: ApplicationPattern): Pattern {
     return new ApplicationPattern(
       node.identifier,
-      node.args.map((arg) => this.rename(arg)),
+      node.args.map((arg) => this.rename(arg) as Pattern),
       node.loc,
     );
   }
 
   visitTuplePattern(node: TuplePattern): Pattern {
     return new TuplePattern(
-      node.elements.map((el) => this.rename(el)),
+      node.elements.map((el) => this.rename(el) as Pattern),
       node.loc,
     );
   }
 
   visitListPattern(node: ListPattern): Pattern {
     return new ListPattern(
-      node.elements.map((el) => this.rename(el)),
+      node.elements.map((el) => this.rename(el) as Pattern),
       node.loc,
     );
   }
@@ -402,15 +409,15 @@ class LogicVariableRenamer implements PatternVisitor<Pattern> {
   visitFunctorPattern(node: FunctorPattern): Pattern {
     return new FunctorPattern(
       node.identifier,
-      node.args.map((arg) => this.rename(arg)),
+      node.args.map((arg) => this.rename(arg) as Pattern),
       node.loc,
     );
   }
 
   visitAsPattern(node: AsPattern): Pattern {
     return new AsPattern(
-      this.rename(node.left) as any,
-      this.rename(node.right),
+      this.rename(node.left) as VariablePattern,
+      this.rename(node.right) as Pattern,
       node.loc,
     );
   }
@@ -421,7 +428,7 @@ class LogicVariableRenamer implements PatternVisitor<Pattern> {
 
   visitUnionPattern(node: UnionPattern): Pattern {
     return new UnionPattern(
-      node.elements.map((el) => this.rename(el)),
+      node.elements.map((el) => this.rename(el) as Pattern),
       node.loc,
     );
   }
@@ -429,15 +436,15 @@ class LogicVariableRenamer implements PatternVisitor<Pattern> {
   visitConstructorPattern(node: ConstructorPattern): Pattern {
     return new ConstructorPattern(
       node.identifier,
-      node.args.map((arg) => this.rename(arg)),
+      node.args.map((arg) => this.rename(arg) as Pattern),
       node.loc,
     );
   }
 
   visitConsPattern(node: ConsPattern): Pattern {
     return new ConsPattern(
-      this.rename(node.left),
-      this.rename(node.right),
+      this.rename(node.left) as Pattern,
+      this.rename(node.right) as Pattern,
       node.loc,
     );
   }
@@ -445,13 +452,15 @@ class LogicVariableRenamer implements PatternVisitor<Pattern> {
   visitTypePattern(node: TypePattern): Pattern {
     return new TypePattern(
       node.targetType,
-      node.innerPattern ? this.rename(node.innerPattern) : undefined,
+      node.innerPattern
+        ? (this.rename(node.innerPattern) as Pattern)
+        : undefined,
       node.loc,
     );
   }
 
   // Expression/Statement Visitor
-  visitSymbolPrimitive(node: SymbolPrimitive): any {
+  visitSymbolPrimitive(node: SymbolPrimitive): SymbolPrimitive {
     const name = node.value;
     if (/^[A-Z_]/.test(name) && name !== "_") {
       let newName = this.renames.get(name);
@@ -464,214 +473,233 @@ class LogicVariableRenamer implements PatternVisitor<Pattern> {
     return node;
   }
 
-  visitNumberPrimitive(node: NumberPrimitive): any {
+  visitNumberPrimitive(node: NumberPrimitive): NumberPrimitive {
     return node;
   }
-  visitStringPrimitive(node: StringPrimitive): any {
+  visitBooleanPrimitive(node: BooleanPrimitive): BooleanPrimitive {
     return node;
   }
-  visitBooleanPrimitive(node: BooleanPrimitive): any {
+  visitNilPrimitive(node: NilPrimitive): NilPrimitive {
     return node;
   }
-  visitNilPrimitive(node: NilPrimitive): any {
+  visitCharPrimitive(node: CharPrimitive): CharPrimitive {
     return node;
   }
-  visitCharPrimitive(node: CharPrimitive): any {
+  visitStringPrimitive(node: StringPrimitive): StringPrimitive {
     return node;
   }
 
-  visitGoal(node: Goal): any {
+  visitGoal(node: Goal): Goal {
     return new Goal(
       node.identifier,
-      node.args.map((arg) => this.rename(arg)),
+      node.args.map((arg) => this.rename(arg) as Pattern),
       node.loc,
     );
   }
 
-  visitExist(node: Exist): any {
+  visitExist(node: Exist): Exist {
     return new Exist(
       node.identifier,
-      node.patterns.map((pat) => this.rename(pat)),
+      node.patterns.map((pat) => this.rename(pat) as Pattern),
       node.loc,
     );
   }
 
-  visitFindall(node: Findall): any {
+  visitFindall(node: Findall): Findall {
     return new Findall(
-      this.rename(node.template),
-      this.rename(node.goal),
-      this.rename(node.bag),
+      this.rename(node.template) as Pattern,
+      this.rename(node.goal) as Pattern,
+      this.rename(node.bag) as Pattern,
       node.loc,
     );
   }
 
-  visitForall(node: Forall): any {
+  visitForall(node: Forall): Forall {
     return new Forall(
-      this.rename(node.condition),
-      this.rename(node.action),
+      this.rename(node.condition) as Pattern,
+      this.rename(node.action) as Pattern,
       node.loc,
     );
   }
 
-  visitCall(node: Call): any {
+  visitCall(node: Call): Call {
     return new Call(
-      this.rename(node.callee),
-      node.args.map((arg) => this.rename(arg)),
+      this.rename(node.callee) as SymbolPrimitive,
+      node.args.map((arg) => this.rename(arg) as Pattern),
       node.loc,
     );
   }
 
-  visitNot(node: Not): any {
-    return new Not(this.rename(node.expression), node.loc);
+  visitNot(node: Not): Not {
+    return new Not(this.rename(node.expression) as Expression, node.loc);
   }
 
-  visitLogicConstraint(node: LogicConstraint): any {
-    return new LogicConstraint(this.rename(node.expression), node.loc);
+  visitLogicConstraint(node: LogicConstraint): LogicConstraint {
+    return new LogicConstraint(
+      this.rename(node.expression) as Expression,
+      node.loc,
+    );
   }
 
-  visitSequence(node: Sequence): any {
+  visitSequence(node: Sequence): Sequence {
     return new Sequence(
-      node.statements.map((stmt) => this.rename(stmt)),
+      node.statements.map((stmt) => this.rename(stmt) as Statement),
       node.loc,
     );
   }
 
-  visitIf(node: If): any {
+  visitIf(node: If): If {
     return new If(
-      this.rename(node.condition),
-      this.rename(node.then),
-      this.rename(node.elseExpr),
+      this.rename(node.condition) as Expression,
+      this.rename(node.then) as Expression,
+      this.rename(node.elseExpr) as Expression,
       node.loc,
     );
   }
 
-  visitComparisonOperation(node: ComparisonOperation): any {
+  visitComparisonOperation(node: ComparisonOperation): ComparisonOperation {
     return new ComparisonOperation(
       node.operator,
-      this.rename(node.left),
-      this.rename(node.right),
+      this.rename(node.left) as Expression,
+      this.rename(node.right) as Expression,
       node.loc,
     );
   }
 
-  visitUnifyOperation(node: UnifyOperation): any {
+  visitUnifyOperation(node: UnifyOperation): UnifyOperation {
     return new UnifyOperation(
       node.operator,
-      this.rename(node.left),
-      this.rename(node.right),
+      this.rename(node.left) as Expression,
+      this.rename(node.right) as Expression,
       node.loc,
     );
   }
 
-  visitAssignOperation(node: AssignOperation): any {
+  visitAssignOperation(node: AssignOperation): AssignOperation {
     return new AssignOperation(
       node.operator,
-      this.rename(node.left),
-      this.rename(node.right),
+      this.rename(node.left) as Expression,
+      this.rename(node.right) as Expression,
       node.loc,
     );
   }
 
-  visitArithmeticBinaryOperation(node: ArithmeticBinaryOperation): any {
+  visitArithmeticBinaryOperation(
+    node: ArithmeticBinaryOperation,
+  ): ArithmeticBinaryOperation {
     return new ArithmeticBinaryOperation(
       node.operator,
-      this.rename(node.left),
-      this.rename(node.right),
+      this.rename(node.left) as Expression,
+      this.rename(node.right) as Expression,
       node.loc,
     );
   }
 
-  visitArithmeticUnaryOperation(node: ArithmeticUnaryOperation): any {
+  visitArithmeticUnaryOperation(
+    node: ArithmeticUnaryOperation,
+  ): ArithmeticUnaryOperation {
     return new ArithmeticUnaryOperation(
       node.operator,
-      this.rename(node.operand),
+      this.rename(node.operand) as Expression,
       node.loc,
     );
   }
 
-  visitListBinaryOperation(node: ListBinaryOperation): any {
+  visitListBinaryOperation(node: ListBinaryOperation): ListBinaryOperation {
     return new ListBinaryOperation(
       node.operator,
-      this.rename(node.left),
-      this.rename(node.right),
+      this.rename(node.left) as Expression,
+      this.rename(node.right) as Expression,
       node.loc,
     );
   }
 
-  visitListUnaryOperation(node: ListUnaryOperation): any {
+  visitListUnaryOperation(node: ListUnaryOperation): ListUnaryOperation {
     return new ListUnaryOperation(
       node.operator,
-      this.rename(node.operand),
+      this.rename(node.operand) as Expression,
       node.loc,
     );
   }
 
-  visitLogicalBinaryOperation(node: LogicalBinaryOperation): any {
+  visitLogicalBinaryOperation(
+    node: LogicalBinaryOperation,
+  ): LogicalBinaryOperation {
     return new LogicalBinaryOperation(
       node.operator,
-      this.rename(node.left),
-      this.rename(node.right),
+      this.rename(node.left) as Expression,
+      this.rename(node.right) as Expression,
       node.loc,
     );
   }
 
-  visitLogicalUnaryOperation(node: LogicalUnaryOperation): any {
+  visitLogicalUnaryOperation(
+    node: LogicalUnaryOperation,
+  ): LogicalUnaryOperation {
     return new LogicalUnaryOperation(
       node.operator,
-      this.rename(node.operand),
+      this.rename(node.operand) as Expression,
       node.loc,
     );
   }
 
-  visitBitwiseBinaryOperation(node: BitwiseBinaryOperation): any {
+  visitBitwiseBinaryOperation(
+    node: BitwiseBinaryOperation,
+  ): BitwiseBinaryOperation {
     return new BitwiseBinaryOperation(
       node.operator,
-      this.rename(node.left),
-      this.rename(node.right),
+      this.rename(node.left) as Expression,
+      this.rename(node.right) as Expression,
       node.loc,
     );
   }
 
-  visitBitwiseUnaryOperation(node: BitwiseUnaryOperation): any {
+  visitBitwiseUnaryOperation(
+    node: BitwiseUnaryOperation,
+  ): BitwiseUnaryOperation {
     return new BitwiseUnaryOperation(
       node.operator,
-      this.rename(node.operand),
+      this.rename(node.operand) as Expression,
       node.loc,
     );
   }
 
-  visitStringOperation(node: StringOperation): any {
+  visitStringOperation(node: StringOperation): StringOperation {
     return new StringOperation(
       node.operator,
-      this.rename(node.left),
-      this.rename(node.right),
+      this.rename(node.left) as Expression,
+      this.rename(node.right) as Expression,
       node.loc,
     );
   }
 
-  visitConsExpression(node: ConsExpression): any {
+  visitConsExpression(node: ConsExpression): ConsExpression {
     return new ConsExpression(
-      this.rename(node.head),
-      this.rename(node.tail),
+      this.rename(node.head) as Expression,
+      this.rename(node.tail) as Expression,
       node.loc,
     );
   }
 
-  visitListPrimitive(node: ListPrimitive): any {
+  visitListPrimitive(node: ListPrimitive): ListPrimitive {
     return new ListPrimitive(
-      node.value.map((el) => this.rename(el)),
+      node.value.map((el) => this.rename(el) as Expression),
       node.loc,
     );
   }
 
-  visitTupleExpr(node: TupleExpression): any {
+  visitTupleExpr(node: TupleExpression): TupleExpression {
     return new TupleExpression(
       node.elements.map((el) => this.rename(el)),
       node.loc,
     );
   }
-  public fallback(node: ASTNode): Thunk<any> {
-    throw new UnexpectedNode(node.constructor.name, "LogicVariableRenamer");
+
+  public fallback(node: ASTNode): ASTNode {
+    throw new InterpreterError(
+      "LogicVariableRenamer",
+      `${node.constructor.name} not expected.`,
+    );
   }
 }
 
@@ -682,58 +710,63 @@ export function renameVariables<T extends Rule | Fact>(clause: T): T {
   const renames = new Map<string, string>();
   const freshId = ++variableCounter;
   const renamer = new LogicVariableRenamer(renames, freshId);
-  const renamedClause = clause.accept(renamer);
-  return renamedClause;
+  return clause.accept(renamer) as T;
 }
 
-class CPSBodyVisitor implements Visitor<Thunk<any>> {
+class KernelBodyVisitor implements Visitor<ExecutionCommand> {
   constructor(
-    private readonly solveBody: BodySolverCPS,
+    private readonly solveBody: (
+      expressions: LogicExecutable[],
+      env: Substitution,
+    ) => ExecutionCommand,
     private readonly substs: Substitution,
-    private readonly onSuccess: SuccessCont,
-    private readonly onNextEq: Thunk<any>,
   ) {}
 
-  public visitUnguardedBody(body: UnguardedBody): Thunk<any> {
-    return this.solveBody(
-      body.sequence.statements,
-      this.substs,
-      this.onSuccess,
-      this.onNextEq,
+  public visitUnguardedBody(body: UnguardedBody): ExecutionCommand {
+    return this.solveBody(body.sequence.statements, this.substs);
+  }
+
+  public visitGuardedBody(body: GuardedBody): ExecutionCommand {
+    return new BindCommand(
+      this.solveBody([body.condition], this.substs),
+      (res: unknown) => {
+        if (isLogicStepResult(res) && res.success) {
+          return this.solveBody([body.body], res.solutions);
+        }
+        return new FailCommand(
+          new InterpreterError("Logic", "Guard failed"),
+          true,
+        );
+      },
     );
   }
 
-  public visitGuardedBody(body: GuardedBody): Thunk<any> {
-    return this.solveBody(
-      [body.condition],
-      this.substs,
-      (guardSubsts: Substitution, _nextGuardChoice: Thunk<any>) => {
-        return this.solveBody(
-          [body.body],
-          guardSubsts,
-          this.onSuccess,
-          this.onNextEq,
-        );
-      },
-      this.onNextEq,
+  public fallback(node: ASTNode): ExecutionCommand {
+    return new FailCommand(
+      new InterpreterError(
+        "Logic",
+        `Unexpected node ${node.constructor.name} in equation body`,
+      ),
     );
-  }
-  public fallback(node: ASTNode): Thunk<any> {
-    throw new UnexpectedNode(node.constructor.name, "CPSBodyVisitor");
   }
 }
 
-class GoalSolverVisitor implements Visitor<Thunk<any>> {
+class GoalKernelVisitor implements Visitor<ExecutionCommand> {
   constructor(
     private readonly args: Pattern[],
     private readonly baseSubst: Substitution,
-    private readonly solveBody: BodySolverCPS,
-    private readonly onSuccess: SuccessCont,
-    private readonly onNextClause: Thunk<any>,
+    private readonly solveBody: (
+      expressions: LogicExecutable[],
+      env: Substitution,
+    ) => ExecutionCommand,
   ) {}
 
-  public visitFact(fact: Fact): Thunk<any> {
-    if (fact.patterns.length !== this.args.length) return this.onNextClause;
+  public visitFact(fact: Fact): ExecutionCommand {
+    if (fact.patterns.length !== this.args.length)
+      return new FailCommand(
+        new InterpreterError("Logic", "Arity mismatch"),
+        true,
+      );
 
     const renamedFact = renameVariables(fact);
     const substs = unifyParameters(
@@ -742,85 +775,117 @@ class GoalSolverVisitor implements Visitor<Thunk<any>> {
       this.baseSubst,
     );
 
-    if (substs) return this.onSuccess(substs, this.onNextClause);
-    return this.onNextClause;
+    if (substs) {
+      const res: LogicStepResult = { success: true, solutions: substs };
+      return new StepCommand(res as unknown as PrimitiveValue);
+    }
+    return new FailCommand(
+      new InterpreterError("Logic", "Fact unification failed"),
+      true,
+    );
   }
 
-  public visitRule(rule: Rule): Thunk<any> {
-    if (rule.equations.length === 0) return this.onNextClause;
+  public visitRule(rule: Rule): ExecutionCommand {
+    if (rule.equations.length === 0)
+      return new FailCommand(
+        new InterpreterError("Logic", "Rule has no equations"),
+        true,
+      );
 
     const arity = rule.equations[0].patterns.length;
-    if (arity !== this.args.length) return this.onNextClause;
+    if (arity !== this.args.length)
+      return new FailCommand(
+        new InterpreterError("Logic", "Arity mismatch"),
+        true,
+      );
 
     const renamedRule = renameVariables(rule);
 
-    const tryRuleEq = (eqIndex: number): Thunk<any> => {
-      if (eqIndex >= renamedRule.equations.length) return this.onNextClause;
+    const alternatives: ExecutionCommand[] = [];
 
-      const eq = renamedRule.equations[eqIndex];
+    for (const eq of renamedRule.equations) {
       const substs = unifyParameters(eq.patterns, this.args, this.baseSubst);
-      const onNextEq = () => tryRuleEq(eqIndex + 1);
+      if (substs) {
+        const bodyVisitor = new KernelBodyVisitor(this.solveBody, substs);
 
-      if (!substs) return onNextEq;
+        if (isUnguardedBody(eq.body)) {
+          alternatives.push(eq.body.accept(bodyVisitor));
+        } else {
+          const branches = (eq.body as GuardedBody[]).map((b) =>
+            b.accept(bodyVisitor),
+          );
+          alternatives.push(new ChoiceCommand(branches));
+        }
+      }
+    }
 
-      const bodyVisitor = new CPSBodyVisitor(
-        this.solveBody,
-        substs,
-        this.onSuccess,
-        onNextEq,
+    if (alternatives.length === 0)
+      return new FailCommand(
+        new InterpreterError("Logic", "Clause head mismatch"),
+        true,
       );
-
-      if (isUnguardedBody(eq.body)) return eq.body.accept(bodyVisitor);
-      return eq.body.forEach((branch) => branch.accept(bodyVisitor));
-    };
-
-    return () => tryRuleEq(0);
+    return alternatives.length === 1
+      ? alternatives[0]
+      : new ChoiceCommand(alternatives);
   }
-  public fallback(node: ASTNode): Thunk<any> {
-    throw new UnexpectedNode(node.constructor.name, "GoalSolverVisitor");
+
+  public fallback(node: ASTNode): ExecutionCommand {
+    return new FailCommand(
+      new InterpreterError(
+        "Logic",
+        `Unexpected node ${node.constructor.name} in predicate definition`,
+      ),
+    );
   }
 }
 
 /**
- * Solves a single logic goal (predicate call) using CPS.
+ * Solves a single logic goal (predicate call) using the Kernel.
  */
-export function solveGoalCPS(
+export function solveGoalKernel(
   ctx: RuntimeContext,
   predicateName: string,
   args: Pattern[],
-  solveBody: BodySolverCPS,
+  solveBody: (
+    expressions: LogicExecutable[],
+    env: Substitution,
+  ) => ExecutionCommand,
   baseSubst: Substitution,
-  onSuccess: SuccessCont,
-  onFailure: FailureCont,
-): Thunk<any> {
-  const tryClause = (index: number): Thunk<any> => {
-    let equations: (Rule | Fact)[];
+): ExecutionCommand {
+  let equations: (Rule | Fact)[];
 
-    try {
-      const pred = ctx.lookup(predicateName);
-      if (!pred || !isRuntimePredicate(pred)) return () => onFailure();
-      equations = pred.equations;
-    } catch (error) {
-      return () => onFailure();
-    }
-
-    if (index >= equations.length) return () => onFailure();
-
-    const clause = equations[index];
-    const onNextClause = () => tryClause(index + 1);
-
-    const clauseVisitor = new GoalSolverVisitor(
-      args,
-      baseSubst,
-      solveBody,
-      onSuccess,
-      onNextClause,
+  try {
+    const pred = ctx.lookup(predicateName);
+    if (!pred || !isRuntimePredicate(pred))
+      return new FailCommand(
+        new InterpreterError("Logic", `Predicate ${predicateName} not found`),
+        true,
+      );
+    equations = pred.equations;
+  } catch (error) {
+    return new FailCommand(
+      new InterpreterError("Logic", `Predicate ${predicateName} lookup error`),
+      true,
     );
+  }
 
-    return clause.accept(clauseVisitor);
-  };
+  const clauseVisitor = new GoalKernelVisitor(args, baseSubst, solveBody);
 
-  return () => tryClause(0);
+  const choices: ExecutionCommand[] = [];
+  for (const clause of equations) {
+    const res = clause.accept(clauseVisitor);
+    // We only add to choices if it's NOT an immediate logic failure
+    if (!(res instanceof FailCommand && res.isLogicFailure)) {
+      choices.push(res);
+    }
+  }
+
+  if (choices.length === 0)
+    return new FailCommand(
+      new InterpreterError("Logic", "Goal failed (no matching clauses)"),
+      true,
+    );
+  return choices.length === 1 ? choices[0] : new ChoiceCommand(choices);
 }
 
 /**
@@ -841,35 +906,60 @@ function unifyParameters(
 }
 
 /**
- * Solves a findall/3 goal using CPS.
+ * Solves a findall/3 goal using the Kernel.
  */
-export function solveFindallCPS(
+export function solveFindallKernel(
   node: Findall,
   currentSubsts: Substitution,
-  solveBody: BodySolverCPS,
-  onSuccess: SuccessCont,
-  onFailure: FailureCont,
-): Thunk<any> {
+  evaluator: Evaluator,
+  ctx: RuntimeContext,
+  solveBody: (
+    expressions: LogicExecutable[],
+    env: Substitution,
+  ) => ExecutionCommand,
+): ExecutionCommand {
   const gathered: Pattern[] = [];
+  const kernel = new YukigoKernel(evaluator);
 
-  const collectResults = (): Thunk<any> => {
-    return solveBody(
-      [node.goal],
-      currentSubsts,
-      (resultSubsts, next) => {
-        gathered.push(instantiate(node.template, resultSubsts));
-        return () => next();
-      },
-      () => {
-        const resultList = new ListPattern(gathered);
-        const finalSubsts = unify(node.bag, resultList, currentSubsts);
-        if (finalSubsts) {
-          return onSuccess(finalSubsts, onFailure);
-        }
-        return () => onFailure();
-      },
-    );
-  };
+  let nextCmd = solveBody([node.goal], currentSubsts);
 
-  return collectResults();
+  while (true) {
+    const res: unknown = kernel.run(nextCmd);
+    if (isLogicStepResult(res) && res.success) {
+      gathered.push(instantiate(node.template, res.solutions));
+      nextCmd = kernel.handleBacktrack();
+    } else {
+      break;
+    }
+  }
+
+  const resultList = new ListPattern(gathered);
+  const finalSubsts = unify(node.bag, resultList, currentSubsts);
+  if (finalSubsts) {
+    const res: LogicStepResult = {
+      success: true,
+      solutions: finalSubsts,
+    };
+    let bagVarName: string;
+    if (node.bag instanceof VariablePattern) {
+      bagVarName = node.bag.name.value;
+    } else {
+      return new FailCommand(
+        new InterpreterError("Logic", "Findall bag must be a Pattern"),
+      );
+    }
+
+    const pat = finalSubsts.get(bagVarName);
+    if (!pat)
+      return new FailCommand(
+        new InterpreterError("Logic", "Findall bag not found in results"),
+      );
+    const translator = new LogicTranslator(evaluator, ctx);
+    const val = translator.patternToPrimitive(pat, finalSubsts);
+    return new StepCommand(val);
+  }
+  return new FailCommand(
+    new InterpreterError("Logic", "Findall bag unification failed"),
+    true,
+  );
 }

@@ -12,7 +12,6 @@ import {
   Rule,
   RuntimeClass,
   RuntimeFunction,
-  EnvStack,
   TraverseVisitor,
   Object,
   RuntimeObject,
@@ -20,13 +19,12 @@ import {
   Return,
   Sequence,
   SymbolPrimitive,
-  VariablePattern,
 } from "yukigo-ast";
 import { InterpreterVisitor } from "./Visitor.js";
-import { idContinuation, trampoline } from "../trampoline.js";
 import { RuntimeContext } from "./RuntimeContext.js";
-import { InterpreterError } from "../errors.js";
-import { UnexpectedNode } from "../../utils/helpers.js";
+import { InterpreterError, UnexpectedNode } from "../errors.js";
+import { YukigoKernel } from "./kernel/index.js";
+import { EvalCommand } from "./kernel/commands.js";
 
 /**
  * Builds the initial environment by collecting all top-level function declarations.
@@ -172,9 +170,9 @@ export class EnvBuilderVisitor extends TraverseVisitor {
     if (this.ctx.config.debug)
       console.log(`[EnvBuilder] Defining variable: ${identifier}`);
 
-    const interpreter = new InterpreterVisitor(this.ctx);
-    const cps = node.expression.accept(interpreter);
-    this.ctx.define(identifier, trampoline(cps(idContinuation)));
+    const visitor = new InterpreterVisitor(this.ctx);
+    const kernel = new YukigoKernel(visitor);
+    this.ctx.define(identifier, kernel.run(new EvalCommand(node.expression)));
   }
   visit(node: ASTNode): void {
     return node.accept(this);

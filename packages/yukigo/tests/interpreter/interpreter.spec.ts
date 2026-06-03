@@ -37,7 +37,7 @@ import { assert } from "chai";
 describe("Interpreter Spec", () => {
   let interpreter: Interpreter;
   beforeEach(() => {
-    interpreter = new Interpreter([], { debug: true });
+    interpreter = new Interpreter([]);
   });
   it("Evaluates ArithmeticBinaryOperation", () => {
     assert.equal(

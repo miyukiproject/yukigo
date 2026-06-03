@@ -8,8 +8,8 @@ import {
   EnvStack,
 } from "yukigo-ast";
 import { InterpreterError } from "../../errors.js";
-import { Continuation, Thunk } from "../../trampoline.js";
 import { RuntimeContext } from "../RuntimeContext.js";
+import { ExecutionCommand } from "../kernel/commands.js";
 
 type OOPEntity = RuntimeClass | RuntimeObject;
 
@@ -48,8 +48,7 @@ export class ObjectRuntime {
     methodName: string,
     args: PrimitiveValue[],
     env: EnvStack,
-    k: Continuation<PrimitiveValue>,
-  ): Thunk<PrimitiveValue> {
+  ): ExecutionCommand {
     if (!isRuntimeObject(receiver))
       throw new Error(`${receiver} is not an object`);
 
@@ -64,7 +63,7 @@ export class ObjectRuntime {
 
     const objectScope = this.createDispatchScope(receiver, match, methodName);
     this.context.pushEnv(objectScope);
-    return this.context.funcRuntime.apply(match.method, args, k);
+    return this.context.funcRuntime.apply(match.method, args);
   }
 
   /**
@@ -74,12 +73,11 @@ export class ObjectRuntime {
     currentEnv: EnvStack,
     methodName: string,
     args: PrimitiveValue[],
-    k: Continuation<PrimitiveValue>,
-  ): Thunk<PrimitiveValue> {
+  ): ExecutionCommand {
     const self = this.context.lookup("self") as RuntimeObject;
     const currentHolder = this.context.lookup("__CONTEXT_CLASS__") as OOPEntity;
     const currentMethodName = this.context.lookup("__METHOD_NAME__");
-    const targetMethodName = methodName || currentMethodName;
+    const targetMethodName = methodName || (currentMethodName as string);
 
     if (!self || !currentHolder)
       throw new InterpreterError(
@@ -95,18 +93,18 @@ export class ObjectRuntime {
       throw new Error("Fatal: Execution context not found in hierarchy chain");
 
     const remainingChain = chain.slice(currentIndex + 1);
-    const match = this.findMethodInChain(remainingChain, methodName);
+    const match = this.findMethodInChain(remainingChain, targetMethodName);
 
     if (!match)
       throw new InterpreterError(
         "Super",
-        `Super method '${methodName}' not found`,
+        `Super method '${targetMethodName}' not found`,
       );
 
     const objectScope = this.createDispatchScope(self, match, targetMethodName);
 
     this.context.pushEnv(objectScope);
-    return this.context.funcRuntime.apply(match.method, args, k);
+    return this.context.funcRuntime.apply(match.method, args);
   }
   private createDispatchScope(
     self: RuntimeObject,

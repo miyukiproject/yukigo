@@ -11,11 +11,12 @@ import {
   isRuntimeClass,
   isRuntimePredicate,
 } from "yukigo-ast";
-import { UnboundVariable } from "./errors.js";
-import { Continuation, Thunk } from "./trampoline.js";
+import { ExecutionCommand } from "./components/kernel/commands.js";
+import { RuntimeContext } from "./components/RuntimeContext.js";
 
-export interface ExpressionEvaluator {
-  evaluate<R = PrimitiveValue>(node: ASTNode, cont: Continuation<PrimitiveValue, R>): Thunk<R>;
+export interface Evaluator {
+  evaluate(node: ASTNode): ExecutionCommand;
+  getContext(): RuntimeContext;
 }
 
 export function createStream(

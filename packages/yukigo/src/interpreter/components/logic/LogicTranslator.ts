@@ -6,7 +6,6 @@ import {
   SymbolPrimitive,
   Variable,
   VariablePattern,
-  EnvStack,
   isPattern,
   NumberPrimitive,
   StringPrimitive,
@@ -18,55 +17,60 @@ import {
   FunctorPattern,
 } from "yukigo-ast";
 import { Substitution, instantiate } from "./LogicResolver.js";
-import { ExpressionEvaluator } from "../../utils.js";
+import { Evaluator } from "../../utils.js";
 import { InterpreterError } from "../../errors.js";
-import {
-  idContinuation,
-  trampoline,
-  Continuation,
-  Thunk,
-} from "../../trampoline.js";
 import { RuntimeContext } from "../RuntimeContext.js";
+import {
+  ExecutionCommand,
+  StepCommand,
+  BindCommand,
+} from "../kernel/commands.js";
 
 export class LogicTranslator {
   constructor(
-    private evaluator: ExpressionEvaluator,
+    private evaluator: Evaluator,
     private ctx: RuntimeContext,
   ) {}
 
-  public patternToPrimitive(pat: Pattern): PrimitiveValue | undefined {
+  public patternToPrimitive(pat: Pattern, substs?: Substitution): PrimitiveValue | undefined {
     if (pat instanceof LiteralPattern) {
       const primitive = pat.name;
       return primitive.value;
     }
+    if (pat instanceof VariablePattern) {
+      if (substs && substs.has(pat.name.value)) {
+          return this.patternToPrimitive(instantiate(pat, substs), substs);
+      }
+      return pat.name.value;
+    }
     if (pat instanceof ListPattern) {
-      return pat.elements.map((el) => this.patternToPrimitive(el));
+      return pat.elements.map((el) => this.patternToPrimitive(el, substs));
     }
     if (pat instanceof ConsPattern) {
-      const head = this.patternToPrimitive(pat.left);
-      const tail = this.patternToPrimitive(pat.right);
+      const head = this.patternToPrimitive(pat.left, substs);
+      const tail = this.patternToPrimitive(pat.right, substs);
       if (Array.isArray(tail)) {
         return [head, ...tail];
       }
       return [head, tail];
     }
-    // Return the pattern itself for non-primitive logic terms (VariablePattern, FunctorPattern, etc.)
-    return pat as any;
+    // For complex terms like FunctorPattern, we return its string representation
+    return pat.toString();
   }
 
-  public expressionToPattern<R = Pattern>(
+  public expressionToPattern(
     expr: Expression,
-    k: Continuation<Pattern, R>,
-  ): Thunk<R> {
+    k: (p: Pattern) => ExecutionCommand,
+  ): ExecutionCommand {
     if (isPattern(expr)) return k(expr);
 
     if (expr instanceof ListPrimitive) {
       const results: Pattern[] = [];
-      const next = (index: number): Thunk<R> => {
+      const next = (index: number): ExecutionCommand => {
         if (index >= expr.value.length) return k(new ListPattern(results));
         return this.expressionToPattern(expr.value[index], (p) => {
           results.push(p);
-          return () => next(index + 1);
+          return next(index + 1);
         });
       };
       return next(0);
@@ -74,10 +78,9 @@ export class LogicTranslator {
 
     if (expr instanceof ConsExpression) {
       return this.expressionToPattern(expr.head, (headPat) => {
-        return () =>
-          this.expressionToPattern(expr.tail, (tailPat) => {
-            return k(new ConsPattern(headPat, tailPat));
-          });
+        return this.expressionToPattern(expr.tail, (tailPat) => {
+          return k(new ConsPattern(headPat, tailPat));
+        });
       });
     }
 
@@ -85,7 +88,7 @@ export class LogicTranslator {
       const name =
         expr instanceof Variable ? expr.identifier.value : expr.value;
       if (this.ctx.isDefined(name)) {
-        return this.evaluator.evaluate(expr, (val) => {
+        return new BindCommand(this.evaluator.evaluate(expr), (val) => {
           return k(this.primitiveToPattern(val));
         });
       }
@@ -93,7 +96,7 @@ export class LogicTranslator {
         new VariablePattern(expr instanceof Variable ? expr.identifier : expr),
       );
     }
-    return this.evaluator.evaluate(expr, (val) => {
+    return new BindCommand(this.evaluator.evaluate(expr), (val) => {
       return k(this.primitiveToPattern(val));
     });
   }
@@ -137,11 +140,11 @@ export class LogicTranslator {
     );
   }
 
-  public instantiateExpressionAsPattern<R = Pattern>(
+  public instantiateExpressionAsPattern(
     expr: Expression,
     substs: Substitution,
-    k: Continuation<Pattern, R>,
-  ): Thunk<R> {
+    k: (p: Pattern) => ExecutionCommand,
+  ): ExecutionCommand {
     return this.expressionToPattern(expr, (patternBase) => {
       return k(instantiate(patternBase, substs));
     });

@@ -25,10 +25,15 @@ import {
 } from "yukigo-ast";
 import { Bindings } from "../index.js";
 import { InterpreterVisitor } from "./Visitor.js";
-import { CPSThunk, Thunk, Continuation } from "../trampoline.js";
+import {
+  ExecutionCommand,
+  StepCommand,
+  BindCommand,
+  FailCommand,
+} from "../components/kernel/commands.js";
 import { RuntimeContext } from "./RuntimeContext.js";
-import { ExpressionEvaluator, getYukigoType } from "../utils.js";
-import { UnexpectedNode } from "../../utils/helpers.js";
+import { Evaluator, getYukigoType } from "../utils.js";
+import { InterpreterError, UnexpectedNode } from "../errors.js";
 
 class SharedSequence {
   private cache: PrimitiveValue[] = [];
@@ -62,7 +67,7 @@ class SharedSequence {
 export interface InternalConsState {
   readonly head: PrimitiveValue;
   readonly tailExpr: Expression;
-  readonly evaluator: ExpressionEvaluator;
+  readonly evaluator: Evaluator;
   readonly capturedEnv: EnvStack;
   realizedTail?: PrimitiveValue;
 }
@@ -124,153 +129,122 @@ export function createMemoizedStream(
  * Updates `bindings` when variables are bound successfully.
  * Returns true if the pattern matches, false otherwise.
  */
-export class PatternMatcher implements Visitor<CPSThunk<boolean>> {
+export class PatternMatcher {
   constructor(
     private value: PrimitiveValue,
     private bindings: Bindings,
     private ctx: RuntimeContext,
   ) {}
 
-  visitVariablePattern(node: VariablePattern): CPSThunk<boolean> {
-    return (k) => {
-      this.bindings.push([node.name.value, this.value]);
-      return k(true);
+  visitVariablePattern(node: VariablePattern): ExecutionCommand {
+    this.bindings.push([node.name.value, this.value]);
+    return new StepCommand(true);
+  }
+
+  visitWildcardPattern(node: WildcardPattern): ExecutionCommand {
+    return new StepCommand(true);
+  }
+
+  visitLiteralPattern(node: LiteralPattern): ExecutionCommand {
+    const literalValue = InterpreterVisitor.evaluateLiteral(node.name);
+    return this.ctx.lazyRuntime.deepEqual(this.value, literalValue);
+  }
+
+  visitTuplePattern(node: TuplePattern): ExecutionCommand {
+    const processValue = (val: PrimitiveValue): ExecutionCommand => {
+      if (!Array.isArray(val)) return new StepCommand(false);
+      if (val.length !== node.elements.length)
+        return new StepCommand(false);
+
+      return this.matchList(node.elements, val, 0);
     };
+
+    if (isLazyList(this.value)) {
+      return new BindCommand(this.ctx.lazyRuntime.realizeList(this.value), processValue);
+    }
+    return processValue(this.value);
   }
 
-  visitWildcardPattern(node: WildcardPattern): CPSThunk<boolean> {
-    return (k) => k(true);
-  }
+  visitListPattern(node: ListPattern): ExecutionCommand {
+    const value = this.value;
+    const neededLength = node.elements.length;
 
-  visitLiteralPattern(node: LiteralPattern): CPSThunk<boolean> {
-    return (k) => {
-      const literalValue = InterpreterVisitor.evaluateLiteral(node.name);
-      return this.ctx.lazyRuntime.deepEqual(this.value, literalValue, k);
+    const finishMatching = (valArr: PrimitiveValue): ExecutionCommand => {
+      if(!Array.isArray(valArr)) throw new InterpreterError("[PatternMatcher]", `Expected ${valArr} to be a list.`)
+      if (valArr.length !== neededLength) return new StepCommand(false);
+      return this.matchList(node.elements, valArr, 0);
     };
-  }
 
-  visitTuplePattern(node: TuplePattern): CPSThunk<boolean> {
-    return (k) => {
-      const processValue = (val: PrimitiveValue): Thunk<boolean> => {
-        if (!Array.isArray(val)) return k(false);
-        if (val.length !== node.elements.length) return k(false);
-
-        const matchNext = (index: number): Thunk<boolean> => {
-          if (index >= node.elements.length) return k(true);
-          const matcher = new PatternMatcher(
-            val[index],
-            this.bindings,
-            this.ctx,
-          );
-          return node.elements[index].accept(matcher)((isMatch) => {
-            if (!isMatch) return k(false);
-            return () => matchNext(index + 1);
-          });
-        };
-        return matchNext(0);
-      };
-
-      if (isLazyList(this.value)) {
-        return this.ctx.lazyRuntime.realizeList(this.value, (val) => {
-          return () => processValue(val);
-        });
-      }
-      return processValue(this.value);
-    };
-  }
-
-  visitListPattern(node: ListPattern): CPSThunk<boolean> {
-    return (k) => {
-      const value = this.value;
-      const neededLength = node.elements.length;
-
-      const finishMatching = (valArr: PrimitiveValue[]): Thunk<boolean> => {
-        if (valArr.length !== neededLength) return k(false);
-        return this.matchList(node.elements, valArr, k);
-      };
-
-      // empty list case
-      if (neededLength === 0) {
-        if (Array.isArray(value) || typeof value === "string")
-          return k(value.length === 0);
-
-        if (isLazyList(value)) {
-          const iter = value.generator();
-          return k(Boolean(iter.next().done));
-        }
-        return k(false);
-      }
-
-      if (Array.isArray(value)) return finishMatching(value);
-      if (typeof value === "string") return finishMatching(value.split(""));
+    if (neededLength === 0) {
+      if (Array.isArray(value) || typeof value === "string")
+        return new StepCommand(value.length === 0);
 
       if (isLazyList(value)) {
-        return this.ctx.lazyRuntime.realizeList(value, (valArr) => {
-          return () => finishMatching(valArr);
-        });
+        const iter = value.generator();
+        return new StepCommand(Boolean(iter.next().done));
       }
+      return new StepCommand(false);
+    }
 
-      return k(false);
-    };
+    if (Array.isArray(value)) return finishMatching(value);
+    if (typeof value === "string") return finishMatching(value.split(""));
+
+    if (isLazyList(value)) {
+      return new BindCommand(this.ctx.lazyRuntime.realizeList(value), finishMatching);
+    }
+
+    return new StepCommand(false);
   }
 
   private matchList(
     elements: Pattern[],
     value: PrimitiveValue[],
-    k: Continuation<boolean>,
-  ): Thunk<boolean> {
-    if (value.length !== elements.length) return k(false);
-    const matchNext = (index: number): Thunk<boolean> => {
-      if (index >= elements.length) return k(true);
-      const matcher = new PatternMatcher(value[index], this.bindings, this.ctx);
-      return elements[index].accept(matcher)((isMatch) => {
-        if (!isMatch) return k(false);
-        return () => matchNext(index + 1);
-      });
-    };
-    return matchNext(0);
+    index: number,
+  ): ExecutionCommand {
+    if (index >= elements.length) return new StepCommand(true);
+
+    const matcher = new PatternMatcher(value[index], this.bindings, this.ctx);
+    return new BindCommand(elements[index].accept(matcher), (isMatch) => {
+      if (!isMatch) return new StepCommand(false);
+      return this.matchList(elements, value, index + 1);
+    });
   }
 
-  visitConsPattern(node: ConsPattern): CPSThunk<boolean> {
-    return (k) => {
-      const [head, tail] = this.resolveCons(this.value);
-      if (head === null || tail === null) return k(false);
+  visitConsPattern(node: ConsPattern): ExecutionCommand {
+    const [head, tail] = this.resolveCons(this.value);
+    if (head === null || tail === null) return new StepCommand(false);
 
-      const headMatcher = new PatternMatcher(head, this.bindings, this.ctx);
-      return node.left.accept(headMatcher)((headMatches) => {
-        if (!headMatches) return k(false);
-        const tailMatcher = new PatternMatcher(tail, this.bindings, this.ctx);
-        return node.right.accept(tailMatcher)(k);
-      });
-    };
+    const headMatcher = new PatternMatcher(head, this.bindings, this.ctx);
+    return new BindCommand(node.left.accept(headMatcher), (headMatches) => {
+      if (!headMatches) return new StepCommand(false);
+      const tailMatcher = new PatternMatcher(tail, this.bindings, this.ctx);
+      return node.right.accept(tailMatcher);
+    });
   }
 
-  visitTypePattern(node: TypePattern): CPSThunk<boolean> {
-    return (k) => {
-      const actualType = getYukigoType(this.value);
+  visitTypePattern(node: TypePattern): ExecutionCommand {
+    const actualType = getYukigoType(this.value);
+    let matches = false;
+    const targetType = node.targetType;
 
-      let matches = false;
-      const targetType = node.targetType;
+    if (targetType instanceof SimpleType) {
+      matches = targetType.value === actualType;
+    } else if (targetType instanceof ListType) {
+      matches = actualType === "YuList";
+    }
 
-      if (targetType instanceof SimpleType) {
-        matches = targetType.value === actualType;
-      } else if (targetType instanceof ListType) {
-        matches = actualType === "YuList";
-      }
+    if (!matches) return new StepCommand(false);
 
-      if (!matches) return k(false);
+    if (node.innerPattern) {
+      const innerMatcher = new PatternMatcher(
+        this.value,
+        this.bindings,
+        this.ctx,
+      );
+      return node.innerPattern.accept(innerMatcher);
+    }
 
-      if (node.innerPattern) {
-        const innerMatcher = new PatternMatcher(
-          this.value,
-          this.bindings,
-          this.ctx,
-        );
-        return node.innerPattern.accept(innerMatcher)(k);
-      }
-
-      return k(true);
-    };
+    return new StepCommand(true);
   }
 
   private resolveCons(list: PrimitiveValue): [PrimitiveValue, PrimitiveValue] {
@@ -326,71 +300,71 @@ export class PatternMatcher implements Visitor<CPSThunk<boolean>> {
     return [null, null];
   }
 
-  visitConstructorPattern(node: ConstructorPattern): CPSThunk<boolean> {
-    return (k) => {
-      if (!Array.isArray(this.value) || this.value.length === 0)
-        return k(false);
-      if (this.value[0] !== node.identifier.value) return k(false);
+  visitConstructorPattern(node: ConstructorPattern): ExecutionCommand {
+    if (!Array.isArray(this.value) || this.value.length === 0)
+      return new StepCommand(false);
+    if (this.value[0] !== node.identifier.value)
+      return new StepCommand(false);
 
-      const args = this.value.slice(1);
-      return this.matchList(node.args, args, k);
-    };
+    const args = this.value.slice(1);
+    return this.matchList(node.args, args, 0);
   }
 
-  visitFunctorPattern(node: FunctorPattern): CPSThunk<boolean> {
+  visitFunctorPattern(node: FunctorPattern): ExecutionCommand {
     return this.visitConstructorPattern(
       new ConstructorPattern(node.identifier, node.args),
     );
   }
 
-  visitApplicationPattern(node: ApplicationPattern): CPSThunk<boolean> {
+  visitApplicationPattern(node: ApplicationPattern): ExecutionCommand {
     return this.visitConstructorPattern(
       new ConstructorPattern(node.identifier, node.args),
     );
   }
 
-  visitAsPattern(node: AsPattern): CPSThunk<boolean> {
-    return (k) => {
-      const innerMatcher = new PatternMatcher(
+  visitAsPattern(node: AsPattern): ExecutionCommand {
+    const innerMatcher = new PatternMatcher(
+      this.value,
+      this.bindings,
+      this.ctx,
+    );
+
+    return new BindCommand(node.right.accept(innerMatcher), (innerMatches) => {
+      if (!innerMatches) return new StepCommand(false);
+
+      const aliasMatcher = new PatternMatcher(
         this.value,
         this.bindings,
         this.ctx,
       );
-      return node.right.accept(innerMatcher)((innerMatches) => {
-        if (!innerMatches) return k(false);
-        const aliasMatcher = new PatternMatcher(
-          this.value,
-          this.bindings,
-          this.ctx,
-        );
-        return node.left.accept(aliasMatcher)(k);
+      return node.left.accept(aliasMatcher);
+    });
+  }
+
+  visitUnionPattern(node: UnionPattern): ExecutionCommand {
+    const tryNext = (index: number): ExecutionCommand => {
+      if (index >= node.elements.length) return new StepCommand(false);
+
+      const pattern = node.elements[index];
+      const trialBindings: Bindings = [];
+      const matcher = new PatternMatcher(this.value, trialBindings, this.ctx);
+
+      return new BindCommand(pattern.accept(matcher), (isMatch) => {
+        if (isMatch) {
+          this.bindings.push(...trialBindings);
+          return new StepCommand(true);
+        }
+        return tryNext(index + 1);
       });
     };
+
+    return tryNext(0);
   }
 
-  visitUnionPattern(node: UnionPattern): CPSThunk<boolean> {
-    return (k) => {
-      const tryNext = (index: number): Thunk<boolean> => {
-        if (index >= node.elements.length) return k(false);
-        const pattern = node.elements[index];
-        const trialBindings: Bindings = [];
-        const matcher = new PatternMatcher(this.value, trialBindings, this.ctx);
-        return pattern.accept(matcher)((isMatch) => {
-          if (isMatch) {
-            this.bindings.push(...trialBindings);
-            return k(true);
-          }
-          return () => tryNext(index + 1);
-        });
-      };
-      return tryNext(0);
-    };
-  }
-
-  visit(node: ASTNode): CPSThunk<boolean> {
+  visit(node: ASTNode): ExecutionCommand {
     return node.accept(this);
   }
-  public fallback(node: ASTNode): CPSThunk<boolean> {
-    throw new UnexpectedNode(node.constructor.name, "PatternMatcher");
+  public fallback(node: ASTNode): ExecutionCommand {
+    return new FailCommand(new UnexpectedNode(node.constructor.name, "PatternMatcher"));
   }
 }

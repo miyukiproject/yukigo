@@ -10,7 +10,7 @@ import {
 import { Interpreter } from "../interpreter/index.js";
 import { FailedAssert } from "../interpreter/components/TestRunner.js";
 import { InterpreterConfig } from "../interpreter/components/RuntimeContext.js";
-import { UnexpectedNode } from "../utils/helpers.js";
+import { UnexpectedNode } from "../interpreter/errors.js";
 
 export type TestStatus = "passed" | "failed" | "error";
 

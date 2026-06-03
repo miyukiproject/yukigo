@@ -6,40 +6,41 @@ import {
   ListBinaryOperation,
   LazyList,
 } from "yukigo-ast";
-import { ExpressionEvaluator } from "../../utils.js";
+import { Evaluator } from "../../utils.js";
 import {
   createMemoizedStream,
   InternalConsState,
   isMemoizedList,
 } from "../PatternMatcher.js";
-import {
-  Continuation,
-  idContinuation,
-  Thunk,
-  trampoline,
-} from "../../trampoline.js";
 import { RuntimeContext } from "../RuntimeContext.js";
+import {
+  ExecutionCommand,
+  StepCommand,
+  EvalCommand,
+  BindCommand,
+} from "../kernel/commands.js";
+import { YukigoKernel } from "../kernel/index.js";
 
 export class LazyRuntime {
   constructor(private context: RuntimeContext) {}
 
-  public realizeList<R = PrimitiveValue[]>(
-    val: PrimitiveValue,
-    k: Continuation<PrimitiveValue[], R>,
-  ): Thunk<R> {
-    if (Array.isArray(val)) return k(val);
-    if (typeof val === "string") return k(val.split(""));
+  /**
+   * Realizes a list or lazy list into an array of PrimitiveValue.
+   */
+  public realizeList(val: PrimitiveValue): ExecutionCommand {
+    if (Array.isArray(val)) return new StepCommand(val);
+    if (typeof val === "string") return new StepCommand(val.split(""));
     if (isLazyList(val)) {
       const result: PrimitiveValue[] = [];
       const iter = val.generator();
 
-      const next = (): Thunk<R> => {
+      const next = (): ExecutionCommand => {
         const step = iter.next();
-        if (step.done) return k(result);
+        if (step.done) return new StepCommand(result);
         if (step.value === undefined)
           throw new Error("LazyList yielded undefined");
         result.push(step.value);
-        return () => next();
+        return next();
       };
       return next();
     }
@@ -48,18 +49,17 @@ export class LazyRuntime {
 
   public evaluateRange(
     node: RangeExpression,
-    evaluator: ExpressionEvaluator,
-    k: Continuation<PrimitiveValue>,
-  ): Thunk<PrimitiveValue> {
-    return evaluator.evaluate(node.start, (startVal) => {
+    evaluator: Evaluator,
+  ): ExecutionCommand {
+    return new BindCommand(evaluator.evaluate(node.start), (startVal) => {
       if (typeof startVal !== "number")
         throw new Error("Range start must be a number");
 
       const hasEnd = node.end != null;
 
-      const finishWithStep = (step: number): Thunk<PrimitiveValue> => {
+      const finishWithStep = (step: number): ExecutionCommand => {
         if (!hasEnd) {
-          return k(
+          return new StepCommand(
             createMemoizedStream(function* () {
               let current = startVal;
               while (true) {
@@ -70,7 +70,7 @@ export class LazyRuntime {
           );
         }
 
-        return evaluator.evaluate(node.end!, (endVal) => {
+        return new BindCommand(evaluator.evaluate(node.end!), (endVal) => {
           if (typeof endVal !== "number")
             throw new Error("Range end must be a number");
 
@@ -78,7 +78,7 @@ export class LazyRuntime {
             step > 0 ? (c: number) => c <= endVal : (c: number) => c >= endVal;
 
           if (this.context.config.lazyLoading) {
-            return k(
+            return new StepCommand(
               createMemoizedStream(function* () {
                 let current = startVal;
                 while (cond(current)) {
@@ -95,12 +95,12 @@ export class LazyRuntime {
             result.push(current);
             current += step;
           }
-          return k(result);
+          return new StepCommand(result);
         });
       };
 
       if (node.step) {
-        return evaluator.evaluate(node.step, (secondVal) => {
+        return new BindCommand(evaluator.evaluate(node.step), (secondVal) => {
           if (typeof secondVal !== "number")
             throw new Error("Range step must be a number");
           const step = secondVal - startVal;
@@ -115,12 +115,11 @@ export class LazyRuntime {
 
   public evaluateCons(
     node: ConsExpression,
-    evaluator: ExpressionEvaluator,
-    k: Continuation<PrimitiveValue>,
-  ): Thunk<PrimitiveValue> {
+    evaluator: Evaluator,
+  ): ExecutionCommand {
     const ctx = this.context;
     const capturedEnv = ctx.clone();
-    return evaluator.evaluate(node.head, (head) => {
+    return new BindCommand(evaluator.evaluate(node.head), (head) => {
       if (ctx.config.lazyLoading) {
         const consState: InternalConsState = {
           head,
@@ -143,8 +142,12 @@ export class LazyRuntime {
                   const prevEnv = ctx.env;
                   ctx.setEnv(current.capturedEnv);
                   try {
-                    current.realizedTail = trampoline(
-                      current.evaluator.evaluate(current.tailExpr, idContinuation),
+                    current.realizedTail = new YukigoKernel(
+                      current.evaluator,
+                    ).run(
+                      new EvalCommand(
+                        current.tailExpr,
+                      ),
                     );
                   } finally {
                     ctx.setEnv(prevEnv);
@@ -183,15 +186,16 @@ export class LazyRuntime {
 
         memoized._consState = consState;
 
-        return k(memoized);
+        return new StepCommand(memoized);
       }
 
       // Eager behavior
-      return evaluator.evaluate(node.tail, (tail) => {
-        if (typeof tail === "string") return k((head as string) + tail);
+      return new BindCommand(evaluator.evaluate(node.tail), (tail) => {
+        if (typeof tail === "string")
+          return new StepCommand((head as string) + tail);
         if (isLazyList(tail) || !Array.isArray(tail))
           throw new Error("Expected Array in eager Cons");
-        return k([head, ...tail]);
+        return new StepCommand([head, ...tail]);
       });
     });
   }
@@ -199,10 +203,9 @@ export class LazyRuntime {
   public evaluateConcat(
     left: PrimitiveValue,
     right: PrimitiveValue,
-    k: Continuation<PrimitiveValue>,
-  ): Thunk<PrimitiveValue> {
+  ): ExecutionCommand {
     if (this.context.config.lazyLoading) {
-      return k(
+      return new StepCommand(
         createMemoizedStream(function* () {
           if (Array.isArray(left)) yield* left;
           else if (typeof left === "string") yield* (left as string).split("");
@@ -219,26 +222,26 @@ export class LazyRuntime {
     }
 
     if (typeof left === "string" && typeof right === "string")
-      return k(left + right);
+      return new StepCommand(left + right);
 
-    return this.realizeList(left, (lArr) => {
-      return () =>
-        this.realizeList(right, (rArr) => {
-          return k(lArr.concat(rArr));
-        });
+    return new BindCommand(this.realizeList(left), (lArr) => {
+      return new BindCommand(this.realizeList(right), (rArr) => {
+        if (!Array.isArray(lArr) || !Array.isArray(rArr))
+           throw new Error("[LazyRuntime] realizeList returned non-array result for Concat");
+        return new StepCommand(lArr.concat(rArr));
+      });
     });
   }
 
   public evaluateConcatLazy(
     node: ListBinaryOperation,
-    evaluator: ExpressionEvaluator,
-    k: Continuation<PrimitiveValue>,
-  ): Thunk<PrimitiveValue> {
+    evaluator: Evaluator,
+  ): ExecutionCommand {
     const ctx = this.context;
 
-    return evaluator.evaluate(node.left, (left) => {
+    return new BindCommand(evaluator.evaluate(node.left), (left) => {
       const capturedEnv = ctx.clone();
-      return k(
+      return new StepCommand(
         createMemoizedStream(function* () {
           if (Array.isArray(left)) yield* left;
           else if (typeof left === "string") yield* left.split("");
@@ -250,7 +253,8 @@ export class LazyRuntime {
           ctx.setEnv(capturedEnv);
           let right: PrimitiveValue;
           try {
-            right = trampoline(evaluator.evaluate(node.right, idContinuation));
+            const subKernel = new YukigoKernel(evaluator);
+            right = subKernel.run(new EvalCommand(node.right));
           } finally {
             ctx.setEnv(prevEnv);
           }
@@ -263,70 +267,73 @@ export class LazyRuntime {
       );
     });
   }
-  public deepEqual<R = boolean>(
-    a: PrimitiveValue,
-    b: PrimitiveValue,
-    k: Continuation<boolean, R>,
-  ): Thunk<R> {
-    if (a === b) return k(true);
+
+  public deepEqual(a: PrimitiveValue, b: PrimitiveValue): ExecutionCommand {
+    if (a === b) return new StepCommand(true);
 
     const aIsListLike = this.isListLike(a);
     const bIsListLike = this.isListLike(b);
     const eitherIsCollection = this.isCollection(a) || this.isCollection(b);
 
     if (eitherIsCollection && aIsListLike && bIsListLike) {
-      return this.realizeList(a, (valA) => () =>
-        this.realizeList(b, (valB) => {
-          if (valA.length !== valB.length) return k(false);
-          return this.deepEqualCollection(valA, valB, 0, k);
-        })
+      return new BindCommand(this.realizeList(a), (valA) =>
+        new BindCommand(this.realizeList(b), (valB) => {
+          if (!Array.isArray(valA) || !Array.isArray(valB))
+            throw new Error("[LazyRuntime] realizeList returned non-array result for deepEqual");
+          if (valA.length !== valB.length) return new StepCommand(false);
+          return this.deepEqualCollection(valA, valB, 0);
+        }),
       );
     }
 
-    if (eitherIsCollection) return k(false); // colección vs número → false
+    if (eitherIsCollection) return new StepCommand(false); // colección vs número → false
 
     if (this.isPlainObject(a) && this.isPlainObject(b))
-      return this.deepEqualObject(a, b, k);
+      return this.deepEqualObject(a, b);
 
-    return k(a == b); // primitivos: number, boolean, string==number
+    return new StepCommand(a == b); // primitivos: number, boolean, string==number
   }
   private isPlainObject(val: unknown): val is Record<string, any> {
-    return val !== null && typeof val === "object"
-      && !isLazyList(val) && !Array.isArray(val);
+    return (
+      val !== null &&
+      typeof val === "object" &&
+      !isLazyList(val) &&
+      !Array.isArray(val)
+    );
   }
   private isCollection(val: unknown): val is PrimitiveValue[] | LazyList {
     return Array.isArray(val) || isLazyList(val);
   }
 
-  private isListLike(val: unknown): val is string | PrimitiveValue[] | LazyList {
+  private isListLike(
+    val: unknown,
+  ): val is string | PrimitiveValue[] | LazyList {
     return Array.isArray(val) || isLazyList(val) || typeof val === "string";
   }
-  private deepEqualCollection<R>(
+  private deepEqualCollection(
     a: PrimitiveValue[],
     b: PrimitiveValue[],
     index: number,
-    k: Continuation<boolean, R>,
-  ): Thunk<R> {
-    if (index >= a.length) return k(true);
-    return this.deepEqual(a[index], b[index], (eq) => {
-      if (!eq) return k(false);
-      return () => this.deepEqualCollection(a, b, index + 1, k);
+  ): ExecutionCommand {
+    if (index >= a.length) return new StepCommand(true);
+    return new BindCommand(this.deepEqual(a[index], b[index]), (eq) => {
+      if (!eq) return new StepCommand(false);
+      return this.deepEqualCollection(a, b, index + 1);
     });
   }
 
-  private deepEqualObject<R>(
+  private deepEqualObject(
     a: Record<string, any>,
     b: Record<string, any>,
-    k: Continuation<boolean, R>,
-  ): Thunk<R> {
+  ): ExecutionCommand {
     const keys = Object.keys(a);
-    if (keys.length !== Object.keys(b).length) return k(false);
-    const checkNext = (index: number): Thunk<R> => {
-      if (index >= keys.length) return k(true);
+    if (keys.length !== Object.keys(b).length) return new StepCommand(false);
+    const checkNext = (index: number): ExecutionCommand => {
+      if (index >= keys.length) return new StepCommand(true);
       const key = keys[index];
-      return this.deepEqual(a[key], b[key], (eq) => {
-        if (!eq) return k(false);
-        return () => checkNext(index + 1);
+      return new BindCommand(this.deepEqual(a[key], b[key]), (eq) => {
+        if (!eq) return new StepCommand(false);
+        return checkNext(index + 1);
       });
     };
     return checkNext(0);

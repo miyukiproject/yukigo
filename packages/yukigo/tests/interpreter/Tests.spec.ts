@@ -13,7 +13,7 @@ import {
   StringPrimitive,
   Truth,
 } from "yukigo-ast";
-import { Interpreter, Tester } from "../../src/index.js";
+import { Interpreter } from "../../src/index.js";
 import { FailedAssert } from "../../src/interpreter/components/TestRunner.js";
 
 describe("Testing Nodes", () => {
@@ -73,7 +73,7 @@ describe("Testing Nodes", () => {
       const funcThatRaises = new Raise(new StringPrimitive("Boom"));
       const assertion = new Assert(
         new BooleanPrimitive(false),
-        new Failure(funcThatRaises, new StringPrimitive("[Raise] Boom")),
+        new Failure(funcThatRaises, new StringPrimitive("Boom")),
       );
       interpreter.evaluate(new Sequence([assertion]));
     });
@@ -82,7 +82,7 @@ describe("Testing Nodes", () => {
       const funcThatReturns = new NumberPrimitive(1);
       const assertion = new Assert(
         new BooleanPrimitive(false),
-        new Failure(funcThatReturns, new StringPrimitive("[Raise] Boom")),
+        new Failure(funcThatReturns, new StringPrimitive("Boom")),
       );
       expect(() => interpreter.evaluate(new Sequence([assertion]))).to.throw(
         FailedAssert,

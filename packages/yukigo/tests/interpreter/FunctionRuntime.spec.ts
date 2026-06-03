@@ -19,11 +19,10 @@ import {
 } from "yukigo-ast";
 import { FunctionRuntime } from "../../src/interpreter/components/runtimes/FunctionRuntime.js";
 import { createGlobalEnv } from "../../src/interpreter/utils.js";
-import {
-  idContinuation,
-  trampoline,
-} from "../../src/interpreter/trampoline.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
+import { YukigoKernel } from "../../src/interpreter/components/kernel/index.js";
+import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
+import { EvalCommand } from "../../src/interpreter/components/kernel/commands.js";
 
 const symbol = (val: string) => new SymbolPrimitive(val);
 const num = (val: number) => new NumberPrimitive(val);
@@ -47,13 +46,16 @@ const makeRunFunc = (
 
 describe("FunctionRuntime", () => {
   let globalEnv: EnvStack;
-
+  let context: RuntimeContext;
   let funcRuntime: FunctionRuntime;
+  let kernel: YukigoKernel;
+
   beforeEach(() => {
     globalEnv = createGlobalEnv();
-    const context = new RuntimeContext();
+    context = new RuntimeContext();
     context.setEnv(globalEnv);
     funcRuntime = new FunctionRuntime(context);
+    kernel = new YukigoKernel(new InterpreterVisitor(context));
   });
 
   describe("Pattern Matching & Dispatch", () => {
@@ -67,12 +69,10 @@ describe("FunctionRuntime", () => {
         body: unguarded([str("twenty")]),
       };
 
-      const resultThunk = funcRuntime.apply(
+      const result = kernel.run(funcRuntime.apply(
         makeRunFunc("f", 1, [eq1, eq2]),
         [20],
-        idContinuation,
-      );
-      const result = trampoline(resultThunk);
+      ));
 
       expect(result).to.equal("twenty");
     });
@@ -84,9 +84,7 @@ describe("FunctionRuntime", () => {
       };
 
       expect(() => {
-        trampoline(
-          funcRuntime.apply(makeRunFunc("f", 1, [eq1]), [99], idContinuation),
-        );
+        kernel.run(funcRuntime.apply(makeRunFunc("f", 1, [eq1]), [99]));
       }).to.throw(/Non-exhaustive patterns/);
     });
 
@@ -97,9 +95,7 @@ describe("FunctionRuntime", () => {
       };
 
       expect(() => {
-        trampoline(
-          funcRuntime.apply(makeRunFunc("f", 2, [eq1]), [1, 2], idContinuation),
-        );
+        kernel.run(funcRuntime.apply(makeRunFunc("f", 2, [eq1]), [1, 2]));
       }).to.throw(/Non-exhaustive patterns/);
     });
   });
@@ -111,11 +107,10 @@ describe("FunctionRuntime", () => {
         body: unguarded([num(500)]),
       };
 
-      const result = trampoline(
+      const result = kernel.run(
         funcRuntime.apply(
           makeRunFunc("identity", 1, [eq1]),
           [500],
-          idContinuation,
         ),
       );
 
@@ -131,11 +126,10 @@ describe("FunctionRuntime", () => {
         new Return(new SymbolPrimitive("X")),
       );
 
-      const result = trampoline(
+      const result = kernel.run(
         funcRuntime.apply(
           makeRunFunc("shadow", 1, [eq1]),
           [999],
-          idContinuation,
         ),
       );
       expect(result).to.equal(999);
@@ -154,8 +148,8 @@ describe("FunctionRuntime", () => {
         body: guards,
       };
 
-      const result = trampoline(
-        funcRuntime.apply(makeRunFunc("guards", 1, [eq]), [0], idContinuation),
+      const result = kernel.run(
+        funcRuntime.apply(makeRunFunc("guards", 1, [eq]), [0]),
       );
       expect(result).to.equal(2);
     });
@@ -171,11 +165,10 @@ describe("FunctionRuntime", () => {
         body: unguarded([num(2)]),
       };
 
-      const result = trampoline(
+      const result = kernel.run(
         funcRuntime.apply(
           makeRunFunc("fallback", 1, [eq1, eq2]),
           [0],
-          idContinuation,
         ),
       );
       expect(result).to.equal(2);
@@ -189,8 +182,8 @@ describe("FunctionRuntime", () => {
         body: unguarded([num(10), num(20), num(30)]),
       };
 
-      const result = trampoline(
-        funcRuntime.apply(makeRunFunc("seq", 1, [eq]), [], idContinuation),
+      const result = kernel.run(
+        funcRuntime.apply(makeRunFunc("seq", 1, [eq]), []),
       );
       expect(result).to.equal(30);
     });
@@ -203,8 +196,8 @@ describe("FunctionRuntime", () => {
         body: unguarded([num(10), retStmt, num(30)]),
       };
 
-      const result = trampoline(
-        funcRuntime.apply(makeRunFunc("earlyRet", 1, [eq]), [], idContinuation),
+      const result = kernel.run(
+        funcRuntime.apply(makeRunFunc("earlyRet", 1, [eq]), []),
       );
       expect(result).to.equal(99);
     });
@@ -214,8 +207,8 @@ describe("FunctionRuntime", () => {
         patterns: [],
         body: unguarded([]),
       };
-      const result = trampoline(
-        funcRuntime.apply(makeRunFunc("empty", 1, [eq]), [], idContinuation),
+      const result = kernel.run(
+        funcRuntime.apply(makeRunFunc("empty", 1, [eq]), []),
       );
       expect(result).to.be.undefined;
     });

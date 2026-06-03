@@ -3,23 +3,22 @@ import {
   ASTNode,
   Equality,
   Failure,
-  isLazyList,
   PrimitiveValue,
   Test,
   TestGroup,
-  TraverseVisitor,
   Truth,
+  Visitor,
 } from "yukigo-ast";
 import { InterpreterVisitor } from "./Visitor.js";
 import {
-  CPSThunk,
-  idContinuation,
-  trampoline,
-  Continuation,
-  Thunk,
-} from "../trampoline.js";
+  ExecutionCommand,
+  StepCommand,
+  BindCommand,
+  FailCommand,
+} from "./kernel/commands.js";
 import { LazyRuntime } from "./runtimes/LazyRuntime.js";
-import { UnexpectedNode } from "../../utils/helpers.js";
+import { UnexpectedNode } from "../errors.js";
+import { YukigoKernel } from "./kernel/index.js";
 
 export class FailedAssert extends Error {
   constructor(
@@ -32,129 +31,124 @@ export class FailedAssert extends Error {
   }
 }
 
-class AssertionVisitor extends TraverseVisitor {
+class AssertionVisitor implements Visitor<ExecutionCommand> {
   constructor(
     private interpreter: InterpreterVisitor,
     private negated: boolean,
     private lazyRuntime: LazyRuntime,
-  ) {
-    super();
-  }
+  ) {}
 
-  visitFailure(node: Failure): CPSThunk<void> {
-    return (k) => () => {
-      let threw = false;
-      let actualError: string | undefined;
+  visitFailure(node: Failure): ExecutionCommand {
+    let threw = false;
+    let actualError: string | undefined;
 
-      try {
-        // We use trampoline here to execute the function under test.
-        // While this is a nested trampoline, it's necessary to capture the error
-        // and isolate the test execution from the test runner's CPS flow.
-        trampoline(this.interpreter.evaluate(node.func, idContinuation));
-      } catch (error) {
-        threw = true;
-        actualError = (error as Error).message;
-      }
+    try {
+      new YukigoKernel(this.interpreter).run(this.interpreter.evaluate(node.func));
+    } catch (error) {
+      threw = true;
+      actualError = (error as Error).message;
+    }
 
-      return this.interpreter.evaluate(node.message, (expectedError) => {
-        const passed =
-          threw &&
-          (expectedError === undefined ||
-            actualError?.includes(expectedError as string));
+    return new BindCommand(this.interpreter.evaluate(node.message), (expectedError) => {
+      const passed =
+        threw &&
+        (expectedError === undefined ||
+          actualError?.includes(expectedError as string));
 
-        if (this.negated === passed) {
-          if (!threw) {
-            throw new FailedAssert(
+      if (this.negated === passed) {
+        if (!threw) {
+          return new FailCommand(
+            new FailedAssert(
               undefined,
               expectedError,
               "Expected code to fail, but it succeeded",
-            );
-          } else {
-            throw new FailedAssert(
+            ),
+          );
+        } else {
+          return new FailCommand(
+            new FailedAssert(
               actualError,
               expectedError,
               `Expected error message to contain "${expectedError}", but got "${actualError}"`,
+            ),
+          );
+        }
+      }
+      return new StepCommand(undefined);
+    });
+  }
+
+  visitEquality(node: Equality): ExecutionCommand {
+    return new BindCommand(this.interpreter.evaluate(node.value), (value) => {
+      return new BindCommand(this.interpreter.evaluate(node.expected), (expected) => {
+        return new BindCommand(this.lazyRuntime.deepEqual(value, expected), (passed) => {
+          if (this.negated === passed) {
+            return new FailCommand(
+              new FailedAssert(
+                value,
+                expected,
+                this.negated
+                  ? `Expected ${JSON.stringify(value)} NOT to be equal to ${JSON.stringify(expected)}`
+                  : `Expected ${JSON.stringify(expected)}, but got ${JSON.stringify(value)}`,
+              ),
             );
           }
-        }
-        return k(undefined);
+          return new StepCommand(undefined);
+        });
       });
-    };
+    });
   }
 
-  visitEquality(node: Equality): CPSThunk<void> {
-    return (k) =>
-      this.interpreter.evaluate(node.value, (value) => {
-        return () =>
-          this.interpreter.evaluate(node.expected, (expected) => {
-            this.lazyRuntime.deepEqual(value, expected, (passed) => {
-              if (this.negated === passed) {
-                throw new FailedAssert(
-                  value,
-                  expected,
-                  this.negated
-                    ? `Expected ${JSON.stringify(value)} NOT to be equal to ${JSON.stringify(expected)}`
-                    : `Expected ${JSON.stringify(expected)}, but got ${JSON.stringify(value)}`,
-                );
-              }
-              return k(undefined);
-            });
-          });
-      });
-  }
-
-  visitTruth(node: Truth): CPSThunk<void> {
-    return (k) =>
-      this.interpreter.evaluate(node.body, (value) => {
-        const isTruthy = Boolean(value);
-        if (this.negated === isTruthy) {
-          throw new FailedAssert(
+  visitTruth(node: Truth): ExecutionCommand {
+    return new BindCommand(this.interpreter.evaluate(node.body), (value) => {
+      const isTruthy = Boolean(value);
+      if (this.negated === isTruthy) {
+        return new FailCommand(
+          new FailedAssert(
             value,
             !this.negated,
             this.negated
               ? `Expected value to be falsy, but got ${JSON.stringify(value)}`
               : `Expected value to be truthy, but got ${JSON.stringify(value)}`,
-          );
-        }
-        return k(undefined);
-      });
+          ),
+        );
+      }
+      return new StepCommand(undefined);
+    });
   }
-  public fallback(node: ASTNode): CPSThunk<void> {
-    throw new UnexpectedNode(node.constructor.name, "AssertionVisitor");
+  public fallback(node: ASTNode): ExecutionCommand {
+    return new FailCommand(new UnexpectedNode(node.constructor.name, "AssertionVisitor"));
   }
 }
 
-export class TestRunner extends TraverseVisitor {
+export class TestRunner implements Visitor<ExecutionCommand> {
   constructor(
     public interpreter: InterpreterVisitor,
     private lazyRuntime: LazyRuntime,
-  ) {
-    super();
+  ) {}
+
+  public run(node: TestGroup | Test | Assert): ExecutionCommand {
+    return node.accept(this);
   }
 
-  public run(node: TestGroup | Test | Assert): CPSThunk<void> {
-    return node.accept(this) as any;
+  visitTestGroup(node: TestGroup): ExecutionCommand {
+    return this.interpreter.evaluate(node.group);
   }
-
-  visitTestGroup(node: TestGroup): CPSThunk<void> {
-    return (k) => this.interpreter.evaluate(node.group, () => k(undefined));
+  visitTest(node: Test): ExecutionCommand {
+    return this.interpreter.evaluate(node.body);
   }
-  visitTest(node: Test): CPSThunk<void> {
-    return (k) => this.interpreter.evaluate(node.body, () => k(undefined));
+  visitAssert(node: Assert): ExecutionCommand {
+    return new BindCommand(this.interpreter.evaluate(node.negated), (negatedVal) => {
+      const isNegated = Boolean(negatedVal);
+      const visitor = new AssertionVisitor(
+        this.interpreter,
+        isNegated,
+        this.lazyRuntime,
+      );
+      return node.body.accept(visitor);
+    });
   }
-  visitAssert(node: Assert): CPSThunk<void> {
-    return (k) =>
-      this.interpreter.evaluate(node.negated, (negatedVal) => {
-        const isNegated = Boolean(negatedVal);
-        const visitor = new AssertionVisitor(
-          this.interpreter,
-          isNegated,
-          this.lazyRuntime,
-        );
-        return (node.body.accept(visitor) as any)(k);
-      });
-  }
-  public fallback(node: ASTNode): CPSThunk<PrimitiveValue> {
-    throw new UnexpectedNode(node.constructor.name, "TestRunner");
+  public fallback(node: ASTNode): ExecutionCommand {
+    return new FailCommand(new UnexpectedNode(node.constructor.name, "TestRunner"));
   }
 }

@@ -16,8 +16,9 @@ import {
   PatternMatcher,
 } from "../../src/interpreter/components/PatternMatcher.js";
 import { createStream } from "../../src/interpreter/utils.js";
-import { idContinuation, trampoline } from "../../src/interpreter/trampoline.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
+import { YukigoKernel } from "../../src/interpreter/components/kernel/index.js";
+import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
 
 const s = (v: string) => new SymbolPrimitive(v);
 const n = (v: number) => new NumberPrimitive(v);
@@ -72,9 +73,11 @@ describe("Pattern System", () => {
       value: any
     ): { success: boolean; bindings: [string, any][] } => {
       const bindings: [string, any][] = [];
-      const matcher = new PatternMatcher(value, bindings, new RuntimeContext({lazyLoading: false}));
+      const ctx = new RuntimeContext({lazyLoading: false});
+      const matcher = new PatternMatcher(value, bindings, ctx);
+      const kernel = new YukigoKernel(new InterpreterVisitor(ctx));
 
-      const success = trampoline(pattern.accept(matcher)(idContinuation));
+      const success = kernel.run(pattern.accept(matcher));
       return { success, bindings };
     };
 
