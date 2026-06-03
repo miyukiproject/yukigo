@@ -37,7 +37,8 @@ export class Interpreter {
    */
   public evaluate(expr: ASTNode): PrimitiveValue {
     const visitor = new InterpreterVisitor(this.context);
-    const kernel = new YukigoKernel(visitor);
+    const outputMode = this.context.config.outputMode
+    const kernel = new YukigoKernel(visitor, outputMode);
     return kernel.run(new EvalCommand(expr));
   }
 }

@@ -1,22 +1,35 @@
 import {
   Expression,
-  LiteralPattern,
-  Pattern,
   PrimitiveValue,
-  SymbolPrimitive,
   Variable,
-  VariablePattern,
-  isPattern,
-  NumberPrimitive,
-  StringPrimitive,
-  BooleanPrimitive,
   ListPrimitive,
-  ListPattern,
   ConsExpression,
+  SymbolPrimitive,
+  isPattern,
+  Pattern,
+  LiteralPattern,
+  VariablePattern,
+  ListPattern,
+  TuplePattern,
   ConsPattern,
   FunctorPattern,
+  WildcardPattern,
+  ConstructorPattern,
+  ASTNode,
+  PatternVisitor,
+  LogicTerm,
+  Visitor,
+  isLogicTerm,
 } from "yukigo-ast";
-import { Substitution, instantiate } from "./LogicResolver.js";
+import {
+  VariableTerm,
+  ConstantTerm,
+  ListTerm,
+  ConsTerm,
+  WildcardTerm,
+  CompoundTerm,
+} from "./LogicTerm.js";
+import { Substitution } from "yukigo-ast";
 import { Evaluator } from "../../utils.js";
 import { InterpreterError } from "../../errors.js";
 import { RuntimeContext } from "../RuntimeContext.js";
@@ -26,96 +39,239 @@ import {
   BindCommand,
 } from "../kernel/commands.js";
 
+/**
+ * Sync visitor to convert Patterns to LogicTerms.
+ */
+class PatternToTermVisitor implements PatternVisitor<LogicTerm> {
+  constructor(
+    private translator: LogicTranslator,
+    private scope?: Map<string, VariableTerm>,
+  ) {}
+
+  visitVariablePattern(node: VariablePattern): LogicTerm {
+    const name = node.name.value;
+    if (this.scope) {
+      let term = this.scope.get(name);
+      if (!term) {
+        term = new VariableTerm(this.translator.getNextId(name), name);
+        this.scope.set(name, term);
+      }
+      return term;
+    }
+    return new VariableTerm(this.translator.getNextId(name), name);
+  }
+  visitLiteralPattern(node: LiteralPattern): LogicTerm {
+    return new ConstantTerm(node.name.value ?? null);
+  }
+  visitListPattern(node: ListPattern): LogicTerm {
+    return new ListTerm(node.elements.map((el) => el.accept(this)));
+  }
+  visitTuplePattern(node: TuplePattern): LogicTerm {
+    return new ListTerm(node.elements.map((el) => el.accept(this)));
+  }
+  visitConsPattern(node: ConsPattern): LogicTerm {
+    let curr: Pattern = node;
+    const lefts: Pattern[] = [];
+    while (curr instanceof ConsPattern) {
+      lefts.push(curr.left);
+      curr = curr.right;
+    }
+    let result = curr.accept(this);
+    for (let i = lefts.length - 1; i >= 0; i--) {
+      result = new ConsTerm(lefts[i].accept(this), result);
+    }
+    return result;
+  }
+  visitWildcardPattern(node: WildcardPattern): LogicTerm {
+    return new WildcardTerm();
+  }
+  visitFunctorPattern(node: FunctorPattern): LogicTerm {
+    return new CompoundTerm(
+      node.identifier.value,
+      node.args.map((a) => a.accept(this)),
+    );
+  }
+  visitConstructorPattern(node: ConstructorPattern): LogicTerm {
+    return new CompoundTerm(
+      node.identifier.value,
+      node.args.map((a) => a.accept(this)),
+    );
+  }
+  visitAsPattern(node: any): LogicTerm {
+    return node.right.accept(this);
+  }
+  visitUnionPattern(node: any): LogicTerm {
+    throw new InterpreterError(
+      "Logic",
+      "UnionPattern not supported in logic engine yet",
+    );
+  }
+  visitTypePattern(node: any): LogicTerm {
+    throw new InterpreterError(
+      "Logic",
+      "TypePattern not supported in logic engine yet",
+    );
+  }
+  visitApplicationPattern(node: any): LogicTerm {
+    return new CompoundTerm(
+      node.identifier.value,
+      node.args.map((a: any) => a.accept(this)),
+    );
+  }
+
+  public fallback(node: ASTNode): LogicTerm {
+    throw new InterpreterError(
+      "Logic",
+      `Pattern ${node.constructor.name} translation not implemented`,
+    );
+  }
+}
+
+/**
+ * Kernel-based visitor to convert Expressions to LogicTerms.
+ */
+class ExpressionToTermVisitor implements Visitor<ExecutionCommand> {
+  constructor(
+    private translator: LogicTranslator,
+    private evaluator: Evaluator,
+    private ctx: RuntimeContext,
+    private scope?: Map<string, VariableTerm>,
+  ) {}
+
+  visitListPrimitive(node: ListPrimitive): ExecutionCommand {
+    const terms: LogicTerm[] = [];
+    const next = (index: number): ExecutionCommand => {
+      if (index >= node.value.length)
+        return new StepCommand(new ListTerm(terms));
+      return new BindCommand(
+        this.translator.expressionToTerm(
+          node.value[index] as Expression,
+          this.scope,
+        ),
+        (t) => {
+          if (!isLogicTerm(t))
+            throw new Error("expected LogicTerm in visitListPrimitive");
+          terms.push(t);
+          return next(index + 1);
+        },
+      );
+    };
+    return next(0);
+  }
+
+  visitConsExpression(node: ConsExpression): ExecutionCommand {
+    return new BindCommand(
+      this.translator.expressionToTerm(node.head, this.scope),
+      (head) => {
+        if (!isLogicTerm(head))
+          throw new Error("expected LogicTerm in visitConsExpression");
+
+        return new BindCommand(
+          this.translator.expressionToTerm(node.tail, this.scope),
+          (tail) => {
+            if (!isLogicTerm(tail))
+              throw new Error("expected LogicTerm in visitConsExpression");
+            return new StepCommand(new ConsTerm(head, tail));
+          },
+        );
+      },
+    );
+  }
+
+  visitVariable(node: Variable): ExecutionCommand {
+    const name = node.identifier.value;
+    if (this.ctx.isDefined(name)) {
+      return new BindCommand(this.evaluator.evaluate(node), (val) => {
+        return new StepCommand(this.translator.primitiveToTerm(val));
+      });
+    }
+    if (this.scope) {
+      let term = this.scope.get(name);
+      if (!term) {
+        term = new VariableTerm(this.translator.getNextId(name), name);
+        this.scope.set(name, term);
+      }
+      return new StepCommand(term);
+    }
+    return new StepCommand(
+      new VariableTerm(this.translator.getNextId(name), name),
+    );
+  }
+
+  visitSymbolPrimitive(node: SymbolPrimitive): ExecutionCommand {
+    const name = node.value;
+    if (this.ctx.isDefined(name)) {
+      return new BindCommand(this.evaluator.evaluate(node), (val) => {
+        return new StepCommand(this.translator.primitiveToTerm(val));
+      });
+    }
+    if (this.scope) {
+      let term = this.scope.get(name);
+      if (!term) {
+        term = new VariableTerm(this.translator.getNextId(name), name);
+        this.scope.set(name, term);
+      }
+      return new StepCommand(term);
+    }
+    return new StepCommand(
+      new VariableTerm(this.translator.getNextId(name), name),
+    );
+  }
+
+  public fallback(node: ASTNode): ExecutionCommand {
+    if (isPattern(node)) {
+      return new StepCommand(this.translator.patternToTerm(node, this.scope));
+    }
+    return new BindCommand(
+      this.evaluator.evaluate(node as Expression),
+      (val) => {
+        return new StepCommand(this.translator.primitiveToTerm(val));
+      },
+    );
+  }
+}
+
 export class LogicTranslator {
   constructor(
     private evaluator: Evaluator,
     private ctx: RuntimeContext,
   ) {}
 
-  public patternToPrimitive(pat: Pattern, substs?: Substitution): PrimitiveValue | undefined {
-    if (pat instanceof LiteralPattern) {
-      const primitive = pat.name;
-      return primitive.value;
-    }
-    if (pat instanceof VariablePattern) {
-      if (substs && substs.has(pat.name.value)) {
-          return this.patternToPrimitive(instantiate(pat, substs), substs);
-      }
-      return pat.name.value;
-    }
-    if (pat instanceof ListPattern) {
-      return pat.elements.map((el) => this.patternToPrimitive(el, substs));
-    }
-    if (pat instanceof ConsPattern) {
-      const head = this.patternToPrimitive(pat.left, substs);
-      const tail = this.patternToPrimitive(pat.right, substs);
-      if (Array.isArray(tail)) {
-        return [head, ...tail];
-      }
-      return [head, tail];
-    }
-    // For complex terms like FunctorPattern, we return its string representation
-    return pat.toString();
+  public getNextId(name: string): number {
+    const id = ++this.ctx.logicState.variableCounter;
+    this.ctx.logicState.idToName.set(id, name);
+    return id;
   }
 
-  public expressionToPattern(
-    expr: Expression,
-    k: (p: Pattern) => ExecutionCommand,
-  ): ExecutionCommand {
-    if (isPattern(expr)) return k(expr);
-
-    if (expr instanceof ListPrimitive) {
-      const results: Pattern[] = [];
-      const next = (index: number): ExecutionCommand => {
-        if (index >= expr.value.length) return k(new ListPattern(results));
-        return this.expressionToPattern(expr.value[index], (p) => {
-          results.push(p);
-          return next(index + 1);
-        });
-      };
-      return next(0);
-    }
-
-    if (expr instanceof ConsExpression) {
-      return this.expressionToPattern(expr.head, (headPat) => {
-        return this.expressionToPattern(expr.tail, (tailPat) => {
-          return k(new ConsPattern(headPat, tailPat));
-        });
-      });
-    }
-
-    if (expr instanceof Variable || expr instanceof SymbolPrimitive) {
-      const name =
-        expr instanceof Variable ? expr.identifier.value : expr.value;
-      if (this.ctx.isDefined(name)) {
-        return new BindCommand(this.evaluator.evaluate(expr), (val) => {
-          return k(this.primitiveToPattern(val));
-        });
-      }
-      return k(
-        new VariablePattern(expr instanceof Variable ? expr.identifier : expr),
-      );
-    }
-    return new BindCommand(this.evaluator.evaluate(expr), (val) => {
-      return k(this.primitiveToPattern(val));
-    });
+  public getName(id: number): string | undefined {
+    return this.ctx.logicState.idToName.get(id);
   }
 
-  public primitiveToPattern(val: PrimitiveValue): Pattern {
-    if (isPattern(val as any)) {
-      return val as any;
-    }
-    if (typeof val === "number") {
-      return new LiteralPattern(new NumberPrimitive(val));
-    }
-    if (typeof val === "string") {
-      return new LiteralPattern(new StringPrimitive(val));
-    }
-    if (typeof val === "boolean") {
-      return new LiteralPattern(new BooleanPrimitive(val));
+  /**
+   * Translates a Pattern (AST) into a LogicTerm (Runtime).
+   */
+  public patternToTerm(
+    pat: Pattern,
+    scope?: Map<string, VariableTerm>,
+  ): LogicTerm {
+    const visitor = new PatternToTermVisitor(this, scope);
+    return pat.accept(visitor);
+  }
+
+  /**
+   * Converts a PrimitiveValue to a LogicTerm.
+   */
+  public primitiveToTerm(val: PrimitiveValue): LogicTerm {
+    if (
+      val === null ||
+      typeof val === "number" ||
+      typeof val === "string" ||
+      typeof val === "boolean"
+    ) {
+      return new ConstantTerm(val);
     }
     if (Array.isArray(val)) {
-      return new ListPattern(val.map((v) => this.primitiveToPattern(v)));
+      return new ListTerm(val.map((v) => this.primitiveToTerm(v)));
     }
     if (
       val &&
@@ -123,30 +279,53 @@ export class LogicTranslator {
       "type" in val &&
       val.type === "Object"
     ) {
-      // Convert RuntimeObject to FunctorPattern for logic matching
-      const args: Pattern[] = [];
+      const args: LogicTerm[] = [];
       for (const [_, fieldVal] of (val as any).fields) {
-        args.push(this.primitiveToPattern(fieldVal));
+        args.push(this.primitiveToTerm(fieldVal));
       }
-      return new FunctorPattern(
-        new SymbolPrimitive((val as any).className || (val as any).identifier),
+      return new CompoundTerm(
+        (val as any).className || (val as any).identifier,
         args,
       );
     }
+    if (val && typeof val === "object" && "logicTermType" in val) {
+      return val as LogicTerm;
+    }
 
     throw new InterpreterError(
-      "primitiveToPattern",
-      `Cannot convert value ${val} to Logic Pattern`,
+      "primitiveToTerm",
+      `Cannot convert value ${val} to Logic Term`,
     );
   }
 
-  public instantiateExpressionAsPattern(
+  /**
+   * Evaluates an expression and returns its LogicTerm representation via the Kernel.
+   */
+  public expressionToTerm(
+    expr: Expression,
+    scope?: Map<string, VariableTerm>,
+  ): ExecutionCommand {
+    const visitor = new ExpressionToTermVisitor(
+      this,
+      this.evaluator,
+      this.ctx,
+      scope,
+    );
+    return expr.accept(visitor);
+  }
+
+  /**
+   * Instantiates an expression as a logic term, resolving logic variables.
+   */
+  public instantiateExpressionAsTerm(
     expr: Expression,
     substs: Substitution,
-    k: (p: Pattern) => ExecutionCommand,
+    scope?: Map<string, VariableTerm>,
   ): ExecutionCommand {
-    return this.expressionToPattern(expr, (patternBase) => {
-      return k(instantiate(patternBase, substs));
+    return new BindCommand(this.expressionToTerm(expr, scope), (term) => {
+      if (!isLogicTerm(term))
+        throw new Error("expected LogicTerm in visitConsExpression");
+      return new StepCommand(term.instantiate(substs));
     });
   }
 }

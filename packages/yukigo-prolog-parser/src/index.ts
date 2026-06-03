@@ -1,6 +1,6 @@
 import { AST, Expression, Rule, YukigoParser } from "yukigo-ast";
 import nearley from "nearley";
-import * as grammar from "./parser/grammar.js";
+import grammar from "./parser/grammar.cjs";
 import { Token } from "moo";
 import { stdCode } from "./std.js";
 
@@ -46,7 +46,9 @@ export class YukigoPrologParser implements YukigoParser {
     return expr;
   }
   private feedParser(code: string): any {
-    const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar));
+    const parser = new nearley.Parser(
+      nearley.Grammar.fromCompiled(grammar as any)
+    );
     try {
       parser.feed(code);
       parser.finish();

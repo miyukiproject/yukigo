@@ -7,18 +7,26 @@ import {
   FailCommand,
   StepCommand,
 } from "../../src/interpreter/components/kernel/commands.js";
+import { Evaluator } from "../../src/interpreter/utils.js";
 
 describe("YukigoKernel", () => {
   class MockEvaluator {
     evaluate(node: any): ExecutionCommand {
       return new StepCommand(node.mockValue);
     }
+    getContext() {
+      return {
+        config: {
+          outputMode: "first",
+        },
+      };
+    }
   }
 
   let kernel: YukigoKernel;
 
   beforeEach(() => {
-    kernel = new YukigoKernel(new MockEvaluator());
+    kernel = new YukigoKernel(new MockEvaluator() as Evaluator);
   });
 
   it("must execute a StepCommand and end", () => {

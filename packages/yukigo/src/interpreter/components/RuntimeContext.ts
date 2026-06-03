@@ -35,12 +35,22 @@ export class ReinitializedConfig extends Error {
   }
 }
 
+export interface LogicState {
+  variableCounter: number;
+  idToName: Map<number, string>;
+}
+
 export class RuntimeContext {
   public readonly config: InterpreterConfig = DefaultConfiguration;
   public env: EnvStack;
   public lazyRuntime: LazyRuntime;
   public funcRuntime: FunctionRuntime;
   public objRuntime: ObjectRuntime;
+  public logicState: LogicState = {
+    variableCounter: 0,
+    idToName: new Map<number, string>(),
+  };
+
   constructor(config?: InterpreterConfig) {
     this.config = Object.freeze({ ...DefaultConfiguration, ...config });
     this.lazyRuntime = new LazyRuntime(this);
@@ -109,11 +119,20 @@ export class RuntimeContext {
   public define(name: string, value: PrimitiveValue): void {
     this.env.head.set(name, value);
   }
-  public clone(env?: EnvStack): EnvStack {
+
+  public cloneEnv(env?: EnvStack): EnvStack {
     const target = env ?? this.env;
     return {
       head: new Map(target.head),
-      tail: this.env.tail,
+      tail: target.tail,
     };
+  }
+
+  public clone(env?: EnvStack): RuntimeContext {
+    const target = env ?? this.env;
+    const newCtx = new RuntimeContext(this.config);
+    newCtx.setEnv(this.cloneEnv(target));
+    newCtx.logicState = this.logicState; // share logic state
+    return newCtx;
   }
 }

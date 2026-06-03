@@ -11,5 +11,8 @@ tsconfig.tsbuildinfo
 .github/instructions/nx.instructions.md
 
 packages/yukigo-mini-parser/src/grammar.js
+packages/yukigo-mini-parser/src/grammar.cjs
 packages/yukigo-haskell-parser/src/parser/grammar.js
+packages/yukigo-haskell-parser/src/parser/grammar.cjs
 packages/yukigo-prolog-parser/src/parser/grammar.js
+packages/yukigo-prolog-parser/src/parser/grammar.cjs

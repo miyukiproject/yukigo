@@ -1,6 +1,6 @@
 import { AST, Expression, YukigoParser } from "yukigo-ast";
 import nearley from "nearley";
-import * as grammar from "./grammar.js";
+import grammar from "./grammar.cjs";
 import { Token } from "moo";
 
 interface NearleyError {
@@ -27,7 +27,9 @@ export class YukigoMiniParser implements YukigoParser {
     return this.feedParser(code);
   }
   private feedParser(code: string): any {
-    const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar));
+    const parser = new nearley.Parser(
+      nearley.Grammar.fromCompiled(grammar as any),
+    );
     try {
       parser.feed(code);
       parser.finish();

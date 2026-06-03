@@ -10,7 +10,7 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "nearleyc ./src/parser/grammar.ne -o ./src/parser/grammar.js && tsc",
+    "build": "nearleyc ./src/parser/grammar.ne -o ./src/parser/grammar.cjs && tsc",
     "test": "mocha --import=tsx"
   },
   "keywords": [],
