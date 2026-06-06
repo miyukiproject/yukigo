@@ -1,6 +1,12 @@
-import { isRuntimeClass, RuntimeClass } from "../../../primitives/RuntimeClass.js";
+import {
+  isRuntimeClass,
+  RuntimeClass,
+} from "../../../primitives/RuntimeClass.js";
 import { RuntimeFunction } from "../../../primitives/RuntimeFunction.js";
-import { isRuntimeObject, RuntimeObject } from "../../../primitives/RuntimeObject.js";
+import {
+  isRuntimeObject,
+  RuntimeObject,
+} from "../../../primitives/RuntimeObject.js";
 import { PrimitiveValue, EnvStack } from "../../../primitives/primitives.js";
 import { InterpreterError } from "../../errors.js";
 import { RuntimeContext } from "../RuntimeContext.js";
@@ -25,13 +31,12 @@ export class ObjectRuntime {
     fieldDefinitions: Map<string, PrimitiveValue>,
     methodDefinitions: Map<string, RuntimeFunction>,
   ): RuntimeObject {
-    return {
-      type: "Object",
-      className,
+    return new RuntimeObject(
       identifier,
-      fields: new Map(fieldDefinitions),
-      methods: methodDefinitions,
-    };
+      className,
+      new Map(fieldDefinitions),
+      methodDefinitions,
+    );
   }
 
   /**

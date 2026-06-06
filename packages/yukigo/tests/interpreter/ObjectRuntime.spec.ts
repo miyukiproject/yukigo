@@ -25,20 +25,19 @@ const createEmptyEnv = () => ({ head: new Map(), tail: null });
 const createMethodMap = (
   methods: RuntimeFunction[],
 ): Map<string, RuntimeFunction> =>
-  new Map(methods.map((m) => [m.identifier, m]));
+  new Map(methods.map((m) => [m.identifier!, m]));
 const createMethod = (name: string, returnVal: Primitive): RuntimeFunction => {
-  return {
-    type: "Function",
-    identifier: name,
-    arity: 0,
-    pendingArgs: [],
-    equations: [
+  return new RuntimeFunction(
+    0,
+    [
       {
         patterns: [],
         body: new UnguardedBody(new Sequence([new Return(returnVal)])),
       },
     ],
-  };
+    name,
+    [],
+  );
 };
 
 const createClass = (
@@ -47,14 +46,7 @@ const createClass = (
   methodDefs: Map<string, RuntimeFunction> = new Map(),
   mixins: string[] = [],
 ): RuntimeClass => {
-  return {
-    type: "Class",
-    identifier: name,
-    fields: new Map(),
-    methods: methodDefs,
-    superclass,
-    mixins,
-  };
+  return new RuntimeClass(name, new Map(), methodDefs, mixins, superclass);
 };
 
 describe("ctx.objRuntime", () => {
@@ -66,14 +58,13 @@ describe("ctx.objRuntime", () => {
     ["name", "Yukigo"],
   ]);
   const methods = new Map<string, RuntimeFunction>();
-  const classDef: RuntimeClass = {
-    type: "Class",
-    identifier: className,
-    fields: initialFields,
+  const classDef = new RuntimeClass(
+    className,
+    initialFields,
     methods,
-    mixins: [],
-    superclass: undefined,
-  };
+    [],
+    undefined,
+  );
   const env: EnvStack = createGlobalEnv();
   env.head.set(className, classDef);
   const ctx = new RuntimeContext();
@@ -90,7 +81,7 @@ describe("ctx.objRuntime", () => {
 
   describe("instantiate()", () => {
     it("debe crear un objeto con la estructura correcta", () => {
-      expect(objectInstance.type).to.equal("Object");
+      expect(objectInstance).to.be.an.instanceOf(RuntimeObject);
       expect(objectInstance.className).to.equal(className);
     });
 
@@ -136,12 +127,9 @@ describe("ctx.objRuntime", () => {
 
   describe("dispatch()", () => {
     it("debe ejecutar un método que accede a 'self' (campos del objeto)", () => {
-      const getCountMethod: RuntimeFunction = {
-        type: "Function",
-        identifier: "getCount",
-        arity: 0,
-        pendingArgs: [],
-        equations: [
+      const getCountMethod = new RuntimeFunction(
+        0,
+        [
           {
             patterns: [],
             body: new UnguardedBody(
@@ -149,7 +137,9 @@ describe("ctx.objRuntime", () => {
             ),
           },
         ],
-      };
+        "getCount",
+        [],
+      );
 
       objectInstance.methods.set("getCount", getCountMethod);
 
@@ -183,18 +173,17 @@ describe("ctx.objRuntime", () => {
 
     it("debe permitir argumentos en el método", () => {
       const returnArgAST = new Return(new SymbolPrimitive("val"));
-      const addMethod: RuntimeFunction = {
-        type: "Function",
-        identifier: "echo",
-        arity: 1,
-        pendingArgs: [],
-        equations: [
+      const addMethod = new RuntimeFunction(
+        1,
+        [
           {
             patterns: [new VariablePattern(new SymbolPrimitive("val"))],
             body: new UnguardedBody(new Sequence([returnArgAST])),
           },
         ],
-      };
+        "echo",
+        [],
+      );
 
       objectInstance.methods.set("echo", addMethod);
 
@@ -468,27 +457,25 @@ describe("ctx.objRuntime", () => {
         ]),
       );
 
-      const methodHijo: RuntimeFunction = {
-        type: "Function",
-        identifier: "calc",
-        arity: 0,
-        pendingArgs: [],
-        equations: [
+      const methodHijo = new RuntimeFunction(
+        0,
+        [
           {
             patterns: [],
             body: astBody,
           },
         ],
-      };
+        "calc",
+        [],
+      );
 
-      const Hijo: RuntimeClass = {
-        type: "Class",
-        identifier: "Hijo",
-        fields: new Map(),
-        methods: new Map([["calc", methodHijo]]),
-        superclass: "Base",
-        mixins: [],
-      };
+      const Hijo = new RuntimeClass(
+        "Hijo",
+        new Map(),
+        new Map([["calc", methodHijo]]),
+        [],
+        "Base",
+      );
       env.head.set("Hijo", Hijo);
 
       const hijoInstance = ctx.objRuntime.instantiate(

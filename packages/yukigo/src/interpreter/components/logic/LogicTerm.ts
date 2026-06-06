@@ -1,5 +1,6 @@
 import { LogicTerm, Substitution } from "../../../primitives/LogicResult.js";
 import { PrimitiveValue } from "../../../primitives/primitives.js";
+import { RuntimeObject } from "../../../primitives/RuntimeObject.js";
 
 /**
  * Represents a logic variable with a unique numeric ID.
@@ -52,7 +53,7 @@ export class VariableTerm implements LogicTerm {
   instantiate(env: Substitution, seen: Set<number> = new Set()): LogicTerm {
     let current: LogicTerm = this;
     const localSeen = new Set(seen);
-    
+
     while (current instanceof VariableTerm) {
       if (localSeen.has(current.id)) return current;
       localSeen.add(current.id);
@@ -60,7 +61,7 @@ export class VariableTerm implements LogicTerm {
       if (!bound) return current;
       current = bound;
     }
-    
+
     return current.instantiate(env, localSeen);
   }
 
@@ -160,13 +161,12 @@ export class CompoundTerm implements LogicTerm {
   toPrimitive(env: Substitution): PrimitiveValue {
     const args = this.args.map((a) => a.toPrimitive(env));
     // represent as a RuntimeObject
-    return {
-      type: "Object",
-      className: this.functor,
-      identifier: this.functor,
-      fields: new Map(args.map((v, i) => [`_${i}`, v])),
-      methods: new Map(),
-    };
+    return new RuntimeObject(
+      this.functor,
+      this.functor,
+      new Map(args.map((v, i) => [`_${i}`, v])),
+      new Map(),
+    );
   }
 
   toString(): string {
@@ -294,7 +294,7 @@ export class ConsTerm implements LogicTerm {
         return false;
       }
     }
-    
+
     return curr1.unify(curr2, env);
   }
 
@@ -320,7 +320,7 @@ export class ConsTerm implements LogicTerm {
       curr = curr.tail.resolve(env);
     }
     const tailVal = curr.toPrimitive(env);
-    
+
     let res: any = tailVal;
     for (let i = heads.length - 1; i >= 0; i--) {
       if (Array.isArray(res)) {

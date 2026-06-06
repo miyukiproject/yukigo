@@ -40,6 +40,7 @@ import {
   isLogicTerm,
   Substitution,
 } from "../../../primitives/LogicResult.js";
+import { isRuntimeObject } from "../../../primitives/RuntimeObject.js";
 
 /**
  * Sync visitor to convert Patterns to LogicTerms.
@@ -275,24 +276,14 @@ export class LogicTranslator {
     if (Array.isArray(val)) {
       return new ListTerm(val.map((v) => this.primitiveToTerm(v)));
     }
-    if (
-      val &&
-      typeof val === "object" &&
-      "type" in val &&
-      val.type === "Object"
-    ) {
+    if (isRuntimeObject(val)) {
       const args: LogicTerm[] = [];
-      for (const [_, fieldVal] of (val as any).fields) {
+      for (const [_, fieldVal] of val.fields) {
         args.push(this.primitiveToTerm(fieldVal));
       }
-      return new CompoundTerm(
-        (val as any).className || (val as any).identifier,
-        args,
-      );
+      return new CompoundTerm(val.className || val.identifier, args);
     }
-    if (val && typeof val === "object" && "logicTermType" in val) {
-      return val as LogicTerm;
-    }
+    if (isLogicTerm(val)) return val;
 
     throw new InterpreterError(
       "primitiveToTerm",

@@ -17,10 +17,11 @@ import { RuntimeContext } from "./RuntimeContext.js";
 import { InterpreterError, UnexpectedNode } from "../errors.js";
 import { YukigoKernel } from "./kernel/index.js";
 import { EvalCommand } from "./kernel/commands.js";
+import { PrimitiveValue } from "../../primitives/primitives.js";
 import {
-  PrimitiveValue,
-} from "../../primitives/primitives.js";
-import { EquationRuntime, RuntimeFunction } from "../../primitives/RuntimeFunction.js";
+  EquationRuntime,
+  RuntimeFunction,
+} from "../../primitives/RuntimeFunction.js";
 import { RuntimeClass } from "../../primitives/RuntimeClass.js";
 import { RuntimeObject } from "../../primitives/RuntimeObject.js";
 import { isRuntimePredicate } from "../../primitives/RuntimePredicate.js";
@@ -87,14 +88,13 @@ export class EnvBuilderVisitor extends TraverseVisitor {
     const fields = collector.collectedFields;
     const methods = collector.collectedMethods;
 
-    const runtimeClass: RuntimeClass = {
-      type: "Class",
+    const runtimeClass = new RuntimeClass(
       identifier,
       fields,
       methods,
-      superclass,
       mixins,
-    };
+      superclass,
+    );
 
     this.ctx.define(identifier, runtimeClass);
   }
@@ -110,13 +110,7 @@ export class EnvBuilderVisitor extends TraverseVisitor {
     const fields = collector.collectedFields;
     const methods = collector.collectedMethods;
 
-    const runtimeObject: RuntimeObject = {
-      type: "Object",
-      identifier,
-      className: "",
-      fields,
-      methods,
-    };
+    const runtimeObject = new RuntimeObject(identifier, "", fields, methods);
 
     this.ctx.define(identifier, runtimeObject);
   }
