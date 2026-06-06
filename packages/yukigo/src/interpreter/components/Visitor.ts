@@ -99,7 +99,7 @@ import {
 import { isRuntimeObject } from "../../primitives/RuntimeObject.js";
 import { isLazyList } from "../../primitives/LazyList.js";
 import { LogicAnswer, LogicResult } from "../../primitives/LogicResult.js";
-import { isRuntimeClass } from "../../primitives/RuntimeClass.js";
+import { isRuntimeClass, RuntimeClass } from "../../primitives/RuntimeClass.js";
 
 export class InterpreterVisitor implements Evaluator {
   constructor(private context: RuntimeContext) {}
@@ -478,14 +478,14 @@ export class InterpreterVisitor implements Evaluator {
 
     const evaluateFields = (index: number): ExecutionCommand => {
       if (index >= node.contents.length) {
-        return new StepCommand(
-          this.context.objRuntime.instantiate(
-            node.name.value,
-            node.name.value,
-            fieldValues,
-            new Map(),
-          ),
+        const identifier = node.name.value;
+        const classDef = new RuntimeClass(
+          identifier,
+          fieldValues,
+          new Map(),
+          [],
         );
+        return new StepCommand(classDef.instantiate(identifier));
       }
       const field = node.contents[index];
       return new BindCommand(this.evaluate(field.expression), (value) => {
@@ -615,7 +615,6 @@ export class InterpreterVisitor implements Evaluator {
       [],
       this.context.env,
     );
-    console.log("[visitLambda]", func);
     return new StepCommand(func);
   }
 
@@ -623,7 +622,6 @@ export class InterpreterVisitor implements Evaluator {
     const { funcRuntime } = this.context;
     return new BindCommand(this.evaluate(node.functionExpr), (func) => {
       if (!isRuntimeFunction(func)) {
-        console.log("[visitApplication]", func);
         return new FailCommand(
           new InterpreterError("Application", "Cannot apply non-function"),
         );
@@ -705,11 +703,7 @@ export class InterpreterVisitor implements Evaluator {
     const args: PrimitiveValue[] = [];
     const evaluateNextArg = (index: number): ExecutionCommand => {
       if (index >= node.args.length) {
-        return this.context.objRuntime.dispatchSuper(
-          this.context.env,
-          methodName,
-          args,
-        );
+        return this.context.objRuntime.dispatchSuper(methodName, args);
       }
       return new BindCommand(this.evaluate(node.args[index]), (val) => {
         args.push(val);
@@ -725,11 +719,7 @@ export class InterpreterVisitor implements Evaluator {
       const args: PrimitiveValue[] = [];
       const evaluateNextArg = (index: number): ExecutionCommand => {
         if (index >= node.args.length) {
-          return this.context.objRuntime.dispatchSuper(
-            this.context.env,
-            methodName,
-            args,
-          );
+          return this.context.objRuntime.dispatchSuper(methodName, args);
         }
         return new BindCommand(this.evaluate(node.args[index]), (val) => {
           args.push(val);
@@ -744,12 +734,7 @@ export class InterpreterVisitor implements Evaluator {
       const args: PrimitiveValue[] = [];
       const evaluateNextArg = (index: number): ExecutionCommand => {
         if (index >= node.args.length) {
-          return this.context.objRuntime.dispatch(
-            receiver,
-            methodName,
-            args,
-            this.context.env,
-          );
+          return this.context.objRuntime.dispatch(receiver, methodName, args);
         }
         return new BindCommand(this.evaluate(node.args[index]), (val) => {
           args.push(val);
@@ -768,14 +753,7 @@ export class InterpreterVisitor implements Evaluator {
         new InterpreterError("New", `${className} is not a class.`),
       );
 
-    return new StepCommand(
-      this.context.objRuntime.instantiate(
-        className,
-        node.identifier.value,
-        classDef.fields,
-        classDef.methods,
-      ),
-    );
+    return new StepCommand(classDef.instantiate(node.identifier.value));
   }
 
   visitSelf(node: Self): ExecutionCommand {
