@@ -1,51 +1,43 @@
 import { expect } from "chai";
 import {
-  Function as AstFunction,
   Fact,
   Rule,
   SymbolPrimitive,
   Equation,
-  Function,
+  Function as AstFunction,
   AST,
+  UnguardedBody,
+  Sequence,
 } from "yukigo-ast";
 import { EnvBuilderVisitor } from "../../src/interpreter/components/EnvBuilder.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
 import { RuntimeFunction } from "../../src/primitives/RuntimeFunction.js";
 import { RuntimePredicate } from "../../src/primitives/RuntimePredicate.js";
 
-const id = (val: string) => ({ value: val }) as SymbolPrimitive;
+const id = (val: string) => new SymbolPrimitive(val);
 
 const makeEq = (arity: number): Equation =>
-  ({
-    patterns: new Array(arity).fill({ type: "MockPattern" }),
-    body: { type: "MockBody" } as any,
-  }) as any;
+  new Equation(
+    new Array(arity).fill({ type: "MockPattern", accept: () => {} } as any),
+    new UnguardedBody(new Sequence([])),
+  );
 
 const makeFunc = (
   name: string,
   arity: number,
   eqCount: number = 1,
-): AstFunction => new Function(id(name), Array(eqCount).fill(makeEq(arity)));
+): AstFunction =>
+  new AstFunction(id(name), Array(eqCount).fill(null).map(() => makeEq(arity)));
 
-const makeFact = (name: string): Fact => {
-  const node = {
-    type: "Fact",
-    identifier: id(name),
-    patterns: [],
-  } as any;
-  node.accept = (v: any) => v.visitFact(node);
-  return node;
+const makeFact = (name: string, arity: number = 0): Fact => {
+  return new Fact(
+    id(name),
+    new Array(arity).fill({ type: "MockPattern", accept: () => {} } as any),
+  );
 };
 
-const makeRule = (name: string): Rule => {
-  const node = {
-    type: "Rule",
-    identifier: id(name),
-    patterns: [],
-    expressions: [],
-  } as any;
-  node.accept = (v: any) => v.visitRule(node);
-  return node;
+const makeRule = (name: string, arity: number = 0): Rule => {
+  return new Rule(id(name), [makeEq(arity)]);
 };
 
 describe("EnvBuilderVisitor", () => {
@@ -82,6 +74,7 @@ describe("EnvBuilderVisitor", () => {
 
     it("should throw error if function has no equations", () => {
       const funcNode = makeFunc("empty", 0, 0);
+      funcNode.equations = [];
 
       expect(() => visitor.visitFunction(funcNode)).to.throw(
         /has no equations/,
@@ -106,7 +99,6 @@ describe("EnvBuilderVisitor", () => {
 
       expect(ctx.isDefined("parent")).to.be.true;
       const entry = ctx.lookup("parent") as RuntimePredicate;
-      expect(entry).to.have.property("kind", "Predicate");
       expect(entry.equations).to.have.lengthOf(1);
       expect(entry.equations[0]).to.equal(factNode);
     });
@@ -119,21 +111,25 @@ describe("EnvBuilderVisitor", () => {
       visitor.visitFact(f2);
 
       const entry = ctx.lookup("parent") as RuntimePredicate;
-      expect(entry.kind).to.equal("Predicate");
       expect(entry.equations).to.have.lengthOf(2);
       expect(entry.equations[0]).to.equal(f1);
       expect(entry.equations[1]).to.equal(f2);
     });
 
-    it("should overwrite existing entry if it is not a Fact", () => {
+    it("should throw error if existing entry is not a Fact", () => {
       ctx.define("test", { type: "SomethingElse", equations: [] } as any);
       const factNode = makeFact("test");
-      visitor.visitFact(factNode);
+      expect(() => visitor.visitFact(factNode)).to.throw(
+        /is not a predicate/,
+      );
+    });
 
-      const entry = ctx.lookup("test") as RuntimePredicate;
-      expect(entry.kind).to.equal("Predicate");
-      expect(entry.equations).to.have.lengthOf(1);
-      expect(entry.equations[0]).to.equal(factNode);
+    it("should throw error if arity mismatch in Fact", () => {
+      const f1 = makeFact("parent", 2);
+      const f2 = makeFact("parent", 1);
+
+      visitor.visitFact(f1);
+      expect(() => visitor.visitFact(f2)).to.throw(/Arity mismatch/);
     });
   });
 
@@ -145,7 +141,6 @@ describe("EnvBuilderVisitor", () => {
 
       expect(ctx.isDefined("grandparent")).to.be.true;
       const entry = ctx.lookup("grandparent") as RuntimePredicate;
-      expect(entry).to.have.property("kind", "Predicate");
       expect(entry.equations).to.have.lengthOf(1);
       expect(entry.equations[0]).to.equal(ruleNode);
     });
@@ -158,10 +153,17 @@ describe("EnvBuilderVisitor", () => {
       visitor.visitRule(r2);
 
       const entry = ctx.lookup("ancestor") as RuntimePredicate;
-      expect(entry.kind).to.equal("Predicate");
       expect(entry.equations).to.have.lengthOf(2);
       expect(entry.equations[0]).to.equal(r1);
       expect(entry.equations[1]).to.equal(r2);
+    });
+
+    it("should throw error if arity mismatch in Rule", () => {
+      const r1 = makeRule("sibling", 2);
+      const r2 = makeRule("sibling", 3);
+
+      visitor.visitRule(r1);
+      expect(() => visitor.visitRule(r2)).to.throw(/Arity mismatch/);
     });
   });
 

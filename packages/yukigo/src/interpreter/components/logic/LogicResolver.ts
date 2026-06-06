@@ -102,9 +102,6 @@ export class GoalKernelVisitor implements Visitor<ExecutionCommand> {
   ) {}
 
   public visitFact(fact: Fact): ExecutionCommand {
-    if (fact.patterns.length !== this.args.length)
-      return new BacktrackCommand();
-
     const scope = new Map<string, VariableTerm>();
     const substs = unifyParameters(
       fact.patterns,
@@ -119,11 +116,6 @@ export class GoalKernelVisitor implements Visitor<ExecutionCommand> {
   }
 
   public visitRule(rule: Rule): ExecutionCommand {
-    if (rule.equations.length === 0) return new BacktrackCommand();
-
-    const arity = rule.equations[0].patterns.length;
-    if (arity !== this.args.length) return new BacktrackCommand();
-
     const alternatives: ExecutionCommand[] = [];
 
     for (const eq of rule.equations) {
@@ -174,28 +166,19 @@ export function solveGoalKernel(
   baseSubst: Substitution,
   translator: LogicTranslator,
 ): ExecutionCommand {
-  let equations: (Rule | Fact)[];
+  const pred = ctx.isDefined(predicateName) ? ctx.lookup(predicateName) : null;
 
-  try {
-    const pred = ctx.lookup(predicateName);
-    if (!pred || !isRuntimePredicate(pred)) return new BacktrackCommand();
-    equations = pred.equations;
-  } catch (error) {
-    return new BacktrackCommand();
-  }
+  const validPredicate =
+    isRuntimePredicate(pred) && pred.validateArity(args.length);
 
-  const clauseVisitor = new GoalKernelVisitor(
-    args,
-    baseSubst,
-    solveBody,
-    translator,
-  );
+  if (!validPredicate) return new BacktrackCommand();
 
-  const choices: ExecutionCommand[] = equations
-    .map((clause) => clause.accept(clauseVisitor))
+  const visitor = new GoalKernelVisitor(args, baseSubst, solveBody, translator);
+
+  const choices = pred
+    .apply(visitor)
     .filter((c) => !(c instanceof FailCommand));
 
   if (choices.length === 0) return new BacktrackCommand();
-
   return choices.length === 1 ? choices[0] : new ChoiceCommand(choices);
 }

@@ -33,7 +33,11 @@ import {
   CompoundTerm,
 } from "../../src/interpreter/components/logic/LogicTerm.js";
 import { LazyList } from "../../src/primitives/LazyList.js";
-import { LogicTerm, Substitution, LogicResult } from "../../src/primitives/LogicResult.js";
+import {
+  LogicTerm,
+  Substitution,
+  LogicResult,
+} from "../../src/primitives/LogicResult.js";
 import { RuntimePredicate } from "../../src/primitives/RuntimePredicate.js";
 
 const s = (val: string) => new SymbolPrimitive(val);
@@ -49,30 +53,22 @@ const makeRule = (id: string, body: Equation[]) => new Rule(s(id), body);
 const makeGoal = (id: string, args: Pattern[]) => new Goal(s(id), args);
 const makeConstraint = (expr: Expression) => new LogicConstraint(expr);
 
-const factsParent: RuntimePredicate = {
-  kind: "Fact",
-  identifier: "parent",
-  equations: [
-    makeFact("parent", [lit("zeus"), lit("ares")]),
-    makeFact("parent", [lit("zeus"), lit("athena")]),
-    makeFact("parent", [lit("hera"), lit("ares")]),
-  ],
-};
-const rulesSibling: RuntimePredicate = {
-  kind: "Rule",
-  identifier: "sibling",
-  equations: [
-    makeRule("sibling", [
-      makeEq(
-        [varPat("X"), varPat("Y")],
-        [
-          makeConstraint(makeGoal("parent", [varPat("Z"), varPat("X")])),
-          makeConstraint(makeGoal("parent", [varPat("Z"), varPat("Y")])),
-        ],
-      ),
-    ]),
-  ],
-};
+const factsParent = new RuntimePredicate("parent", [
+  makeFact("parent", [lit("zeus"), lit("ares")]),
+  makeFact("parent", [lit("zeus"), lit("athena")]),
+  makeFact("parent", [lit("hera"), lit("ares")]),
+]);
+const rulesSibling = new RuntimePredicate("sibling", [
+  makeRule("sibling", [
+    makeEq(
+      [varPat("X"), varPat("Y")],
+      [
+        makeConstraint(makeGoal("parent", [varPat("Z"), varPat("X")])),
+        makeConstraint(makeGoal("parent", [varPat("Z"), varPat("Y")])),
+      ],
+    ),
+  ]),
+]);
 
 const env = createGlobalEnv();
 const context = new RuntimeContext({

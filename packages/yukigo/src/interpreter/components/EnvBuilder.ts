@@ -24,7 +24,34 @@ import {
 } from "../../primitives/RuntimeFunction.js";
 import { RuntimeClass } from "../../primitives/RuntimeClass.js";
 import { RuntimeObject } from "../../primitives/RuntimeObject.js";
-import { isRuntimePredicate } from "../../primitives/RuntimePredicate.js";
+import {
+  isRuntimePredicate,
+  RuntimePredicate,
+} from "../../primitives/RuntimePredicate.js";
+
+class NotValidPredicate extends InterpreterError {
+  constructor(identifier: string) {
+    super(
+      "[EnvBuilder]",
+      `"${identifier}" is not a predicate. Maybe there is something else defined as "${identifier}"?`,
+    );
+  }
+}
+
+class FunctionWithNoEquations extends InterpreterError {
+  constructor(identifier: string) {
+    super("[EnvBuilder]", `Function ${identifier} has no equations`);
+  }
+}
+
+class FunctionArityMismatch extends InterpreterError {
+  constructor(identifier: string) {
+    super(
+      "[EnvBuilder]",
+      `All equations of ${identifier} must have the same arity`,
+    );
+  }
+}
 
 /**
  * Builds the initial environment by collecting all top-level function declarations.
@@ -47,13 +74,12 @@ export class EnvBuilderVisitor extends TraverseVisitor {
     if (this.ctx.config.debug)
       console.log(`[EnvBuilder] Defining function: ${name}`);
 
-    if (node.equations.length === 0)
-      throw new Error(`Function ${name} has no equations`);
+    if (node.equations.length === 0) throw new FunctionWithNoEquations(name);
 
     const arity = node.equations[0].patterns.length;
 
     if (node.equations.some((eq) => eq.patterns.length !== arity))
-      throw new Error(`All equations of ${name} must have the same arity`);
+      throw new FunctionArityMismatch(name);
 
     let placeholder = new RuntimeFunction(0, []);
     this.ctx.define(name, placeholder);
@@ -119,20 +145,15 @@ export class EnvBuilderVisitor extends TraverseVisitor {
 
     if (this.ctx.config.debug)
       console.log(`[EnvBuilder] Defining fact: ${identifier}`);
-    try {
+
+    if (this.ctx.isDefined(identifier)) {
       const runtimeValue = this.ctx.lookup(identifier);
       if (!isRuntimePredicate(runtimeValue))
-        throw new InterpreterError(
-          "EnvBuilder",
-          `"${identifier}" is not a predicate. Maybe there is something else defined as "${identifier}"?`,
-        );
-      runtimeValue.equations.push(node);
-    } catch (error) {
-      this.ctx.define(identifier, {
-        kind: "Predicate",
-        identifier,
-        equations: [node],
-      });
+        throw new NotValidPredicate(identifier);
+      runtimeValue.addClause(node);
+    } else {
+      const predicate = new RuntimePredicate(identifier, [node]);
+      this.ctx.define(identifier, predicate);
     }
   }
 
@@ -141,20 +162,15 @@ export class EnvBuilderVisitor extends TraverseVisitor {
 
     if (this.ctx.config.debug)
       console.log(`[EnvBuilder] Defining rule: ${identifier}`);
-    try {
+
+    if (this.ctx.isDefined(identifier)) {
       const runtimeValue = this.ctx.lookup(identifier);
       if (!isRuntimePredicate(runtimeValue))
-        throw new InterpreterError(
-          "EnvBuilder",
-          `"${identifier}" is not a predicate. Maybe there is something else defined as "${identifier}"?`,
-        );
-      runtimeValue.equations.push(node);
-    } catch (error) {
-      this.ctx.define(identifier, {
-        kind: "Predicate",
-        identifier,
-        equations: [node],
-      });
+        throw new NotValidPredicate(identifier);
+      runtimeValue.addClause(node);
+    } else {
+      const predicate = new RuntimePredicate(identifier, [node]);
+      this.ctx.define(identifier, predicate);
     }
   }
   visitVariable(node: Variable): void {
