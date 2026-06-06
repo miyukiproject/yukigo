@@ -589,14 +589,14 @@ export class InterpreterVisitor implements Evaluator {
           head: privateScope,
           tail: this.context.env,
         };
-        return new StepCommand({
-          type: "Function",
-          arity: 1,
-          identifier: `<(${f.identifier} . ${g.identifier})>`,
-          equations: [equation],
-          pendingArgs: [],
-          closure: capturedEnv,
-        });
+        const func = new RuntimeFunction(
+          1,
+          [equation],
+          `<(${f.identifier} . ${g.identifier})>`,
+          [],
+          capturedEnv,
+        );
+        return new StepCommand(func);
       });
     });
   }
@@ -607,37 +607,35 @@ export class InterpreterVisitor implements Evaluator {
       patterns,
       body: new UnguardedBody(new Sequence([new Return(node.body)])),
     };
-    return new StepCommand({
-      type: "Function",
-      arity: patterns.length,
-      equations: [equation],
-      pendingArgs: [],
-      identifier: "<lambda>",
-      closure: this.context.env,
-    });
+    const func = new RuntimeFunction(
+      patterns.length,
+      [equation],
+      "<lambda>",
+      [],
+      this.context.env,
+    );
+    console.log("[visitLambda]", func);
+    return new StepCommand(func);
   }
 
   visitApplication(node: Application): ExecutionCommand {
     const { funcRuntime } = this.context;
     return new BindCommand(this.evaluate(node.functionExpr), (func) => {
-      if (!isRuntimeFunction(func))
+      if (!isRuntimeFunction(func)) {
+        console.log("[visitApplication]", func);
         return new FailCommand(
           new InterpreterError("Application", "Cannot apply non-function"),
         );
+      }
 
       const applyFuncToNode = (func: RuntimeFunction): ExecutionCommand =>
         new BindCommand(this.evaluate(node.parameter), (arg) => {
-          const argThunk = () => arg;
-          const allPendingArgs = func.pendingArgs
-            ? [...func.pendingArgs, argThunk]
-            : [argThunk];
-          // We need applyArguments to return ExecutionCommand too.
-          return funcRuntime.applyArguments(func, allPendingArgs);
+          return funcRuntime.applyArguments(func, [() => arg]);
         });
 
       if (func.arity === 0) {
         return new BindCommand(
-          funcRuntime.applyArguments(func, []),
+          funcRuntime.applyArguments(func),
           (resultOfFunc) => {
             if (!isRuntimeFunction(resultOfFunc))
               return new FailCommand(

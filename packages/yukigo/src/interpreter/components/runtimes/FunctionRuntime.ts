@@ -1,4 +1,4 @@
-import { UnguardedBody, Sequence, Return, Function } from "yukigo-ast";
+import { Sequence, Return, Function, isUnguardedBody } from "yukigo-ast";
 import { Bindings } from "../../index.js";
 import { PatternMatcher } from "../PatternMatcher.js";
 import { Evaluator } from "../../utils.js";
@@ -15,6 +15,7 @@ import {
 import {
   RuntimeFunction,
   PrimitiveValue,
+  PrimitiveThunk,
   isRuntimeFunction,
   EquationRuntime,
 } from "../../runtime.js";
@@ -41,7 +42,7 @@ export class FunctionRuntime {
     const tryNextEquation = (eqIndex: number): ExecutionCommand => {
       if (eqIndex >= equations.length) {
         this.context.setEnv(oldEnv);
-        throw new NonExhaustivePatterns(funcName ?? "<anonymous>");
+        throw new NonExhaustivePatterns(func.name);
       }
 
       const eq = equations[eqIndex];
@@ -71,7 +72,7 @@ export class FunctionRuntime {
           };
 
           // UnguardedBody
-          if (body instanceof UnguardedBody)
+          if (isUnguardedBody(body))
             return new BindCommand(
               this.evaluateSequence(
                 body.sequence,
@@ -129,39 +130,29 @@ export class FunctionRuntime {
 
   public applyArguments(
     func: RuntimeFunction,
-    args: (PrimitiveValue | (() => PrimitiveValue))[],
+    args?: (PrimitiveValue | PrimitiveThunk)[],
   ): ExecutionCommand {
-    if (args.length < func.arity) {
-      return new StepCommand({
-        ...func,
-        pendingArgs: args,
-      });
-    }
+    const targetFunc = args ? func.bind(...args) : func;
+    const allArgs = targetFunc.pendingArgs ?? [];
 
-    const argsToConsume = args.slice(0, func.arity);
-    const remainingArgs = args.slice(func.arity);
+    if (allArgs.length < targetFunc.arity) return new StepCommand(targetFunc);
+
+    const argsToConsume = allArgs.slice(0, targetFunc.arity);
+    const remainingArgs = allArgs.slice(targetFunc.arity);
 
     const evaluatedArgs = argsToConsume.map((arg) =>
       typeof arg === "function" ? arg() : arg,
     );
 
-    return new BindCommand(this.apply(func, evaluatedArgs), (result) => {
-      if (remainingArgs.length > 0) {
-        if (isRuntimeFunction(result)) {
-          const nextArgs = result.pendingArgs
-            ? [...result.pendingArgs, ...remainingArgs]
-            : remainingArgs;
-
-          return this.applyArguments(result, nextArgs);
-        } else {
-          return new FailCommand(
-            new Error(
-              `[Application] Too many arguments provided. Result was '${result}' (not a function), but had ${remainingArgs.length} args left.`,
-            ),
-          );
-        }
-      }
-      return new StepCommand(result);
+    return new BindCommand(this.apply(targetFunc, evaluatedArgs), (result) => {
+      if (remainingArgs.length == 0) return new StepCommand(result);
+      if (!isRuntimeFunction(result))
+        return new FailCommand(
+          new Error(
+            `[Application] Too many arguments provided. Result was '${result}' (not a function), but had ${remainingArgs.length} args left.`,
+          ),
+        );
+      return this.applyArguments(result, remainingArgs);
     });
   }
 
@@ -174,7 +165,7 @@ export class FunctionRuntime {
     const evaluator = evaluatorFactory(ctx);
 
     for (const stmt of seq.statements) {
-      if (stmt instanceof Function || stmt instanceof Return) continue;
+      if (stmt.is(Function) || stmt.is(Return)) continue;
       // We ignore the result of preload
       evaluator.evaluate(stmt);
     }
@@ -214,17 +205,16 @@ export class FunctionRuntime {
       if (index >= seq.statements.length) return new StepCommand(lastResult);
 
       const stmt = seq.statements[index];
-      if (stmt instanceof Function) return evaluateNext(index + 1, lastResult);
+      if (stmt.is(Function)) return evaluateNext(index + 1, lastResult);
 
-      if (stmt instanceof Return) {
-        if (!stmt.body)
-          throw new Error("[FunctionRuntime]: Return \`body\` was undefined");
-        return evaluator.evaluate(stmt.body);
-      } else {
+      if (!stmt.is(Return))
         return new BindCommand(evaluator.evaluate(stmt), (result) => {
           return evaluateNext(index + 1, result);
         });
-      }
+
+      if (!stmt.body)
+        throw new Error("[FunctionRuntime]: Return \`body\` was undefined");
+      return evaluator.evaluate(stmt.body);
     };
 
     return evaluateNext(0, undefined);

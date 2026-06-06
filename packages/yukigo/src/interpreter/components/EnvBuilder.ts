@@ -55,11 +55,7 @@ export class EnvBuilderVisitor extends TraverseVisitor {
     if (node.equations.some((eq) => eq.patterns.length !== arity))
       throw new Error(`All equations of ${name} must have the same arity`);
 
-    let placeholder: RuntimeFunction = {
-      type: "Function",
-      arity: 0,
-      equations: [],
-    };
+    let placeholder = new RuntimeFunction(0, []);
     this.ctx.define(name, placeholder);
 
     const equations: EquationRuntime[] = node.equations.map((eq) => ({
@@ -67,13 +63,13 @@ export class EnvBuilderVisitor extends TraverseVisitor {
       body: eq.body,
     }));
 
-    const runtimeFunc: RuntimeFunction = {
-      type: "Function",
-      identifier: name,
+    const runtimeFunc = new RuntimeFunction(
       arity,
       equations,
-      closure: this.ctx.env,
-    };
+      name,
+      undefined,
+      this.ctx.env,
+    );
     this.ctx.define(name, runtimeFunc);
   }
   visitClass(node: Class): void {
@@ -190,12 +186,12 @@ class OOPCollector extends TraverseVisitor {
   public collectedMethods: Map<string, RuntimeFunction> = new Map();
   public collectedFields: Map<string, PrimitiveValue> = new Map();
   visitMethod(node: Method) {
-    const runtimeMethod: RuntimeFunction = {
-      type: "Function",
-      identifier: node.identifier.value,
-      arity: node.equations[0].patterns.length,
-      equations: node.equations,
-    };
+    const runtimeMethod = new RuntimeFunction(
+      node.equations[0].patterns.length,
+      node.equations,
+      node.identifier.value,
+    );
+
     this.collectedMethods.set(node.identifier.value, runtimeMethod);
   }
 

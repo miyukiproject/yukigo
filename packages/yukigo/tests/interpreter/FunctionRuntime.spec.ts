@@ -17,7 +17,11 @@ import { createGlobalEnv } from "../../src/interpreter/utils.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
 import { YukigoKernel } from "../../src/interpreter/components/kernel/index.js";
 import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
-import { EquationRuntime, RuntimeFunction, EnvStack } from "../../src/interpreter/runtime.js";
+import {
+  EquationRuntime,
+  RuntimeFunction,
+  EnvStack,
+} from "../../src/interpreter/runtime.js";
 
 const symbol = (val: string) => new SymbolPrimitive(val);
 const num = (val: number) => new NumberPrimitive(val);
@@ -33,7 +37,7 @@ const makeRunFunc = (
   identifier: string,
   arity: number,
   equations: EquationRuntime[],
-): RuntimeFunction => ({ type: "Function", identifier, arity, equations });
+) => new RuntimeFunction(arity, equations, identifier);
 
 describe("FunctionRuntime", () => {
   let globalEnv: EnvStack;
@@ -60,10 +64,9 @@ describe("FunctionRuntime", () => {
         body: unguarded([str("twenty")]),
       };
 
-      const result = kernel.run(funcRuntime.apply(
-        makeRunFunc("f", 1, [eq1, eq2]),
-        [20],
-      ));
+      const result = kernel.run(
+        funcRuntime.apply(makeRunFunc("f", 1, [eq1, eq2]), [20]),
+      );
 
       expect(result).to.equal("twenty");
     });
@@ -99,10 +102,7 @@ describe("FunctionRuntime", () => {
       };
 
       const result = kernel.run(
-        funcRuntime.apply(
-          makeRunFunc("identity", 1, [eq1]),
-          [500],
-        ),
+        funcRuntime.apply(makeRunFunc("identity", 1, [eq1]), [500]),
       );
 
       expect(result).to.equal(500);
@@ -118,10 +118,7 @@ describe("FunctionRuntime", () => {
       );
 
       const result = kernel.run(
-        funcRuntime.apply(
-          makeRunFunc("shadow", 1, [eq1]),
-          [999],
-        ),
+        funcRuntime.apply(makeRunFunc("shadow", 1, [eq1]), [999]),
       );
       expect(result).to.equal(999);
     });
@@ -157,10 +154,7 @@ describe("FunctionRuntime", () => {
       };
 
       const result = kernel.run(
-        funcRuntime.apply(
-          makeRunFunc("fallback", 1, [eq1, eq2]),
-          [0],
-        ),
+        funcRuntime.apply(makeRunFunc("fallback", 1, [eq1, eq2]), [0]),
       );
       expect(result).to.equal(2);
     });
