@@ -5,14 +5,14 @@ import { LogicTranslator } from "../logic/LogicTranslator.js";
 import { Scope } from "../logic/LogicEngine.js";
 import { ListTerm } from "../logic/LogicTerm.js";
 import { InterpreterVisitor } from "../Visitor.js";
+import { PrimitiveValue } from "../../../primitives/primitives.js";
 import {
-  PrimitiveValue,
   Substitution,
   isLogicResult,
   LogicResult,
   LogicAnswer,
   LogicTerm,
-} from "../../runtime.js";
+} from "../../../primitives/LogicResult.js";
 
 /**
  * A Continuation is a function that receives a value and decides what is the next Command to execute

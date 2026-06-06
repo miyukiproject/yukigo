@@ -34,7 +34,12 @@ import {
   StepCommand,
   BindCommand,
 } from "../kernel/commands.js";
-import { LogicTerm, isLogicTerm, PrimitiveValue, Substitution } from "../../runtime.js";
+import { PrimitiveValue } from "../../../primitives/primitives.js";
+import {
+  LogicTerm,
+  isLogicTerm,
+  Substitution,
+} from "../../../primitives/LogicResult.js";
 
 /**
  * Sync visitor to convert Patterns to LogicTerms.

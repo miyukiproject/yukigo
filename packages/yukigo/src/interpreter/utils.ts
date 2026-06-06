@@ -3,15 +3,14 @@ import { ExecutionCommand } from "./components/kernel/commands.js";
 import { RuntimeContext } from "./components/RuntimeContext.js";
 import {
   PrimitiveValue,
-  LazyList,
   Environment,
   EnvStack,
-  isLazyList,
-  isRuntimeFunction,
-  isRuntimeObject,
-  isRuntimeClass,
-  isRuntimePredicate,
-} from "./runtime.js";
+} from "../primitives/primitives.js";
+import { isRuntimeFunction } from "../primitives/RuntimeFunction.js";
+import { isLazyList, LazyList } from "../primitives/LazyList.js";
+import { isRuntimeObject } from "../primitives/RuntimeObject.js";
+import { isRuntimeClass } from "../primitives/RuntimeClass.js";
+import { isRuntimePredicate } from "../primitives/RuntimePredicate.js";
 
 export interface Evaluator {
   evaluate(node: ASTNode): ExecutionCommand;

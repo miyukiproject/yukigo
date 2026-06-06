@@ -1,12 +1,7 @@
-import {
-  PrimitiveValue,
-  RuntimeFunction,
-  RuntimeObject,
-  isRuntimeObject,
-  isRuntimeClass,
-  RuntimeClass,
-  EnvStack,
-} from "../../runtime.js";
+import { isRuntimeClass, RuntimeClass } from "../../../primitives/RuntimeClass.js";
+import { RuntimeFunction } from "../../../primitives/RuntimeFunction.js";
+import { isRuntimeObject, RuntimeObject } from "../../../primitives/RuntimeObject.js";
+import { PrimitiveValue, EnvStack } from "../../../primitives/primitives.js";
 import { InterpreterError } from "../../errors.js";
 import { RuntimeContext } from "../RuntimeContext.js";
 import { ExecutionCommand } from "../kernel/commands.js";

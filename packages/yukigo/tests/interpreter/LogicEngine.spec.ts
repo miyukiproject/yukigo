@@ -32,13 +32,9 @@ import {
   ConsTerm,
   CompoundTerm,
 } from "../../src/interpreter/components/logic/LogicTerm.js";
-import {
-  RuntimePredicate,
-  LogicTerm,
-  Substitution,
-  LazyList,
-  LogicResult,
-} from "../../src/interpreter/runtime.js";
+import { LazyList } from "../../src/primitives/LazyList.js";
+import { LogicTerm, Substitution, LogicResult } from "../../src/primitives/LogicResult.js";
+import { RuntimePredicate } from "../../src/primitives/RuntimePredicate.js";
 
 const s = (val: string) => new SymbolPrimitive(val);
 const n = (val: number) => new NumberPrimitive(val);

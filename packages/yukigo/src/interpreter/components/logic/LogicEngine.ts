@@ -27,15 +27,8 @@ import {
 } from "../kernel/commands.js";
 import { VariableTerm } from "./LogicTerm.js";
 import { Evaluator } from "../../utils.js";
-import {
-  Substitution,
-  PrimitiveValue,
-  LogicTerm,
-  LogicResult,
-  LogicAnswer,
-  isLogicTerm,
-  isLogicResult,
-} from "../../runtime.js";
+import { PrimitiveValue } from "../../../primitives/primitives.js";
+import { isLogicResult, isLogicTerm, LogicAnswer, LogicResult, LogicTerm, Substitution } from "../../../primitives/LogicResult.js";
 
 export type LogicExecutable =
   | Expression

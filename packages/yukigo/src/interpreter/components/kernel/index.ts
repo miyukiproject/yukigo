@@ -1,4 +1,4 @@
-import { EnvStack, PrimitiveValue } from "../../runtime.js";
+import { EnvStack, PrimitiveValue } from "../../../primitives/primitives.js";
 import {
   Continuation,
   ExecutionCommand,

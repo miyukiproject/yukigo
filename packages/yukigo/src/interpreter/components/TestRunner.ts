@@ -18,7 +18,7 @@ import {
 import { LazyRuntime } from "./runtimes/LazyRuntime.js";
 import { UnexpectedNode } from "../errors.js";
 import { YukigoKernel } from "./kernel/index.js";
-import { PrimitiveValue } from "../runtime.js";
+import { PrimitiveValue } from "../../primitives/primitives.js";
 
 export class FailedAssert extends Error {
   constructor(

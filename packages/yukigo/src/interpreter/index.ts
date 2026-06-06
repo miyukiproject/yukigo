@@ -7,7 +7,7 @@ import {
 } from "./components/RuntimeContext.js";
 import { YukigoKernel } from "./components/kernel/index.js";
 import { EvalCommand } from "./components/kernel/commands.js";
-import { PrimitiveValue } from "./runtime.js";
+import { PrimitiveValue } from "../primitives/primitives.js";
 
 export type Bindings = [string, PrimitiveValue][];
 
@@ -38,7 +38,7 @@ export class Interpreter {
    */
   public evaluate(expr: ASTNode): PrimitiveValue {
     const visitor = new InterpreterVisitor(this.context);
-    const outputMode = this.context.config.outputMode
+    const outputMode = this.context.config.outputMode;
     const kernel = new YukigoKernel(visitor, outputMode);
     return kernel.run(new EvalCommand(expr));
   }

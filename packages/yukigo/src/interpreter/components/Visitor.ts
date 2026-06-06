@@ -88,17 +88,18 @@ import {
 } from "./kernel/commands.js";
 import {
   PrimitiveValue,
-  isRuntimeFunction,
   Environment,
-  isRuntimeObject,
-  isLazyList,
-  EquationRuntime,
   EnvStack,
+} from "../../primitives/primitives.js";
+import {
+  EquationRuntime,
+  isRuntimeFunction,
   RuntimeFunction,
-  LogicResult,
-  LogicAnswer,
-  isRuntimeClass,
-} from "../runtime.js";
+} from "../../primitives/RuntimeFunction.js";
+import { isRuntimeObject } from "../../primitives/RuntimeObject.js";
+import { isLazyList } from "../../primitives/LazyList.js";
+import { LogicAnswer, LogicResult } from "../../primitives/LogicResult.js";
+import { isRuntimeClass } from "../../primitives/RuntimeClass.js";
 
 export class InterpreterVisitor implements Evaluator {
   constructor(private context: RuntimeContext) {}

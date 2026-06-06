@@ -17,11 +17,8 @@ import { createGlobalEnv } from "../../src/interpreter/utils.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
 import { YukigoKernel } from "../../src/interpreter/components/kernel/index.js";
 import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
-import {
-  EquationRuntime,
-  RuntimeFunction,
-  EnvStack,
-} from "../../src/interpreter/runtime.js";
+import { EnvStack } from "../../src/primitives/primitives.js";
+import { RuntimeFunction, EquationRuntime } from "../../src/primitives/RuntimeFunction.js";
 
 const symbol = (val: string) => new SymbolPrimitive(val);
 const num = (val: number) => new NumberPrimitive(val);

@@ -15,13 +15,10 @@ import { createGlobalEnv } from "../../src/interpreter/utils.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
 import { YukigoKernel } from "../../src/interpreter/components/kernel/index.js";
 import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
-import {
-  RuntimeFunction,
-  RuntimeClass,
-  RuntimeObject,
-  PrimitiveValue,
-  EnvStack,
-} from "../../src/interpreter/runtime.js";
+import { PrimitiveValue, EnvStack } from "../../src/primitives/primitives.js";
+import { RuntimeClass } from "../../src/primitives/RuntimeClass.js";
+import { RuntimeFunction } from "../../src/primitives/RuntimeFunction.js";
+import { RuntimeObject } from "../../src/primitives/RuntimeObject.js";
 
 const createEmptyEnv = () => ({ head: new Map(), tail: null });
 

@@ -18,13 +18,12 @@ import { InterpreterError, UnexpectedNode } from "../errors.js";
 import { YukigoKernel } from "./kernel/index.js";
 import { EvalCommand } from "./kernel/commands.js";
 import {
-  RuntimeFunction,
-  EquationRuntime,
-  RuntimeClass,
-  RuntimeObject,
-  isRuntimePredicate,
   PrimitiveValue,
-} from "../runtime.js";
+} from "../../primitives/primitives.js";
+import { EquationRuntime, RuntimeFunction } from "../../primitives/RuntimeFunction.js";
+import { RuntimeClass } from "../../primitives/RuntimeClass.js";
+import { RuntimeObject } from "../../primitives/RuntimeObject.js";
+import { isRuntimePredicate } from "../../primitives/RuntimePredicate.js";
 
 /**
  * Builds the initial environment by collecting all top-level function declarations.

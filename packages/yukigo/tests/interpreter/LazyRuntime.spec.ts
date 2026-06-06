@@ -16,7 +16,7 @@ import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js"
 import { fail } from "assert";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
 import { YukigoKernel } from "../../src/interpreter/components/kernel/index.js";
-import { LazyList, isLazyList } from "../../src/interpreter/runtime.js";
+import { LazyList, isLazyList } from "../../src/primitives/LazyList.js";
 
 const num = (value: number) => new NumberPrimitive(value);
 

@@ -17,7 +17,8 @@ import {
   BindCommand,
 } from "../kernel/commands.js";
 import { YukigoKernel } from "../kernel/index.js";
-import { PrimitiveValue, isLazyList, LazyList } from "../../runtime.js";
+import { PrimitiveValue } from "../../../primitives/primitives.js";
+import { isLazyList, LazyList } from "../../../primitives/LazyList.js";
 
 export class LazyRuntime {
   constructor(private context: RuntimeContext) {}

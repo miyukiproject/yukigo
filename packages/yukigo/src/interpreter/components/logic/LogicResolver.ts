@@ -22,13 +22,13 @@ import {
 import { LogicTranslator } from "./LogicTranslator.js";
 import { VariableTerm } from "./LogicTerm.js";
 import {
+  isLogicResult,
+  LogicAnswer,
+  LogicResult,
   LogicTerm,
   Substitution,
-  isLogicResult,
-  LogicResult,
-  LogicAnswer,
-  isRuntimePredicate,
-} from "../../runtime.js";
+} from "../../../primitives/LogicResult.js";
+import { isRuntimePredicate } from "../../../primitives/RuntimePredicate.js";
 
 /**
  * Unified parameter list unification.

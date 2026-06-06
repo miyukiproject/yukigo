@@ -32,17 +32,7 @@ import {
 } from "yukigo-ast";
 import { Interpreter } from "../../src/interpreter/index.js";
 import { assert } from "chai";
-import {
-  RuntimeFunction,
-  RuntimePredicate,
-  LogicResult,
-  LazyList,
-  LogicTerm,
-  PrimitiveValue,
-  RuntimeObject,
-  RuntimeClass,
-  isLazyList,
-} from "../../src/interpreter/runtime.js";
+import { isLazyList } from "../../src/primitives/LazyList.js";
 
 describe("Interpreter Spec", () => {
   let interpreter: Interpreter;

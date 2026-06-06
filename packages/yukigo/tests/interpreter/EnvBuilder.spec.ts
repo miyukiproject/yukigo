@@ -10,7 +10,8 @@ import {
 } from "yukigo-ast";
 import { EnvBuilderVisitor } from "../../src/interpreter/components/EnvBuilder.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
-import { RuntimeFunction, RuntimePredicate } from "../../src/interpreter/runtime.js";
+import { RuntimeFunction } from "../../src/primitives/RuntimeFunction.js";
+import { RuntimePredicate } from "../../src/primitives/RuntimePredicate.js";
 
 const id = (val: string) => ({ value: val }) as SymbolPrimitive;
 

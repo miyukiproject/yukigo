@@ -28,7 +28,8 @@ import {
 import { RuntimeContext } from "./RuntimeContext.js";
 import { Evaluator, getYukigoType } from "../utils.js";
 import { InterpreterError, UnexpectedNode } from "../errors.js";
-import { PrimitiveValue, EnvStack, LazyList, isLazyList } from "../runtime.js";
+import { PrimitiveValue, EnvStack } from "../../primitives/primitives.js";
+import { isLazyList, LazyList } from "../../primitives/LazyList.js";
 
 class SharedSequence {
   private cache: PrimitiveValue[] = [];

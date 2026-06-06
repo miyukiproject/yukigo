@@ -1,4 +1,4 @@
-import { PrimitiveValue } from "../runtime.js";
+import { PrimitiveValue } from "../../primitives/primitives.js";
 import { isArrayOfNumbers } from "../utils.js";
 
 export type UnaryOp<T, R = T> = (x: T) => R;

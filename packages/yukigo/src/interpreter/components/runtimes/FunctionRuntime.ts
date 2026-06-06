@@ -13,12 +13,10 @@ import {
   FailCommand,
 } from "../kernel/commands.js";
 import {
-  RuntimeFunction,
   PrimitiveValue,
   PrimitiveThunk,
-  isRuntimeFunction,
-  EquationRuntime,
-} from "../../runtime.js";
+} from "../../../primitives/primitives.js";
+import { EquationRuntime, isRuntimeFunction, RuntimeFunction } from "../../../primitives/RuntimeFunction.js";
 
 class NonExhaustivePatterns extends InterpreterError {
   constructor(funcName: string) {

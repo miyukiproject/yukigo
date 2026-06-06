@@ -1,4 +1,5 @@
-import { PrimitiveValue, LogicTerm, Substitution } from "../../runtime.js";
+import { LogicTerm, Substitution } from "../../../primitives/LogicResult.js";
+import { PrimitiveValue } from "../../../primitives/primitives.js";
 
 /**
  * Represents a logic variable with a unique numeric ID.
