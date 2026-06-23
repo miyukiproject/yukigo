@@ -17,17 +17,7 @@ import { RuntimeContext } from "./RuntimeContext.js";
 import { InterpreterError, UnexpectedNode } from "../errors.js";
 import { YukigoKernel } from "./kernel/index.js";
 import { EvalCommand } from "./kernel/commands.js";
-import { PrimitiveValue } from "../../primitives/primitives.js";
-import {
-  EquationRuntime,
-  RuntimeFunction,
-} from "../../primitives/RuntimeFunction.js";
-import { RuntimeClass } from "../../primitives/RuntimeClass.js";
-import { RuntimeObject } from "../../primitives/RuntimeObject.js";
-import {
-  isRuntimePredicate,
-  RuntimePredicate,
-} from "../../primitives/RuntimePredicate.js";
+import { RuntimeFunction, EquationRuntime, RuntimeClass, RuntimeObject, isRuntimePredicate, RuntimePredicate, YuValue } from "../primitives/index.js";
 
 class NotValidPredicate extends InterpreterError {
   constructor(identifier: string) {
@@ -193,7 +183,7 @@ export class EnvBuilderVisitor extends TraverseVisitor {
 
 class OOPCollector extends TraverseVisitor {
   public collectedMethods: Map<string, RuntimeFunction> = new Map();
-  public collectedFields: Map<string, PrimitiveValue> = new Map();
+  public collectedFields: Map<string, YuValue> = new Map();
   visitMethod(node: Method) {
     const runtimeMethod = new RuntimeFunction(
       node.equations[0].patterns.length,

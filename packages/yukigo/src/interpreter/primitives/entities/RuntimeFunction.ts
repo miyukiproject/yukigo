@@ -1,5 +1,8 @@
 import { GuardedBody, Pattern, UnguardedBody } from "yukigo-ast";
-import { EnvStack, PrimitiveThunk, PrimitiveValue } from "./primitives.js";
+import { YuValue } from "../YuValue.js";
+import { boolean, EnvStack, PrimitiveThunk } from "../../utils.js";
+import { ExecutionCommand, StepCommand } from "../../components/kernel/commands.js";
+import { YuBoolean } from "../index.js";
 
 export interface EquationRuntime {
   patterns: Pattern[];
@@ -8,14 +11,17 @@ export interface EquationRuntime {
 /**
  * Runtime Function used in the Interpreter
  */
-export class RuntimeFunction {
+export class RuntimeFunction extends YuValue {
   constructor(
     public arity: number,
     public equations: EquationRuntime[],
     public identifier?: string,
-    public pendingArgs?: (PrimitiveValue | PrimitiveThunk)[],
+    public pendingArgs?: (YuValue | PrimitiveThunk)[],
     public closure?: EnvStack,
-  ) {}
+  ) { super(); }
+
+  public equals(other: YuValue): ExecutionCommand { return boolean(other === this); }
+  public compare(other: YuValue): ExecutionCommand { throw new Error("Functions are not comparable"); }
 
   public get name(): string {
     return this.identifier ?? "<anonymous>";
@@ -36,7 +42,7 @@ export class RuntimeFunction {
   /**
    * Partially applies the function with new arguments.
    */
-  public bind(...args: (PrimitiveValue | PrimitiveThunk)[]): RuntimeFunction {
+  public bind(...args: (YuValue | PrimitiveThunk)[]): RuntimeFunction {
     return new RuntimeFunction(
       this.arity,
       this.equations,
@@ -62,10 +68,18 @@ export class RuntimeFunction {
   /**
    * Evaluates all pending arguments (resolving thunks).
    */
-  public getEvaluatedArgs(): PrimitiveValue[] {
+  public getEvaluatedArgs(): YuValue[] {
     return (this.pendingArgs ?? []).map((arg) =>
       typeof arg === "function" ? arg() : arg,
     );
+  }
+
+  public toJSON(): unknown {
+    return {
+      name: this.name,
+      arity: this.arity,
+      remainingArity: this.remainingArity,
+    };
   }
 
   public toString(): string {
@@ -76,6 +90,6 @@ export class RuntimeFunction {
     return `[Function: ${this.name}${arityInfo}${pendingInfo}]`;
   }
 }
-export function isRuntimeFunction(val: PrimitiveValue): val is RuntimeFunction {
+export function isRuntimeFunction(val: YuValue): val is RuntimeFunction {
   return val instanceof RuntimeFunction;
 }

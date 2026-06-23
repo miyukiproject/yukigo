@@ -22,13 +22,13 @@ import {
 import { LogicTranslator } from "./LogicTranslator.js";
 import { VariableTerm } from "./LogicTerm.js";
 import {
-  isLogicResult,
-  LogicAnswer,
-  LogicResult,
   LogicTerm,
   Substitution,
-} from "../../../primitives/LogicResult.js";
-import { isRuntimePredicate } from "../../../primitives/RuntimePredicate.js";
+  isLogicResult,
+  LogicResult,
+  LogicAnswer,
+  isRuntimePredicate,
+} from "../../primitives/index.js";
 
 /**
  * Unified parameter list unification.
@@ -169,7 +169,7 @@ export function solveGoalKernel(
   const pred = ctx.isDefined(predicateName) ? ctx.lookup(predicateName) : null;
 
   const validPredicate =
-    isRuntimePredicate(pred) && pred.validateArity(args.length);
+    !!pred && isRuntimePredicate(pred) && pred.validateArity(args.length);
 
   if (!validPredicate) return new BacktrackCommand();
 

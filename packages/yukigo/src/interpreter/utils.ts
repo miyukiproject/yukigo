@@ -1,33 +1,43 @@
 import { ASTNode } from "yukigo-ast";
-import { ExecutionCommand } from "./components/kernel/commands.js";
+import { BindCommand, ExecutionCommand, StepCommand } from "./components/kernel/commands.js";
 import { RuntimeContext } from "./components/RuntimeContext.js";
-import {
-  PrimitiveValue,
-  Environment,
-  EnvStack,
-} from "../primitives/primitives.js";
-import { isRuntimeFunction } from "../primitives/RuntimeFunction.js";
-import { isLazyList, LazyList } from "../primitives/LazyList.js";
-import { isRuntimeObject } from "../primitives/RuntimeObject.js";
-import { isRuntimeClass } from "../primitives/RuntimeClass.js";
-import { isRuntimePredicate } from "../primitives/RuntimePredicate.js";
+import { YuValue, YuNumber, LazyList, YuBoolean } from "./primitives/index.js";
+
+export const boolean = (condition: boolean) =>
+  new StepCommand(new YuBoolean(condition));
+export const number = (num: number) => new StepCommand(new YuNumber(num));
+
+export const not = (command: ExecutionCommand): ExecutionCommand =>
+  new BindCommand(command, (res) => res.asLogic?.not() || boolean(false));
+
+export const compareResult = (
+  command: ExecutionCommand,
+  predicate: (num: number) => boolean,
+): ExecutionCommand =>
+  new BindCommand(command, (res) => boolean(predicate(res.toJSON() as number)));
+
+export type PrimitiveThunk = () => YuValue;
+
+export type Environment = Map<string, YuValue>;
+
+export type EnvStack = {
+  head: Environment;
+  tail: EnvStack | null;
+};
 
 export interface Evaluator {
   evaluate(node: ASTNode): ExecutionCommand;
+  realizeList(val: YuValue): ExecutionCommand;
+  fallback(node: ASTNode): ExecutionCommand;
   getContext(): RuntimeContext;
 }
 
-export function createStream(
-  generator: () => Generator<PrimitiveValue, void, unknown>,
-): LazyList {
-  return {
-    type: "LazyList",
-    generator,
-  };
-}
-
-export function isArrayOfNumbers(arr: PrimitiveValue[]): arr is number[] {
-  for (const item of arr) if (typeof item !== "number") return false;
+export function isArrayOfNumbers(arr: YuValue): boolean {
+  const seq = arr.asSequence;
+  if (!seq) return false;
+  for (const item of seq) {
+    if (!item.asNumeric) return false;
+  }
   return true;
 }
 
@@ -35,20 +45,20 @@ export function generateRange(
   start: number,
   end: number,
   step: number,
-): number[] {
+): YuNumber[] {
   if (step === 0) throw new Error("Step cannot be zero in range expression");
 
-  const result: number[] = [];
+  const result: YuNumber[] = [];
   let current = start;
 
   if (step > 0) {
     while (current <= end) {
-      result.push(current);
+      result.push(new YuNumber(current));
       current += step;
     }
   } else {
     while (current >= end) {
-      result.push(current);
+      result.push(new YuNumber(current));
       current += step;
     }
   }
@@ -56,28 +66,23 @@ export function generateRange(
   return result;
 }
 
-export function createEnv(bindings: [string, PrimitiveValue][]): Environment {
-  const env = new Map();
+export function createEnv(bindings: [string, YuValue][]): Environment {
+  const env = new Map<string, YuValue>();
   for (const [name, value] of bindings) env.set(name, value);
   return env;
 }
 
 export function createGlobalEnv(): EnvStack {
   return {
-    head: new Map<string, PrimitiveValue>(),
+    head: new Map<string, YuValue>(),
     tail: null,
   };
 }
 
-export function getYukigoType(val: PrimitiveValue): string {
-  if (val === null || val === undefined) return "YuNil";
-  if (typeof val === "number") return "YuNumber";
-  if (typeof val === "boolean") return "YuBoolean";
-  if (typeof val === "string") return val.length === 1 ? "YuChar" : "YuString";
-  if (Array.isArray(val) || isLazyList(val)) return "YuList";
-  if (isRuntimeFunction(val)) return "YuFunction";
-  if (isRuntimeObject(val)) return "YuObject";
-  if (isRuntimeClass(val)) return "YuClass";
-  if (isRuntimePredicate(val)) return "YuPredicate";
-  return "YuUnknown";
+export function getYukigoType(val: YuValue): string {
+  return val.getType();
+}
+
+export function createStream(generator: () => ExecutionCommand): LazyList {
+  return new LazyList(() => generator());
 }

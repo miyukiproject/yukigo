@@ -1,14 +1,14 @@
-import {
-  isRuntimeClass,
-  RuntimeClass,
-} from "../../../primitives/RuntimeClass.js";
-import { RuntimeFunction } from "../../../primitives/RuntimeFunction.js";
-import {
-  isRuntimeObject,
-  RuntimeObject,
-} from "../../../primitives/RuntimeObject.js";
-import { PrimitiveValue, EnvStack } from "../../../primitives/primitives.js";
 import { InterpreterError } from "../../errors.js";
+import {
+  YuValue,
+  RuntimeClass,
+  RuntimeObject,
+  RuntimeFunction,
+  isRuntimeObject,
+  YuString,
+  isRuntimeClass,
+  YuBoolean,
+} from "../../primitives/index.js";
 import { RuntimeContext } from "../RuntimeContext.js";
 import {
   ExecutionCommand,
@@ -30,9 +30,9 @@ export class ObjectRuntime {
    * Reuses FunctionRuntime to execute the method body.
    */
   public dispatch(
-    receiver: PrimitiveValue,
+    receiver: YuValue,
     methodName: string,
-    args: PrimitiveValue[],
+    args: YuValue[],
   ): ExecutionCommand {
     if (!isRuntimeObject(receiver))
       throw new Error(`${receiver} is not an object`);
@@ -46,7 +46,10 @@ export class ObjectRuntime {
         `${receiver.className} does not understand '${methodName}'.`,
       );
 
-    const objectScope = receiver.createDispatchScope(match, methodName);
+    const objectScope = receiver.createDispatchScope(
+      match,
+      new YuString(methodName),
+    );
     this.context.pushEnv(objectScope);
     return new BindCommand(
       this.context.funcRuntime.apply(match.method, args),
@@ -60,14 +63,13 @@ export class ObjectRuntime {
   /**
    * Handles calls to super() or super.method()
    */
-  public dispatchSuper(
-    methodName: string,
-    args: PrimitiveValue[],
-  ): ExecutionCommand {
+  public dispatchSuper(methodName: string, args: YuValue[]): ExecutionCommand {
     const self = this.context.lookup("self") as RuntimeObject;
     const currentHolder = this.context.lookup("__CONTEXT_CLASS__") as OOPEntity;
     const currentMethodName = this.context.lookup("__METHOD_NAME__");
-    const targetMethodName = methodName || (currentMethodName as string);
+    const targetMethodName = methodName
+      ? new YuString(methodName)
+      : (currentMethodName as YuString);
 
     if (!self || !currentHolder)
       throw new InterpreterError(
@@ -83,12 +85,15 @@ export class ObjectRuntime {
       throw new Error("Fatal: Execution context not found in hierarchy chain");
 
     const remainingChain = chain.slice(currentIndex + 1);
-    const match = this.findMethodInChain(remainingChain, targetMethodName);
+    const match = this.findMethodInChain(
+      remainingChain,
+      targetMethodName.toJSON(),
+    );
 
     if (!match)
       throw new InterpreterError(
         "Super",
-        `Super method '${targetMethodName}' not found`,
+        `Super method '${targetMethodName.toJSON()}' not found`,
       );
 
     const objectScope = self.createDispatchScope(match, targetMethodName);
@@ -123,7 +128,7 @@ export class ObjectRuntime {
       // occurs check to avoid circular loops
       if (visited.has(current)) continue;
       visited.add(current);
-      
+
       const classDef = this.getClassDef(current);
       chain.push(classDef);
       queue.push(...classDef.getHierarchy());
@@ -157,7 +162,7 @@ export class ObjectRuntime {
    * Field Access (Get)
    * e.g. self.myField
    */
-  public getField(receiver: PrimitiveValue, fieldName: string): PrimitiveValue {
+  public getField(receiver: YuValue, fieldName: string): YuValue {
     if (!isRuntimeObject(receiver))
       throw new InterpreterError("FieldAccess", "Target is not an object");
 
@@ -169,21 +174,27 @@ export class ObjectRuntime {
    * Field Mutation (Set)
    * e.g. self.myField = 10
    */
-  public setField(
-    receiver: PrimitiveValue,
-    fieldName: string,
-    value: PrimitiveValue,
-  ): PrimitiveValue {
+  public setField(obj: YuValue, fieldName: string, value: YuValue): YuValue {
     if (!this.context.config.mutability)
       throw new InterpreterError(
         "FieldAssignment",
         `Cannot mutate field '${fieldName}': mutability is disabled`,
       );
 
+    const receiver = this.getReceiver(obj);
+
     if (!isRuntimeObject(receiver))
       throw new InterpreterError("FieldAssignment", "Target is not an object");
 
     receiver.setField(fieldName, value);
-    return true;
+    return new YuBoolean(true);
+  }
+
+  private getReceiver(obj: YuValue): OOPEntity {
+    if (isRuntimeObject(obj) || isRuntimeClass(obj)) return obj;
+    throw new InterpreterError(
+      "ObjectRuntime",
+      "Receiver is not an OOP entity",
+    );
   }
 }

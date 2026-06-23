@@ -1,7 +1,7 @@
 import { Sequence, Return, Function, isUnguardedBody } from "yukigo-ast";
 import { Bindings } from "../../index.js";
 import { PatternMatcher } from "../PatternMatcher.js";
-import { Evaluator } from "../../utils.js";
+import { boolean, Evaluator, PrimitiveThunk } from "../../utils.js";
 import { InterpreterError } from "../../errors.js";
 import { EnvBuilderVisitor } from "../EnvBuilder.js";
 import { RuntimeContext } from "../RuntimeContext.js";
@@ -12,11 +12,8 @@ import {
   BindCommand,
   FailCommand,
 } from "../kernel/commands.js";
-import {
-  PrimitiveValue,
-  PrimitiveThunk,
-} from "../../../primitives/primitives.js";
-import { EquationRuntime, isRuntimeFunction, RuntimeFunction } from "../../../primitives/RuntimeFunction.js";
+import { YuValue } from "../../primitives/YuValue.js";
+import { RuntimeFunction, YuBoolean, isRuntimeFunction, EquationRuntime, YuNil } from "../../primitives/index.js";
 
 class NonExhaustivePatterns extends InterpreterError {
   constructor(funcName: string) {
@@ -31,7 +28,7 @@ export class FunctionRuntime {
 
   public apply(
     func: RuntimeFunction,
-    args: PrimitiveValue[],
+    args: YuValue[],
   ): ExecutionCommand {
     const funcName = func.identifier;
     const equations = func.equations;
@@ -51,11 +48,12 @@ export class FunctionRuntime {
 
       return new BindCommand(
         this.patternsMatch(eq, args, bindings),
-        (isMatch) => {
+        (matchRes) => {
+          const isMatch = matchRes instanceof YuBoolean && matchRes.value;
           if (!isMatch) return tryNextEquation(eqIndex + 1);
 
-          const localEnv = new Map<string, PrimitiveValue>(bindings);
-          if (func.closure) this.context.setEnv(func.closure);
+          const localEnv = new Map<string, YuValue>(bindings);
+          if (func.closure) this.context.setEnv(this.context.cloneEnv(func.closure));
           this.context.pushEnv(localEnv);
 
           const evaluatorFactory: EvaluatorFactory = (ctx) =>
@@ -64,7 +62,7 @@ export class FunctionRuntime {
           const body = eq.body;
 
           // Restore env after body execution
-          const nextWithEnvRestore = (res: PrimitiveValue) => {
+          const nextWithEnvRestore = (res: YuValue) => {
             this.context.setEnv(oldEnv);
             return new StepCommand(res);
           };
@@ -98,7 +96,8 @@ export class FunctionRuntime {
             return new BindCommand(
               evaluator.evaluate(guard.condition),
               (cond) => {
-                if (cond !== true) return tryNextGuard(guardIndex + 1);
+                const isTrue = cond instanceof YuBoolean && cond.value;
+                if (!isTrue) return tryNextGuard(guardIndex + 1);
 
                 if (!(guard.body instanceof Sequence))
                   return new BindCommand(
@@ -128,7 +127,7 @@ export class FunctionRuntime {
 
   public applyArguments(
     func: RuntimeFunction,
-    args?: (PrimitiveValue | PrimitiveThunk)[],
+    args?: (YuValue | PrimitiveThunk)[],
   ): ExecutionCommand {
     const targetFunc = args ? func.bind(...args) : func;
     const allArgs = targetFunc.pendingArgs ?? [];
@@ -171,16 +170,17 @@ export class FunctionRuntime {
 
   private patternsMatch(
     eq: EquationRuntime,
-    args: PrimitiveValue[],
+    args: YuValue[],
     bindings: Bindings,
   ): ExecutionCommand {
     const matchNext = (index: number): ExecutionCommand => {
-      if (index >= args.length) return new StepCommand(true);
+      if (index >= args.length) return boolean(true);
 
       const matcher = new PatternMatcher(args[index], bindings, this.context);
 
-      return new BindCommand(eq.patterns[index].accept(matcher), (isMatch) => {
-        if (!isMatch) return new StepCommand(false);
+      return new BindCommand(eq.patterns[index].accept(matcher), (res) => {
+        const isMatch = res.asLogic?.equals(res);
+        if (!isMatch) return boolean(false);
         return matchNext(index + 1);
       });
     };
@@ -198,7 +198,7 @@ export class FunctionRuntime {
 
     const evaluateNext = (
       index: number,
-      lastResult: PrimitiveValue,
+      lastResult: YuValue,
     ): ExecutionCommand => {
       if (index >= seq.statements.length) return new StepCommand(lastResult);
 
@@ -215,6 +215,6 @@ export class FunctionRuntime {
       return evaluator.evaluate(stmt.body);
     };
 
-    return evaluateNext(0, undefined);
+    return evaluateNext(0, YuNil.getInstance());
   }
 }

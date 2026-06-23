@@ -27,8 +27,17 @@ import {
 } from "../kernel/commands.js";
 import { VariableTerm } from "./LogicTerm.js";
 import { Evaluator } from "../../utils.js";
-import { PrimitiveValue } from "../../../primitives/primitives.js";
-import { isLogicResult, isLogicTerm, LogicAnswer, LogicResult, LogicTerm, Substitution } from "../../../primitives/LogicResult.js";
+import { YuValue } from "../../primitives/YuValue.js";
+import {
+  Substitution,
+  YuArray,
+  LogicTerm,
+  LogicResult,
+  LogicAnswer,
+  isLogicTerm,
+  YuBoolean,
+  isLogicResult,
+} from "../../primitives/index.js";
 
 export type LogicExecutable =
   | Expression
@@ -67,8 +76,16 @@ export class LogicEngine {
     ) =>
       new BindCommand(
         this.resolveTerms(node, substs, scope),
-        (terms: PrimitiveValue) =>
-          this.runKernel(node, terms as LogicTerm[], substs),
+        (termsRes: YuValue) => {
+          const terms = termsRes.asSequence;
+          if (!terms || !(terms instanceof YuArray))
+            throw new Error("Expected array of terms");
+          return this.runKernel(
+            node,
+            terms.items as unknown as LogicTerm[],
+            substs,
+          );
+        },
       );
 
     return new Map<Function, NodeSolver>([
@@ -93,7 +110,8 @@ export class LogicEngine {
           return new BindCommand(
             this.unifyExpr(op.left, op.right, substs, scope),
             (res) => {
-              if (res)
+              const isMatch = res instanceof YuBoolean && res.value;
+              if (isMatch)
                 return new StepCommand(
                   new LogicResult([new LogicAnswer(true, substs)]),
                 );
@@ -134,14 +152,14 @@ export class LogicEngine {
   ): ExecutionCommand {
     return new BindCommand(
       this.translator.expressionToTerm(left, scope),
-      (leftTerm: PrimitiveValue) => {
+      (leftTerm: YuValue) => {
         if (!isLogicTerm(leftTerm)) return new BacktrackCommand();
         return new BindCommand(
           this.translator.expressionToTerm(right, scope),
-          (rightTerm: PrimitiveValue) => {
+          (rightTerm: YuValue) => {
             if (!isLogicTerm(rightTerm)) return new BacktrackCommand();
 
-            return new StepCommand(leftTerm.unify(rightTerm, substs));
+            return leftTerm.unify(rightTerm, substs);
           },
         );
       },
@@ -163,10 +181,12 @@ export class LogicEngine {
     const substs: Substitution = outerSubsts ?? new Map();
     return new BindCommand(
       this.resolveTerms(node, substs, scope),
-      (terms: PrimitiveValue) => {
-        if (!Array.isArray(terms) || !terms.every(isLogicTerm))
-          return new BacktrackCommand();
-        return this.runKernel(node, terms as LogicTerm[], substs);
+      (termsRes: YuValue) => {
+        const termsSeq = termsRes.asSequence;
+        if (!(termsSeq instanceof YuArray)) return new BacktrackCommand();
+        const terms = termsSeq.items;
+        if (!terms.every(isLogicTerm)) return new BacktrackCommand();
+        return this.runKernel(node, terms as unknown as LogicTerm[], substs);
       },
     );
   }
@@ -220,7 +240,7 @@ export class LogicEngine {
       const resultTerm = this.translator.primitiveToTerm(val);
       return new BindCommand(
         this.translator.expressionToTerm(op.left, scope),
-        (leftTerm: PrimitiveValue) => {
+        (leftTerm: YuValue) => {
           if (!isLogicTerm(leftTerm)) return new BacktrackCommand();
           if (leftTerm.unify(resultTerm, substs)) {
             return new StepCommand(
@@ -250,7 +270,7 @@ export class LogicEngine {
     command: ExecutionCommand,
     scope: Scope,
   ): ExecutionCommand {
-    return new BindCommand(command, (res: PrimitiveValue) => {
+    return new BindCommand(command, (res: YuValue) => {
       if (!isLogicResult(res)) return new StepCommand(res);
       const mappedAnswers = res.allAnswers.map((ans) =>
         this.finalizeUserResult(ans, scope),
@@ -292,7 +312,7 @@ export class LogicEngine {
 
     return new BindCommand(
       solver(head, currentSubst, scope),
-      (res: PrimitiveValue) => {
+      (res: YuValue) => {
         // fail if result not a LogicResult or if some conditionfail
         if (!isLogicResult(res) || !res.allSuccessful())
           return new BacktrackCommand();
@@ -311,21 +331,17 @@ export class LogicEngine {
     isolatedContext.setEnv({ head: localEnv, tail: this.context.env });
     const localEvaluator = new InterpreterVisitor(isolatedContext);
 
-    return new BindCommand(
-      localEvaluator.evaluate(expr),
-      (result: PrimitiveValue) => {
-        // fail if result is falsy
-        if (!Boolean(result)) return new BacktrackCommand();
+    return new BindCommand(localEvaluator.evaluate(expr), (result: YuValue) => {
+      // fail if result is falsy
+      const isTrue = (result instanceof YuBoolean && result.value) || (result instanceof LogicResult && result.success);
+      if (!isTrue) return new BacktrackCommand();
 
-        return new StepCommand(
-          new LogicResult([new LogicAnswer(true, substs)]),
-        );
-      },
-    );
+      return new StepCommand(new LogicResult([new LogicAnswer(true, substs)]));
+    });
   }
 
-  private createLocalEnv(substs: Substitution): Map<string, PrimitiveValue> {
-    const env = new Map<string, PrimitiveValue>();
+  private createLocalEnv(substs: Substitution): Map<string, YuValue> {
+    const env = new Map<string, YuValue>();
     for (const [id, term] of substs) {
       const name = typeof id === "string" ? id : this.translator.getName(id);
       if (name) env.set(name, term.instantiate(substs).toPrimitive(substs));
@@ -362,11 +378,10 @@ export class LogicEngine {
     if (node.is(Goal))
       return this.resolveArgSequentially(node.args, substs, scope);
 
-    return new StepCommand(
-      node.patterns.map((pat) =>
-        this.translator.patternToTerm(pat, scope).instantiate(substs),
-      ),
+    const terms = node.patterns.map((pat) =>
+      this.translator.patternToTerm(pat, scope).instantiate(substs),
     );
+    return new StepCommand(new YuArray(terms));
   }
   private resolveArgSequentially(
     args: Expression[],
@@ -375,7 +390,7 @@ export class LogicEngine {
   ): ExecutionCommand {
     const terms: LogicTerm[] = [];
     const next = (index: number): ExecutionCommand => {
-      if (index >= args.length) return new StepCommand(terms);
+      if (index >= args.length) return new StepCommand(new YuArray(terms));
       return new BindCommand(
         this.translator.instantiateExpressionAsTerm(args[index], substs, scope),
         (t) => {

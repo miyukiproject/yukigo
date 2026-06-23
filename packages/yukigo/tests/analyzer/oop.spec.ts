@@ -11,7 +11,6 @@ import {
   Object as AstObject,
   PrimitiveMethod,
   Implement,
-  ASTNode,
   Equation,
   UnguardedBody,
   Sequence,

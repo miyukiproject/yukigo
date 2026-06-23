@@ -34,13 +34,8 @@ import {
   StepCommand,
   BindCommand,
 } from "../kernel/commands.js";
-import { PrimitiveValue } from "../../../primitives/primitives.js";
-import {
-  LogicTerm,
-  isLogicTerm,
-  Substitution,
-} from "../../../primitives/LogicResult.js";
-import { isRuntimeObject } from "../../../primitives/RuntimeObject.js";
+import { YuValue } from "../../primitives/YuValue.js";
+import { LogicTerm, YuNumber, YuString, YuBoolean, YuNil, isLogicTerm, isRuntimeObject, Substitution } from "../../primitives/index.js";
 
 /**
  * Sync visitor to convert Patterns to LogicTerms.
@@ -64,7 +59,14 @@ class PatternToTermVisitor implements PatternVisitor<LogicTerm> {
     return new VariableTerm(this.translator.getNextId(name), name);
   }
   visitLiteralPattern(node: LiteralPattern): LogicTerm {
-    return new ConstantTerm(node.name.value ?? null);
+    const raw = node.name.value;
+    let wrapped: YuNumber | YuString | YuBoolean | YuNil;
+    if (typeof raw === "number") wrapped = new YuNumber(raw);
+    else if (typeof raw === "string") wrapped = new YuString(raw);
+    else if (typeof raw === "boolean") wrapped = new YuBoolean(raw);
+    else wrapped = YuNil.getInstance();
+    
+    return new ConstantTerm(wrapped);
   }
   visitListPattern(node: ListPattern): LogicTerm {
     return new ListTerm(node.elements.map((el) => el.accept(this)));
@@ -264,17 +266,13 @@ export class LogicTranslator {
   /**
    * Converts a PrimitiveValue to a LogicTerm.
    */
-  public primitiveToTerm(val: PrimitiveValue): LogicTerm {
-    if (
-      val === null ||
-      typeof val === "number" ||
-      typeof val === "string" ||
-      typeof val === "boolean"
-    ) {
-      return new ConstantTerm(val);
+  public primitiveToTerm(val: YuValue): LogicTerm {
+    if (val.asNumeric || val.asSummable instanceof YuString || val.asLogic || val instanceof YuNil) {
+      return new ConstantTerm(val as any);
     }
-    if (Array.isArray(val)) {
-      return new ListTerm(val.map((v) => this.primitiveToTerm(v)));
+    const seq = val.asSequence;
+    if (seq) {
+      return new ListTerm([...seq].map((v) => this.primitiveToTerm(v)));
     }
     if (isRuntimeObject(val)) {
       const args: LogicTerm[] = [];
@@ -290,6 +288,7 @@ export class LogicTranslator {
       `Cannot convert value ${val} to Logic Term`,
     );
   }
+
 
   /**
    * Evaluates an expression and returns its LogicTerm representation via the Kernel.

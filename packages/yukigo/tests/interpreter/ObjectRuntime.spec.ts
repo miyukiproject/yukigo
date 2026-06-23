@@ -11,14 +11,18 @@ import {
   Super,
   ArithmeticBinaryOperation,
 } from "yukigo-ast";
-import { createGlobalEnv } from "../../src/interpreter/utils.js";
+import { createGlobalEnv, EnvStack } from "../../src/interpreter/utils.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
 import { YukigoKernel } from "../../src/interpreter/components/kernel/index.js";
 import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
-import { PrimitiveValue, EnvStack } from "../../src/primitives/primitives.js";
-import { RuntimeClass } from "../../src/primitives/RuntimeClass.js";
-import { RuntimeFunction } from "../../src/primitives/RuntimeFunction.js";
-import { RuntimeObject } from "../../src/primitives/RuntimeObject.js";
+import {
+  YuValue,
+  RuntimeFunction,
+  RuntimeClass,
+  RuntimeObject,
+  YuNumber,
+  YuString,
+} from "../../src/interpreter/primitives/index.js";
 
 const createMethodMap = (
   methods: RuntimeFunction[],
@@ -54,9 +58,9 @@ describe("ctx.objRuntime", () => {
   let objectInstance: RuntimeObject;
   let kernel: YukigoKernel;
   const className = "TestClass";
-  const initialFields = new Map<string, PrimitiveValue>([
-    ["count", 10],
-    ["name", "Yukigo"],
+  const initialFields = new Map<string, YuValue>([
+    ["count", new YuNumber(10)],
+    ["name", new YuString("Yukigo")],
   ]);
   const methods = new Map<string, RuntimeFunction>();
   const classDef = new RuntimeClass(
@@ -84,20 +88,20 @@ describe("ctx.objRuntime", () => {
     });
 
     it("debe clonar el mapa de campos (no usar la referencia original)", () => {
-      const fieldsDef = new Map([["x", 1]]);
+      const fieldsDef = new Map([["x", new YuNumber(1)]]);
       const classA = new RuntimeClass("A", fieldsDef, new Map(), []);
       const obj = classA.instantiate("objA");
 
-      fieldsDef.set("x", 2);
+      fieldsDef.set("x", new YuNumber(2));
 
-      expect(obj.fields.get("x")).to.equal(1);
+      expect((obj.fields.get("x") as YuValue).toJSON()).to.equal(1);
     });
   });
 
   describe("Field Access (Get/Set)", () => {
     it("getField debe devolver el valor de un campo existente", () => {
       const val = ctx.objRuntime.getField(objectInstance, "count");
-      expect(val).to.equal(10);
+      expect(val.toJSON()).to.equal(10);
     });
 
     it("getField debe lanzar error si el campo no existe", () => {
@@ -108,18 +112,20 @@ describe("ctx.objRuntime", () => {
 
     it("getField debe lanzar error si el target no es un objeto", () => {
       expect(() => {
-        ctx.objRuntime.getField(123 as any, "count");
+        ctx.objRuntime.getField(new YuNumber(123) as any, "count");
       }).to.throw(/Target is not an object/);
     });
 
     it("setField debe actualizar el valor de un campo existente", () => {
-      ctx.objRuntime.setField(objectInstance, "count", 20);
-      expect(objectInstance.fields.get("count")).to.equal(20);
+      ctx.objRuntime.setField(objectInstance, "count", new YuNumber(20));
+      expect((objectInstance.fields.get("count") as YuValue).toJSON()).to.equal(
+        20,
+      );
     });
 
     it("setField debe lanzar error si intentas crear un campo nuevo (strict mode)", () => {
       expect(() => {
-        ctx.objRuntime.setField(objectInstance, "newProp", 99);
+        ctx.objRuntime.setField(objectInstance, "newProp", new YuNumber(99));
       }).to.throw(/Cannot set unknown field/);
     });
   });
@@ -144,9 +150,9 @@ describe("ctx.objRuntime", () => {
 
       const result = kernel.run(
         ctx.objRuntime.dispatch(objectInstance, "getCount", []),
-      );
+      ) as YuValue;
 
-      expect(result).to.equal(10);
+      expect(result.toJSON()).to.equal(10);
     });
 
     it("debe fallar si el método no existe", () => {
@@ -161,7 +167,7 @@ describe("ctx.objRuntime", () => {
       expect(() => {
         kernel.run(
           ctx.objRuntime.dispatch(
-            "soy un string" as any,
+            new YuString("soy un string") as any,
             "toString",
             [],
           ),
@@ -186,10 +192,10 @@ describe("ctx.objRuntime", () => {
       objectInstance.methods.set("echo", addMethod);
 
       const result = kernel.run(
-        ctx.objRuntime.dispatch(objectInstance, "echo", [999]),
-      );
+        ctx.objRuntime.dispatch(objectInstance, "echo", [new YuNumber(999)]),
+      ) as YuValue;
 
-      expect(result).to.equal(999);
+      expect(result.toJSON()).to.equal(999);
     });
   });
   describe("Method Lookup", () => {
@@ -204,8 +210,10 @@ describe("ctx.objRuntime", () => {
 
       const perro = Perro.instantiate("dogObj");
 
-      const res = kernel.run(ctx.objRuntime.dispatch(perro, "speak", []));
-      expect(res).to.equal("Guau");
+      const res = kernel.run(
+        ctx.objRuntime.dispatch(perro, "speak", []),
+      ) as YuValue;
+      expect(res.toJSON()).to.equal("Guau");
     });
 
     it("debe subir múltiples niveles en la jerarquía (Abuelo -> Padre -> Hijo)", () => {
@@ -219,7 +227,11 @@ describe("ctx.objRuntime", () => {
       const C = createClass(env, "C", "B");
 
       const objC = C.instantiate("objC");
-      expect(kernel.run(ctx.objRuntime.dispatch(objC, "id", []))).to.equal(1);
+      expect(
+        (
+          kernel.run(ctx.objRuntime.dispatch(objC, "id", [])) as YuValue
+        ).toJSON(),
+      ).to.equal(1);
     });
 
     it("debe encontrar métodos definidos en un Mixin", () => {
@@ -232,9 +244,11 @@ describe("ctx.objRuntime", () => {
       const Ave = createClass(env, "Ave", undefined, undefined, ["Volador"]);
 
       const pepita = Ave.instantiate("birdObj");
-      expect(kernel.run(ctx.objRuntime.dispatch(pepita, "volar", []))).to.equal(
-        "Wosh",
-      );
+      expect(
+        (
+          kernel.run(ctx.objRuntime.dispatch(pepita, "volar", [])) as YuValue
+        ).toJSON(),
+      ).to.equal("Wosh");
     });
 
     it("debe soportar Mixines recursivos (Mixin incluye otro Mixin)", () => {
@@ -250,9 +264,11 @@ describe("ctx.objRuntime", () => {
       ]);
 
       const heroe = Heroe.instantiate("heroObj");
-      expect(kernel.run(ctx.objRuntime.dispatch(heroe, "skill", []))).to.equal(
-        "Fire",
-      );
+      expect(
+        (
+          kernel.run(ctx.objRuntime.dispatch(heroe, "skill", [])) as YuValue
+        ).toJSON(),
+      ).to.equal("Fire");
     });
 
     it("Prioridad: La Clase Propia gana a Mixines y Superclase", () => {
@@ -278,7 +294,11 @@ describe("ctx.objRuntime", () => {
       );
 
       const child = Child.instantiate("childObj");
-      expect(kernel.run(ctx.objRuntime.dispatch(child, "val", []))).to.equal(3);
+      expect(
+        (
+          kernel.run(ctx.objRuntime.dispatch(child, "val", [])) as YuValue
+        ).toJSON(),
+      ).to.equal(3);
     });
 
     it("Prioridad: El Mixin gana a la Superclase", () => {
@@ -297,7 +317,11 @@ describe("ctx.objRuntime", () => {
       const Child = createClass(env, "Child", "Super", undefined, ["Mixin"]);
 
       const child = Child.instantiate("childObj");
-      expect(kernel.run(ctx.objRuntime.dispatch(child, "val", []))).to.equal(2);
+      expect(
+        (
+          kernel.run(ctx.objRuntime.dispatch(child, "val", [])) as YuValue
+        ).toJSON(),
+      ).to.equal(2);
     });
 
     it("Prioridad: El último Mixin de la lista gana (Shadowing de derecha a izquierda)", () => {
@@ -320,7 +344,11 @@ describe("ctx.objRuntime", () => {
       ]);
 
       const obj = Clase.instantiate("objC");
-      expect(kernel.run(ctx.objRuntime.dispatch(obj, "val", []))).to.equal(20);
+      expect(
+        (
+          kernel.run(ctx.objRuntime.dispatch(obj, "val", [])) as YuValue
+        ).toJSON(),
+      ).to.equal(20);
     });
 
     it("Prioridad: Orden inverso de Mixines", () => {
@@ -343,7 +371,11 @@ describe("ctx.objRuntime", () => {
       ]);
 
       const obj = Clase.instantiate("obj");
-      expect(kernel.run(ctx.objRuntime.dispatch(obj, "val", []))).to.equal(10);
+      expect(
+        (
+          kernel.run(ctx.objRuntime.dispatch(obj, "val", [])) as YuValue
+        ).toJSON(),
+      ).to.equal(10);
     });
   });
   describe("Super", () => {
@@ -391,9 +423,9 @@ describe("ctx.objRuntime", () => {
 
       const result = kernel.run(
         ctx.objRuntime.dispatch(hijoInstance, "calc", []),
-      );
+      ) as YuValue;
 
-      expect(result).to.equal(15);
+      expect(result.toJSON()).to.equal(15);
     });
   });
 });

@@ -63,6 +63,7 @@ import {
 import {
   ArithmeticBinaryTable,
   ArithmeticUnaryTable,
+  BinaryTable,
   BitwiseBinaryTable,
   BitwiseUnaryTable,
   ComparisonOperationTable,
@@ -71,8 +72,9 @@ import {
   LogicalBinaryTable,
   LogicalUnaryTable,
   StringOperationTable,
+  UnaryTable,
 } from "./Operations.js";
-import { Evaluator } from "../utils.js";
+import { boolean, Environment, EnvStack, Evaluator } from "../utils.js";
 import { LogicEngine } from "./logic/LogicEngine.js";
 import { InterpreterError, UnexpectedNode } from "../errors.js";
 import { EnvBuilderVisitor } from "./EnvBuilder.js";
@@ -86,23 +88,30 @@ import {
   FailCommand,
   StepCommand,
 } from "./kernel/commands.js";
-import {
-  PrimitiveValue,
-  Environment,
-  EnvStack,
-} from "../../primitives/primitives.js";
+import { EqualityComparer } from "./EqualityComparer.js";
+import { YuSequence } from "../primitives/capabilities.js";
+import { YuBoolean } from "../primitives/scalars/YuBoolean.js";
+import { YuNil } from "../primitives/scalars/YuNil.js";
+import { YuNumber } from "../primitives/scalars/YuNumber.js";
+import { YuArray } from "../primitives/sequences/YuArray.js";
+import { YuString } from "../primitives/sequences/YuString.js";
+import { YuValue } from "../primitives/YuValue.js";
+import { RuntimeClass } from "../primitives/entities/RuntimeClass.js";
 import {
   EquationRuntime,
-  isRuntimeFunction,
   RuntimeFunction,
-} from "../../primitives/RuntimeFunction.js";
-import { isRuntimeObject } from "../../primitives/RuntimeObject.js";
-import { isLazyList } from "../../primitives/LazyList.js";
-import { LogicAnswer, LogicResult } from "../../primitives/LogicResult.js";
-import { isRuntimeClass, RuntimeClass } from "../../primitives/RuntimeClass.js";
+} from "../primitives/entities/RuntimeFunction.js";
+import {
+  LazyList,
+  LogicAnswer,
+  LogicResult,
+  RuntimeObject,
+} from "../primitives/index.js";
 
 export class InterpreterVisitor implements Evaluator {
-  constructor(private context: RuntimeContext) {}
+  constructor(private context: RuntimeContext) {
+    this.context.evaluatorFactory = (ctx) => new InterpreterVisitor(ctx);
+  }
 
   getContext(): RuntimeContext {
     return this.context;
@@ -113,11 +122,12 @@ export class InterpreterVisitor implements Evaluator {
   }
 
   visitSequence(node: Sequence): ExecutionCommand {
-    if (node.statements.length === 0) return new StepCommand(undefined);
+    if (node.statements.length === 0)
+      return new StepCommand(YuNil.getInstance());
 
     const evaluateNext = (
       index: number,
-      lastResult: PrimitiveValue,
+      lastResult: YuValue,
     ): ExecutionCommand => {
       if (index >= node.statements.length) return new StepCommand(lastResult);
 
@@ -128,7 +138,7 @@ export class InterpreterVisitor implements Evaluator {
       });
     };
 
-    return evaluateNext(0, undefined);
+    return evaluateNext(0, YuNil.getInstance());
   }
 
   visitAssert(node: Assert): ExecutionCommand {
@@ -144,23 +154,24 @@ export class InterpreterVisitor implements Evaluator {
   }
 
   visitNumberPrimitive(node: NumberPrimitive): ExecutionCommand {
-    return new StepCommand(node.value);
+    return new StepCommand(new YuNumber(node.value));
   }
 
   visitBooleanPrimitive(node: BooleanPrimitive): ExecutionCommand {
-    return new StepCommand(node.value);
+    return boolean(node.value);
   }
 
   visitStringPrimitive(node: StringPrimitive): ExecutionCommand {
-    return new StepCommand(node.value);
+    return new StepCommand(new YuString(node.value));
   }
 
   visitListPrimitive(node: ListPrimitive): ExecutionCommand {
-    if (node.value.length === 0) return new StepCommand([]);
+    if (node.value.length === 0) return new StepCommand(new YuArray([]));
 
-    const results: PrimitiveValue[] = [];
+    const results: YuValue[] = [];
     const evaluateNext = (index: number): ExecutionCommand => {
-      if (index >= node.value.length) return new StepCommand(results);
+      if (index >= node.value.length)
+        return new StepCommand(new YuArray(results));
 
       return new BindCommand(this.evaluate(node.value[index]), (val) => {
         results.push(val);
@@ -172,17 +183,17 @@ export class InterpreterVisitor implements Evaluator {
   }
 
   visitNilPrimitive(node: NilPrimitive): ExecutionCommand {
-    return new StepCommand(node.value);
+    return new StepCommand(YuNil.getInstance());
   }
 
   visitCharPrimitive(node: CharPrimitive): ExecutionCommand {
-    return new StepCommand(node.value);
+    return new StepCommand(new YuString(node.value));
   }
 
   visitSymbolPrimitive(node: SymbolPrimitive): ExecutionCommand {
     try {
       const val = this.context.lookup(node.value);
-      if (isRuntimeFunction(val) && val.arity === 0) {
+      if (val instanceof RuntimeFunction && val.arity === 0) {
         return this.context.funcRuntime.apply(val, []);
       }
       return new StepCommand(val);
@@ -197,7 +208,7 @@ export class InterpreterVisitor implements Evaluator {
     const name = node.identifier.value;
     return new BindCommand(this.evaluate(node.expression), (value) => {
       this.context.define(name, value);
-      return new StepCommand(true);
+      return boolean(true);
     });
   }
 
@@ -216,7 +227,7 @@ export class InterpreterVisitor implements Evaluator {
       const onReplace = (scope: Environment) => {
         if (scope.has("self")) {
           const self = scope.get("self");
-          if (isRuntimeObject(self) && self.fields.has(name))
+          if (self instanceof RuntimeObject && self.fields.has(name))
             self.fields.set(name, value);
         }
       };
@@ -239,7 +250,7 @@ export class InterpreterVisitor implements Evaluator {
     return this.processUnary(
       node,
       ArithmeticUnaryTable,
-      (a: number) => !Number.isNaN(a),
+      (a) => !!a.asNumeric,
       "ArithmeticUnaryOperation",
     );
   }
@@ -250,28 +261,26 @@ export class InterpreterVisitor implements Evaluator {
     return this.processBinary(
       node,
       ArithmeticBinaryTable,
-      (a, b) => typeof a === "number" && typeof b === "number",
+      (a, b) => !!a.asNumeric && !!b.asNumeric,
       "ArithmeticBinaryOperation",
     );
   }
 
   visitListUnaryOperation(node: ListUnaryOperation): ExecutionCommand {
     return new BindCommand(this.evaluate(node.operand), (operand) => {
-      if (
-        typeof operand !== "string" &&
-        !Array.isArray(operand) &&
-        !isLazyList(operand)
-      )
+      if (!operand.asSequence)
         return new FailCommand(
           new InterpreterError(
             "ListUnaryOperation",
-            `Expected Array, String or LazyList but got ${typeof operand}`,
+            `Expected Sequence but got ${operand.getType()}`,
           ),
         );
 
       return new BindCommand(
         this.context.lazyRuntime.realizeList(operand),
         (arr) => {
+          const seq = arr.asSequence
+          if(!seq) throw new InterpreterError(`[${node.operator}]`, `Expected ${arr} to be a YuSequence.`)
           const fn = ListUnaryTable[node.operator];
           if (!fn)
             return new FailCommand(
@@ -280,14 +289,7 @@ export class InterpreterVisitor implements Evaluator {
                 `Unknown operator: ${node.operator}`,
               ),
             );
-          if (!Array.isArray(arr))
-            return new FailCommand(
-              new InterpreterError(
-                "ListUnaryOperation",
-                "realizeList did not return an array",
-              ),
-            );
-          return new StepCommand(fn(arr));
+          return fn(seq);
         },
       );
     });
@@ -295,12 +297,36 @@ export class InterpreterVisitor implements Evaluator {
 
   visitListBinaryOperation(node: ListBinaryOperation): ExecutionCommand {
     if (node.operator === "Concat") {
-      if (this.context.config.lazyLoading) {
-        return this.context.lazyRuntime.evaluateConcatLazy(node, this);
-      }
+      const capturedCtx = this.context.clone();
       return new BindCommand(this.evaluate(node.left), (left) => {
+        const seqL = left.asSequence as YuSequence;
+        if (!seqL) throw new Error("Invalid left operand for lazy Concat");
+
+        if (this.context.config.lazyLoading) {
+          const lazyRight = new LazyList(
+            () => {
+              if (!capturedCtx.evaluatorFactory)
+                throw new Error(
+                  "EvaluatorFactory not initialized in RuntimeContext",
+                );
+              const subEvaluator = capturedCtx.evaluatorFactory(capturedCtx);
+              const subKernel = new YukigoKernel(subEvaluator);
+              const right = subKernel.run(new EvalCommand(node.right));
+              const seqR = right.asSequence as YuSequence;
+              if (!seqR)
+                throw new Error("Invalid right operand for lazy Concat");
+              return seqR.step();
+            },
+            "LazyRight",
+            capturedCtx,
+          );
+          return this.context.lazyRuntime.evaluateConcat(seqL, lazyRight);
+        }
+
         return new BindCommand(this.evaluate(node.right), (right) => {
-          return this.context.lazyRuntime.evaluateConcat(left, right);
+          const seqR = right.asSequence as YuSequence;
+          if (!seqR) throw new Error("Invalid right operand for lazy Concat");
+          return seqL.concat(seqR);
         });
       });
     }
@@ -308,9 +334,7 @@ export class InterpreterVisitor implements Evaluator {
     return this.processBinary(
       node,
       ListBinaryTable,
-      (a, b) =>
-        (Array.isArray(a) || typeof a === "string" || isLazyList(a)) &&
-        (Array.isArray(b) || typeof b === "string" || isLazyList(b)),
+      (a, b) => !!a.asSequence && !!b.asSequence,
       "ListBinaryOperation",
     );
   }
@@ -323,10 +347,12 @@ export class InterpreterVisitor implements Evaluator {
           new BindCommand(
             this.evaluate(node.right),
             (right) =>
-              new BindCommand(
-                this.context.lazyRuntime.deepEqual(left, right),
-                (eq) => new StepCommand(node.operator === "Equal" ? eq : !eq),
-              ),
+              new BindCommand(EqualityComparer.compare(left, right), (eq) => {
+                const isEq = eq.asLogic?.and(() => new StepCommand(eq)); // simple check
+                return new StepCommand(
+                  new YuBoolean(node.operator === "Equal" ? !!isEq : !isEq),
+                );
+              }),
           ),
       );
     }
@@ -341,13 +367,25 @@ export class InterpreterVisitor implements Evaluator {
 
   visitLogicalBinaryOperation(node: LogicalBinaryOperation): ExecutionCommand {
     return new BindCommand(this.evaluate(node.left), (left) => {
-      if (typeof left !== "boolean")
+      const logicValue = left.asLogic;
+      if (!logicValue)
         return new FailCommand(
           new InterpreterError(
             "LogicalBinaryOperation",
             `Expected left side to be boolean and got: ${left}`,
           ),
         );
+
+      if (this.context.config.lazyLoading) {
+        if (node.operator === "And") {
+          const val = logicValue.toJSON();
+          if (val === false) return boolean(false);
+        }
+        if (node.operator === "Or") {
+          const val = logicValue.toJSON();
+          if (val === true) return boolean(true);
+        }
+      }
 
       const fn = LogicalBinaryTable[node.operator];
       if (!fn)
@@ -358,22 +396,9 @@ export class InterpreterVisitor implements Evaluator {
           ),
         );
 
-      if (this.context.config.lazyLoading) {
-        if (node.operator === "And" && left === false)
-          return new StepCommand(false);
-        if (node.operator === "Or" && left === true)
-          return new StepCommand(true);
-      }
-
-      return new BindCommand(this.evaluate(node.right), (right) => {
-        if (typeof right !== "boolean")
-          return new FailCommand(
-            new InterpreterError(
-              "LogicalBinaryOperation",
-              `Expected right side to be boolean and got: ${right}`,
-            ),
-          );
-        return new StepCommand(fn(left, () => right));
+      return fn(logicValue, () => {
+        const subKernel = new YukigoKernel(this);
+        return subKernel.run(new EvalCommand(node.right));
       });
     });
   }
@@ -382,7 +407,7 @@ export class InterpreterVisitor implements Evaluator {
     return this.processUnary(
       node,
       LogicalUnaryTable,
-      (a) => typeof a === "boolean",
+      (a) => !!a.asLogic,
       "LogicalUnaryOperation",
     );
   }
@@ -391,7 +416,7 @@ export class InterpreterVisitor implements Evaluator {
     return this.processBinary(
       node,
       BitwiseBinaryTable,
-      (a, b) => !Number.isNaN(a) && !Number.isNaN(b),
+      (a, b) => !!a.asNumeric && !!b.asNumeric,
       "BitwiseBinaryOperation",
     );
   }
@@ -400,7 +425,7 @@ export class InterpreterVisitor implements Evaluator {
     return this.processUnary(
       node,
       BitwiseUnaryTable,
-      (a) => !Number.isNaN(a),
+      (a) => !!a.asNumeric,
       "BitwiseUnaryOperation",
     );
   }
@@ -409,7 +434,7 @@ export class InterpreterVisitor implements Evaluator {
     return this.processBinary(
       node,
       StringOperationTable,
-      (a, b) => typeof a === "string" || typeof b === "string",
+      (a, b) => !!a.asSummable && !!b.asSummable,
       "StringOperation",
     );
   }
@@ -439,7 +464,7 @@ export class InterpreterVisitor implements Evaluator {
       const onReplace = (scope: Environment) => {
         if (scope.has("self")) {
           const self = scope.get("self");
-          if (isRuntimeObject(self) && self.fields.has(name)) {
+          if (self instanceof RuntimeObject && self.fields.has(name)) {
             self.fields.set(name, value);
           }
         }
@@ -449,14 +474,15 @@ export class InterpreterVisitor implements Evaluator {
         this.context.define(name, value);
       }
 
-      return new StepCommand(true);
+      return boolean(true);
     });
   }
 
   visitTupleExpr(node: TupleExpression): ExecutionCommand {
-    const results: PrimitiveValue[] = [];
+    const results: YuValue[] = [];
     const evaluateNext = (index: number): ExecutionCommand => {
-      if (index >= node.elements.length) return new StepCommand(results);
+      if (index >= node.elements.length)
+        return new StepCommand(new YuArray(results));
       return new BindCommand(this.evaluate(node.elements[index]), (val) => {
         results.push(val);
         return evaluateNext(index + 1);
@@ -474,7 +500,7 @@ export class InterpreterVisitor implements Evaluator {
   }
 
   visitDataExpr(node: DataExpression): ExecutionCommand {
-    const fieldValues = new Map<string, PrimitiveValue>();
+    const fieldValues = new Map<string, YuValue>();
 
     const evaluateFields = (index: number): ExecutionCommand => {
       if (index >= node.contents.length) {
@@ -514,22 +540,21 @@ export class InterpreterVisitor implements Evaluator {
 
   visitIf(node: If): ExecutionCommand {
     return new BindCommand(this.evaluate(node.condition), (condition) => {
-      if (typeof condition !== "boolean")
+      if (!(condition instanceof YuBoolean))
         return new FailCommand(
           new InterpreterError(
             "If",
-            `Expected boolean in condition and got ${typeof condition}`,
+            `Expected boolean in condition and got ${condition.getType()}`,
           ),
         );
-      return condition
-        ? this.evaluate(node.then)
-        : this.evaluate(node.elseExpr);
+      const isTrue = condition.value;
+      return isTrue ? this.evaluate(node.then) : this.evaluate(node.elseExpr);
     });
   }
 
   visitCall(node: Call): ExecutionCommand {
     return new BindCommand(this.evaluate(node.callee), (callee) => {
-      const args: PrimitiveValue[] = [];
+      const args: YuValue[] = [];
       const evaluateArgs = (index: number): ExecutionCommand => {
         if (index < node.args.length)
           return new BindCommand(this.evaluate(node.args[index]), (val) => {
@@ -537,7 +562,7 @@ export class InterpreterVisitor implements Evaluator {
             return evaluateArgs(index + 1);
           });
 
-        if (!isRuntimeFunction(callee))
+        if (!(callee instanceof RuntimeFunction))
           return new FailCommand(
             new InterpreterError("Call", "Target is not a function"),
           );
@@ -549,13 +574,16 @@ export class InterpreterVisitor implements Evaluator {
   }
 
   visitOtherwise(node: Otherwise): ExecutionCommand {
-    return new StepCommand(true);
+    return boolean(true);
   }
 
   visitCompositionExpression(node: CompositionExpression): ExecutionCommand {
     return new BindCommand(this.evaluate(node.left), (f) => {
       return new BindCommand(this.evaluate(node.right), (g) => {
-        if (!isRuntimeFunction(f) || !isRuntimeFunction(g)) {
+        if (
+          !(f instanceof RuntimeFunction) ||
+          !(g instanceof RuntimeFunction)
+        ) {
           return new FailCommand(
             new InterpreterError(
               "Composition",
@@ -582,7 +610,7 @@ export class InterpreterVisitor implements Evaluator {
           body: new UnguardedBody(new Sequence([new Return(compositionBody)])),
         };
 
-        const privateScope = new Map<string, PrimitiveValue>();
+        const privateScope = new Map<string, YuValue>();
         privateScope.set(F_REF, f);
         privateScope.set(G_REF, g);
 
@@ -621,7 +649,7 @@ export class InterpreterVisitor implements Evaluator {
   visitApplication(node: Application): ExecutionCommand {
     const { funcRuntime } = this.context;
     return new BindCommand(this.evaluate(node.functionExpr), (func) => {
-      if (!isRuntimeFunction(func)) {
+      if (!(func instanceof RuntimeFunction)) {
         return new FailCommand(
           new InterpreterError("Application", "Cannot apply non-function"),
         );
@@ -636,7 +664,7 @@ export class InterpreterVisitor implements Evaluator {
         return new BindCommand(
           funcRuntime.applyArguments(func),
           (resultOfFunc) => {
-            if (!isRuntimeFunction(resultOfFunc))
+            if (!(resultOfFunc instanceof RuntimeFunction))
               return new FailCommand(
                 new InterpreterError(
                   "Application",
@@ -678,8 +706,8 @@ export class InterpreterVisitor implements Evaluator {
 
   visitLogicConstraint(node: LogicConstraint): ExecutionCommand {
     return new BindCommand(this.evaluate(node.expression), (val) => {
-      const success = Array.isArray(val) ? val.length > 0 : !!val;
-      if (success)
+      const isTrue = val instanceof YuBoolean && val.value;
+      if (isTrue)
         return new StepCommand(
           new LogicResult([new LogicAnswer(true, new Map())]),
         );
@@ -688,9 +716,9 @@ export class InterpreterVisitor implements Evaluator {
   }
 
   visitSuper(node: Super): ExecutionCommand {
-    let methodName: string;
+    let methodName: YuString;
     try {
-      methodName = this.context.lookup("__METHOD_NAME__") as string;
+      methodName = this.context.lookup("__METHOD_NAME__") as YuString;
     } catch (e) {
       return new FailCommand(
         new InterpreterError(
@@ -700,10 +728,10 @@ export class InterpreterVisitor implements Evaluator {
       );
     }
 
-    const args: PrimitiveValue[] = [];
+    const args: YuValue[] = [];
     const evaluateNextArg = (index: number): ExecutionCommand => {
       if (index >= node.args.length) {
-        return this.context.objRuntime.dispatchSuper(methodName, args);
+        return this.context.objRuntime.dispatchSuper(methodName.toJSON(), args);
       }
       return new BindCommand(this.evaluate(node.args[index]), (val) => {
         args.push(val);
@@ -716,7 +744,7 @@ export class InterpreterVisitor implements Evaluator {
   visitSend(node: Send): ExecutionCommand {
     if (node.receiver instanceof Super) {
       const methodName = node.selector.value;
-      const args: PrimitiveValue[] = [];
+      const args: YuValue[] = [];
       const evaluateNextArg = (index: number): ExecutionCommand => {
         if (index >= node.args.length) {
           return this.context.objRuntime.dispatchSuper(methodName, args);
@@ -731,7 +759,7 @@ export class InterpreterVisitor implements Evaluator {
 
     return new BindCommand(this.evaluate(node.receiver), (receiver) => {
       const methodName = node.selector.value;
-      const args: PrimitiveValue[] = [];
+      const args: YuValue[] = [];
       const evaluateNextArg = (index: number): ExecutionCommand => {
         if (index >= node.args.length) {
           return this.context.objRuntime.dispatch(receiver, methodName, args);
@@ -748,7 +776,7 @@ export class InterpreterVisitor implements Evaluator {
   visitNew(node: New): ExecutionCommand {
     const className = node.identifier.value;
     const classDef = this.context.lookup(className);
-    if (!isRuntimeClass(classDef))
+    if (!(classDef instanceof RuntimeClass))
       return new FailCommand(
         new InterpreterError("New", `${className} is not a class.`),
       );
@@ -767,13 +795,13 @@ export class InterpreterVisitor implements Evaluator {
   }
 
   visitListComprehension(node: ListComprehension): ExecutionCommand {
-    const results: PrimitiveValue[] = [];
+    const results: YuValue[] = [];
 
     const process = (index: number): ExecutionCommand => {
       if (index >= node.generators.length) {
         return new BindCommand(this.evaluate(node.projection), (proj) => {
           results.push(proj);
-          return new StepCommand(results);
+          return new StepCommand(new YuArray(results));
         });
       }
 
@@ -785,14 +813,20 @@ export class InterpreterVisitor implements Evaluator {
           (exprResult) => {
             return new BindCommand(
               this.context.lazyRuntime.realizeList(exprResult),
-              (sourceList) => {
+              (sourceListVal) => {
+                const sourceList = sourceListVal.asSequence;
+                if (!(sourceList instanceof YuArray))
+                  throw new InterpreterError(
+                    "visitListComprehension",
+                    `Error expected YuArray and got ${sourceListVal.getType()}`,
+                  );
                 const iterateSource = (
                   sourceIndex: number,
                 ): ExecutionCommand => {
-                  if (sourceIndex >= (sourceList as any[]).length)
-                    return new StepCommand(results);
+                  if (sourceIndex >= sourceList.items.length)
+                    return new StepCommand(new YuArray(results));
 
-                  const item = (sourceList as any[])[sourceIndex];
+                  const item = sourceList.at(sourceIndex);
                   const varName = current.variable.value;
                   this.context.define(varName, item);
 
@@ -807,9 +841,10 @@ export class InterpreterVisitor implements Evaluator {
         return new BindCommand(
           this.evaluate(current as Expression),
           (condition) => {
-            return condition === true
+            const isTrue = condition instanceof YuBoolean && condition.value;
+            return isTrue
               ? process(index + 1)
-              : new StepCommand(results);
+              : new StepCommand(new YuArray(results));
           },
         );
       }
@@ -829,14 +864,15 @@ export class InterpreterVisitor implements Evaluator {
 
   visitRaise(node: Raise): ExecutionCommand {
     return new BindCommand(this.evaluate(node.body), (msg) => {
-      if (typeof msg !== "string")
+      const msgStr = msg.toJSON();
+      if (typeof msgStr !== "string")
         return new FailCommand(
           new InterpreterError(
             "Raise",
-            `Expected string but got ${typeof msg}`,
+            `Expected string but got ${msg.getType()}`,
           ),
         );
-      return new FailCommand(new InterpreterError("Raise", msg));
+      return new FailCommand(new InterpreterError("Raise", msgStr));
     });
   }
 
@@ -852,14 +888,14 @@ export class InterpreterVisitor implements Evaluator {
       new UnexpectedNode(node.constructor.name, "InterpreterVisitor"),
     );
   }
-  public realizeList(val: PrimitiveValue): ExecutionCommand {
+  public realizeList(val: YuValue): ExecutionCommand {
     return this.context.lazyRuntime.realizeList(val);
   }
 
-  private processBinary(
+  private processBinary<T extends YuValue>(
     node: BinaryOperation,
-    table: Record<string, any>,
-    typeGuard: (a: any, b: any) => boolean,
+    table: BinaryTable<T>,
+    typeGuard: (a: YuValue, b: YuValue) => boolean,
     contextName: string,
   ): ExecutionCommand {
     return new BindCommand(this.evaluate(node.left), (left) => {
@@ -868,7 +904,7 @@ export class InterpreterVisitor implements Evaluator {
           return new FailCommand(
             new InterpreterError(
               contextName,
-              `Type mismatch: ${left}, ${right}`,
+              `Type mismatch: ${left.getType()}, ${right.getType()}`,
             ),
           );
         }
@@ -880,21 +916,28 @@ export class InterpreterVisitor implements Evaluator {
           );
         }
 
-        return new StepCommand(fn(left, right));
+        try {
+          return fn(left as T, right as T);
+        } catch (e) {
+          return new FailCommand(e as Error);
+        }
       });
     });
   }
 
-  private processUnary(
+  private processUnary<T extends YuValue>(
     node: UnaryOperation,
-    table: any,
-    typeGuard: (a: any) => boolean,
+    table: UnaryTable<T>,
+    typeGuard: (a: YuValue) => boolean,
     contextName: string,
   ): ExecutionCommand {
     return new BindCommand(this.evaluate(node.operand), (operand) => {
       if (!typeGuard(operand))
         return new FailCommand(
-          new InterpreterError(contextName, `Type mismatch: ${operand}`),
+          new InterpreterError(
+            contextName,
+            `Type mismatch: ${operand.getType()}`,
+          ),
         );
 
       const fn = table[node.operator];
@@ -903,7 +946,11 @@ export class InterpreterVisitor implements Evaluator {
           new InterpreterError(contextName, `Unknown op: ${node.operator}`),
         );
 
-      return new StepCommand(fn(operand));
+      try {
+        return fn(operand as T);
+      } catch (e) {
+        return new FailCommand(e as Error);
+      }
     });
   }
 
@@ -911,7 +958,7 @@ export class InterpreterVisitor implements Evaluator {
     return new LogicEngine(this, this.context);
   }
 
-  static evaluateLiteral(node: ASTNode): PrimitiveValue {
+  static evaluateLiteral(node: ASTNode): YuValue {
     const ctx = new RuntimeContext();
     const visitor = new InterpreterVisitor(ctx);
     const kernel = new YukigoKernel(visitor);

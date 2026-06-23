@@ -32,7 +32,14 @@ import {
 } from "yukigo-ast";
 import { Interpreter } from "../../src/interpreter/index.js";
 import { assert } from "chai";
-import { isLazyList } from "../../src/primitives/LazyList.js";
+import { YukigoKernel } from "../../src/interpreter/components/kernel/index.js";
+import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
+import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
+import {
+  YuValue,
+  isLazyList,
+  LazyStepResult,
+} from "../../src/interpreter/primitives/index.js";
 
 describe("Interpreter Spec", () => {
   let interpreter: Interpreter;
@@ -40,7 +47,7 @@ describe("Interpreter Spec", () => {
     interpreter = new Interpreter([]);
   });
   it("Evaluates ArithmeticBinaryOperation", () => {
-    assert.equal(
+    console.log(
       interpreter.evaluate(
         new ArithmeticBinaryOperation(
           "Plus",
@@ -48,464 +55,569 @@ describe("Interpreter Spec", () => {
           new NumberPrimitive(4),
         ),
       ),
+    );
+    assert.equal(
+      (
+        interpreter.evaluate(
+          new ArithmeticBinaryOperation(
+            "Plus",
+            new NumberPrimitive(3),
+            new NumberPrimitive(4),
+          ),
+        ) as YuValue
+      ).toJSON(),
       7,
     );
     assert.equal(
-      interpreter.evaluate(
-        new ArithmeticBinaryOperation(
-          "Minus",
-          new NumberPrimitive(3),
-          new NumberPrimitive(4),
-        ),
-      ),
+      (
+        interpreter.evaluate(
+          new ArithmeticBinaryOperation(
+            "Minus",
+            new NumberPrimitive(3),
+            new NumberPrimitive(4),
+          ),
+        ) as YuValue
+      ).toJSON(),
       -1,
     );
     assert.equal(
-      interpreter.evaluate(
-        new ArithmeticBinaryOperation(
-          "Multiply",
-          new NumberPrimitive(3),
-          new NumberPrimitive(4),
-        ),
-      ),
+      (
+        interpreter.evaluate(
+          new ArithmeticBinaryOperation(
+            "Multiply",
+            new NumberPrimitive(3),
+            new NumberPrimitive(4),
+          ),
+        ) as YuValue
+      ).toJSON(),
       12,
     );
     assert.equal(
-      interpreter.evaluate(
-        new ArithmeticBinaryOperation(
-          "Divide",
-          new NumberPrimitive(3),
-          new NumberPrimitive(4),
-        ),
-      ),
+      (
+        interpreter.evaluate(
+          new ArithmeticBinaryOperation(
+            "Divide",
+            new NumberPrimitive(3),
+            new NumberPrimitive(4),
+          ),
+        ) as YuValue
+      ).toJSON(),
       0.75,
     );
     assert.equal(
-      interpreter.evaluate(
-        new ArithmeticBinaryOperation(
-          "Modulo",
-          new NumberPrimitive(3),
-          new NumberPrimitive(4),
-        ),
-      ),
+      (
+        interpreter.evaluate(
+          new ArithmeticBinaryOperation(
+            "Modulo",
+            new NumberPrimitive(3),
+            new NumberPrimitive(4),
+          ),
+        ) as YuValue
+      ).toJSON(),
       3,
     );
     assert.equal(
-      interpreter.evaluate(
-        new ArithmeticBinaryOperation(
-          "Power",
-          new NumberPrimitive(3),
-          new NumberPrimitive(4),
-        ),
-      ),
+      (
+        interpreter.evaluate(
+          new ArithmeticBinaryOperation(
+            "Power",
+            new NumberPrimitive(3),
+            new NumberPrimitive(4),
+          ),
+        ) as YuValue
+      ).toJSON(),
       81,
     );
     assert.equal(
-      interpreter.evaluate(
-        new ArithmeticBinaryOperation(
-          "Min",
-          new NumberPrimitive(3),
-          new NumberPrimitive(4),
-        ),
-      ),
+      (
+        interpreter.evaluate(
+          new ArithmeticBinaryOperation(
+            "Min",
+            new NumberPrimitive(3),
+            new NumberPrimitive(4),
+          ),
+        ) as YuValue
+      ).toJSON(),
       3,
     );
     assert.equal(
-      interpreter.evaluate(
-        new ArithmeticBinaryOperation(
-          "Max",
-          new NumberPrimitive(3),
-          new NumberPrimitive(4),
-        ),
-      ),
+      (
+        interpreter.evaluate(
+          new ArithmeticBinaryOperation(
+            "Max",
+            new NumberPrimitive(3),
+            new NumberPrimitive(4),
+          ),
+        ) as YuValue
+      ).toJSON(),
       4,
     );
   });
 
   it("Evaluates ArithmeticUnaryOperation", () => {
     assert.equal(
-      interpreter.evaluate(
-        new ArithmeticUnaryOperation("Round", new NumberPrimitive(3.4)),
-      ),
+      (
+        interpreter.evaluate(
+          new ArithmeticUnaryOperation("Round", new NumberPrimitive(3.4)),
+        ) as YuValue
+      ).toJSON(),
       3,
     );
     assert.equal(
-      interpreter.evaluate(
-        new ArithmeticUnaryOperation("Round", new NumberPrimitive(3.5)),
-      ),
+      (
+        interpreter.evaluate(
+          new ArithmeticUnaryOperation("Round", new NumberPrimitive(3.5)),
+        ) as YuValue
+      ).toJSON(),
       4,
     );
     assert.equal(
-      interpreter.evaluate(
-        new ArithmeticUnaryOperation("Absolute", new NumberPrimitive(-3)),
-      ),
+      (
+        interpreter.evaluate(
+          new ArithmeticUnaryOperation("Absolute", new NumberPrimitive(-3)),
+        ) as YuValue
+      ).toJSON(),
       3,
     );
     assert.equal(
-      interpreter.evaluate(
-        new ArithmeticUnaryOperation("Absolute", new NumberPrimitive(3)),
-      ),
+      (
+        interpreter.evaluate(
+          new ArithmeticUnaryOperation("Absolute", new NumberPrimitive(3)),
+        ) as YuValue
+      ).toJSON(),
       3,
     );
     assert.equal(
-      interpreter.evaluate(
-        new ArithmeticUnaryOperation("Ceil", new NumberPrimitive(3.3)),
-      ),
+      (
+        interpreter.evaluate(
+          new ArithmeticUnaryOperation("Ceil", new NumberPrimitive(3.3)),
+        ) as YuValue
+      ).toJSON(),
       4,
     );
     assert.equal(
-      interpreter.evaluate(
-        new ArithmeticUnaryOperation("Floor", new NumberPrimitive(3.3)),
-      ),
+      (
+        interpreter.evaluate(
+          new ArithmeticUnaryOperation("Floor", new NumberPrimitive(3.3)),
+        ) as YuValue
+      ).toJSON(),
       3,
     );
     assert.equal(
-      interpreter.evaluate(
-        new ArithmeticUnaryOperation("Negation", new NumberPrimitive(3.3)),
-      ),
+      (
+        interpreter.evaluate(
+          new ArithmeticUnaryOperation("Negation", new NumberPrimitive(3.3)),
+        ) as YuValue
+      ).toJSON(),
       -3.3,
     );
     assert.equal(
-      interpreter.evaluate(
-        new ArithmeticUnaryOperation("Sqrt", new NumberPrimitive(25)),
-      ),
+      (
+        interpreter.evaluate(
+          new ArithmeticUnaryOperation("Sqrt", new NumberPrimitive(25)),
+        ) as YuValue
+      ).toJSON(),
       5,
     );
   });
   describe("Evaluates ComparisonOperation", () => {
     it("Equal Operator", () => {
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "Equal",
-            new NumberPrimitive(3.4),
-            new NumberPrimitive(3.4),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "Equal",
+              new NumberPrimitive(3.4),
+              new NumberPrimitive(3.4),
+            ),
+          ) as YuValue
+        ).toJSON(),
         true,
       );
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "Equal",
-            new NumberPrimitive(3.4),
-            new NumberPrimitive(4),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "Equal",
+              new NumberPrimitive(3.4),
+              new NumberPrimitive(4),
+            ),
+          ) as YuValue
+        ).toJSON(),
         false,
       );
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "Equal",
-            new NumberPrimitive(3),
-            new StringPrimitive("3"),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "Equal",
+              new NumberPrimitive(3),
+              new StringPrimitive("3"),
+            ),
+          ) as YuValue
+        ).toJSON(),
         true,
       );
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "Equal",
-            new NumberPrimitive(3),
-            new StringPrimitive("4"),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "Equal",
+              new NumberPrimitive(3),
+              new StringPrimitive("4"),
+            ),
+          ) as YuValue
+        ).toJSON(),
         false,
       );
     });
     it("NotEqual Operator", () => {
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "NotEqual",
-            new NumberPrimitive(3.4),
-            new NumberPrimitive(3.4),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "NotEqual",
+              new NumberPrimitive(3.4),
+              new NumberPrimitive(3.4),
+            ),
+          ) as YuValue
+        ).toJSON(),
         false,
       );
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "NotEqual",
-            new NumberPrimitive(3.4),
-            new NumberPrimitive(4),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "NotEqual",
+              new NumberPrimitive(3.4),
+              new NumberPrimitive(4),
+            ),
+          ) as YuValue
+        ).toJSON(),
         true,
       );
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "NotEqual",
-            new NumberPrimitive(3),
-            new StringPrimitive("3"),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "NotEqual",
+              new NumberPrimitive(3),
+              new StringPrimitive("3"),
+            ),
+          ) as YuValue
+        ).toJSON(),
         false,
       );
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "NotEqual",
-            new NumberPrimitive(3),
-            new StringPrimitive("4"),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "NotEqual",
+              new NumberPrimitive(3),
+              new StringPrimitive("4"),
+            ),
+          ) as YuValue
+        ).toJSON(),
         true,
       );
     });
     it("Same Operator", () => {
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "Same",
-            new NumberPrimitive(3.4),
-            new NumberPrimitive(3.4),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "Same",
+              new NumberPrimitive(3.4),
+              new NumberPrimitive(3.4),
+            ),
+          ) as YuValue
+        ).toJSON(),
         true,
       );
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "Same",
-            new NumberPrimitive(3.4),
-            new NumberPrimitive(4),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "Same",
+              new NumberPrimitive(3.4),
+              new NumberPrimitive(4),
+            ),
+          ) as YuValue
+        ).toJSON(),
         false,
       );
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "Same",
-            new NumberPrimitive(3),
-            new StringPrimitive("3"),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "Same",
+              new NumberPrimitive(3),
+              new StringPrimitive("3"),
+            ),
+          ) as YuValue
+        ).toJSON(),
         false,
       );
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "Same",
-            new NumberPrimitive(3),
-            new StringPrimitive("4"),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "Same",
+              new NumberPrimitive(3),
+              new StringPrimitive("4"),
+            ),
+          ) as YuValue
+        ).toJSON(),
         false,
       );
     });
     it("NotSame Operator", () => {
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "NotSame",
-            new NumberPrimitive(3.4),
-            new NumberPrimitive(3.4),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "NotSame",
+              new NumberPrimitive(3.4),
+              new NumberPrimitive(3.4),
+            ),
+          ) as YuValue
+        ).toJSON(),
         false,
       );
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "NotSame",
-            new NumberPrimitive(3.4),
-            new NumberPrimitive(4),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "NotSame",
+              new NumberPrimitive(3.4),
+              new NumberPrimitive(4),
+            ),
+          ) as YuValue
+        ).toJSON(),
         true,
       );
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "NotSame",
-            new NumberPrimitive(3),
-            new StringPrimitive("3"),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "NotSame",
+              new NumberPrimitive(3),
+              new StringPrimitive("3"),
+            ),
+          ) as YuValue
+        ).toJSON(),
         true,
       );
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "NotSame",
-            new NumberPrimitive(3),
-            new StringPrimitive("4"),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "NotSame",
+              new NumberPrimitive(3),
+              new StringPrimitive("4"),
+            ),
+          ) as YuValue
+        ).toJSON(),
         true,
       );
     });
     it("GreaterOrEqualThan Operator", () => {
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "GreaterOrEqualThan",
-            new NumberPrimitive(3.4),
-            new NumberPrimitive(3.4),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "GreaterOrEqualThan",
+              new NumberPrimitive(3.4),
+              new NumberPrimitive(3.4),
+            ),
+          ) as YuValue
+        ).toJSON(),
         true,
       );
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "GreaterOrEqualThan",
-            new NumberPrimitive(3.4),
-            new NumberPrimitive(4),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "GreaterOrEqualThan",
+              new NumberPrimitive(3.4),
+              new NumberPrimitive(4),
+            ),
+          ) as YuValue
+        ).toJSON(),
         false,
       );
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "GreaterOrEqualThan",
-            new NumberPrimitive(3),
-            new StringPrimitive("3"),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "GreaterOrEqualThan",
+              new NumberPrimitive(3),
+              new StringPrimitive("3"),
+            ),
+          ) as YuValue
+        ).toJSON(),
         true,
       );
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "GreaterOrEqualThan",
-            new NumberPrimitive(3),
-            new StringPrimitive("4"),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "GreaterOrEqualThan",
+              new NumberPrimitive(3),
+              new StringPrimitive("4"),
+            ),
+          ) as YuValue
+        ).toJSON(),
         false,
       );
     });
     it("GreaterThan Operator", () => {
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "GreaterThan",
-            new NumberPrimitive(3.4),
-            new NumberPrimitive(3.4),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "GreaterThan",
+              new NumberPrimitive(3.4),
+              new NumberPrimitive(3.4),
+            ),
+          ) as YuValue
+        ).toJSON(),
         false,
       );
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "GreaterThan",
-            new NumberPrimitive(3.4),
-            new NumberPrimitive(4),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "GreaterThan",
+              new NumberPrimitive(3.4),
+              new NumberPrimitive(4),
+            ),
+          ) as YuValue
+        ).toJSON(),
         false,
       );
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "GreaterThan",
-            new NumberPrimitive(3),
-            new StringPrimitive("3"),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "GreaterThan",
+              new NumberPrimitive(3),
+              new StringPrimitive("3"),
+            ),
+          ) as YuValue
+        ).toJSON(),
         false,
       );
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "GreaterThan",
-            new NumberPrimitive(3),
-            new StringPrimitive("4"),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "GreaterThan",
+              new NumberPrimitive(3),
+              new StringPrimitive("4"),
+            ),
+          ) as YuValue
+        ).toJSON(),
         false,
       );
     });
     it("LessOrEqualThan Operator", () => {
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "LessOrEqualThan",
-            new NumberPrimitive(3.4),
-            new NumberPrimitive(3.4),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "LessOrEqualThan",
+              new NumberPrimitive(3.4),
+              new NumberPrimitive(3.4),
+            ),
+          ) as YuValue
+        ).toJSON(),
         true,
       );
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "LessOrEqualThan",
-            new NumberPrimitive(3.4),
-            new NumberPrimitive(4),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "LessOrEqualThan",
+              new NumberPrimitive(3.4),
+              new NumberPrimitive(4),
+            ),
+          ) as YuValue
+        ).toJSON(),
         true,
       );
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "LessOrEqualThan",
-            new NumberPrimitive(3),
-            new StringPrimitive("3"),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "LessOrEqualThan",
+              new NumberPrimitive(3),
+              new StringPrimitive("3"),
+            ),
+          ) as YuValue
+        ).toJSON(),
         true,
       );
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "LessOrEqualThan",
-            new NumberPrimitive(3),
-            new StringPrimitive("4"),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "LessOrEqualThan",
+              new NumberPrimitive(3),
+              new StringPrimitive("4"),
+            ),
+          ) as YuValue
+        ).toJSON(),
         true,
       );
     });
     it("LessThan Operator", () => {
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "LessThan",
-            new NumberPrimitive(3.4),
-            new NumberPrimitive(3.4),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "LessThan",
+              new NumberPrimitive(3.4),
+              new NumberPrimitive(3.4),
+            ),
+          ) as YuValue
+        ).toJSON(),
         false,
       );
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "LessThan",
-            new NumberPrimitive(3.4),
-            new NumberPrimitive(4),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "LessThan",
+              new NumberPrimitive(3.4),
+              new NumberPrimitive(4),
+            ),
+          ) as YuValue
+        ).toJSON(),
         true,
       );
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "LessThan",
-            new NumberPrimitive(3),
-            new StringPrimitive("3"),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "LessThan",
+              new NumberPrimitive(3),
+              new StringPrimitive("3"),
+            ),
+          ) as YuValue
+        ).toJSON(),
         false,
       );
       assert.equal(
-        interpreter.evaluate(
-          new ComparisonOperation(
-            "LessThan",
-            new NumberPrimitive(3),
-            new StringPrimitive("4"),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ComparisonOperation(
+              "LessThan",
+              new NumberPrimitive(3),
+              new StringPrimitive("4"),
+            ),
+          ) as YuValue
+        ).toJSON(),
         true,
       );
     });
@@ -513,85 +625,101 @@ describe("Interpreter Spec", () => {
   describe("Evaluates LogicalBinaryOperation", () => {
     it("And Operator", () => {
       assert.equal(
-        interpreter.evaluate(
-          new LogicalBinaryOperation(
-            "And",
-            new BooleanPrimitive(true),
-            new BooleanPrimitive(true),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new LogicalBinaryOperation(
+              "And",
+              new BooleanPrimitive(true),
+              new BooleanPrimitive(true),
+            ),
+          ) as YuValue
+        ).toJSON(),
         true,
       );
       assert.equal(
-        interpreter.evaluate(
-          new LogicalBinaryOperation(
-            "And",
-            new BooleanPrimitive(true),
-            new BooleanPrimitive(false),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new LogicalBinaryOperation(
+              "And",
+              new BooleanPrimitive(true),
+              new BooleanPrimitive(false),
+            ),
+          ) as YuValue
+        ).toJSON(),
         false,
       );
       assert.equal(
-        interpreter.evaluate(
-          new LogicalBinaryOperation(
-            "And",
-            new BooleanPrimitive(false),
-            new BooleanPrimitive(true),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new LogicalBinaryOperation(
+              "And",
+              new BooleanPrimitive(false),
+              new BooleanPrimitive(true),
+            ),
+          ) as YuValue
+        ).toJSON(),
         false,
       );
       assert.equal(
-        interpreter.evaluate(
-          new LogicalBinaryOperation(
-            "And",
-            new BooleanPrimitive(false),
-            new BooleanPrimitive(false),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new LogicalBinaryOperation(
+              "And",
+              new BooleanPrimitive(false),
+              new BooleanPrimitive(false),
+            ),
+          ) as YuValue
+        ).toJSON(),
         false,
       );
     });
     it("Or Operator", () => {
       assert.equal(
-        interpreter.evaluate(
-          new LogicalBinaryOperation(
-            "Or",
-            new BooleanPrimitive(true),
-            new BooleanPrimitive(true),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new LogicalBinaryOperation(
+              "Or",
+              new BooleanPrimitive(true),
+              new BooleanPrimitive(true),
+            ),
+          ) as YuValue
+        ).toJSON(),
         true,
       );
       assert.equal(
-        interpreter.evaluate(
-          new LogicalBinaryOperation(
-            "Or",
-            new BooleanPrimitive(true),
-            new BooleanPrimitive(false),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new LogicalBinaryOperation(
+              "Or",
+              new BooleanPrimitive(true),
+              new BooleanPrimitive(false),
+            ),
+          ) as YuValue
+        ).toJSON(),
         true,
       );
       assert.equal(
-        interpreter.evaluate(
-          new LogicalBinaryOperation(
-            "Or",
-            new BooleanPrimitive(false),
-            new BooleanPrimitive(true),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new LogicalBinaryOperation(
+              "Or",
+              new BooleanPrimitive(false),
+              new BooleanPrimitive(true),
+            ),
+          ) as YuValue
+        ).toJSON(),
         true,
       );
       assert.equal(
-        interpreter.evaluate(
-          new LogicalBinaryOperation(
-            "Or",
-            new BooleanPrimitive(false),
-            new BooleanPrimitive(false),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new LogicalBinaryOperation(
+              "Or",
+              new BooleanPrimitive(false),
+              new BooleanPrimitive(false),
+            ),
+          ) as YuValue
+        ).toJSON(),
         false,
       );
     });
@@ -599,15 +727,19 @@ describe("Interpreter Spec", () => {
   describe("Evaluates LogicalUnaryOperation", () => {
     it("Negation Operator", () => {
       assert.equal(
-        interpreter.evaluate(
-          new LogicalUnaryOperation("Negation", new BooleanPrimitive(true)),
-        ),
+        (
+          interpreter.evaluate(
+            new LogicalUnaryOperation("Negation", new BooleanPrimitive(true)),
+          ) as YuValue
+        ).toJSON(),
         false,
       );
       assert.equal(
-        interpreter.evaluate(
-          new LogicalUnaryOperation("Negation", new BooleanPrimitive(false)),
-        ),
+        (
+          interpreter.evaluate(
+            new LogicalUnaryOperation("Negation", new BooleanPrimitive(false)),
+          ) as YuValue
+        ).toJSON(),
         true,
       );
     });
@@ -615,13 +747,15 @@ describe("Interpreter Spec", () => {
   describe("Evaluates StringOperation", () => {
     it("Concat Operator", () => {
       assert.equal(
-        interpreter.evaluate(
-          new StringOperation(
-            "Concat",
-            new StringPrimitive("Hello"),
-            new StringPrimitive(" world!"),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new StringOperation(
+              "Concat",
+              new StringPrimitive("Hello"),
+              new StringPrimitive(" world!"),
+            ),
+          ) as YuValue
+        ).toJSON(),
         "Hello world!",
       );
     });
@@ -629,54 +763,68 @@ describe("Interpreter Spec", () => {
   describe("Evaluates ListUnaryOperation", () => {
     it("Size Operator", () => {
       assert.equal(
-        interpreter.evaluate(
-          new ListUnaryOperation(
-            "Size",
-            new ListPrimitive([
-              new StringPrimitive("Hello"),
-              new StringPrimitive("world!"),
-            ]),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ListUnaryOperation(
+              "Size",
+              new ListPrimitive([
+                new StringPrimitive("Hello"),
+                new StringPrimitive("world!"),
+              ]),
+            ),
+          ) as YuValue
+        ).toJSON(),
         2,
       );
     });
     it("DetectMax Operator", () => {
       assert.equal(
-        interpreter.evaluate(
-          new ListUnaryOperation(
-            "DetectMax",
-            new ListPrimitive([new NumberPrimitive(2), new NumberPrimitive(4)]),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ListUnaryOperation(
+              "DetectMax",
+              new ListPrimitive([
+                new NumberPrimitive(2),
+                new NumberPrimitive(4),
+              ]),
+            ),
+          ) as YuValue
+        ).toJSON(),
         4,
       );
     });
     it("DetectMin Operator", () => {
       assert.equal(
-        interpreter.evaluate(
-          new ListUnaryOperation(
-            "DetectMin",
-            new ListPrimitive([new NumberPrimitive(2), new NumberPrimitive(4)]),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new ListUnaryOperation(
+              "DetectMin",
+              new ListPrimitive([
+                new NumberPrimitive(2),
+                new NumberPrimitive(4),
+              ]),
+            ),
+          ) as YuValue
+        ).toJSON(),
         2,
       );
     });
     it("Flatten Operator", () => {
       assert.deepEqual(
-        interpreter.evaluate(
-          new ListUnaryOperation(
-            "Flatten",
-            new ListPrimitive([
-              new ListPrimitive([new NumberPrimitive(2)]),
+        (
+          interpreter.evaluate(
+            new ListUnaryOperation(
+              "Flatten",
               new ListPrimitive([
-                new NumberPrimitive(3),
-                new NumberPrimitive(8),
+                new ListPrimitive([new NumberPrimitive(2)]),
+                new ListPrimitive([
+                  new NumberPrimitive(3),
+                  new NumberPrimitive(8),
+                ]),
               ]),
-            ]),
-          ),
-        ),
+            ),
+          ) as YuValue
+        ).toJSON(),
         [2, 3, 8],
       );
     });
@@ -684,73 +832,85 @@ describe("Interpreter Spec", () => {
   describe("Evaluates BitwiseBinaryOperation", () => {
     it("BitwiseOr Operator", () => {
       assert.equal(
-        interpreter.evaluate(
-          new BitwiseBinaryOperation(
-            "BitwiseOr",
-            new NumberPrimitive(5),
-            new NumberPrimitive(1),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new BitwiseBinaryOperation(
+              "BitwiseOr",
+              new NumberPrimitive(5),
+              new NumberPrimitive(1),
+            ),
+          ) as YuValue
+        ).toJSON(),
         5,
       );
     });
     it("BitwiseAnd Operator", () => {
       assert.equal(
-        interpreter.evaluate(
-          new BitwiseBinaryOperation(
-            "BitwiseAnd",
-            new NumberPrimitive(5),
-            new NumberPrimitive(1),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new BitwiseBinaryOperation(
+              "BitwiseAnd",
+              new NumberPrimitive(5),
+              new NumberPrimitive(1),
+            ),
+          ) as YuValue
+        ).toJSON(),
         1,
       );
     });
     it("BitwiseLeftShift Operator", () => {
       assert.equal(
-        interpreter.evaluate(
-          new BitwiseBinaryOperation(
-            "BitwiseLeftShift",
-            new NumberPrimitive(5),
-            new NumberPrimitive(1),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new BitwiseBinaryOperation(
+              "BitwiseLeftShift",
+              new NumberPrimitive(5),
+              new NumberPrimitive(1),
+            ),
+          ) as YuValue
+        ).toJSON(),
         10,
       );
     });
     it("BitwiseRightShift Operator", () => {
       assert.equal(
-        interpreter.evaluate(
-          new BitwiseBinaryOperation(
-            "BitwiseRightShift",
-            new NumberPrimitive(5),
-            new NumberPrimitive(1),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new BitwiseBinaryOperation(
+              "BitwiseRightShift",
+              new NumberPrimitive(5),
+              new NumberPrimitive(1),
+            ),
+          ) as YuValue
+        ).toJSON(),
         2,
       );
     });
     it("BitwiseUnsignedRightShift Operator", () => {
       assert.equal(
-        interpreter.evaluate(
-          new BitwiseBinaryOperation(
-            "BitwiseUnsignedRightShift",
-            new NumberPrimitive(5),
-            new NumberPrimitive(1),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new BitwiseBinaryOperation(
+              "BitwiseUnsignedRightShift",
+              new NumberPrimitive(5),
+              new NumberPrimitive(1),
+            ),
+          ) as YuValue
+        ).toJSON(),
         2,
       );
     });
     it("BitwiseXor Operator", () => {
       assert.equal(
-        interpreter.evaluate(
-          new BitwiseBinaryOperation(
-            "BitwiseXor",
-            new NumberPrimitive(5),
-            new NumberPrimitive(1),
-          ),
-        ),
+        (
+          interpreter.evaluate(
+            new BitwiseBinaryOperation(
+              "BitwiseXor",
+              new NumberPrimitive(5),
+              new NumberPrimitive(1),
+            ),
+          ) as YuValue
+        ).toJSON(),
         4,
       );
     });
@@ -758,9 +918,11 @@ describe("Interpreter Spec", () => {
   describe("Evaluates BitwiseUnaryOperator", () => {
     it("BitwiseNot Operator", () => {
       assert.equal(
-        interpreter.evaluate(
-          new BitwiseUnaryOperation("BitwiseNot", new NumberPrimitive(5)),
-        ),
+        (
+          interpreter.evaluate(
+            new BitwiseUnaryOperation("BitwiseNot", new NumberPrimitive(5)),
+          ) as YuValue
+        ).toJSON(),
         -6,
       );
     });
@@ -820,14 +982,14 @@ describe("Interpreter Spec", () => {
       const app1 = new Application(lambda, new NumberPrimitive(1));
       const app2 = new Application(app1, new NumberPrimitive(2));
       const app3 = new Application(app2, new NumberPrimitive(3));
-      assert.equal(interpreter.evaluate(app3), 6);
+      assert.equal((interpreter.evaluate(app3) as YuValue).toJSON(), 6);
     });
     it("Application of Function", () => {
       const app1 = new Application(
         new SymbolPrimitive("f"),
         new NumberPrimitive(3),
       );
-      assert.equal(interpreter.evaluate(app1), 6);
+      assert.equal((interpreter.evaluate(app1) as YuValue).toJSON(), 6);
     });
   });
   describe("Evaluates Composition", () => {
@@ -891,7 +1053,7 @@ describe("Interpreter Spec", () => {
       );
       const app = new Application(fog, new NumberPrimitive(2));
       const res = interpreter.evaluate(app);
-      assert.equal(res, 16);
+      assert.equal((res as YuValue).toJSON(), 16);
     });
   });
   describe("Evaluates TypeCast", () => {
@@ -899,7 +1061,7 @@ describe("Interpreter Spec", () => {
       const res = interpreter.evaluate(
         new TypeCast(new NumberPrimitive(2), new SimpleType("String", [])),
       );
-      assert.equal(res, "2");
+      assert.equal((res as YuValue).toJSON(), "2");
     });
   });
   describe("Evaluates Range Expression", () => {
@@ -908,7 +1070,10 @@ describe("Interpreter Spec", () => {
         new NumberPrimitive(1),
         new NumberPrimitive(5),
       );
-      assert.deepEqual(interpreter.evaluate(range), [1, 2, 3, 4, 5]);
+      assert.deepEqual(
+        (interpreter.evaluate(range) as YuValue).toJSON(),
+        [1, 2, 3, 4, 5],
+      );
     });
     it("Evaluates [0,0.5..2] to full range", () => {
       const range = new RangeExpression(
@@ -916,7 +1081,10 @@ describe("Interpreter Spec", () => {
         new NumberPrimitive(2),
         new NumberPrimitive(0.5),
       );
-      assert.deepEqual(interpreter.evaluate(range), [0, 0.5, 1, 1.5, 2]);
+      assert.deepEqual(
+        (interpreter.evaluate(range) as YuValue).toJSON(),
+        [0, 0.5, 1, 1.5, 2],
+      );
     });
     it("Evaluates [1..] lazily", () => {
       interpreter = new Interpreter([], { lazyLoading: true });
@@ -924,9 +1092,14 @@ describe("Interpreter Spec", () => {
       const evaluatedList = interpreter.evaluate(range);
       if (!isLazyList(evaluatedList))
         assert.fail("Evaluated list should be LazyList");
-      const iter = evaluatedList.generator();
-      assert.equal(iter.next().value, 1);
-      assert.equal(iter.next().value, 2);
+
+      const kernel = new YukigoKernel(
+        new InterpreterVisitor(new RuntimeContext({ lazyLoading: true })),
+      );
+      const step1 = kernel.run(evaluatedList.step()) as LazyStepResult;
+      assert.equal((step1.head as YuValue).toJSON(), 1);
+      const step2 = kernel.run(step1.tail!.step()) as LazyStepResult;
+      assert.equal((step2.head as YuValue).toJSON(), 2);
     });
   });
 

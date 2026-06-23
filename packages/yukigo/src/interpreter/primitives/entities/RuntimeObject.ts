@@ -1,5 +1,8 @@
-import { InterpreterError } from "../interpreter/errors.js";
-import { PrimitiveValue } from "./primitives.js";
+import { ExecutionCommand, StepCommand } from "../../components/kernel/commands.js";
+import { InterpreterError } from "../../errors.js";
+import { boolean } from "../../utils.js";
+import { YuBoolean } from "../index.js";
+import { YuValue } from "../YuValue.js";
 import { RuntimeClass } from "./RuntimeClass.js";
 import { RuntimeFunction } from "./RuntimeFunction.js";
 
@@ -8,28 +11,31 @@ type OOPMatch = {
   holder: RuntimeObject | RuntimeClass;
 };
 
-export class RuntimeObject {
+export class RuntimeObject extends YuValue {
   constructor(
     public identifier: string,
     public className: string,
-    public fields: Map<string, PrimitiveValue>,
+    public fields: Map<string, YuValue>,
     public methods: Map<string, RuntimeFunction>,
-  ) {}
+  ) { super(); }
+
+  public equals(other: YuValue): ExecutionCommand { return boolean(other === this); }
+  public compare(other: YuValue): ExecutionCommand { throw new Error("Objects are not comparable"); }
 
   public hasField(name: string): boolean {
     return this.fields.has(name);
   }
 
-  public getField(name: string): PrimitiveValue {
+  public getField(name: string): YuValue {
     if (!this.hasField(name))
       throw new InterpreterError(
         "[ObjectRuntime]",
         `Field '${name}' not found in ${this.className}`,
       );
-    return this.fields.get(name);
+    return this.fields.get(name)!;
   }
 
-  public setField(name: string, value: PrimitiveValue): void {
+  public setField(name: string, value: YuValue): void {
     if (!this.hasField(name))
       throw new InterpreterError(
         "[ObjectRuntime]",
@@ -49,8 +55,8 @@ export class RuntimeObject {
   public hasMethod(name: string): boolean {
     return this.methods.has(name);
   }
-  public createDispatchScope(match: OOPMatch, targetName: PrimitiveValue) {
-    const objectScope = new Map<string, PrimitiveValue>();
+  public createDispatchScope(match: OOPMatch, targetName: YuValue) {
+    const objectScope = new Map<string, YuValue>();
 
     objectScope.set("self", this);
     objectScope.set("__CONTEXT_CLASS__", match.holder);
@@ -59,8 +65,23 @@ export class RuntimeObject {
 
     return objectScope;
   }
+
+  public toJSON(): unknown {
+    const fieldsJSON: Record<string, unknown> = {};
+    for (const [key, val] of this.fields) fieldsJSON[key] = val.toJSON();
+    return {
+      identifier: this.identifier,
+      className: this.className,
+      fields: fieldsJSON,
+    };
+  }
+
+  public toString(): string {
+    return `[Object: ${this.identifier} (${this.className})]`;
+  }
 }
 
-export function isRuntimeObject(val: PrimitiveValue): val is RuntimeObject {
+export function isRuntimeObject(val: YuValue): val is RuntimeObject {
   return val instanceof RuntimeObject;
 }
+

@@ -1,11 +1,7 @@
-import { EnvStack, PrimitiveValue } from "../../../primitives/primitives.js";
-import {
-  Continuation,
-  ExecutionCommand,
-  StepCommand,
-} from "./commands.js";
-import { Evaluator } from "../../utils.js";
+import { Continuation, ExecutionCommand, StepCommand } from "./commands.js";
+import { boolean, EnvStack, Evaluator } from "../../utils.js";
 import { ErrorFrame, InterpreterError } from "../../errors.js";
+import { YuBoolean, YuNil, YuValue } from "../../primitives/index.js";
 
 export type LogicSearchMode = "first" | "all" | "stream";
 
@@ -19,7 +15,7 @@ export class YukigoKernel {
   private logicalTrace: ExecutionCommand[] = [];
   private continuationStack: Continuation[] = [];
   private choiceStack: ChoicePoint[] = [];
-  private finalResult: PrimitiveValue | undefined;
+  private finalResult: YuValue | undefined;
   private searchExhausted = false;
 
   constructor(
@@ -38,20 +34,21 @@ export class YukigoKernel {
    * Pops a continuation from the stack and executes it with the provided value.
    * If the stack is empty, sets the final result.
    */
-  public popAndExecute(value: PrimitiveValue): ExecutionCommand | void {
+  public popAndExecute(value: YuValue): ExecutionCommand | void {
     const next = this.continuationStack.pop();
-    if (next) {
-      return next(value);
-    } else {
+    if (!next) {
       this.finalResult = value;
       return;
     }
+    return next(value);
   }
 
   /**
    * Handles a choice point by trying the first alternative and saving the others.
    */
-  public handleChoice(alternatives: ExecutionCommand[]): ExecutionCommand | void {
+  public handleChoice(
+    alternatives: ExecutionCommand[],
+  ): ExecutionCommand | void {
     if (alternatives.length === 0) return this.handleBacktrack();
 
     const [first, ...rest] = alternatives;
@@ -77,7 +74,7 @@ export class YukigoKernel {
       // logic tree is empty sooo
       this.searchExhausted = true;
       this.continuationStack = [];
-      return new StepCommand(false);
+      return boolean(false);
     }
 
     this.searchExhausted = false;
@@ -120,7 +117,7 @@ export class YukigoKernel {
 
   private *executionStream(
     initialCommand: ExecutionCommand,
-  ): Generator<PrimitiveValue, void, unknown> {
+  ): Generator<YuValue, void, unknown> {
     let current: ExecutionCommand | void = initialCommand;
     this.searchExhausted = false;
     let steps = 0;
@@ -135,7 +132,7 @@ export class YukigoKernel {
 
       if (!current) {
         if (this.searchExhausted) break;
-        yield this.finalResult;
+        yield this.finalResult || YuNil.getInstance();
         current = this.handleBacktrack();
       }
     }
@@ -164,7 +161,7 @@ export class YukigoKernel {
 
   private getStackFromTrace(): ErrorFrame[] {
     const frames: ErrorFrame[] = [];
-    let index = this.logicalTrace.length - 1
+    let index = this.logicalTrace.length - 1;
     // loops through logicalTrace and collects traces
     for (index; index >= 0; index--) {
       const cmd = this.logicalTrace[index];

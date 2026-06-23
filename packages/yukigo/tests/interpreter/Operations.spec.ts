@@ -11,54 +11,113 @@ import {
   ListBinaryTable,
   ListUnaryTable,
 } from "../../src/interpreter/components/Operations.js";
+import {
+  YuNumber,
+  YuString,
+  YuBoolean,
+  YuArray,
+  YuValue,
+} from "../../src/interpreter/primitives/index.js";
+import {
+  StepCommand,
+  ExecutionCommand,
+} from "../../src/interpreter/components/kernel/commands.js";
+import { YukigoKernel } from "../../src/interpreter/components/kernel/index.js";
+import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
+import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
+
+const number = (num: number) => new YuNumber(num);
+const string = (str: string) => new YuString(str);
+const boolean = (bool: boolean) => new YuBoolean(bool);
+const array = (arr: any[]) => new YuArray(arr);
+
+const stepCmd = (val: YuValue) => new StepCommand(val);
+
+const runCmd = (cmd: ExecutionCommand): YuValue => {
+  const kernel = new YukigoKernel(new InterpreterVisitor(new RuntimeContext()));
+  return kernel.run(cmd);
+};
 
 describe("Operations Tables", () => {
   describe("ArithmeticBinaryTable", () => {
     const ops = ArithmeticBinaryTable;
 
     it("should perform basic arithmetic", () => {
-      expect(ops.Plus(2, 3)).to.equal(5);
-      expect(ops.Minus(5, 2)).to.equal(3);
-      expect(ops.Multiply(4, 2)).to.equal(8);
-      expect(ops.Divide(10, 2)).to.equal(5);
+      expect(runCmd(ops.Plus(number(2), number(3)))).to.deep.equal(number(5));
+      expect(runCmd(ops.Minus(number(5), number(2)))).to.deep.equal(number(3));
+      expect(runCmd(ops.Multiply(number(4), number(2)))).to.deep.equal(
+        number(8),
+      );
+      expect(runCmd(ops.Divide(number(10), number(2)))).to.deep.equal(
+        number(5),
+      );
     });
 
     it("should calculate modulo", () => {
-      expect(ops.Modulo(10, 3)).to.equal(1); // 10 % 3 = 1
+      expect(runCmd(ops.Modulo(number(10), number(3)))).to.deep.equal(
+        number(1),
+      ); // 10 % 3 = 1
     });
 
     it("should calculate power", () => {
-      expect(ops.Power(2, 3)).to.equal(8); // 2^3
+      expect(runCmd(ops.Power(number(2), number(3)))).to.deep.equal(number(8)); // 2^3
     });
 
     it("should find min and max", () => {
-      expect(ops.Min(10, 5)).to.equal(5);
-      expect(ops.Max(10, 5)).to.equal(10);
+      expect(runCmd(ops.Min(number(10), number(5)))).to.deep.equal(number(5));
+      expect(runCmd(ops.Max(number(10), number(5)))).to.deep.equal(number(10));
     });
   });
 
   describe("ComparisonOperationTable", () => {
-    const ops = ComparisonOperationTable as any;
+    const ops = ComparisonOperationTable;
 
     it("should handle equality and identity", () => {
-      expect(ops.Equal(5, "5")).to.be.true; // 5 == "5"
-      expect(ops.Equal(5, 6)).to.be.false;
+      expect(runCmd(ops.Equal(number(5), string("5")))).to.deep.equal(
+        boolean(true),
+      ); // Coercion supported now
+      expect(runCmd(ops.Equal(number(5), number(6)))).to.deep.equal(
+        boolean(false),
+      );
+      expect(runCmd(ops.Equal(number(5), number(5)))).to.deep.equal(
+        boolean(true),
+      );
 
-      expect(ops.Same(5, "5")).to.be.false; // 5 === "5"
-      expect(ops.Same(5, 5)).to.be.true;
+      expect(runCmd(ops.Same(number(5), string("5")))).to.deep.equal(
+        boolean(false),
+      );
+      const num5 = number(5);
+      expect(runCmd(ops.Same(num5, num5))).to.deep.equal(boolean(true));
+      expect(runCmd(ops.Same(number(5), number(5)))).to.deep.equal(
+        boolean(true),
+      );
 
-      expect(ops.NotEqual(5, 6)).to.be.true;
-      expect(ops.NotSame(5, "5")).to.be.true;
+      expect(runCmd(ops.NotEqual(number(5), number(6)))).to.deep.equal(
+        boolean(true),
+      );
+      expect(runCmd(ops.NotSame(number(5), string("5")))).to.deep.equal(
+        boolean(true),
+      );
     });
 
     it("should handle numeric comparison", () => {
-      expect(ops.GreaterThan(10, 5)).to.be.true;
-      expect(ops.GreaterThan(5, 10)).to.be.false;
+      expect(runCmd(ops.GreaterThan(number(10), number(5)))).to.deep.equal(
+        boolean(true),
+      );
+      expect(runCmd(ops.GreaterThan(number(5), number(10)))).to.deep.equal(
+        boolean(false),
+      );
 
-      expect(ops.GreaterOrEqualThan(10, 10)).to.be.true;
+      expect(
+        runCmd(ops.GreaterOrEqualThan(number(10), number(10))),
+      ).to.deep.equal(boolean(true));
 
-      expect(ops.LessThan(5, 10)).to.be.true;
-      expect(ops.LessOrEqualThan(10, 10)).to.be.true;
+      expect(runCmd(ops.LessThan(number(5), number(10)))).to.deep.equal(
+        boolean(true),
+      );
+      expect(runCmd(ops.LessOrEqualThan(number(10), number(10)))).to.deep.equal(
+        boolean(true),
+      );
     });
   });
 
@@ -67,42 +126,54 @@ describe("Operations Tables", () => {
 
     describe("And", () => {
       it("should return true only if both are true", () => {
-        expect(ops.And(true, () => true)).to.be.true;
-        expect(ops.And(true, () => false)).to.be.false;
-        expect(ops.And(false, () => true)).to.be.false;
+        expect(
+          runCmd(ops.And(boolean(true), () => stepCmd(boolean(true)))),
+        ).to.deep.equal(boolean(true));
+        expect(
+          runCmd(ops.And(boolean(true), () => stepCmd(boolean(false)))),
+        ).to.deep.equal(boolean(false));
+        expect(
+          runCmd(ops.And(boolean(false), () => stepCmd(boolean(true)))),
+        ).to.deep.equal(boolean(false));
       });
 
       it("should NOT execute the right thunk if left is false", () => {
         let executed = false;
         const thunk = () => {
           executed = true;
-          return true;
+          return stepCmd(boolean(true));
         };
 
-        const result = ops.And(false, thunk);
+        const result = runCmd(ops.And(boolean(false), thunk));
 
-        expect(result).to.be.false;
+        expect(result).to.deep.equal(boolean(false));
         expect(executed).to.be.false; // Short-circuit logic check
       });
     });
 
     describe("Or", () => {
       it("should return true if at least one is true", () => {
-        expect(ops.Or(true, () => false)).to.be.true;
-        expect(ops.Or(false, () => true)).to.be.true;
-        expect(ops.Or(false, () => false)).to.be.false;
+        expect(
+          runCmd(ops.Or(boolean(true), () => stepCmd(boolean(false)))),
+        ).to.deep.equal(boolean(true));
+        expect(
+          runCmd(ops.Or(boolean(false), () => stepCmd(boolean(true)))),
+        ).to.deep.equal(boolean(true));
+        expect(
+          runCmd(ops.Or(boolean(false), () => stepCmd(boolean(false)))),
+        ).to.deep.equal(boolean(false));
       });
 
       it("should NOT execute the right thunk if left is true", () => {
         let executed = false;
         const thunk = () => {
           executed = true;
-          return true;
+          return stepCmd(boolean(true));
         };
 
-        const result = ops.Or(true, thunk);
+        const result = runCmd(ops.Or(boolean(true), thunk));
 
-        expect(result).to.be.true;
+        expect(result).to.deep.equal(boolean(true));
         expect(executed).to.be.false; // Short-circuit logic check
       });
     });
@@ -112,60 +183,78 @@ describe("Operations Tables", () => {
     const ops = BitwiseBinaryTable;
 
     it("should perform bitwise operations", () => {
-      expect(ops.BitwiseOr(1, 2)).to.equal(3); // 01 | 10 = 11 (3)
-      expect(ops.BitwiseAnd(3, 1)).to.equal(1); // 11 & 01 = 01 (1)
-      expect(ops.BitwiseXor(3, 1)).to.equal(2); // 11 ^ 01 = 10 (2)
+      expect(runCmd(ops.BitwiseOr(number(1), number(2)))).to.deep.equal(
+        number(3),
+      ); // 01 | 10 = 11 (3)
+      expect(runCmd(ops.BitwiseAnd(number(3), number(1)))).to.deep.equal(
+        number(1),
+      ); // 11 & 01 = 01 (1)
+      expect(runCmd(ops.BitwiseXor(number(3), number(1)))).to.deep.equal(
+        number(2),
+      ); // 11 ^ 01 = 10 (2)
     });
 
     it("should perform shifts", () => {
-      expect(ops.BitwiseLeftShift(1, 2)).to.equal(4); // 1 << 2 = 4
-      expect(ops.BitwiseRightShift(4, 1)).to.equal(2); // 4 >> 1 = 2
-      expect(ops.BitwiseUnsignedRightShift(-10, 1)).to.equal(2147483643); // >>>
+      expect(runCmd(ops.BitwiseLeftShift(number(1), number(2)))).to.deep.equal(
+        number(4),
+      ); // 1 << 2 = 4
+      expect(runCmd(ops.BitwiseRightShift(number(4), number(1)))).to.deep.equal(
+        number(2),
+      ); // 4 >> 1 = 2
+      expect(
+        runCmd(ops.BitwiseUnsignedRightShift(number(-10), number(1))),
+      ).to.deep.equal(number(2147483643)); // >>>
     });
   });
 
   describe("StringOperationTable", () => {
     it("should concatenate strings", () => {
-      expect(StringOperationTable.Concat("Hello", " World")).to.equal(
-        "Hello World"
-      );
+      expect(
+        runCmd(StringOperationTable.Concat(string("Hello"), string(" World"))),
+      ).to.deep.equal(string("Hello World"));
     });
 
     it("should coerce numbers to strings during concatenation", () => {
-      // TS type says (string, string), but runtime JS behavior:
-      const op = StringOperationTable.Concat as any;
-      expect(op("Value: ", 10)).to.equal("Value: 10");
+      expect(
+        runCmd(StringOperationTable.Concat(string("Value: "), number(10))),
+      ).to.deep.equal(string("Value: 10"));
     });
   });
 
   describe("Unary Tables", () => {
     it("BitwiseUnaryTable (Not)", () => {
       // ~1 = -2 (Complemento a dos)
-      expect(BitwiseUnaryTable.BitwiseNot(1)).to.equal(-2);
+      expect(runCmd(BitwiseUnaryTable.BitwiseNot(number(1)))).to.deep.equal(
+        number(-2),
+      );
     });
 
     it("LogicalUnaryTable (Negation)", () => {
-      expect(LogicalUnaryTable.Negation(true)).to.be.false;
-      expect(LogicalUnaryTable.Negation(false)).to.be.true;
+      expect(runCmd(LogicalUnaryTable.Negation(boolean(true)))).to.deep.equal(
+        boolean(false),
+      );
+      expect(runCmd(LogicalUnaryTable.Negation(boolean(false)))).to.deep.equal(
+        boolean(true),
+      );
     });
 
     describe("ArithmeticUnaryTable", () => {
       const ops = ArithmeticUnaryTable;
       it("should negate numbers", () => {
-        expect(ops.Negation(5)).to.equal(-5);
-        expect(ops.Negation(-5)).to.equal(5);
+        expect(ops.Negation(number(5))).to.deep.equal(number(-5));
+        expect(ops.Negation(number(-5))).to.deep.equal(number(5));
       });
 
       it("should round numbers", () => {
-        expect(ops.Round(1.5)).to.equal(2);
-        expect(ops.Round(1.4)).to.equal(1);
-        expect(ops.Floor(1.9)).to.equal(1);
-        expect(ops.Ceil(1.1)).to.equal(2);
+        expect(ops.Round(number(1.5))).to.deep.equal(number(2));
+        expect(ops.Round(number(1.4))).to.deep.equal(number(1));
+        expect(ops.Floor(number(1.9))).to.deep.equal(number(1));
+        expect(ops.Ceil(number(1.1))).to.deep.equal(number(2));
       });
 
       it("should calc absolute and sqrt", () => {
-        expect(ops.Absolute(-10)).to.equal(10);
-        expect(ops.Sqrt(9)).to.equal(3);
+        expect(ops.Absolute(number(-10))).to.deep.equal(number(10));
+        expect(ops.Sqrt(number(9))).to.deep.equal(number(3));
       });
     });
   });
@@ -173,11 +262,13 @@ describe("Operations Tables", () => {
   describe("List Tables", () => {
     describe("ListBinaryTable", () => {
       it("should concatenate arrays", () => {
-        const arr1 = [1, 2];
-        const arr2 = [3, 4];
-        const res = ListBinaryTable.Concat(arr1, arr2);
-        expect(res).to.deep.equal([1, 2, 3, 4]);
-        expect(arr1).to.have.length(2); // Ensure immutability (concat returns new array)
+        const arr1 = array([number(1), number(2)]);
+        const arr2 = array([number(3), number(4)]);
+        const res = runCmd(ListBinaryTable.Concat(arr1, arr2));
+        expect(res).to.deep.equal(
+          array([number(1), number(2), number(3), number(4)]),
+        );
+        expect(arr1.items).to.have.length(2); // Ensure immutability (concat returns new array)
       });
     });
 
@@ -185,34 +276,35 @@ describe("Operations Tables", () => {
       const ops = ListUnaryTable;
 
       it("should return size of array", () => {
-        expect(ops.Size([1, 2, 3])).to.equal(3);
+        expect(
+          ops.Size(array([number(1), number(2), number(3)])),
+        ).to.deep.equal(number(3));
       });
 
       it("should flatten nested arrays", () => {
-        // Flatten level 1 by default in .flat()
-        const input = [1, [2, 3], 4];
-        expect(ops.Flatten(input)).to.deep.equal([1, 2, 3, 4]);
+        const input = array([
+          number(1),
+          array([number(2), number(3)]),
+          number(4),
+        ]);
+        const res = ops.Flatten(input);
+        expect(res).to.deep.equal(
+          array([number(1), number(2), number(3), number(4)]),
+        );
       });
 
       describe("DetectMax / DetectMin", () => {
-        // Nota: Estas pruebas asumen que 'isArrayOfNumbers' funciona correctamente
-        // o que se está usando la implementación real.
-
         it("should detect max/min in number arrays", () => {
-          const nums = [10, 5, 20, 1];
-          expect(ops.DetectMax(nums)).to.equal(20);
-          expect(ops.DetectMin(nums)).to.equal(1);
+          const nums = array([number(10), number(5), number(20), number(1)]);
+          expect(ops.DetectMax(nums)).to.deep.equal(number(20));
+          expect(ops.DetectMin(nums)).to.deep.equal(number(1));
         });
 
         it("should throw if array contains non-numbers", () => {
-          const badInput = [10, "hello" as any, 20];
+          const badInput = array([number(10), string("hello"), number(20)]);
 
-          expect(() => ops.DetectMax(badInput)).to.throw(
-            /must be Array of numbers/
-          );
-          expect(() => ops.DetectMin(badInput)).to.throw(
-            /must be Array of numbers/
-          );
+          expect(() => ops.DetectMax(badInput)).to.throw(/requires numbers/);
+          expect(() => ops.DetectMin(badInput)).to.throw(/requires numbers/);
         });
       });
     });
