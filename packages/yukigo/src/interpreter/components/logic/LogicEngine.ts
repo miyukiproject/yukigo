@@ -333,7 +333,9 @@ export class LogicEngine {
 
     return new BindCommand(localEvaluator.evaluate(expr), (result: YuValue) => {
       // fail if result is falsy
-      const isTrue = (result instanceof YuBoolean && result.value) || (result instanceof LogicResult && result.success);
+      const isTrue =
+        (result instanceof YuBoolean && result.value) ||
+        (result instanceof LogicResult && result.success);
       if (!isTrue) return new BacktrackCommand();
 
       return new StepCommand(new LogicResult([new LogicAnswer(true, substs)]));
@@ -381,7 +383,8 @@ export class LogicEngine {
     const terms = node.patterns.map((pat) =>
       this.translator.patternToTerm(pat, scope).instantiate(substs),
     );
-    return new StepCommand(new YuArray(terms));
+    const values = terms.map((t) => t.toPrimitive(substs));
+    return new StepCommand(new YuArray(values));
   }
   private resolveArgSequentially(
     args: Expression[],
@@ -390,7 +393,10 @@ export class LogicEngine {
   ): ExecutionCommand {
     const terms: LogicTerm[] = [];
     const next = (index: number): ExecutionCommand => {
-      if (index >= args.length) return new StepCommand(new YuArray(terms));
+      if (index >= args.length) {
+        const values = terms.map((t) => t.toPrimitive(substs));
+        return new StepCommand(new YuArray(values));
+      }
       return new BindCommand(
         this.translator.instantiateExpressionAsTerm(args[index], substs, scope),
         (t) => {

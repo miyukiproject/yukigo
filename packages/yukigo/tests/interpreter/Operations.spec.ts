@@ -241,20 +241,20 @@ describe("Operations Tables", () => {
     describe("ArithmeticUnaryTable", () => {
       const ops = ArithmeticUnaryTable;
       it("should negate numbers", () => {
-        expect(ops.Negation(number(5))).to.deep.equal(number(-5));
-        expect(ops.Negation(number(-5))).to.deep.equal(number(5));
+        expect(runCmd(ops.Negation(number(5)))).to.deep.equal(number(-5));
+        expect(runCmd(ops.Negation(number(-5)))).to.deep.equal(number(5));
       });
 
       it("should round numbers", () => {
-        expect(ops.Round(number(1.5))).to.deep.equal(number(2));
-        expect(ops.Round(number(1.4))).to.deep.equal(number(1));
-        expect(ops.Floor(number(1.9))).to.deep.equal(number(1));
-        expect(ops.Ceil(number(1.1))).to.deep.equal(number(2));
+        expect(runCmd(ops.Round(number(1.5)))).to.deep.equal(number(2));
+        expect(runCmd(ops.Round(number(1.4)))).to.deep.equal(number(1));
+        expect(runCmd(ops.Floor(number(1.9)))).to.deep.equal(number(1));
+        expect(runCmd(ops.Ceil(number(1.1)))).to.deep.equal(number(2));
       });
 
       it("should calc absolute and sqrt", () => {
-        expect(ops.Absolute(number(-10))).to.deep.equal(number(10));
-        expect(ops.Sqrt(number(9))).to.deep.equal(number(3));
+        expect(runCmd(ops.Absolute(number(-10)))).to.deep.equal(number(10));
+        expect(runCmd(ops.Sqrt(number(9)))).to.deep.equal(number(3));
       });
     });
   });
@@ -277,7 +277,7 @@ describe("Operations Tables", () => {
 
       it("should return size of array", () => {
         expect(
-          ops.Size(array([number(1), number(2), number(3)])),
+          runCmd(ops.Size(array([number(1), number(2), number(3)]))),
         ).to.deep.equal(number(3));
       });
 
@@ -287,7 +287,7 @@ describe("Operations Tables", () => {
           array([number(2), number(3)]),
           number(4),
         ]);
-        const res = ops.Flatten(input);
+        const res = runCmd(ops.Flatten(input));
         expect(res).to.deep.equal(
           array([number(1), number(2), number(3), number(4)]),
         );
@@ -296,15 +296,15 @@ describe("Operations Tables", () => {
       describe("DetectMax / DetectMin", () => {
         it("should detect max/min in number arrays", () => {
           const nums = array([number(10), number(5), number(20), number(1)]);
-          expect(ops.DetectMax(nums)).to.deep.equal(number(20));
-          expect(ops.DetectMin(nums)).to.deep.equal(number(1));
+          expect(runCmd(ops.DetectMax(nums))).to.deep.equal(number(20));
+          expect(runCmd(ops.DetectMin(nums))).to.deep.equal(number(1));
         });
 
         it("should throw if array contains non-numbers", () => {
           const badInput = array([number(10), string("hello"), number(20)]);
 
-          expect(() => ops.DetectMax(badInput)).to.throw(/requires numbers/);
-          expect(() => ops.DetectMin(badInput)).to.throw(/requires numbers/);
+          expect(() => runCmd(ops.DetectMax(badInput))).to.throw(/requires numbers/);
+          expect(() => runCmd(ops.DetectMin(badInput))).to.throw(/requires numbers/);
         });
       });
     });

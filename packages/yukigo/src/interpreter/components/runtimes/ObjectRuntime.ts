@@ -35,7 +35,7 @@ export class ObjectRuntime {
     args: YuValue[],
   ): ExecutionCommand {
     if (!isRuntimeObject(receiver))
-      throw new Error(`${receiver} is not an object`);
+      throw new InterpreterError("[ObjectRuntime.dispatch]", `${receiver} is not an object`);
 
     const chain = this.getResolutionChain(receiver);
     const match = this.findMethodInChain(chain, methodName);

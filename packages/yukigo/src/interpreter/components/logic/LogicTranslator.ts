@@ -35,7 +35,16 @@ import {
   BindCommand,
 } from "../kernel/commands.js";
 import { YuValue } from "../../primitives/YuValue.js";
-import { LogicTerm, YuNumber, YuString, YuBoolean, YuNil, isLogicTerm, isRuntimeObject, Substitution } from "../../primitives/index.js";
+import {
+  LogicTerm,
+  YuNumber,
+  YuString,
+  YuBoolean,
+  YuNil,
+  isLogicTerm,
+  isRuntimeObject,
+  Substitution,
+} from "../../primitives/index.js";
 
 /**
  * Sync visitor to convert Patterns to LogicTerms.
@@ -65,7 +74,7 @@ class PatternToTermVisitor implements PatternVisitor<LogicTerm> {
     else if (typeof raw === "string") wrapped = new YuString(raw);
     else if (typeof raw === "boolean") wrapped = new YuBoolean(raw);
     else wrapped = YuNil.getInstance();
-    
+
     return new ConstantTerm(wrapped);
   }
   visitListPattern(node: ListPattern): LogicTerm {
@@ -148,6 +157,7 @@ class ExpressionToTermVisitor implements Visitor<ExecutionCommand> {
     const next = (index: number): ExecutionCommand => {
       if (index >= node.value.length)
         return new StepCommand(new ListTerm(terms));
+
       return new BindCommand(
         this.translator.expressionToTerm(
           node.value[index] as Expression,
@@ -267,7 +277,12 @@ export class LogicTranslator {
    * Converts a PrimitiveValue to a LogicTerm.
    */
   public primitiveToTerm(val: YuValue): LogicTerm {
-    if (val.asNumeric || val.asSummable instanceof YuString || val.asLogic || val instanceof YuNil) {
+    if (
+      val.asNumeric ||
+      val.asSummable instanceof YuString ||
+      val.asLogic ||
+      val instanceof YuNil
+    ) {
       return new ConstantTerm(val as any);
     }
     const seq = val.asSequence;
@@ -288,7 +303,6 @@ export class LogicTranslator {
       `Cannot convert value ${val} to Logic Term`,
     );
   }
-
 
   /**
    * Evaluates an expression and returns its LogicTerm representation via the Kernel.

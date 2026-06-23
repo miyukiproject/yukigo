@@ -5,29 +5,26 @@ import {
   YuNil,
   RuntimeObject,
   YuArray,
+  YuSequence,
+  Sequence,
 } from "../../primitives/index.js";
 import { boolean } from "../../utils.js";
 import { ExecutionCommand, StepCommand } from "../kernel/commands.js";
-import { LogicTerm, Substitution } from "../../primitives/entities/LogicResult.js";
+import {
+  LogicTerm,
+  Substitution,
+} from "../../primitives/entities/LogicResult.js";
 
 /**
  * Represents a logic variable with a unique numeric ID.
  */
-export class VariableTerm extends YuValue implements LogicTerm {
+export class VariableTerm implements LogicTerm {
   readonly logicTermType = "Variable";
   constructor(
     public readonly id: number,
     public readonly name: string,
-  ) {
-    super();
-  }
+  ) {}
 
-  public equals(other: YuValue): ExecutionCommand {
-    return boolean(other === this);
-  }
-  public compare(other: YuValue): ExecutionCommand {
-    throw new Error("Variables are not comparable");
-  }
   public getType(): string {
     return "Variable";
   }
@@ -107,11 +104,9 @@ export class VariableTerm extends YuValue implements LogicTerm {
 /**
  * Represents a constant value (Numbers, Strings, Booleans).
  */
-export class ConstantTerm extends YuValue implements LogicTerm {
+export class ConstantTerm implements LogicTerm {
   readonly logicTermType = "Constant";
-  constructor(public readonly value: YuValue) {
-    super();
-  }
+  constructor(public readonly value: YuValue) {}
 
   equals(other: YuValue): ExecutionCommand {
     if (!(other instanceof ConstantTerm)) return boolean(false);
@@ -138,6 +133,7 @@ export class ConstantTerm extends YuValue implements LogicTerm {
   }
 
   unify(other: LogicTerm, env: Substitution): ExecutionCommand {
+    console.log(other)
     const r2 = other.resolve(env);
     if (r2.logicTermType === "Wildcard") return boolean(true);
     if (r2.logicTermType === "Variable") {
@@ -166,21 +162,13 @@ export class ConstantTerm extends YuValue implements LogicTerm {
 /**
  * Represents a compound structure (Functors, Constructors, Application).
  */
-export class CompoundTerm extends YuValue implements LogicTerm {
+export class CompoundTerm implements LogicTerm {
   readonly logicTermType = "Compound";
   constructor(
     public readonly functor: string,
     public readonly args: LogicTerm[],
-  ) {
-    super();
-  }
+  ) {}
 
-  equals(other: YuValue): ExecutionCommand {
-    return boolean(other === this);
-  }
-  compare(other: YuValue): ExecutionCommand {
-    throw new Error("Compound terms are not comparable");
-  }
   getType(): string {
     return "Compound";
   }
@@ -213,7 +201,9 @@ export class CompoundTerm extends YuValue implements LogicTerm {
       const c2 = r2 as CompoundTerm;
       if (this.functor !== c2.functor) return boolean(false);
       if (this.args.length !== c2.args.length) return boolean(false);
-      return boolean(this.args.every((arg, i) => arg.unify(c2.args[i], env) as any));
+      return boolean(
+        this.args.every((arg, i) => arg.unify(c2.args[i], env) as any),
+      );
     }
     return boolean(false);
   }
@@ -244,11 +234,8 @@ export class CompoundTerm extends YuValue implements LogicTerm {
 /**
  * Represents the wildcard pattern (_).
  */
-export class WildcardTerm extends YuValue implements LogicTerm {
+export class WildcardTerm implements LogicTerm {
   readonly logicTermType = "Wildcard";
-  constructor() {
-    super();
-  }
 
   equals(other: YuValue): ExecutionCommand {
     return boolean(other instanceof WildcardTerm);
@@ -291,18 +278,10 @@ export class WildcardTerm extends YuValue implements LogicTerm {
 /**
  * Represents a List [x, y, z].
  */
-export class ListTerm extends YuValue implements LogicTerm {
+export class ListTerm implements LogicTerm {
   readonly logicTermType = "List";
-  constructor(public readonly elements: LogicTerm[]) {
-    super();
-  }
+  constructor(public readonly elements: LogicTerm[]) {}
 
-  equals(other: YuValue): ExecutionCommand {
-    return boolean(other === this);
-  }
-  compare(other: YuValue): ExecutionCommand {
-    throw new Error("List terms are not comparable");
-  }
   getType(): string {
     return "ListTerm";
   }
@@ -330,7 +309,9 @@ export class ListTerm extends YuValue implements LogicTerm {
     if (r2.logicTermType === "List") {
       const l2 = r2 as ListTerm;
       if (this.elements.length !== l2.elements.length) return boolean(false);
-      return boolean(this.elements.every((el, i) => el.unify(l2.elements[i], env) as any));
+      return boolean(
+        this.elements.every((el, i) => el.unify(l2.elements[i], env) as any),
+      );
     }
     if (r2.logicTermType === "Cons") {
       // Delegate to ConsTerm.unify to leverage iterative unrolling
@@ -355,21 +336,12 @@ export class ListTerm extends YuValue implements LogicTerm {
 /**
  * Represents a Cons cell (head:tail).
  */
-export class ConsTerm extends YuValue implements LogicTerm {
+export class ConsTerm implements LogicTerm {
   readonly logicTermType = "Cons";
   constructor(
     public readonly head: LogicTerm,
     public readonly tail: LogicTerm,
-  ) {
-    super();
-  }
-
-  equals(other: YuValue): ExecutionCommand {
-    return boolean(other === this);
-  }
-  compare(other: YuValue): ExecutionCommand {
-    throw new Error("Cons terms are not comparable");
-  }
+  ) {}
   getType(): string {
     return "ConsTerm";
   }

@@ -13,8 +13,8 @@ import {
   YuString,
 } from "../../src/interpreter/primitives/index.js";
 
-const number = (num: number) => new YuNumber(num)
-const string = (str: string) => new YuString(str)
+const number = (num: number) => new YuNumber(num);
+const string = (str: string) => new YuString(str);
 
 describe("Logic Substitution (instantiate)", () => {
   it("should recursively substitute in ListTerm", () => {
@@ -30,9 +30,9 @@ describe("Logic Substitution (instantiate)", () => {
 
     const result = term.instantiate(substs) as ListTerm;
     expect(result).to.be.instanceOf(ListTerm);
-    expect((result.elements[0] as ConstantTerm).value).to.equal(string("cat"));
-    expect((result.elements[1] as ConstantTerm).value).to.equal(number(1));
-    expect((result.elements[2] as ConstantTerm).value).to.equal(string("dog"));
+    expect((result.elements[0] as ConstantTerm).value).to.deep.equal(string("cat"));
+    expect((result.elements[1] as ConstantTerm).value).to.deep.equal(number(1));
+    expect((result.elements[2] as ConstantTerm).value).to.deep.equal(string("dog"));
   });
 
   it("should recursively substitute in ConsTerm", () => {
@@ -42,12 +42,18 @@ describe("Logic Substitution (instantiate)", () => {
     );
     const substs: Substitution = new Map<number, LogicTerm>([
       [1, new ConstantTerm(number(1))],
-      [2, new ListTerm([new ConstantTerm(number(2)), new ConstantTerm(number(3))])],
+      [
+        2,
+        new ListTerm([
+          new ConstantTerm(number(2)),
+          new ConstantTerm(number(3)),
+        ]),
+      ],
     ]);
 
     const result = term.instantiate(substs) as ConsTerm;
     expect(result).to.be.instanceOf(ConsTerm);
-    expect((result.head as ConstantTerm).value).to.equal(number(1));
+    expect((result.head as ConstantTerm).value).to.deep.equal(number(1));
     expect(result.tail).to.be.instanceOf(ListTerm);
     expect((result.tail as ListTerm).elements).to.have.lengthOf(2);
   });
@@ -65,8 +71,8 @@ describe("Logic Substitution (instantiate)", () => {
     const result = term.instantiate(substs) as CompoundTerm;
     expect(result).to.be.instanceOf(CompoundTerm);
     expect(result.functor).to.equal("person");
-    expect((result.args[0] as ConstantTerm).value).to.equal(string("Alice"));
-    expect((result.args[1] as ConstantTerm).value).to.equal(number(30));
+    expect((result.args[0] as ConstantTerm).value).to.deep.equal(string("Alice"));
+    expect((result.args[1] as ConstantTerm).value).to.deep.equal(number(30));
   });
 
   it("should handle nested substitutions", () => {
@@ -78,6 +84,8 @@ describe("Logic Substitution (instantiate)", () => {
 
     const result = term.instantiate(substs) as ListTerm;
     expect(result).to.be.instanceOf(ListTerm);
-    expect((result.elements[0] as ConstantTerm).value).to.equal(string("hello"));
+    const value = result.elements[0] as ConstantTerm;
+    console.log(value.toPrimitive())
+    expect(value.toPrimitive()).to.deep.equal(string("hello"));
   });
 });

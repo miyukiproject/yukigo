@@ -6,7 +6,7 @@ import { YuValue } from "../YuValue.js";
 /**
  * Interface for logic terms that can be treated as runtime values.
  */
-export interface LogicTerm extends YuValue {
+export interface LogicTerm {
   readonly logicTermType: string;
   unify(other: LogicTerm, env: Substitution): ExecutionCommand;
   resolve(env: Substitution): LogicTerm;
@@ -14,9 +14,10 @@ export interface LogicTerm extends YuValue {
   toPrimitive(env: Substitution): YuValue;
   occurs(v: any, env: Substitution): boolean;
   toString(): string;
+  toJSON(): unknown;
 }
 
-export function isLogicTerm(val: YuValue): val is LogicTerm {
+export function isLogicTerm(val: unknown): val is LogicTerm {
   return val !== null && typeof val === "object" && "logicTermType" in val;
 }
 
