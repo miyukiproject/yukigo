@@ -1,4 +1,7 @@
-import { ExecutionCommand, StepCommand } from "../../components/kernel/commands.js";
+import {
+  ExecutionCommand,
+  StepCommand,
+} from "../../components/kernel/commands.js";
 import { boolean } from "../../utils.js";
 import { YuBoolean } from "../index.js";
 import { YuValue } from "../YuValue.js";
@@ -6,15 +9,23 @@ import { YuValue } from "../YuValue.js";
 /**
  * Interface for logic terms that can be treated as runtime values.
  */
-export interface LogicTerm {
-  readonly logicTermType: string;
-  unify(other: LogicTerm, env: Substitution): ExecutionCommand;
-  resolve(env: Substitution): LogicTerm;
-  instantiate(env: Substitution, seen?: Set<number>): LogicTerm;
-  toPrimitive(env: Substitution): YuValue;
-  occurs(v: any, env: Substitution): boolean;
-  toString(): string;
-  toJSON(): unknown;
+export abstract class LogicTerm extends YuValue {
+  abstract readonly logicTermType: string;
+  abstract unify(other: LogicTerm, env: Substitution): ExecutionCommand;
+  abstract resolve(env: Substitution): LogicTerm;
+  abstract instantiate(env: Substitution, seen?: Set<number>): LogicTerm;
+  abstract toPrimitive(env: Substitution): YuValue;
+  abstract occurs(v: any, env: Substitution): boolean;
+
+  public equals(other: YuValue): ExecutionCommand {
+    return boolean(this === other);
+  }
+
+  public compare(other: YuValue): ExecutionCommand {
+    throw new Error(
+      `Comparison not supported for LogicTerm: ${this.logicTermType}`,
+    );
+  }
 }
 
 export function isLogicTerm(val: unknown): val is LogicTerm {
@@ -34,8 +45,12 @@ export class LogicAnswer extends YuValue {
     this._success = success;
     this._solution = solution;
   }
-  public equals(other: YuValue): ExecutionCommand { return boolean(other === this); }
-  public compare(other: YuValue): ExecutionCommand { throw new Error("LogicAnswer is not comparable"); }
+  public equals(other: YuValue): ExecutionCommand {
+    return boolean(other === this);
+  }
+  public compare(other: YuValue): ExecutionCommand {
+    throw new Error("LogicAnswer is not comparable");
+  }
   public isSuccessful(): boolean {
     return this._success;
   }
@@ -55,11 +70,13 @@ export class LogicAnswer extends YuValue {
   public toJSON(): unknown {
     const sol: Record<string, unknown> = {};
     for (const [key, val] of this._solution) {
-        if (typeof key === "string") sol[key] = val.toJSON();
+      if (typeof key === "string") sol[key] = val.toJSON();
     }
     return { success: this._success, solution: sol };
   }
-  public toString(): string { return `Answer(${this._success})`; }
+  public toString(): string {
+    return `Answer(${this._success})`;
+  }
 }
 
 export class LogicResult extends YuValue {
@@ -68,8 +85,12 @@ export class LogicResult extends YuValue {
     super();
     this.answers = answers;
   }
-  public equals(other: YuValue): ExecutionCommand { return boolean(other === this); }
-  public compare(other: YuValue): ExecutionCommand { throw new Error("LogicResult is not comparable"); }
+  public equals(other: YuValue): ExecutionCommand {
+    return boolean(other === this);
+  }
+  public compare(other: YuValue): ExecutionCommand {
+    throw new Error("LogicResult is not comparable");
+  }
   public get allAnswers(): LogicAnswer[] {
     return this.answers;
   }
@@ -97,9 +118,11 @@ export class LogicResult extends YuValue {
   }
 
   public toJSON(): unknown {
-    return this.answers.map(a => a.toJSON());
+    return this.answers.map((a) => a.toJSON());
   }
-  public toString(): string { return `LogicResult(${this.answers.length})`; }
+  public toString(): string {
+    return `LogicResult(${this.answers.length})`;
+  }
 }
 
 export function isLogicResult(value: YuValue): value is LogicResult {

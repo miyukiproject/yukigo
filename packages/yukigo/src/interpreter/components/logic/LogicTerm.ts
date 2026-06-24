@@ -18,12 +18,14 @@ import {
 /**
  * Represents a logic variable with a unique numeric ID.
  */
-export class VariableTerm implements LogicTerm {
+export class VariableTerm extends LogicTerm {
   readonly logicTermType = "Variable";
   constructor(
     public readonly id: number,
     public readonly name: string,
-  ) {}
+  ) {
+    super();
+  }
 
   public getType(): string {
     return "Variable";
@@ -104,9 +106,11 @@ export class VariableTerm implements LogicTerm {
 /**
  * Represents a constant value (Numbers, Strings, Booleans).
  */
-export class ConstantTerm implements LogicTerm {
+export class ConstantTerm extends LogicTerm {
   readonly logicTermType = "Constant";
-  constructor(public readonly value: YuValue) {}
+  constructor(public readonly value: YuValue) {
+    super();
+  }
 
   equals(other: YuValue): ExecutionCommand {
     if (!(other instanceof ConstantTerm)) return boolean(false);
@@ -133,7 +137,7 @@ export class ConstantTerm implements LogicTerm {
   }
 
   unify(other: LogicTerm, env: Substitution): ExecutionCommand {
-    console.log(other)
+    console.log(other);
     const r2 = other.resolve(env);
     if (r2.logicTermType === "Wildcard") return boolean(true);
     if (r2.logicTermType === "Variable") {
@@ -162,12 +166,14 @@ export class ConstantTerm implements LogicTerm {
 /**
  * Represents a compound structure (Functors, Constructors, Application).
  */
-export class CompoundTerm implements LogicTerm {
+export class CompoundTerm extends LogicTerm {
   readonly logicTermType = "Compound";
   constructor(
     public readonly functor: string,
     public readonly args: LogicTerm[],
-  ) {}
+  ) {
+    super();
+  }
 
   getType(): string {
     return "Compound";
@@ -234,7 +240,7 @@ export class CompoundTerm implements LogicTerm {
 /**
  * Represents the wildcard pattern (_).
  */
-export class WildcardTerm implements LogicTerm {
+export class WildcardTerm extends LogicTerm {
   readonly logicTermType = "Wildcard";
 
   equals(other: YuValue): ExecutionCommand {
@@ -278,9 +284,11 @@ export class WildcardTerm implements LogicTerm {
 /**
  * Represents a List [x, y, z].
  */
-export class ListTerm implements LogicTerm {
+export class ListTerm extends LogicTerm {
   readonly logicTermType = "List";
-  constructor(public readonly elements: LogicTerm[]) {}
+  constructor(public readonly elements: LogicTerm[]) {
+    super();
+  }
 
   getType(): string {
     return "ListTerm";
@@ -336,12 +344,14 @@ export class ListTerm implements LogicTerm {
 /**
  * Represents a Cons cell (head:tail).
  */
-export class ConsTerm implements LogicTerm {
+export class ConsTerm extends LogicTerm {
   readonly logicTermType = "Cons";
   constructor(
     public readonly head: LogicTerm,
     public readonly tail: LogicTerm,
-  ) {}
+  ) {
+    super();
+  }
   getType(): string {
     return "ConsTerm";
   }
