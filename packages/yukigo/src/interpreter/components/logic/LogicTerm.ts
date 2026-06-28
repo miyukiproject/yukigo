@@ -7,13 +7,27 @@ import {
   YuArray,
   YuSequence,
   Sequence,
+  YuBoolean,
 } from "../../primitives/index.js";
 import { boolean } from "../../utils.js";
-import { ExecutionCommand, StepCommand } from "../kernel/commands.js";
+import { ExecutionCommand, StepCommand, BindCommand } from "../kernel/commands.js";
 import {
   LogicTerm,
   Substitution,
 } from "../../primitives/entities/LogicResult.js";
+
+function unifyArray(arr1: LogicTerm[], arr2: LogicTerm[], env: Substitution): ExecutionCommand {
+  const next = (index: number): ExecutionCommand => {
+    if (index >= arr1.length) return boolean(true);
+    return new BindCommand(arr1[index].unify(arr2[index], env), (res) => {
+      if (res instanceof YuBoolean && res.value) {
+        return next(index + 1);
+      }
+      return boolean(false);
+    });
+  };
+  return next(0);
+}
 
 /**
  * Represents a logic variable with a unique numeric ID.
@@ -207,9 +221,7 @@ export class CompoundTerm extends LogicTerm {
       const c2 = r2 as CompoundTerm;
       if (this.functor !== c2.functor) return boolean(false);
       if (this.args.length !== c2.args.length) return boolean(false);
-      return boolean(
-        this.args.every((arg, i) => arg.unify(c2.args[i], env) as any),
-      );
+      return unifyArray(this.args, c2.args, env);
     }
     return boolean(false);
   }
@@ -317,9 +329,7 @@ export class ListTerm extends LogicTerm {
     if (r2.logicTermType === "List") {
       const l2 = r2 as ListTerm;
       if (this.elements.length !== l2.elements.length) return boolean(false);
-      return boolean(
-        this.elements.every((el, i) => el.unify(l2.elements[i], env) as any),
-      );
+      return unifyArray(this.elements, l2.elements, env);
     }
     if (r2.logicTermType === "Cons") {
       // Delegate to ConsTerm.unify to leverage iterative unrolling
@@ -374,36 +384,46 @@ export class ConsTerm extends LogicTerm {
   }
 
   unify(other: LogicTerm, env: Substitution): ExecutionCommand {
-    let curr1: LogicTerm = this;
-    let curr2 = other.resolve(env);
+    const step = (curr1: LogicTerm, curr2: LogicTerm): ExecutionCommand => {
+      const r1 = curr1.resolve(env);
+      const r2 = curr2.resolve(env);
 
-    while (curr1.logicTermType === "Cons") {
-      const c1 = curr1 as ConsTerm;
-      if (curr2.logicTermType === "Wildcard") return boolean(true);
-      if (curr2.logicTermType === "Variable") {
-        const v2 = curr2 as VariableTerm;
-        if (c1.occurs(v2, env)) return boolean(false);
-        env.set(v2.id, c1);
-        return boolean(true);
-      }
-      if (curr2.logicTermType === "Cons") {
-        const c2 = curr2 as ConsTerm;
-        if (!(c1.head.unify(c2.head, env) as any)) return boolean(false);
-        curr1 = c1.tail.resolve(env);
-        curr2 = c2.tail.resolve(env);
-      } else if (curr2.logicTermType === "List") {
-        const l2 = curr2 as ListTerm;
-        if (l2.elements.length === 0) return boolean(false);
-        const [h, ...t] = l2.elements;
-        if (!(c1.head.unify(h, env) as any)) return boolean(false);
-        curr1 = c1.tail.resolve(env);
-        curr2 = new ListTerm(t);
-      } else {
+      if (r1.logicTermType === "Cons") {
+        const c1 = r1 as ConsTerm;
+        if (r2.logicTermType === "Wildcard") return boolean(true);
+        if (r2.logicTermType === "Variable") {
+          const v2 = r2 as VariableTerm;
+          if (c1.occurs(v2, env)) return boolean(false);
+          env.set(v2.id, c1);
+          return boolean(true);
+        }
+        if (r2.logicTermType === "Cons") {
+          const c2 = r2 as ConsTerm;
+          return new BindCommand(c1.head.unify(c2.head, env), (res) => {
+            if (res instanceof YuBoolean && res.value) {
+              return step(c1.tail, c2.tail);
+            }
+            return boolean(false);
+          });
+        }
+        if (r2.logicTermType === "List") {
+          const l2 = r2 as ListTerm;
+          if (l2.elements.length === 0) return boolean(false);
+          const [h, ...t] = l2.elements;
+          return new BindCommand(c1.head.unify(h, env), (res) => {
+            if (res instanceof YuBoolean && res.value) {
+              return step(c1.tail, new ListTerm(t));
+            }
+            return boolean(false);
+          });
+        }
         return boolean(false);
       }
-    }
 
-    return curr1.unify(curr2, env);
+      return r1.unify(r2, env);
+    };
+
+    return step(this, other);
   }
 
   instantiate(env: Substitution, seen?: Set<number>): LogicTerm {

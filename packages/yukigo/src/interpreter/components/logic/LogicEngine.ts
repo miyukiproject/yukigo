@@ -383,8 +383,7 @@ export class LogicEngine {
     const terms = node.patterns.map((pat) =>
       this.translator.patternToTerm(pat, scope).instantiate(substs),
     );
-    const values = terms.map((t) => t.toPrimitive(substs));
-    return new StepCommand(new YuArray(values));
+    return new StepCommand(new YuArray(terms));
   }
   private resolveArgSequentially(
     args: Expression[],
@@ -394,8 +393,7 @@ export class LogicEngine {
     const terms: LogicTerm[] = [];
     const next = (index: number): ExecutionCommand => {
       if (index >= args.length) {
-        const values = terms.map((t) => t.toPrimitive(substs));
-        return new StepCommand(new YuArray(values));
+        return new StepCommand(new YuArray(terms));
       }
       return new BindCommand(
         this.translator.instantiateExpressionAsTerm(args[index], substs, scope),

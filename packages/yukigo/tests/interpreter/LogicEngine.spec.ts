@@ -43,6 +43,7 @@ import {
   LazyStepResult,
   YuNil,
   LogicResult,
+  YuBoolean,
 } from "../../src/interpreter/primitives/index.js";
 
 const s = (val: string) => new SymbolPrimitive(val);
@@ -101,7 +102,13 @@ describe("Logic Engine & Unification", () => {
     t2: LogicTerm,
     substs: Substitution = new Map(),
   ) => {
-    return t1.unify(t2, substs) ? substs : null;
+    const cmd = t1.unify(t2, substs);
+    const k = new YukigoKernel(evaluator, "first");
+    const res = k.run(cmd);
+    if (res instanceof YuBoolean && res.value) {
+      return substs;
+    }
+    return null;
   };
 
   describe("Unification Algorithm", () => {
