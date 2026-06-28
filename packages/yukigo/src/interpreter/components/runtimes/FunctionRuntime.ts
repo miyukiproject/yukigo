@@ -179,7 +179,7 @@ export class FunctionRuntime {
       const matcher = new PatternMatcher(args[index], bindings, this.context);
 
       return new BindCommand(eq.patterns[index].accept(matcher), (res) => {
-        const isMatch = res.asLogic?.equals(res);
+        const isMatch = res instanceof YuBoolean && res.value;
         if (!isMatch) return boolean(false);
         return matchNext(index + 1);
       });
