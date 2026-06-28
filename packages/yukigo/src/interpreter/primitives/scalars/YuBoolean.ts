@@ -23,12 +23,6 @@ export class YuBoolean extends YuValue implements Logic, Comparable {
   public not(): ExecutionCommand {
     return boolean(!this.value);
   }
-  public and(otherThunk: () => ExecutionCommand): ExecutionCommand {
-    return this.value ? otherThunk() : new StepCommand(this);
-  }
-  public or(otherThunk: () => ExecutionCommand): ExecutionCommand {
-    return this.value ? new StepCommand(this) : otherThunk();
-  }
 
   public equals(other: YuValue): ExecutionCommand {
     const c = other.asComparable;

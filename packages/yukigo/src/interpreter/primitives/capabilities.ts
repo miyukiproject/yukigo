@@ -17,6 +17,7 @@ export type YuSummable = YuValue & Summable
  * Capability for numeric operations.
 */
 export interface Numeric extends Summable {
+  readonly value: number;
   minus(other: YuValue): ExecutionCommand;
   multiply(other: YuValue): ExecutionCommand;
   divide(other: YuValue): ExecutionCommand;
@@ -69,9 +70,8 @@ export type YuSequence = YuValue & Sequence
  * Capability for logical operations.
  */
 export interface Logic {
+  readonly value: boolean;
   not(): ExecutionCommand;
-  and(otherThunk: () => ExecutionCommand): ExecutionCommand;
-  or(otherThunk: () => ExecutionCommand): ExecutionCommand;
   toJSON(): unknown;
 }
 

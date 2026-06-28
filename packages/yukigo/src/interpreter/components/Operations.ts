@@ -45,44 +45,45 @@ export const ComparisonOperationTable: BinaryTable<YuComparable> = {
 
 export const LogicalBinaryTable: BinaryTable<YuLogic, () => ExecutionCommand> =
   {
-    And: (left, rightThunk) => left.and(rightThunk),
-    Or: (left, rightThunk) => left.or(rightThunk),
+    And: (left, rightThunk) =>
+      left.value ? rightThunk() : new StepCommand(left),
+    Or: (left, rightThunk) =>
+      left.value ? new StepCommand(left) : rightThunk(),
   };
 
 export const StringOperationTable: BinaryTable<YuSummable> = {
   Concat: (a, b) => a.plus(b),
 };
 
-// TODO: re think bitwise things
 export const BitwiseBinaryTable: BinaryTable<YuNumeric> = {
   BitwiseOr: (a, b) =>
     new StepCommand(
-      new YuNumber((a.toJSON() as number) | (b.toJSON() as number)),
+      new YuNumber(a.value | b.value),
     ),
   BitwiseAnd: (a, b) =>
     new StepCommand(
-      new YuNumber((a.toJSON() as number) & (b.toJSON() as number)),
+      new YuNumber(a.value & b.value),
     ),
   BitwiseLeftShift: (a, b) =>
     new StepCommand(
-      new YuNumber((a.toJSON() as number) << (b.toJSON() as number)),
+      new YuNumber(a.value << b.value),
     ),
   BitwiseRightShift: (a, b) =>
     new StepCommand(
-      new YuNumber((a.toJSON() as number) >> (b.toJSON() as number)),
+      new YuNumber(a.value >> b.value),
     ),
   BitwiseUnsignedRightShift: (a, b) =>
     new StepCommand(
-      new YuNumber((a.toJSON() as number) >>> (b.toJSON() as number)),
+      new YuNumber(a.value >>> b.value),
     ),
   BitwiseXor: (a, b) =>
     new StepCommand(
-      new YuNumber((a.toJSON() as number) ^ (b.toJSON() as number)),
+      new YuNumber(a.value ^ b.value),
     ),
 };
 
 export const BitwiseUnaryTable: UnaryTable<YuNumeric> = {
-  BitwiseNot: (a) => number(~(a.toJSON() as number)),
+  BitwiseNot: (a) => number(~a.value),
 };
 
 export const LogicalUnaryTable: UnaryTable<YuLogic> = {
