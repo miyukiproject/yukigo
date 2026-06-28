@@ -1,7 +1,7 @@
 import { Sequence, Return, Function, isUnguardedBody } from "yukigo-ast";
 import { Bindings } from "../../index.js";
 import { PatternMatcher } from "../PatternMatcher.js";
-import { boolean, Evaluator, PrimitiveThunk } from "../../utils.js";
+import { boolean, Evaluator, PrimitiveThunk, isTrue } from "../../utils.js";
 import { InterpreterError } from "../../errors.js";
 import { EnvBuilderVisitor } from "../EnvBuilder.js";
 import { RuntimeContext } from "../RuntimeContext.js";
@@ -49,8 +49,7 @@ export class FunctionRuntime {
       return new BindCommand(
         this.patternsMatch(eq, args, bindings),
         (matchRes) => {
-          const isMatch = matchRes instanceof YuBoolean && matchRes.value;
-          if (!isMatch) return tryNextEquation(eqIndex + 1);
+          if (!isTrue(matchRes)) return tryNextEquation(eqIndex + 1);
 
           const localEnv = new Map<string, YuValue>(bindings);
           if (func.closure) this.context.setEnv(this.context.cloneEnv(func.closure));
@@ -96,8 +95,7 @@ export class FunctionRuntime {
             return new BindCommand(
               evaluator.evaluate(guard.condition),
               (cond) => {
-                const isTrue = cond instanceof YuBoolean && cond.value;
-                if (!isTrue) return tryNextGuard(guardIndex + 1);
+                if (!isTrue(cond)) return tryNextGuard(guardIndex + 1);
 
                 if (!(guard.body instanceof Sequence))
                   return new BindCommand(
@@ -179,8 +177,7 @@ export class FunctionRuntime {
       const matcher = new PatternMatcher(args[index], bindings, this.context);
 
       return new BindCommand(eq.patterns[index].accept(matcher), (res) => {
-        const isMatch = res instanceof YuBoolean && res.value;
-        if (!isMatch) return boolean(false);
+        if (!isTrue(res)) return boolean(false);
         return matchNext(index + 1);
       });
     };

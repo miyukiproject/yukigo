@@ -74,7 +74,7 @@ import {
   StringOperationTable,
   UnaryTable,
 } from "./Operations.js";
-import { boolean, Environment, EnvStack, Evaluator } from "../utils.js";
+import { boolean, Environment, EnvStack, Evaluator, isTrue } from "../utils.js";
 import { LogicEngine } from "./logic/LogicEngine.js";
 import { InterpreterError, UnexpectedNode } from "../errors.js";
 import { EnvBuilderVisitor } from "./EnvBuilder.js";
@@ -348,7 +348,7 @@ export class InterpreterVisitor implements Evaluator {
             this.evaluate(node.right),
             (right) =>
               new BindCommand(EqualityComparer.compare(left, right), (eq) => {
-                const isEq = eq instanceof YuBoolean && eq.value;
+                const isEq = isTrue(eq);
                 return new StepCommand(
                   new YuBoolean(node.operator === "Equal" ? isEq : !isEq),
                 );
@@ -703,8 +703,7 @@ export class InterpreterVisitor implements Evaluator {
 
   visitLogicConstraint(node: LogicConstraint): ExecutionCommand {
     return new BindCommand(this.evaluate(node.expression), (val) => {
-      const isTrue = val instanceof YuBoolean && val.value;
-      if (isTrue)
+      if (isTrue(val))
         return new StepCommand(
           new LogicResult([new LogicAnswer(true, new Map())]),
         );
@@ -838,8 +837,7 @@ export class InterpreterVisitor implements Evaluator {
         return new BindCommand(
           this.evaluate(current as Expression),
           (condition) => {
-            const isTrue = condition instanceof YuBoolean && condition.value;
-            return isTrue
+            return isTrue(condition)
               ? process(index + 1)
               : new StepCommand(new YuArray(results));
           },

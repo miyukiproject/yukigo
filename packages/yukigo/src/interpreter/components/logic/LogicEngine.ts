@@ -82,7 +82,7 @@ export class LogicEngine {
             throw new Error("Expected array of terms");
           return this.runKernel(
             node,
-            terms.items as unknown as LogicTerm[],
+            terms.items as LogicTerm[],
             substs,
           );
         },
@@ -186,7 +186,7 @@ export class LogicEngine {
         if (!(termsSeq instanceof YuArray)) return new BacktrackCommand();
         const terms = termsSeq.items;
         if (!terms.every(isLogicTerm)) return new BacktrackCommand();
-        return this.runKernel(node, terms as unknown as LogicTerm[], substs);
+        return this.runKernel(node, terms, substs);
       },
     );
   }

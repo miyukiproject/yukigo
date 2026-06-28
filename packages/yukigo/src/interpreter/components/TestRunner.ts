@@ -23,6 +23,7 @@ import { YuValue } from "../primitives/YuValue.js";
 import { YuBoolean } from "../primitives/scalars/YuBoolean.js";
 import { YuNil } from "../primitives/scalars/YuNil.js";
 import { YuString } from "../primitives/sequences/YuString.js";
+import { isTrue } from "../utils.js";
 import { LogicResult } from "../primitives/entities/LogicResult.js";
 
 export class FailedAssert extends Error {
@@ -88,7 +89,7 @@ class AssertionVisitor implements Visitor<ExecutionCommand> {
     return new BindCommand(this.interpreter.evaluate(node.value), (value) => {
       return new BindCommand(this.interpreter.evaluate(node.expected), (expected) => {
         return new BindCommand(EqualityComparer.compare(value, expected), (passed) => {
-          const isPassed = passed instanceof YuBoolean && passed.value;
+          const isPassed = isTrue(passed);
           if (this.negated === isPassed) {
             return new FailCommand(
               new FailedAssert(
@@ -108,7 +109,7 @@ class AssertionVisitor implements Visitor<ExecutionCommand> {
 
   visitTruth(node: Truth): ExecutionCommand {
     return new BindCommand(this.interpreter.evaluate(node.body), (value) => {
-      const isTruthy = (value instanceof YuBoolean && value.value) || (value instanceof LogicResult && value.success);
+      const isTruthy = isTrue(value) || (value instanceof LogicResult && value.success);
       if (this.negated === isTruthy) {
         return new FailCommand(
           new FailedAssert(
@@ -146,7 +147,7 @@ export class TestRunner implements Visitor<ExecutionCommand> {
   }
   visitAssert(node: Assert): ExecutionCommand {
     return new BindCommand(this.interpreter.evaluate(node.negated), (negatedVal) => {
-      const isNegated = negatedVal instanceof YuBoolean && negatedVal.value;
+      const isNegated = isTrue(negatedVal);
       const visitor = new AssertionVisitor(
         this.interpreter,
         isNegated,

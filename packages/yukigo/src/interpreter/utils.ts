@@ -9,6 +9,9 @@ export const number = (num: number) => new StepCommand(new YuNumber(num));
 
 export const not = (command: ExecutionCommand): ExecutionCommand =>
   new BindCommand(command, (res) => res.asLogic?.not() || boolean(false));
+ 
+export const isTrue = (val: unknown): boolean =>
+  val instanceof YuBoolean && val.value;
 
 export const compareResult = (
   command: ExecutionCommand,

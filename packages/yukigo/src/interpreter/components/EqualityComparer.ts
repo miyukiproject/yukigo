@@ -1,7 +1,7 @@
 import { Sequence } from "../primitives/capabilities.js";
 import { YuBoolean } from "../primitives/scalars/YuBoolean.js";
 import { YuValue } from "../primitives/YuValue.js";
-import { boolean } from "../utils.js";
+import { boolean, isTrue } from "../utils.js";
 import {
   ExecutionCommand,
   StepCommand,
@@ -66,7 +66,7 @@ export class EqualityComparer {
         return new BindCommand(
           this.compare(stepResA.head as YuValue, stepResB.head as YuValue),
           (headsEqual) => {
-            const areHeadsEqual = headsEqual instanceof YuBoolean && headsEqual.value;
+            const areHeadsEqual = isTrue(headsEqual);
             if (!areHeadsEqual) return boolean(false);
 
             // Compare tails
