@@ -348,9 +348,9 @@ export class InterpreterVisitor implements Evaluator {
             this.evaluate(node.right),
             (right) =>
               new BindCommand(EqualityComparer.compare(left, right), (eq) => {
-                const isEq = eq.asLogic?.and(() => new StepCommand(eq)); // simple check
+                const isEq = eq instanceof YuBoolean && eq.value;
                 return new StepCommand(
-                  new YuBoolean(node.operator === "Equal" ? !!isEq : !isEq),
+                  new YuBoolean(node.operator === "Equal" ? isEq : !isEq),
                 );
               }),
           ),
@@ -396,10 +396,7 @@ export class InterpreterVisitor implements Evaluator {
           ),
         );
 
-      return fn(logicValue, () => {
-        const subKernel = new YukigoKernel(this);
-        return subKernel.run(new EvalCommand(node.right));
-      });
+      return fn(logicValue, () => new EvalCommand(node.right));
     });
   }
 
