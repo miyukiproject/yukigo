@@ -82,7 +82,7 @@ export const BitwiseBinaryTable: BinaryTable<YuNumeric> = {
 };
 
 export const BitwiseUnaryTable: UnaryTable<YuNumeric> = {
-  BitwiseNot: (a) => a.negation(),
+  BitwiseNot: (a) => number(~(a.toJSON() as number)),
 };
 
 export const LogicalUnaryTable: UnaryTable<YuLogic> = {
