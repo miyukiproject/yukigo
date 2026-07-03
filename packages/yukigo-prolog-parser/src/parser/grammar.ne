@@ -54,7 +54,7 @@ fact -> any_atom arguments:? _ %period {% (d) => new Fact(d[0], d[1] ?? []) %}
 
 rule -> any_atom equation _ %period {% (d) => new Rule(d[0], [d[1]]) %}
 
-test_rule -> %testKeyword %lparen _ structural_literal test_args:? _ %rparen equation _ %period {% (d) => new Test(d[3], d[7].body.sequence, d[4] ? [d[4]] : []) %}
+test_rule -> %testKeyword %lparen _ structural_literal test_args:? _ %rparen _ (%colonDash | %colon) _ body _ %period {% (d) => new Test(d[3], new Sequence(d[10]), d[4] ? [d[4]] : []) %}
 
 test_args -> _ %comma _ pattern {% (d) => d[3] %}
 
