@@ -151,7 +151,6 @@ export class ConstantTerm extends LogicTerm {
   }
 
   unify(other: LogicTerm, env: Substitution): ExecutionCommand {
-    console.log(other);
     const r2 = other.resolve(env);
     if (r2.logicTermType === "Wildcard") return boolean(true);
     if (r2.logicTermType === "Variable") {

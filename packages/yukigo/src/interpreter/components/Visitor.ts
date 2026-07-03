@@ -396,7 +396,7 @@ export class InterpreterVisitor implements Evaluator {
           ),
         );
 
-      return fn(logicValue, () => new EvalCommand(node.right));
+      return fn(logicValue, () => this.evaluate(node.right));
     });
   }
 
