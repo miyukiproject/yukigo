@@ -85,7 +85,6 @@ describe("Logic Substitution (instantiate)", () => {
     const result = term.instantiate(substs) as ListTerm;
     expect(result).to.be.instanceOf(ListTerm);
     const value = result.elements[0] as ConstantTerm;
-    console.log(value.toPrimitive())
     expect(value.toPrimitive()).to.deep.equal(string("hello"));
   });
 });

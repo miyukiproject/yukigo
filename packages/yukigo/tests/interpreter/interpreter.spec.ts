@@ -47,15 +47,6 @@ describe("Interpreter Spec", () => {
     interpreter = new Interpreter([]);
   });
   it("Evaluates ArithmeticBinaryOperation", () => {
-    console.log(
-      interpreter.evaluate(
-        new ArithmeticBinaryOperation(
-          "Plus",
-          new NumberPrimitive(3),
-          new NumberPrimitive(4),
-        ),
-      ),
-    );
     assert.equal(
       (
         interpreter.evaluate(
