@@ -7,8 +7,12 @@ import {
   TestGroup,
   Truth,
   Visitor,
+  Sequence,
+  Exist,
+  LogicConstraint,
 } from "yukigo-ast";
 import { InterpreterVisitor } from "./Visitor.js";
+import { LogicEngine } from "./logic/LogicEngine.js";
 import {
   ExecutionCommand,
   StepCommand,
@@ -143,10 +147,24 @@ export class TestRunner implements Visitor<ExecutionCommand> {
     return this.interpreter.evaluate(node.group);
   }
   visitTest(node: Test): ExecutionCommand {
+    if (node.body.is(Sequence)) {
+      const hasLogicGoal = node.body.statements.some(
+        (stmt) => stmt.is(Exist) || stmt.is(LogicConstraint) || stmt.is(Assert),
+      );
+      if (hasLogicGoal) {
+        const engine = new LogicEngine(this.interpreter, this.interpreter.getContext());
+        const scope = new Map();
+        return engine.solveConjunction(node.body.statements, new Map(), scope);
+      }
+    }
     return this.interpreter.evaluate(node.body);
   }
   visitAssert(node: Assert): ExecutionCommand {
-    return new BindCommand(this.interpreter.evaluate(node.negated), (negatedVal) => {
+    const negatedCmd = node.negated
+      ? this.interpreter.evaluate(node.negated)
+      : new StepCommand(new YuBoolean(false));
+
+    return new BindCommand(negatedCmd, (negatedVal) => {
       const isNegated = isTrue(negatedVal);
       const visitor = new AssertionVisitor(
         this.interpreter,

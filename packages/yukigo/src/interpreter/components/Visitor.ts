@@ -192,6 +192,11 @@ export class InterpreterVisitor implements Evaluator {
 
   visitSymbolPrimitive(node: SymbolPrimitive): ExecutionCommand {
     try {
+      const isLogic = !!this.context.logicState;
+      const isVar = /^[A-Z_]/.test(node.value);
+      if (isLogic && !isVar && !this.context.isDefined(node.value)) {
+        return new StepCommand(new YuString(node.value));
+      }
       const val = this.context.lookup(node.value);
       if (val instanceof RuntimeFunction && val.arity === 0) {
         return this.context.funcRuntime.apply(val, []);
