@@ -220,6 +220,10 @@ class ExpressionToTermVisitor implements Visitor<ExecutionCommand> {
         return new StepCommand(this.translator.primitiveToTerm(val));
       });
     }
+    const isVariable = /^[A-Z_]/.test(name);
+    if (!isVariable) {
+      return new StepCommand(new ConstantTerm(new YuString(name)));
+    }
     if (this.scope) {
       let term = this.scope.get(name);
       if (!term) {
