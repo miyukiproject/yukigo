@@ -6,7 +6,7 @@ import {
   YuSummable,
   YuSequence,
 } from "../primitives/capabilities.js";
-import { YuValue, YuNumber, YuArray } from "../primitives/index.js";
+import { YuValue, YuNumber, YuArray, YuString } from "../primitives/index.js";
 import { compareResult, not, number } from "../utils.js";
 import { ExecutionCommand, StepCommand } from "./kernel/commands.js";
 
@@ -126,5 +126,5 @@ export const ArithmeticUnaryTable: UnaryTable<YuNumeric> = {
   Floor: (a) => a.floor(),
   Negation: (a) => a.negation(),
   Sqrt: (a) => a.sqrt(),
-  //ToString: (a) => a.toString(),
+  ToString: (a) => new StepCommand(new YuString(String(a.toJSON()))),
 };
