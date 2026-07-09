@@ -11,12 +11,12 @@
     "allowSyntheticDefaultImports": true,
     "sourceMap": true,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "noImplicitThis": false,
+    "noImplicitAny": false
   },
   "include": ["src"],
-  "exclude": [
-    "dist/**/*"
-  ],
+  "exclude": ["dist/**/*"],
   "references": [
     {
       "path": "../yukigo-ast"
