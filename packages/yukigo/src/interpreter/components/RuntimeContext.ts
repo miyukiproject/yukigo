@@ -1,11 +1,19 @@
 import { FunctionRuntime } from "./runtimes/FunctionRuntime.js";
 import { LazyRuntime } from "./runtimes/LazyRuntime.js";
 import { ObjectRuntime } from "./runtimes/ObjectRuntime.js";
-import { createGlobalEnv, Environment, EnvStack, Evaluator } from "../utils.js";
+import {
+  createGlobalEnv,
+  Environment,
+  EnvStack,
+  Evaluator,
+  NativeExtension,
+} from "../utils.js";
 import { UnboundVariable } from "../errors.js";
 import { YuValue } from "../primitives/YuValue.js";
+import { YukigoHook } from "./hooks/YukigoHook.js";
 
-export const DefaultConfiguration: Required<InterpreterConfig> = {
+export const DefaultConfiguration: InterpreterConfig = {
+  nativeProviders: new Map(),
   lazyLoading: false,
   debug: false,
   outputMode: "first",
@@ -14,10 +22,13 @@ export const DefaultConfiguration: Required<InterpreterConfig> = {
 
 export type LogicSearchMode = "first" | "all" | "stream";
 export interface InterpreterConfig {
-  lazyLoading?: boolean;
-  debug?: boolean;
-  outputMode?: LogicSearchMode;
-  mutability?: boolean;
+  nativeProviders: Map<string, NativeExtension>;
+  lazyLoading: boolean;
+  debug: boolean;
+  outputMode: LogicSearchMode;
+  mutability: boolean;
+  wrapException?: (error: any, ctx: RuntimeContext) => YuValue; // @deprecated
+  hooks?: YukigoHook[];
 }
 
 export type EvaluatorFactory = (ctx: RuntimeContext) => Evaluator;
@@ -49,12 +60,24 @@ export class RuntimeContext {
   public funcRuntime: FunctionRuntime;
   public objRuntime: ObjectRuntime;
   public evaluatorFactory?: EvaluatorFactory;
-  public logicState: LogicState = {
-    variableCounter: 0,
-    idToName: new Map<number, string>(),
-  };
+  public logicState?: LogicState;
 
-  constructor(config?: InterpreterConfig) {
+  public dispatchHook<K extends keyof YukigoHook>(
+    eventName: K,
+    ...args: Parameters<NonNullable<YukigoHook[K]>>
+  ): ReturnType<NonNullable<YukigoHook[K]>>[] {
+    const results: any[] = [];
+    if (this.config.hooks) {
+      for (const hook of this.config.hooks) {
+        if (hook[eventName]) {
+          results.push((hook[eventName] as Function)(...args));
+        }
+      }
+    }
+    return results;
+  }
+
+  constructor(config?: Partial<InterpreterConfig>) {
     this.config = Object.freeze({ ...DefaultConfiguration, ...config });
     this.lazyRuntime = new LazyRuntime(this);
     this.funcRuntime = new FunctionRuntime(this);
@@ -121,6 +144,13 @@ export class RuntimeContext {
   }
   public define(name: string, value: YuValue): void {
     this.env.head.set(name, value);
+  }
+  public defineGlobal(name: string, value: YuValue): void {
+    let current = this.env;
+    while (current.tail !== null) {
+      current = current.tail;
+    }
+    current.head.set(name, value);
   }
 
   public cloneEnv(env?: EnvStack): EnvStack {

@@ -7,6 +7,7 @@ import {
   GuardedBody,
   ASTNode,
   Pattern,
+  NativeBody,
 } from "yukigo-ast";
 import { LogicExecutable } from "./LogicEngine.js";
 import { RuntimeContext } from "../RuntimeContext.js";
@@ -29,6 +30,7 @@ import {
   LogicAnswer,
   isRuntimePredicate,
   YuBoolean,
+  YuNil,
 } from "../../primitives/index.js";
 
 /**
@@ -43,7 +45,10 @@ function unifyParameters(
   onSuccess: (subst: Substitution) => ExecutionCommand,
   onFailure: () => ExecutionCommand,
 ): ExecutionCommand {
-  const next = (index: number, currentSubst: Substitution): ExecutionCommand => {
+  const next = (
+    index: number,
+    currentSubst: Substitution,
+  ): ExecutionCommand => {
     if (index >= patterns.length) {
       return onSuccess(currentSubst);
     }
@@ -119,7 +124,8 @@ export class GoalKernelVisitor implements Visitor<ExecutionCommand> {
       this.baseSubst,
       this.translator,
       scope,
-      (substs) => new StepCommand(new LogicResult([new LogicAnswer(true, substs)])),
+      (substs) =>
+        new StepCommand(new LogicResult([new LogicAnswer(true, substs)])),
       () => new BacktrackCommand(),
     );
   }
@@ -140,19 +146,23 @@ export class GoalKernelVisitor implements Visitor<ExecutionCommand> {
         this.translator,
         scope,
         (substs) => {
-          const bodyVisitor = new KernelBodyVisitor(this.solveBody, substs, scope);
+          const bodyVisitor = new KernelBodyVisitor(
+            this.solveBody,
+            substs,
+            scope,
+          );
           let currentCmd: ExecutionCommand;
+          if (eq.body instanceof NativeBody) return new StepCommand(YuNil.getInstance());
+
           if (isUnguardedBody(eq.body)) {
             currentCmd = eq.body.accept(bodyVisitor);
           } else {
             const branches = eq.body.map((b) => b.accept(bodyVisitor));
-            currentCmd = branches.length === 1 ? branches[0] : new ChoiceCommand(branches);
+            currentCmd =
+              branches.length === 1 ? branches[0] : new ChoiceCommand(branches);
           }
 
-          return new ChoiceCommand([
-            currentCmd,
-            tryEquation(eqIndex + 1),
-          ]);
+          return new ChoiceCommand([currentCmd, tryEquation(eqIndex + 1)]);
         },
         () => tryEquation(eqIndex + 1),
       );

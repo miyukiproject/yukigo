@@ -14,7 +14,7 @@ import {
 } from "../capabilities.js";
 import { LazyStepResult } from "../entities/LazyList.js";
 import { YuBoolean, YuNumber, YuString } from "../index.js";
-import { boolean, compareResult, number } from "../../utils.js";
+import { boolean, compareResult, number, raise } from "../../utils.js";
 
 export class YuArray extends YuValue implements Sequence, Comparable {
   constructor(
@@ -52,7 +52,7 @@ export class YuArray extends YuValue implements Sequence, Comparable {
 
   public concat(other: YuValue): ExecutionCommand {
     const seq = other.asSequence;
-    if (!seq) throw new UnsupportedOperation(other, "concat");
+    if (!seq) return raise(new UnsupportedOperation(other, "concat"));
     return seq.concatWithArray(this);
   }
   public concatWithArray(arr: YuArray): ExecutionCommand {
@@ -120,18 +120,18 @@ export class YuArray extends YuValue implements Sequence, Comparable {
 
   public compare(other: YuValue): ExecutionCommand {
     const c = other.asComparable;
-    if (!c) throw new UnsupportedOperation(other, "compare");
+    if (!c) return raise(new UnsupportedOperation(other, "compare"));
     return c.compareWithArray(this);
   }
 
   public compareWithNumber(): ExecutionCommand {
-    throw new UnsupportedOperation(this, "compare");
+    return raise(new UnsupportedOperation(this, "compare"));
   }
   public compareWithBoolean(): ExecutionCommand {
-    throw new UnsupportedOperation(this, "compare");
+    return raise(new UnsupportedOperation(this, "compare"));
   }
   public compareWithString(): ExecutionCommand {
-    throw new UnsupportedOperation(this, "compare");
+    return raise(new UnsupportedOperation(this, "compare"));
   }
   public compareWithArray(left: YuArray): ExecutionCommand {
     const a = [...left];
@@ -154,7 +154,7 @@ export class YuArray extends YuValue implements Sequence, Comparable {
     return compareNext(0);
   }
   public compareWithNil(): ExecutionCommand {
-    throw new UnsupportedOperation(this, "compare");
+    return raise(new UnsupportedOperation(this, "compare"));
   }
 
   public toJSON(): unknown {

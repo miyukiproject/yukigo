@@ -1,9 +1,12 @@
 import { Fact, Rule, Visitor } from "yukigo-ast";
 import { InterpreterError } from "../../errors.js";
 import { YuValue } from "../YuValue.js";
-import { ExecutionCommand, StepCommand } from "../../components/kernel/commands.js";
+import {
+  ExecutionCommand,
+  StepCommand,
+} from "../../components/kernel/commands.js";
 import { YuBoolean } from "../index.js";
-import { boolean } from "../../utils.js";
+import { boolean, error, raise } from "../../utils.js";
 
 export class RuntimePredicate extends YuValue {
   public readonly arity: number;
@@ -21,8 +24,14 @@ export class RuntimePredicate extends YuValue {
     this.arity = this.getArityFromClause(equations[0]);
   }
 
-  public equals(other: YuValue): ExecutionCommand { return boolean(other === this);  }
-  public compare(other: YuValue): ExecutionCommand { throw new Error("Predicates are not comparable"); }
+  public equals(other: YuValue): ExecutionCommand {
+    return boolean(other === this);
+  }
+  public compare(other: YuValue): ExecutionCommand {
+    return raise(
+      error("RuntimePredicate.compare", "Predicates are not comparable"),
+    );
+  }
 
   public apply<T>(visitor: Visitor<T>): T[] {
     return this.equations.map((clause) => clause.accept(visitor));
@@ -63,9 +72,6 @@ export class RuntimePredicate extends YuValue {
   }
 }
 
-export const isRuntimePredicate = (
-  prim: YuValue,
-): prim is RuntimePredicate => {
+export const isRuntimePredicate = (prim: YuValue): prim is RuntimePredicate => {
   return prim instanceof RuntimePredicate;
 };
-

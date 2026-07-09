@@ -5,7 +5,7 @@ import {
 } from "../../components/kernel/commands.js";
 import { RuntimeContext } from "../../components/RuntimeContext.js";
 import { InterpreterError, NotConcatenable } from "../../errors.js";
-import { boolean } from "../../utils.js";
+import { boolean, error, raise } from "../../utils.js";
 import {
   Sequence,
   StepResult,
@@ -37,7 +37,7 @@ export class LazyStepResult extends YuValue implements StepResult {
     return boolean(other === this);
   }
   public compare(other: YuValue): ExecutionCommand {
-    throw new Error("Step results are not comparable");
+    return raise(error("LazyStepResult", "Step results are not comparable"));
   }
   public toString(): string {
     return `StepResult(${this.head}, ${this.tail})`;
@@ -66,7 +66,7 @@ export class LazyList extends YuValue implements Sequence {
     return boolean(other === this);
   }
   public compare(other: YuValue): ExecutionCommand {
-    throw new Error("LazyLists are not comparable");
+    return raise(error("LazyList.compare", "LazyLists are not comparable"));
   }
 
   get asSequence(): YuSequence {
@@ -104,7 +104,9 @@ export class LazyList extends YuValue implements Sequence {
           this.memoized = new LazyStepResult(result, null);
         } else {
           // Fallback for raw JS values if any still exist
-          throw new Error("LazyList producer returned non-YuValue");
+          return raise(
+            error("LazyList.step", "LazyList producer returned non-YuValue"),
+          );
         }
         return new StepCommand(
           this.memoized === null ? YuNil.getInstance() : this.memoized,
@@ -114,7 +116,9 @@ export class LazyList extends YuValue implements Sequence {
   }
 
   public size(): ExecutionCommand {
-    throw new InterpreterError("[LazyList.size]", "Cannot calculate the length of a LazyList")
+    return raise(
+      error("[LazyList.size]", "Cannot calculate the length of a LazyList"),
+    );
   }
 
   public realize(): ExecutionCommand {
@@ -126,7 +130,12 @@ export class LazyList extends YuValue implements Sequence {
           return new StepCommand(new YuArray(result));
 
         if (!(stepRes instanceof LazyStepResult))
-          throw new Error("LazyList step did not return LazyStepResult");
+          return raise(
+            error(
+              "LazyList.realize",
+              "LazyList step did not return LazyStepResult",
+            ),
+          );
 
         result.push(stepRes.head);
         if (stepRes.tail) {
@@ -141,20 +150,23 @@ export class LazyList extends YuValue implements Sequence {
 
   public concat(other: YuValue): ExecutionCommand {
     const rightSeq = other.asSequence;
-    if (!rightSeq) throw new Error("Cannot concatenate with a non-sequence");
+    if (!rightSeq)
+      return raise(
+        error("LazyList.concat", "Cannot concatenate with a non-sequence"),
+      );
     return new StepCommand(this.createLazyConcat(this, rightSeq));
   }
 
   public concatWithArray(arr: YuValue): ExecutionCommand {
     const leftSeq = arr.asSequence;
-    if (!leftSeq) throw new NotConcatenable();
+    if (!leftSeq) return raise(new NotConcatenable());
 
     return new StepCommand(this.createLazyConcat(leftSeq, this));
   }
 
   public concatWithString(str: YuValue): ExecutionCommand {
     const leftSeq = str.asSequence;
-    if (!leftSeq) throw new NotConcatenable();
+    if (!leftSeq) return raise(new NotConcatenable());
     return new StepCommand(this.createLazyConcat(leftSeq, this));
   }
 
@@ -169,7 +181,12 @@ export class LazyList extends YuValue implements Sequence {
           // ensure we have a valid step result
           const stepResult = stepRes.asStepResult;
           if (!stepResult)
-            throw new Error("Invalid sequence step: Expected a StepResult");
+            return raise(
+              error(
+                "LazyList.createLazyConcat",
+                "Invalid sequence step: Expected a StepResult",
+              ),
+            );
 
           // recursively and lazily build the tail sequence
           const nextTail =

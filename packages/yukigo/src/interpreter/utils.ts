@@ -1,15 +1,30 @@
 import { ASTNode } from "yukigo-ast";
-import { BindCommand, ExecutionCommand, StepCommand } from "./components/kernel/commands.js";
+import {
+  BindCommand,
+  ExecutionCommand,
+  RaiseCommand,
+  StepCommand,
+} from "./components/kernel/commands.js";
 import { RuntimeContext } from "./components/RuntimeContext.js";
 import { YuValue, YuNumber, LazyList, YuBoolean } from "./primitives/index.js";
+import { InterpreterError } from "./errors.js";
+
+export const raise = (err: InterpreterError): RaiseCommand =>
+  new RaiseCommand(err);
+
+export const error = (ctx: string, msg: string): InterpreterError =>
+  new InterpreterError(ctx, msg);
 
 export const boolean = (condition: boolean) =>
   new StepCommand(new YuBoolean(condition));
-export const number = (num: number) => new StepCommand(new YuNumber(num));
+export const number = (num: number) => {
+  const rounded = Math.round(num * 100000) / 100000;
+  return new StepCommand(new YuNumber(rounded));
+};
 
 export const not = (command: ExecutionCommand): ExecutionCommand =>
   new BindCommand(command, (res) => res.asLogic?.not() || boolean(false));
- 
+
 export const isTrue = (val: unknown): boolean =>
   val instanceof YuBoolean && val.value;
 
@@ -18,6 +33,12 @@ export const compareResult = (
   predicate: (num: number) => boolean,
 ): ExecutionCommand =>
   new BindCommand(command, (res) => boolean(predicate(res.toJSON() as number)));
+
+export type NativeExtension = (
+  self: YuValue,
+  args: YuValue[],
+  ctx: RuntimeContext,
+) => ExecutionCommand;
 
 export type PrimitiveThunk = () => YuValue;
 

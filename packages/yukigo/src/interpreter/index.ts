@@ -8,7 +8,7 @@ import {
 import { YukigoKernel } from "./components/kernel/index.js";
 import { EvalCommand } from "./components/kernel/commands.js";
 import { YuValue } from "./primitives/index.js";
-
+export * from "./primitives/index.js";
 export type Bindings = [string, YuValue][];
 
 /**
@@ -24,7 +24,7 @@ export class Interpreter {
   /**
    * @param ast The Abstract Syntax Tree (AST) of the program to be interpreted.
    */
-  constructor(ast: AST, config: InterpreterConfig = {}) {
+  constructor(ast: AST, config: Partial<InterpreterConfig> = {}) {
     this.context = new RuntimeContext(config);
     const builder = new EnvBuilderVisitor(this.context);
     builder.build(ast);
@@ -41,5 +41,9 @@ export class Interpreter {
     const outputMode = this.context.config.outputMode;
     const kernel = new YukigoKernel(visitor, outputMode);
     return kernel.run(new EvalCommand(expr));
+  }
+
+  public getContext(): RuntimeContext {
+    return this.context;
   }
 }

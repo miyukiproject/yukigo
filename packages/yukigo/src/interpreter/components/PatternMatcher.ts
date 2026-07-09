@@ -23,6 +23,7 @@ import {
   StepCommand,
   BindCommand,
   FailCommand,
+  RaiseCommand,
 } from "../components/kernel/commands.js";
 import { RuntimeContext } from "./RuntimeContext.js";
 import { boolean, getYukigoType } from "../utils.js";
@@ -62,17 +63,18 @@ export class PatternMatcher {
   }
 
   visitLiteralPattern(node: LiteralPattern): ExecutionCommand {
-    const literalValue = InterpreterVisitor.evaluateLiteral(node.name);
+    const literalValue = InterpreterVisitor.evaluateLiteral(
+      node.name,
+      this.ctx,
+    );
     return EqualityComparer.compare(this.value, literalValue);
   }
 
   visitTuplePattern(node: TuplePattern): ExecutionCommand {
     const processValue = (val: YuValue): ExecutionCommand => {
       const seq = val.asSequence;
-      if (!(seq instanceof YuArray))
-        return boolean(false);
-      if (seq.items.length !== node.elements.length)
-        return boolean(false);
+      if (!(seq instanceof YuArray)) return boolean(false);
+      if (seq.items.length !== node.elements.length) return boolean(false);
 
       return this.matchList(node.elements, seq, 0);
     };
@@ -94,12 +96,13 @@ export class PatternMatcher {
     const finishMatching = (valArr: YuValue): ExecutionCommand => {
       const seq = valArr.asSequence;
       if (!(seq instanceof YuArray))
-        throw new InterpreterError(
-          "[PatternMatcher]",
-          `Expected ${valArr} to be a list.`,
+        return new RaiseCommand(
+          new InterpreterError(
+            "[PatternMatcher]",
+            `Expected ${valArr} to be a list.`,
+          ),
         );
-      if (seq.items.length !== neededLength)
-        return boolean(false);
+      if (seq.items.length !== neededLength) return boolean(false);
       return this.matchList(node.elements, seq, 0);
     };
 
@@ -113,9 +116,8 @@ export class PatternMatcher {
           );
         }
         if (isLazyList(seq)) {
-          return new BindCommand(
-            seq.step(),
-            (res) => boolean(res instanceof YuNil),
+          return new BindCommand(seq.step(), (res) =>
+            boolean(res instanceof YuNil),
           );
         }
       }
@@ -270,7 +272,12 @@ export class PatternMatcher {
 
         const stepResult = stepRes.asStepResult;
         if (!stepResult)
-          throw new Error("PatternMatcher: step did not return StepResult");
+          return new RaiseCommand(
+            new InterpreterError(
+              "PatternMatcher",
+              "step did not return StepResult",
+            ),
+          );
 
         return new StepCommand(
           new YuArray([
@@ -330,8 +337,7 @@ export class PatternMatcher {
 
   visitUnionPattern(node: UnionPattern): ExecutionCommand {
     const tryNext = (index: number): ExecutionCommand => {
-      if (index >= node.elements.length)
-        return boolean(false);
+      if (index >= node.elements.length) return boolean(false);
 
       const pattern = node.elements[index];
       const trialBindings: Bindings = [];

@@ -172,7 +172,7 @@ describe("ctx.objRuntime", () => {
             [],
           ),
         );
-      }).to.throw(/is not an object/);
+      }).to.throw(/Primitive type 'YuString' does not understand method 'toString'/);
     });
 
     it("debe permitir argumentos en el método", () => {

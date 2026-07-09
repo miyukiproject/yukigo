@@ -8,6 +8,7 @@ import {
   VariablePattern,
 } from "yukigo-ast";
 import { Interpreter } from "../interpreter/index.js";
+import { EnvBuilderVisitor } from "../interpreter/components/EnvBuilder.js";
 import { FailedAssert } from "../interpreter/components/TestRunner.js";
 import { InterpreterConfig } from "../interpreter/components/RuntimeContext.js";
 import { UnexpectedNode } from "../interpreter/errors.js";
@@ -33,7 +34,6 @@ class TestExecutor extends TraverseVisitor {
     const start = Date.now();
 
     try {
-      //this.bindParameters(node);
       this.interpreter.evaluate(node);
       this.report = {
         name,
@@ -44,16 +44,6 @@ class TestExecutor extends TraverseVisitor {
       this.report = this.handleError(name, start, error);
     }
   }
-
-  /*   private bindParameters(node: Test): void {
-    if (!node.args || node.args.length === 0) return;
-
-    for (const pattern of node.args) {
-      if (pattern instanceof VariablePattern) {
-        this.interpreter.define(pattern.name.value, null);
-      }
-    }
-  } */
 
   visitTestGroup(node: TestGroup): void {
     const name = this.evaluateName(node.name);
@@ -121,13 +111,15 @@ export class Tester {
    */
   public test(nodes: AST): TestReport[] {
     const reports: TestReport[] = [];
+
     for (const node of nodes) {
-      if (node instanceof Test || node instanceof TestGroup) {
-        const interpreter = new Interpreter(this.ast, this.config);
-        const visitor = new TestExecutor(interpreter);
-        node.accept(visitor);
-        if (visitor.report) reports.push(visitor.report);
-      }
+      if (!node.is(Test) && !node.is(TestGroup)) continue;  
+
+      const interpreter = new Interpreter(this.ast, this.config);
+      const visitor = new TestExecutor(interpreter);
+      node.accept(visitor);
+      
+      if (visitor.report) reports.push(visitor.report);
     }
     return reports;
   }

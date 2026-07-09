@@ -17,6 +17,7 @@ import {
   LogicalBinaryOperation,
   LogicalUnaryOperation,
   Method,
+  NativeBody,
   Object,
   ParameterizedType,
   Print,
@@ -260,6 +261,7 @@ export class HasDirectRecursion extends InspectionVisitor {
   override visitEquation(node: Equation): void {
     this.isInsideBody = true;
     try {
+      if(node.body instanceof NativeBody) return
       if (isUnguardedBody(node.body)) {
         node.body.accept(this);
       } else {

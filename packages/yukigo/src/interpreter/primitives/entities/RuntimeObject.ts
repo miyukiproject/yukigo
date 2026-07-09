@@ -1,6 +1,9 @@
-import { ExecutionCommand, StepCommand } from "../../components/kernel/commands.js";
+import {
+  ExecutionCommand,
+  StepCommand,
+} from "../../components/kernel/commands.js";
 import { InterpreterError } from "../../errors.js";
-import { boolean } from "../../utils.js";
+import { boolean, error, raise } from "../../utils.js";
 import { YuBoolean } from "../index.js";
 import { YuValue } from "../YuValue.js";
 import { RuntimeClass } from "./RuntimeClass.js";
@@ -17,10 +20,16 @@ export class RuntimeObject extends YuValue {
     public className: string,
     public fields: Map<string, YuValue>,
     public methods: Map<string, RuntimeFunction>,
-  ) { super(); }
+  ) {
+    super();
+  }
 
-  public equals(other: YuValue): ExecutionCommand { return boolean(other === this); }
-  public compare(other: YuValue): ExecutionCommand { throw new Error("Objects are not comparable"); }
+  public equals(other: YuValue): ExecutionCommand {
+    return boolean(other === this);
+  }
+  public compare(other: YuValue): ExecutionCommand {
+    return raise(error("RuntimeClass.compare", "Objects are not comparable"));
+  }
 
   public hasField(name: string): boolean {
     return this.fields.has(name);
@@ -77,11 +86,15 @@ export class RuntimeObject extends YuValue {
   }
 
   public toString(): string {
-    return `[Object: ${this.identifier} (${this.className})]`;
+    const fieldsArray: string[] = [];
+    for (const [k, v] of this.fields.entries()) {
+      fieldsArray.push(`${k}=${v ? v.toString() : "nil"}`);
+    }
+    const name = this.identifier || this.className || "object";
+    return `${name}[${fieldsArray.join(", ")}]`;
   }
 }
 
 export function isRuntimeObject(val: YuValue): val is RuntimeObject {
   return val instanceof RuntimeObject;
 }
-

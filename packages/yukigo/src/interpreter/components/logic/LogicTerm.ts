@@ -9,14 +9,22 @@ import {
   Sequence,
   YuBoolean,
 } from "../../primitives/index.js";
-import { boolean } from "../../utils.js";
-import { ExecutionCommand, StepCommand, BindCommand } from "../kernel/commands.js";
+import { boolean, error, raise } from "../../utils.js";
+import {
+  ExecutionCommand,
+  StepCommand,
+  BindCommand,
+} from "../kernel/commands.js";
 import {
   LogicTerm,
   Substitution,
 } from "../../primitives/entities/LogicResult.js";
 
-function unifyArray(arr1: LogicTerm[], arr2: LogicTerm[], env: Substitution): ExecutionCommand {
+function unifyArray(
+  arr1: LogicTerm[],
+  arr2: LogicTerm[],
+  env: Substitution,
+): ExecutionCommand {
   const next = (index: number): ExecutionCommand => {
     if (index >= arr1.length) return boolean(true);
     return new BindCommand(arr1[index].unify(arr2[index], env), (res) => {
@@ -132,7 +140,7 @@ export class ConstantTerm extends LogicTerm {
   }
   compare(other: YuValue): ExecutionCommand {
     if (!(other instanceof ConstantTerm))
-      throw new Error("Type mismatch in compare");
+      return raise(error("ConstantTerm", "Type mismatch in compare"));
     return this.value.compare(other.value);
   }
   getType(): string {

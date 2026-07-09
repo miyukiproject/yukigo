@@ -26,7 +26,7 @@ import {
   WildcardTerm,
   CompoundTerm,
 } from "./LogicTerm.js";
-import { Evaluator } from "../../utils.js";
+import { error, Evaluator, raise } from "../../utils.js";
 import { InterpreterError } from "../../errors.js";
 import { RuntimeContext } from "../RuntimeContext.js";
 import {
@@ -165,7 +165,12 @@ class ExpressionToTermVisitor implements Visitor<ExecutionCommand> {
         ),
         (t) => {
           if (!isLogicTerm(t))
-            throw new Error("expected LogicTerm in visitListPrimitive");
+            return raise(
+              error(
+                "ExpressionToTermVisitor",
+                "expected LogicTerm in visitListPrimitive",
+              ),
+            );
           terms.push(t);
           return next(index + 1);
         },
@@ -179,13 +184,23 @@ class ExpressionToTermVisitor implements Visitor<ExecutionCommand> {
       this.translator.expressionToTerm(node.head, this.scope),
       (head) => {
         if (!isLogicTerm(head))
-          throw new Error("expected LogicTerm in visitConsExpression");
+          return raise(
+            error(
+              "ExpressionToTermVisitor",
+              "expected LogicTerm in visitConsExpression",
+            ),
+          );
 
         return new BindCommand(
           this.translator.expressionToTerm(node.tail, this.scope),
           (tail) => {
             if (!isLogicTerm(tail))
-              throw new Error("expected LogicTerm in visitConsExpression");
+              return raise(
+                error(
+                  "ExpressionToTermVisitor",
+                  "expected LogicTerm in visitConsExpression",
+                ),
+              );
             return new StepCommand(new ConsTerm(head, tail));
           },
         );
@@ -257,13 +272,13 @@ export class LogicTranslator {
   ) {}
 
   public getNextId(name: string): number {
-    const id = ++this.ctx.logicState.variableCounter;
-    this.ctx.logicState.idToName.set(id, name);
+    const id = ++this.ctx.logicState!.variableCounter;
+    this.ctx.logicState!.idToName.set(id, name);
     return id;
   }
 
   public getName(id: number): string | undefined {
-    return this.ctx.logicState.idToName.get(id);
+    return this.ctx.logicState!.idToName.get(id);
   }
 
   /**
@@ -334,7 +349,12 @@ export class LogicTranslator {
   ): ExecutionCommand {
     return new BindCommand(this.expressionToTerm(expr, scope), (term) => {
       if (!isLogicTerm(term))
-        throw new Error("expected LogicTerm in visitConsExpression");
+        return raise(
+          error(
+            "instantiateExpressionAsTerm",
+            "expected LogicTerm in visitConsExpression",
+          ),
+        );
       return new StepCommand(term.instantiate(substs));
     });
   }

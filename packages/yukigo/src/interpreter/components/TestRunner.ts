@@ -18,6 +18,7 @@ import {
   StepCommand,
   BindCommand,
   FailCommand,
+  RaiseCommand,
 } from "./kernel/commands.js";
 import { LazyRuntime } from "./runtimes/LazyRuntime.js";
 import { InterpreterError, UnexpectedNode } from "../errors.js";
@@ -53,67 +54,85 @@ class AssertionVisitor implements Visitor<ExecutionCommand> {
     let actualError: YuString | undefined;
 
     try {
-      new YukigoKernel(this.interpreter).run(this.interpreter.evaluate(node.func));
+      new YukigoKernel(this.interpreter).run(
+        this.interpreter.evaluate(node.func),
+      );
     } catch (error) {
       threw = true;
       actualError = new YuString((error as Error).message);
     }
 
-    return new BindCommand(this.interpreter.evaluate(node.message), (expectedError) => {
-      if(!(expectedError instanceof YuString)) throw new InterpreterError("[Tester]", `Expected YuString as message in Failure Assertion`)
-      const passed =
-        threw &&
-        (expectedError === undefined ||
-          actualError?.value?.includes(expectedError.value));
+    return new BindCommand(
+      this.interpreter.evaluate(node.message),
+      (expectedError) => {
+        if (!(expectedError instanceof YuString))
+          return new RaiseCommand(
+            new InterpreterError(
+              "Tester",
+              `Expected YuString as message in Failure Assertion`,
+            ),
+          );
+        const passed =
+          threw &&
+          (expectedError === undefined ||
+            actualError?.value?.includes(expectedError.value));
 
-      if (this.negated === passed) {
-        if (!threw) {
-          return new FailCommand(
-            new FailedAssert(
-              undefined,
-              expectedError,
-              "Expected code to fail, but it succeeded",
-            ),
-          );
-        } else {
-          return new FailCommand(
-            new FailedAssert(
-              actualError,
-              expectedError,
-              `Expected error message to contain "${expectedError}", but got "${actualError}"`,
-            ),
-          );
+        if (this.negated === passed) {
+          if (!threw) {
+            return new FailCommand(
+              new FailedAssert(
+                undefined,
+                expectedError,
+                "Expected code to fail, but it succeeded",
+              ),
+            );
+          } else {
+            return new FailCommand(
+              new FailedAssert(
+                actualError,
+                expectedError,
+                `Expected error message to contain "${expectedError}", but got "${actualError}"`,
+              ),
+            );
+          }
         }
-      }
-      return new StepCommand(YuNil.getInstance());
-    });
+        return new StepCommand(YuNil.getInstance());
+      },
+    );
   }
 
   visitEquality(node: Equality): ExecutionCommand {
     return new BindCommand(this.interpreter.evaluate(node.value), (value) => {
-      return new BindCommand(this.interpreter.evaluate(node.expected), (expected) => {
-        return new BindCommand(EqualityComparer.compare(value, expected), (passed) => {
-          const isPassed = isTrue(passed);
-          if (this.negated === isPassed) {
-            return new FailCommand(
-              new FailedAssert(
-                value,
-                expected,
-                this.negated
-                  ? `Expected ${JSON.stringify(value)} NOT to be equal to ${JSON.stringify(expected)}`
-                  : `Expected ${JSON.stringify(expected)}, but got ${JSON.stringify(value)}`,
-              ),
-            );
-          }
-          return new StepCommand(YuNil.getInstance());
-        });
-      });
+      return new BindCommand(
+        this.interpreter.evaluate(node.expected),
+        (expected) => {
+          return new BindCommand(
+            EqualityComparer.compare(value, expected),
+            (passed) => {
+              const isPassed = isTrue(passed);
+              if (this.negated === isPassed) {
+                return new FailCommand(
+                  new FailedAssert(
+                    value,
+                    expected,
+                    this.negated
+                      ? `Expected ${JSON.stringify(value)} NOT to be equal to ${JSON.stringify(expected)}`
+                      : `Expected ${JSON.stringify(expected)}, but got ${JSON.stringify(value)}`,
+                  ),
+                );
+              }
+              return new StepCommand(YuNil.getInstance());
+            },
+          );
+        },
+      );
     });
   }
 
   visitTruth(node: Truth): ExecutionCommand {
     return new BindCommand(this.interpreter.evaluate(node.body), (value) => {
-      const isTruthy = isTrue(value) || (value instanceof LogicResult && value.success);
+      const isTruthy =
+        isTrue(value) || (value instanceof LogicResult && value.success);
       if (this.negated === isTruthy) {
         return new FailCommand(
           new FailedAssert(
@@ -129,7 +148,9 @@ class AssertionVisitor implements Visitor<ExecutionCommand> {
     });
   }
   public fallback(node: ASTNode): ExecutionCommand {
-    return new FailCommand(new UnexpectedNode(node.constructor.name, "AssertionVisitor"));
+    return new FailCommand(
+      new UnexpectedNode(node.constructor.name, "AssertionVisitor"),
+    );
   }
 }
 
@@ -152,7 +173,10 @@ export class TestRunner implements Visitor<ExecutionCommand> {
         (stmt) => stmt.is(Exist) || stmt.is(LogicConstraint) || stmt.is(Assert),
       );
       if (hasLogicGoal) {
-        const engine = new LogicEngine(this.interpreter, this.interpreter.getContext());
+        const engine = new LogicEngine(
+          this.interpreter,
+          this.interpreter.getContext(),
+        );
         const scope = new Map();
         return engine.solveConjunction(node.body.statements, new Map(), scope);
       }
@@ -175,6 +199,8 @@ export class TestRunner implements Visitor<ExecutionCommand> {
     });
   }
   public fallback(node: ASTNode): ExecutionCommand {
-    return new FailCommand(new UnexpectedNode(node.constructor.name, "TestRunner"));
+    return new FailCommand(
+      new UnexpectedNode(node.constructor.name, "TestRunner"),
+    );
   }
 }

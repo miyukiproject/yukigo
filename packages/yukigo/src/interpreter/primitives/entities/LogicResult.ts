@@ -2,7 +2,7 @@ import {
   ExecutionCommand,
   StepCommand,
 } from "../../components/kernel/commands.js";
-import { boolean } from "../../utils.js";
+import { boolean, error, raise } from "../../utils.js";
 import { YuBoolean } from "../index.js";
 import { YuValue } from "../YuValue.js";
 
@@ -22,8 +22,11 @@ export abstract class LogicTerm extends YuValue {
   }
 
   public compare(other: YuValue): ExecutionCommand {
-    throw new Error(
-      `Comparison not supported for LogicTerm: ${this.logicTermType}`,
+    return raise(
+      error(
+        "LogicTerm.compare",
+        `Comparison not supported for LogicTerm: ${this.logicTermType}`,
+      ),
     );
   }
 }
@@ -49,7 +52,7 @@ export class LogicAnswer extends YuValue {
     return boolean(other === this);
   }
   public compare(other: YuValue): ExecutionCommand {
-    throw new Error("LogicAnswer is not comparable");
+    return raise(error("LogicAnswer.compare", "LogicAnswer is not comparable"));
   }
   public isSuccessful(): boolean {
     return this._success;
@@ -89,7 +92,7 @@ export class LogicResult extends YuValue {
     return boolean(other === this);
   }
   public compare(other: YuValue): ExecutionCommand {
-    throw new Error("LogicResult is not comparable");
+    return raise(error("LogicResult.compare", "LogicResult is not comparable"));
   }
   public get allAnswers(): LogicAnswer[] {
     return this.answers;

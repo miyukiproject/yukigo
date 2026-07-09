@@ -3,7 +3,7 @@ import {
   StepCommand,
 } from "../../components/kernel/commands.js";
 import { UnsupportedOperation } from "../../errors.js";
-import { boolean } from "../../utils.js";
+import { boolean, raise } from "../../utils.js";
 import { Comparable, Logic, YuComparable, YuLogic } from "../capabilities.js";
 import { YuValue } from "../YuValue.js";
 import { YuNumber } from "./YuNumber.js";
@@ -48,12 +48,12 @@ export class YuBoolean extends YuValue implements Logic, Comparable {
 
   public compare(other: YuValue): ExecutionCommand {
     const c = other.asComparable;
-    if (!c) throw new UnsupportedOperation(other, "compare");
+    if (!c) return raise(new UnsupportedOperation(other, "compare"));
     return c.compareWithBoolean(this);
   }
 
   public compareWithNumber(): ExecutionCommand {
-    throw new UnsupportedOperation(this, "compare");
+    return raise(new UnsupportedOperation(this, "compare"));
   }
   public compareWithBoolean(left: YuBoolean): ExecutionCommand {
     return new StepCommand(
@@ -61,13 +61,13 @@ export class YuBoolean extends YuValue implements Logic, Comparable {
     );
   }
   public compareWithString(): ExecutionCommand {
-    throw new UnsupportedOperation(this, "compare");
+    return raise(new UnsupportedOperation(this, "compare"));
   }
   public compareWithArray(): ExecutionCommand {
-    throw new UnsupportedOperation(this, "compare");
+    return raise(new UnsupportedOperation(this, "compare"));
   }
   public compareWithNil(): ExecutionCommand {
-    throw new UnsupportedOperation(this, "compare");
+    return raise(new UnsupportedOperation(this, "compare"));
   }
 
   public toString(): string {

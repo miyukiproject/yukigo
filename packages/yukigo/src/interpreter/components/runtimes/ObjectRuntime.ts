@@ -8,12 +8,16 @@ import {
   YuString,
   isRuntimeClass,
   YuBoolean,
+  YuArray,
+  YuNumber,
 } from "../../primitives/index.js";
+import { error, raise } from "../../utils.js";
 import { RuntimeContext } from "../RuntimeContext.js";
 import {
   ExecutionCommand,
   BindCommand,
   StepCommand,
+  FailCommand,
 } from "../kernel/commands.js";
 
 type OOPEntity = RuntimeClass | RuntimeObject;
@@ -34,17 +38,38 @@ export class ObjectRuntime {
     methodName: string,
     args: YuValue[],
   ): ExecutionCommand {
-    if (!isRuntimeObject(receiver))
-      throw new InterpreterError("[ObjectRuntime.dispatch]", `${receiver} is not an object`);
+    if (!isRuntimeObject(receiver)) {
+      console.log("Dispatching primitive", receiver, methodName, args);
+      return this.dispatchPrimitive(receiver, methodName, args);
+    }
 
     const chain = this.getResolutionChain(receiver);
     const match = this.findMethodInChain(chain, methodName);
 
-    if (!match)
-      throw new InterpreterError(
-        "MethodDispatch",
-        `${receiver.className} does not understand '${methodName}'.`,
+    if (!match) {
+      if (receiver.hasField(methodName)) {
+        if (args.length === 0) {
+          return new StepCommand(receiver.getField(methodName));
+        } else if (args.length === 1) {
+          receiver.setField(methodName, args[0]);
+          return new StepCommand(receiver);
+        }
+      }
+      if (methodName === "toString") {
+        return new StepCommand(new YuString(receiver.toString()));
+      }
+      if (methodName === "error") {
+        const errorMsg = args[0] ? args[0].toString() : "An error occurred";
+        return new FailCommand(new InterpreterError("Raise", errorMsg));
+      }
+      console.log("El objeto destinatario", receiver);
+      return raise(
+        error(
+          "MethodDispatch",
+          `${receiver.className} does not understand '${methodName}'.`,
+        ),
       );
+    }
 
     const objectScope = receiver.createDispatchScope(
       match,
@@ -54,6 +79,7 @@ export class ObjectRuntime {
     return new BindCommand(
       this.context.funcRuntime.apply(match.method, args),
       (res) => {
+        console.log("ObjectRuntime.dispatch", res)
         this.context.popEnv();
         return new StepCommand(res);
       },
@@ -72,9 +98,8 @@ export class ObjectRuntime {
       : (currentMethodName as YuString);
 
     if (!self || !currentHolder)
-      throw new InterpreterError(
-        "SuperError",
-        "'super' used outside of a method context",
+      return raise(
+        error("dispatchSuper", "'super' used outside of a method context"),
       );
 
     const chain = this.getResolutionChain(self);
@@ -82,7 +107,12 @@ export class ObjectRuntime {
     const currentIndex = chain.findIndex((c) => c === currentHolder);
 
     if (currentIndex === -1)
-      throw new Error("Fatal: Execution context not found in hierarchy chain");
+      return raise(
+        error(
+          "dispatchSuper",
+          "Execution context not found in hierarchy chain",
+        ),
+      );
 
     const remainingChain = chain.slice(currentIndex + 1);
     const match = this.findMethodInChain(
@@ -91,9 +121,8 @@ export class ObjectRuntime {
     );
 
     if (!match)
-      throw new InterpreterError(
-        "Super",
-        `Super method '${targetMethodName.toJSON()}' not found`,
+      return raise(
+        error("Super", `Super method '${targetMethodName.toJSON()}' not found`),
       );
 
     const objectScope = self.createDispatchScope(match, targetMethodName);
@@ -108,7 +137,7 @@ export class ObjectRuntime {
     );
   }
 
-  private getResolutionChain(receiver: RuntimeObject): OOPEntity[] {
+  public getResolutionChain(receiver: RuntimeObject): OOPEntity[] {
     const chain: OOPEntity[] = [receiver];
 
     if (receiver.className) {
@@ -139,14 +168,14 @@ export class ObjectRuntime {
   private getClassDef(name: string): RuntimeClass {
     const classDef = this.context.lookup(name);
     if (!isRuntimeClass(classDef))
-      throw new InterpreterError(
+      throw error(
         "expandClassHierarchy",
         "classDef was expected to be a RuntimeClass",
       );
     return classDef;
   }
 
-  private findMethodInChain(
+  public findMethodInChain(
     chain: Array<OOPEntity>,
     methodName: string,
   ): OOPMatch | undefined {
@@ -195,6 +224,34 @@ export class ObjectRuntime {
     throw new InterpreterError(
       "ObjectRuntime",
       "Receiver is not an OOP entity",
+    );
+  }
+
+  public dispatchPrimitive(
+    receiver: YuValue,
+    methodName: string,
+    args: YuValue[],
+  ): ExecutionCommand {
+    // Obtenemos el identificador polimórfico del tipo (ej: "YuArray", "YuNumber", "YuString", "RuntimeFunction")
+    const typeKey = receiver.constructor.name;
+    const lookupKey = `${typeKey}.${methodName}`;
+
+    // Buscamos si el ecosistema/lenguaje proveyó una implementación externa para este caso
+    const nativeImpl = this.context.config.nativeProviders.get(lookupKey);
+
+    if (nativeImpl) {
+      // Delegamos la subtarea de forma declarativa pasándole el receptor como contexto
+      return new BindCommand(
+        nativeImpl(receiver, args, this.context),
+        (res) => new StepCommand(res),
+      );
+    }
+
+    return raise(
+      error(
+        "ObjectRuntime.dispatch",
+        `Primitive type '${typeKey}' does not understand method '${methodName}'.`,
+      ),
     );
   }
 }

@@ -100,7 +100,7 @@ describe("YukigoKernel", () => {
       if (count.equals(new YuNumber(0)))
         return new StepCommand(new YuString("fin"));
       return new BindCommand(new StepCommand(count), () =>
-        recursiveStep(count.minus(new YuNumber(1))),
+        recursiveStep(count.minus(new YuNumber(1)) as any),
       );
     };
 

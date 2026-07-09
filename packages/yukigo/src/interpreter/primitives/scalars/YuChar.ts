@@ -1,7 +1,15 @@
-import { ExecutionCommand, StepCommand } from "../../components/kernel/commands.js";
+import {
+  ExecutionCommand,
+  StepCommand,
+} from "../../components/kernel/commands.js";
 import { UnsupportedOperation } from "../../errors.js";
-import { boolean } from "../../utils.js";
-import { Comparable, Summable, YuComparable, YuSummable } from "../capabilities.js";
+import { boolean, raise } from "../../utils.js";
+import {
+  Comparable,
+  Summable,
+  YuComparable,
+  YuSummable,
+} from "../capabilities.js";
 import { YuString } from "../sequences/YuString.js";
 import { YuValue } from "../YuValue.js";
 import { YuBoolean } from "./YuBoolean.js";
@@ -23,7 +31,7 @@ export class YuChar extends YuValue implements Comparable, Summable {
 
   public equals(other: YuValue): ExecutionCommand {
     const c = other.asComparable;
-    if(!c) return boolean(false)
+    if (!c) return boolean(false);
     return c.equalsWithString(this);
   }
 
@@ -45,24 +53,26 @@ export class YuChar extends YuValue implements Comparable, Summable {
 
   public compare(other: YuValue): ExecutionCommand {
     const c = other.asComparable;
-    if (!c) throw new UnsupportedOperation(other, "compare");
+    if (!c) return raise(new UnsupportedOperation(other, "compare"));
     return c.compareWithString(new YuString(this.value));
   }
 
   public compareWithNumber(): ExecutionCommand {
-    throw new UnsupportedOperation(this, "compare");
+    return raise(new UnsupportedOperation(this, "compare"));
   }
   public compareWithBoolean(): ExecutionCommand {
-    throw new UnsupportedOperation(this, "compare");
+    return raise(new UnsupportedOperation(this, "compare"));
   }
   public compareWithString(left: YuString): ExecutionCommand {
-    return new StepCommand(new YuNumber(left.toJSON().localeCompare(this.value)));
+    return new StepCommand(
+      new YuNumber(left.toJSON().localeCompare(this.value)),
+    );
   }
   public compareWithArray(): ExecutionCommand {
-    throw new UnsupportedOperation(this, "compare");
+    return raise(new UnsupportedOperation(this, "compare"));
   }
   public compareWithNil(): ExecutionCommand {
-    throw new UnsupportedOperation(this, "compare");
+    return raise(new UnsupportedOperation(this, "compare"));
   }
 
   public plus(other: YuValue): ExecutionCommand {

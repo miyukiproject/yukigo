@@ -1,12 +1,17 @@
-import { GuardedBody, Pattern, UnguardedBody } from "yukigo-ast";
+import { GuardedBody, NativeBody, Pattern, UnguardedBody } from "yukigo-ast";
 import { YuValue } from "../YuValue.js";
-import { boolean, EnvStack, PrimitiveThunk } from "../../utils.js";
-import { ExecutionCommand, StepCommand } from "../../components/kernel/commands.js";
-import { YuBoolean } from "../index.js";
+import {
+  boolean,
+  EnvStack,
+  error,
+  PrimitiveThunk,
+  raise,
+} from "../../utils.js";
+import { ExecutionCommand } from "../../components/kernel/commands.js";
 
 export interface EquationRuntime {
   patterns: Pattern[];
-  body: GuardedBody[] | UnguardedBody;
+  body: GuardedBody[] | UnguardedBody | NativeBody;
 }
 /**
  * Runtime Function used in the Interpreter
@@ -18,10 +23,18 @@ export class RuntimeFunction extends YuValue {
     public identifier?: string,
     public pendingArgs?: (YuValue | PrimitiveThunk)[],
     public closure?: EnvStack,
-  ) { super(); }
+  ) {
+    super();
+  }
 
-  public equals(other: YuValue): ExecutionCommand { return boolean(other === this); }
-  public compare(other: YuValue): ExecutionCommand { throw new Error("Functions are not comparable"); }
+  public equals(other: YuValue): ExecutionCommand {
+    return boolean(other === this);
+  }
+  public compare(other: YuValue): ExecutionCommand {
+    return raise(
+      error("RuntimeFunction.compare", "Functions are not comparable"),
+    );
+  }
 
   public get name(): string {
     return this.identifier ?? "<anonymous>";

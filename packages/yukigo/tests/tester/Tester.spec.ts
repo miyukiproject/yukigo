@@ -146,7 +146,7 @@ describe("Tester class", () => {
 
     const tester = new Tester([errorTest]);
     const results = tester.test([errorTest]);
-
+    console.log(results)
     expect(results[0].status).to.equal("error");
     expect(results[0].message).to.contain("Type mismatch");
   });

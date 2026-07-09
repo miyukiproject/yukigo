@@ -1,4 +1,9 @@
-import { Continuation, ExecutionCommand, StepCommand } from "./commands.js";
+import {
+  CatchHandler,
+  Continuation,
+  ExecutionCommand,
+  StepCommand,
+} from "./commands.js";
 import { boolean, EnvStack, Evaluator } from "../../utils.js";
 import { ErrorFrame, InterpreterError } from "../../errors.js";
 import { YuBoolean, YuNil, YuValue } from "../../primitives/index.js";
@@ -12,11 +17,14 @@ export interface ChoicePoint {
 }
 
 export class YukigoKernel {
+  public readonly kid = Math.floor(Math.random() * 9999);
   private logicalTrace: ExecutionCommand[] = [];
   private continuationStack: Continuation[] = [];
   private choiceStack: ChoicePoint[] = [];
   private finalResult: YuValue | undefined;
   private searchExhausted = false;
+
+  private catchHandlerStack: CatchHandler[] = [];
 
   constructor(
     public readonly evaluator: Evaluator,
@@ -40,7 +48,51 @@ export class YukigoKernel {
       this.finalResult = value;
       return;
     }
+    console.log(`[Kernel] Popping continuation! value: ${value}`);
     return next(value);
+  }
+
+  public pushCatchHandler(handler: CatchHandler): void {
+    console.log(`[Kernel-${this.kid}] 📥 APILANDO CatchHandler. Total actual: ${this.catchHandlerStack.length}`);
+    this.catchHandlerStack.push(handler);
+  }
+
+  public popCatchHandler(): CatchHandler | undefined {
+    console.log(`[Kernel-${this.kid}] 📤 DESAPILANDO Catch por éxito.`);
+    return this.catchHandlerStack.pop();
+  }
+
+  /**
+   * Handles RaiseCommand.
+   */
+  public handleRaise(
+    exception: YuValue | InterpreterError,
+  ): ExecutionCommand | void {
+    console.log(
+      `[Kernel-${this.kid}] 💥 RAISE RECIBIDO:`,
+      exception instanceof InterpreterError ? exception.context : "YuValue",
+    );
+    const handler = this.catchHandlerStack.pop();
+    console.log(
+      `[Kernel-${this.kid}] 🔍 Buscando handler... Encontrado:`,
+      !!handler,
+    );
+    if (!handler) {
+      // if no catch found, we have no other option than to throw the error and break the flow.
+      if (exception instanceof InterpreterError) {
+        throw this.buildSemanticError(exception);
+      } else {
+        // TODO: I think this if-else is unnecessary
+        throw this.buildSemanticError(
+          new InterpreterError("UncaughtException", String(exception)),
+        );
+      }
+    }
+
+    // TODO: Maybe we need a pointer to know until what point to clear.
+    this.continuationStack = [];
+
+    return handler(exception);
   }
 
   /**

@@ -1,6 +1,6 @@
 import { ASTNode, Pattern } from "yukigo-ast";
 import { YukigoKernel } from "./index.js";
-import { ErrorFrame } from "../../errors.js";
+import { ErrorFrame, InterpreterError } from "../../errors.js";
 import { LogicTranslator } from "../logic/LogicTranslator.js";
 import { Scope } from "../logic/LogicEngine.js";
 import { ListTerm } from "../logic/LogicTerm.js";
@@ -112,6 +112,51 @@ export class FailCommand implements ExecutionCommand {
   }
   createTraceEntry() {}
 }
+
+// error handling commands
+
+export class RaiseCommand implements ExecutionCommand {
+  readonly name = "RAISE";
+
+  constructor(public readonly exceptionObj: YuValue | InterpreterError) {}
+
+  execute(kernel: YukigoKernel): ExecutionCommand | void {
+    // Le decimos al kernel que inicie el proceso de desapilado para buscar un Catch
+    return kernel.handleRaise(this.exceptionObj);
+  }
+  
+  createTraceEntry() {}
+}
+
+/**
+ * A CatchHandler is a function that receives the raised exception (YuValue) 
+ * and decides what Command to execute next (usually the catch block body).
+ */
+export type CatchHandler = (exception: YuValue | InterpreterError) => ExecutionCommand;
+
+export class CatchCommand implements ExecutionCommand {
+  readonly name = "CATCH";
+
+  constructor(
+    public readonly handler: CatchHandler,
+    public readonly innerCommand: ExecutionCommand // El cuerpo del try
+  ) {}
+
+  execute(kernel: YukigoKernel): ExecutionCommand {
+    // 1. Registramos este manejador de errores en el Kernel
+    kernel.pushCatchHandler(this.handler);
+    
+    // 2. Ejecutamos el cuerpo del try envuelto en una limpieza
+    // Si el innerCommand termina con éxito (sin errores), necesitamos sacar el handler de la pila
+    return new BindCommand(this.innerCommand, (result) => {
+      kernel.popCatchHandler(); // Removemos el handler porque no hubo error
+      return new StepCommand(result);
+    });
+  }
+  
+  createTraceEntry() {}
+}
+
 
 // Specific commands for LogicRuntime
 
