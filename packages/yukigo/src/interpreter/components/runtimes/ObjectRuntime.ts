@@ -17,7 +17,7 @@ import {
   ExecutionCommand,
   BindCommand,
   StepCommand,
-  FailCommand,
+  RaiseCommand,
 } from "../kernel/commands.js";
 
 type OOPEntity = RuntimeClass | RuntimeObject;
@@ -68,7 +68,7 @@ export class ObjectRuntime {
       }
       if (methodName === "error") {
         const errorMsg = args[0] ? args[0].toString() : "An error occurred";
-        return new FailCommand(new InterpreterError("Raise", errorMsg));
+        return new RaiseCommand(new InterpreterError("Raise", errorMsg));
       }
       console.log("El objeto destinatario", receiver);
       return raise(
