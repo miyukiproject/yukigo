@@ -397,59 +397,53 @@ export class HasBinding extends InspectionVisitor {
     console.log("[HasBinding] INSTANTIATED for:", targetBinding);
   }
 
-  private check(node: { identifier?: SymbolPrimitive }): void {
-    if (node.identifier) {
-      console.log("[HasBinding] check:", node.identifier.value, "target:", this.targetBinding);
-      if (node.identifier.value === this.targetBinding) {
+  private check(identifier: SymbolPrimitive): void {
+    if (identifier) {
+      console.log("[HasBinding] check:", identifier.value, "target:", this.targetBinding);
+      if (identifier.value === this.targetBinding) {
         throw new StopTraversalException();
       }
     }
   }
 
   visitFunction(node: Function): void {
-    this.check(node);
+    this.check(node.identifier);
     super.visitFunction(node);
   }
   visitObject(node: Object): void {
-    this.check(node);
+    this.check(node.identifier);
     super.visitObject(node);
   }
   visitClass(node: Class): void {
-    this.check(node);
+    this.check(node.identifier);
     super.visitClass(node);
   }
   visitRule(node: Rule): void {
-    this.check(node);
+    this.check(node.identifier);
     super.visitRule(node);
   }
   visitFact(node: Fact): void {
-    this.check(node);
+    this.check(node.identifier);
     super.visitFact(node);
   }
   visitTypeAlias(node: TypeAlias): void {
-    this.check(node);
+    this.check(node.identifier);
     super.visitTypeAlias(node);
   }
-  visitTypeSignature(node: TypeSignature): void {
-    this.check(node);
-    super.visitTypeSignature(node);
-  }
   visitRecord(node: RecordNode): void {
-    if ((node as any).identifier && (node as any).identifier.value === this.targetBinding) {
-      throw new StopTraversalException();
-    }
+    this.check(node.name);
     super.visitRecord(node);
   }
   visitVariable(node: Variable): void {
-    this.check(node);
+    this.check(node.identifier);
     super.visitVariable(node);
   }
   visitMethod(node: Method): void {
-    this.check(node);
+    this.check(node.identifier);
     super.visitMethod(node);
   }
   visitProcedure(node: Procedure): void {
-    this.check(node);
+    this.check(node.identifier);
     super.visitProcedure(node);
   }
 }
