@@ -1054,11 +1054,6 @@ export class InterpreterVisitor implements Evaluator {
           try {
             return this.context.objRuntime.dispatchSuper(methodName, args);
           } catch (error: any) {
-            console.log(
-              "[VISITOR-DEBUG] Catching error:",
-              error?.constructor?.name,
-              error instanceof InterpreterError,
-            );
             if (error instanceof InterpreterError) {
               const mappedErrors = this.context.dispatchHook(
                 "onInterpreterError",
@@ -1070,7 +1065,9 @@ export class InterpreterVisitor implements Evaluator {
               );
               return new RaiseCommand((userException as any) || error);
             }
-            throw error;
+            return new RaiseCommand(
+              new InterpreterError("RuntimeError", String(error)),
+            );
           }
         }
         return new BindCommand(this.evaluate(node.args[index]), (val) => {
