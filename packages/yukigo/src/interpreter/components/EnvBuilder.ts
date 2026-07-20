@@ -383,17 +383,10 @@ export class OOPCollector extends TraverseVisitor {
 
   visitMethod(node: Method) {
     const name = node.identifier.value;
-    const existing = this.collectedMethods.get(name);
-    if (existing) {
-      existing.equations.push(...node.equations);
-    } else {
-      const runtimeMethod = new RuntimeFunction(
-        node.equations[0].patterns.length,
-        [...node.equations],
-        name,
-      );
-      this.collectedMethods.set(name, runtimeMethod);
-    }
+    const arity = node.equations[0].patterns.length;
+    const key = `${name}/${arity}`;
+    const runtimeMethod = new RuntimeFunction(arity, [...node.equations], name);
+    this.collectedMethods.set(key, runtimeMethod);
   }
 
   visitAttribute(node: Attribute) {

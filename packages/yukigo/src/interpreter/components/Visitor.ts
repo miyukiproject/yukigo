@@ -1098,11 +1098,13 @@ export class InterpreterVisitor implements Evaluator {
                 this.context,
               );
               const userException = mappedErrors.find(
-                (res: any) => res !== undefined && res !== null,
+                (res) => res !== undefined && res !== null,
               );
               return new RaiseCommand((userException as any) || error);
             }
-            throw error;
+            return new RaiseCommand(
+              new InterpreterError("RuntimeError", String(error)),
+            );
           }
         }
         return new BindCommand(this.evaluate(node.args[index]), (val) => {

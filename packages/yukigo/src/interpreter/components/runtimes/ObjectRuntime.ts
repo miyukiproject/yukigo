@@ -44,7 +44,15 @@ export class ObjectRuntime {
     }
 
     const chain = this.getResolutionChain(receiver);
-    const match = this.findMethodInChain(chain, methodName);
+
+    const arity = args.length;
+    const arityKey = `${methodName}/${arity}`;
+
+    let match = this.findMethodInChain(chain, arityKey);
+
+    if (!match) {
+      match = this.findMethodInChain(chain, methodName);
+    }
 
     if (!match) {
       if (receiver.hasField(methodName)) {
@@ -79,7 +87,7 @@ export class ObjectRuntime {
     return new BindCommand(
       this.context.funcRuntime.apply(match.method, args),
       (res) => {
-        console.log("ObjectRuntime.dispatch", res)
+        console.log("ObjectRuntime.dispatch", res);
         this.context.popEnv();
         return new StepCommand(res);
       },
@@ -93,9 +101,6 @@ export class ObjectRuntime {
     const self = this.context.lookup("self") as RuntimeObject;
     const currentHolder = this.context.lookup("__CONTEXT_CLASS__") as OOPEntity;
     const currentMethodName = this.context.lookup("__METHOD_NAME__");
-    const targetMethodName = methodName
-      ? new YuString(methodName)
-      : (currentMethodName as YuString);
 
     if (!self || !currentHolder)
       return raise(
@@ -103,7 +108,6 @@ export class ObjectRuntime {
       );
 
     const chain = this.getResolutionChain(self);
-
     const currentIndex = chain.findIndex((c) => c === currentHolder);
 
     if (currentIndex === -1)
@@ -115,19 +119,29 @@ export class ObjectRuntime {
       );
 
     const remainingChain = chain.slice(currentIndex + 1);
-    const match = this.findMethodInChain(
-      remainingChain,
-      targetMethodName.toJSON(),
-    );
+
+    const baseName = methodName || (currentMethodName as YuString).toJSON();
+    const arityKey = `${baseName}/${args.length}`;
+
+    let match = this.findMethodInChain(remainingChain, arityKey);
+
+    // Fallback: si no encuentra con aridad, buscar solo por nombre (para compatibilidad)
+    if (!match && methodName) {
+      match = this.findMethodInChain(remainingChain, methodName);
+    }
+    if (!match && !methodName) {
+      match = this.findMethodInChain(
+        remainingChain,
+        (currentMethodName as YuString).toJSON(),
+      );
+    }
 
     if (!match)
-      return raise(
-        error("Super", `Super method '${targetMethodName.toJSON()}' not found`),
-      );
+      return raise(error("Super", `Super method '${baseName}' not found`));
 
-    const objectScope = self.createDispatchScope(match, targetMethodName);
-
+    const objectScope = self.createDispatchScope(match, new YuString(baseName));
     this.context.pushEnv(objectScope);
+
     return new BindCommand(
       this.context.funcRuntime.apply(match.method, args),
       (res) => {
