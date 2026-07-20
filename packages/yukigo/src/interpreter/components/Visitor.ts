@@ -58,6 +58,7 @@ import {
   Assert,
   Test,
   TestGroup,
+  Function as ASTFunction,
   LogicConstraint,
   Object as YuObject,
   NamedArgument,
@@ -155,6 +156,10 @@ export class InterpreterVisitor implements Evaluator {
     };
 
     return evaluateNext(0, YuNil.getInstance());
+  }
+
+  visitFunction(node: ASTFunction): ExecutionCommand {
+    return new StepCommand(YuNil.getInstance());
   }
 
   visitReturn(node: Return): ExecutionCommand {

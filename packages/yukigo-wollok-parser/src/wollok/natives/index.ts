@@ -1,6 +1,7 @@
 import {
   BindCommand,
   ExecutionCommand,
+  RaiseCommand,
   StepCommand,
 } from "../../../../yukigo/dist/interpreter/components/kernel/commands.js";
 import { RuntimeContext } from "../../../../yukigo/dist/interpreter/components/RuntimeContext.js";
@@ -14,6 +15,7 @@ import {
   YuString,
 } from "../../../../yukigo/dist/interpreter/primitives/index.js";
 import { YuValue } from "../../../../yukigo/dist/interpreter/primitives/YuValue.js";
+import { error } from "../../../../yukigo/dist/interpreter/utils.js";
 import game from "./game.js";
 import lang from "./lang.js";
 import lib from "./lib.js";
@@ -152,6 +154,206 @@ export const CorePrimitiveExtensions: Record<
     };
     return loop(0, []);
   },
+  "YuArray.find": (receiver: YuArray, args, ctx) => {
+    const condition = args[0] as RuntimeFunction;
+    const loop = (idx: number): ExecutionCommand => {
+      const element = receiver.items[idx];
+      const command = ctx.funcRuntime.apply(condition, [element]);
+      return new BindCommand(command, (result) => {
+        const bool = result.asLogic;
+        if (!bool)
+          return new RaiseCommand(
+            error("YuArray.find", "condition did not return a boolean value."),
+          );
+        if (bool.value === true) return new StepCommand(element);
+
+        return loop(idx + 1);
+      });
+    };
+    return loop(0);
+  },
+  "YuArray.all": (receiver: YuArray, args, ctx) => {
+    const condition = args[0] as RuntimeFunction;
+    const loop = (idx: number): ExecutionCommand => {
+      if (idx === receiver.items.length)
+        return new StepCommand(new YuBoolean(true));
+      const element = receiver.items[idx];
+      const command = ctx.funcRuntime.apply(condition, [element]);
+      return new BindCommand(command, (result) => {
+        const bool = result.asLogic;
+        if (!bool)
+          return new RaiseCommand(
+            error("YuArray.all", "condition did not return a boolean value."),
+          );
+        if (bool.value === false) return new StepCommand(new YuBoolean(false));
+
+        return loop(idx + 1);
+      });
+    };
+    return loop(0);
+  },
+  "YuArray.any": (receiver: YuArray, args, ctx) => {
+    const condition = args[0] as RuntimeFunction;
+    const loop = (idx: number): ExecutionCommand => {
+      if (idx === receiver.items.length)
+        return new StepCommand(new YuBoolean(false));
+
+      const element = receiver.items[idx];
+      const command = ctx.funcRuntime.apply(condition, [element]);
+      return new BindCommand(command, (result) => {
+        const bool = result.asLogic;
+        if (!bool)
+          return new RaiseCommand(
+            error("YuArray.any", "condition did not return a boolean value."),
+          );
+        if (bool.value === true) return new StepCommand(new YuBoolean(true));
+
+        return loop(idx + 1);
+      });
+    };
+    return loop(0);
+  },
+  "YuArray.count": (receiver: YuArray, args, ctx) => {
+    let count = 0;
+    const condition = args[0] as RuntimeFunction;
+    const loop = (idx: number): ExecutionCommand => {
+      if (idx === receiver.items.length)
+        return new StepCommand(new YuNumber(count));
+
+      const element = receiver.items[idx];
+      const command = ctx.funcRuntime.apply(condition, [element]);
+      return new BindCommand(command, (result) => {
+        const bool = result.asLogic;
+        if (!bool)
+          return new RaiseCommand(
+            error("YuArray.any", "condition did not return a boolean value."),
+          );
+        if (bool.value === true) count++;
+
+        return loop(idx + 1);
+      });
+    };
+    return loop(0);
+  },
+  "YuArray.head": (receiver: YuArray, args, ctx) => {
+    return new StepCommand(receiver.items[0]);
+  },
+
+  "YuArray.asSet": (receiver: YuArray) => {
+    const uniqueItems: YuValue[] = [];
+    const checkUnique = (itemIdx: number): ExecutionCommand => {
+      if (itemIdx >= receiver.items.length) {
+        return new StepCommand(new YuArray(uniqueItems));
+      }
+      const item = receiver.items[itemIdx];
+      const checkContains = (uniqueIdx: number): ExecutionCommand => {
+        if (uniqueIdx >= uniqueItems.length) {
+          uniqueItems.push(item);
+          return checkUnique(itemIdx + 1);
+        }
+        return new BindCommand(uniqueItems[uniqueIdx].equals(item), (eq) => {
+          if (eq instanceof YuBoolean && eq.value) {
+            return checkUnique(itemIdx + 1);
+          }
+          return checkContains(uniqueIdx + 1);
+        });
+      };
+      return checkContains(0);
+    };
+    return checkUnique(0);
+  },
+
+  "YuArray.max": (receiver: YuArray, args, ctx) => {
+    if (receiver.items.length === 0)
+      throw new InterpreterError("YuArray.max", "Collection is empty");
+    
+    if (args.length === 1 && (args[0] instanceof RuntimeFunction || isRuntimeObject(args[0]))) {
+      const closure = args[0];
+      let currentMaxElement = receiver.items[0];
+      let currentMaxValue: number = -Infinity;
+      
+      const mapAndCompare = (idx: number): ExecutionCommand => {
+        if (idx >= receiver.items.length) return new StepCommand(currentMaxElement);
+        
+        const item = receiver.items[idx];
+        const applyCmd = isRuntimeObject(closure)
+          ? ctx.objRuntime.dispatch(closure, "apply", [item])
+          : ctx.funcRuntime.apply(closure as RuntimeFunction, [item]);
+
+        return new BindCommand(applyCmd, (res) => {
+          if (res instanceof YuNumber) {
+            if (idx === 0 || res.value > currentMaxValue) {
+              currentMaxValue = res.value;
+              currentMaxElement = item;
+            }
+            return mapAndCompare(idx + 1);
+          }
+          throw new InterpreterError("YuArray.max", "Closure must return a number");
+        });
+      };
+      return mapAndCompare(0);
+    } else if (args.length === 0) {
+      let maxItem = receiver.items[0];
+      const compareNext = (idx: number): ExecutionCommand => {
+         if (idx >= receiver.items.length) return new StepCommand(maxItem);
+         const item = receiver.items[idx];
+         return new BindCommand(item.compare(maxItem), (cmp) => {
+            if (cmp instanceof YuNumber && cmp.value > 0) {
+               maxItem = item;
+            }
+            return compareNext(idx + 1);
+         });
+      };
+      return compareNext(1);
+    }
+    throw new InterpreterError("YuArray.max", "Invalid arguments");
+  },
+
+  "YuArray.min": (receiver: YuArray, args, ctx) => {
+    if (receiver.items.length === 0)
+      throw new InterpreterError("YuArray.min", "Collection is empty");
+    
+    if (args.length === 1 && (args[0] instanceof RuntimeFunction || isRuntimeObject(args[0]))) {
+      const closure = args[0];
+      let currentMinElement = receiver.items[0];
+      let currentMinValue: number = Infinity;
+      
+      const mapAndCompare = (idx: number): ExecutionCommand => {
+        if (idx >= receiver.items.length) return new StepCommand(currentMinElement);
+        
+        const item = receiver.items[idx];
+        const applyCmd = isRuntimeObject(closure)
+          ? ctx.objRuntime.dispatch(closure, "apply", [item])
+          : ctx.funcRuntime.apply(closure as RuntimeFunction, [item]);
+
+        return new BindCommand(applyCmd, (res) => {
+          if (res instanceof YuNumber) {
+            if (idx === 0 || res.value < currentMinValue) {
+              currentMinValue = res.value;
+              currentMinElement = item;
+            }
+            return mapAndCompare(idx + 1);
+          }
+          throw new InterpreterError("YuArray.min", "Closure must return a number");
+        });
+      };
+      return mapAndCompare(0);
+    } else if (args.length === 0) {
+      let minItem = receiver.items[0];
+      const compareNext = (idx: number): ExecutionCommand => {
+         if (idx >= receiver.items.length) return new StepCommand(minItem);
+         const item = receiver.items[idx];
+         return new BindCommand(item.compare(minItem), (cmp) => {
+            if (cmp instanceof YuNumber && cmp.value < 0) {
+               minItem = item;
+            }
+            return compareNext(idx + 1);
+         });
+      };
+      return compareNext(1);
+    }
+    throw new InterpreterError("YuArray.min", "Invalid arguments");
+  },
 
   // ==================== YUNUMBER EXTENSIONS ====================
   "YuNumber.abs": (receiver: YuNumber) => {
@@ -214,6 +416,14 @@ export const CorePrimitiveExtensions: Record<
     return new StepCommand(
       new YuBoolean(receiver.value.endsWith(args[0].toString())),
     );
+  },
+
+  "YuString.toLowerCase": (receiver: YuString) => {
+    return new StepCommand(new YuString(receiver.value.toLowerCase()));
+  },
+
+  "YuString.toUpperCase": (receiver: YuString) => {
+    return new StepCommand(new YuString(receiver.value.toUpperCase()));
   },
 
   // ==================== RUNTIMEFUNCTION EXTENSIONS ====================

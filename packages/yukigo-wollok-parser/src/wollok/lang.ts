@@ -212,9 +212,9 @@ class Object {
    * String representation of Wollok object
    */
   @Type(name="String") 
-  method toString() {
-    return self.kindName()
-  }
+  // method toString() {
+  //  return self.kindName()
+  // }
 
   /**
    * Shows a short, internal representation
@@ -3162,6 +3162,7 @@ object calendar {
  * @since 1.4.5
  */
 class Date {
+  method compare(aDate) native
 
   @Type(name="Number") 
   const property day = calendar.today().day()

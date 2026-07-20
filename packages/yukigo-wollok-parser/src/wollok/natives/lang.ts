@@ -975,6 +975,34 @@ const lang: Natives = {
       return yield* this.reify(value > otherValue)
     },
 
+    *compare(self: RuntimeObject, aDate: RuntimeObject): Execution<RuntimeValue> {
+      assertIsNotNull(aDate, '(compare)', '_aDate')
+
+      console.log("aDate en compare:", aDate, aDate.constructor.name);
+      
+      let otherDay, otherMonth, otherYear;
+      if (typeof (aDate as any).get === 'function') {
+        otherDay = (aDate as any).get('day')!.innerNumber!
+        otherMonth = (aDate as any).get('month')!.innerNumber! - 1
+        otherYear = (aDate as any).get('year')!.innerNumber!
+      } else {
+        otherDay = (aDate as any).getField('day')!.value
+        otherMonth = (aDate as any).getField('month')!.value - 1
+        otherYear = (aDate as any).getField('year')!.value
+      }
+
+      const ownDay = self.get('day')!.innerNumber!
+      const ownMonth = self.get('month')!.innerNumber! - 1
+      const ownYear = self.get('year')!.innerNumber!
+
+      const value = new Date(ownYear, ownMonth, ownDay)
+      const otherValue = new Date(otherYear, otherMonth, otherDay)
+
+      if (value < otherValue) return yield* this.reify(-1);
+      if (value > otherValue) return yield* this.reify(1);
+      return yield* this.reify(0);
+    },
+
   },
 
   io: {

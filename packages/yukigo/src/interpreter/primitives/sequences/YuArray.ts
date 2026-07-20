@@ -157,13 +157,22 @@ export class YuArray extends YuValue implements Sequence, Comparable {
     return raise(new UnsupportedOperation(this, "compare"));
   }
 
-  public toJSON(): unknown {
-    return this.index === 0
-      ? this.items.map((i) => i.toJSON())
-      : this.items.slice(this.index).map((i) => i.toJSON());
+  public toJSON(keyOrSeen?: string | Set<YuValue>): unknown {
+    const seen = keyOrSeen instanceof Set ? keyOrSeen : new Set<YuValue>();
+    if (seen.has(this)) return "[Circular]";
+    seen.add(this);
+    const result = this.index === 0
+      ? this.items.map((i) => i.toJSON(seen))
+      : this.items.slice(this.index).map((i) => i.toJSON(seen));
+    seen.delete(this);
+    return result;
   }
 
-  public toString(): string {
-    return `[${[...this].map((i) => i.toString()).join(", ")}]`;
+  public toString(seen = new Set<YuValue>()): string {
+    if (seen.has(this)) return "[Circular]";
+    seen.add(this);
+    const result = `[${[...this].map((i) => i.toString(seen)).join(", ")}]`;
+    seen.delete(this);
+    return result;
   }
 }

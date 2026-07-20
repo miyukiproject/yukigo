@@ -40,8 +40,6 @@ const ARITHMETIC_BINARY_OPS: Record<string, Yu.ArithmeticBinaryOperator> = {
   "/": "Divide",
   "%": "Modulo",
   "**": "Power",
-  max: "Max",
-  min: "Min",
 };
 
 const COMPARISON_OPS: Record<string, Yu.ComparisonOperatorType> = {
@@ -397,12 +395,6 @@ export class WollokToYukigoTransformer {
   }
 
   private visitSend(node: Send): Yu.Expression {
-    if (node.message === "throwsException") {
-      console.log(
-        "Argumento para throwsException:",
-        JSON.stringify(node.args[0], null, 2),
-      );
-    }
     const receiver = this.visit(node.receiver);
     const args = (node.args || []).map((arg: any) => this.visit(arg));
     const op = node.message;
@@ -417,6 +409,15 @@ export class WollokToYukigoTransformer {
       const unaryExpr = transformUnary(op, receiver, loc);
       // note that binaryExpr and unaryExpr can be null if it transform functions cant match any operation to the selector
       if (unaryExpr) return unaryExpr;
+    }
+
+    if (receiver instanceof Yu.NilPrimitive) {
+      return new Yu.Send(
+        new Yu.SymbolPrimitive(op, loc),
+        new Yu.SymbolPrimitive("apply", loc),
+        args,
+        loc
+      );
     }
 
     const selector = new Yu.SymbolPrimitive(op, loc);
@@ -453,7 +454,17 @@ export class WollokToYukigoTransformer {
 
   private visitDescribe(node: Describe): Yu.TestGroup {
     const nameExpr = new Yu.StringPrimitive(node.name, mapLocation(node));
-    const members = node.members.map((m: any) => this.visit(m));
+    const members = node.members.map((m: any) => {
+      const visited = this.visit(m);
+      if (visited instanceof Yu.Method) {
+        return new Yu.Function(
+          visited.identifier,
+          visited.equations,
+          mapLocation(m),
+        );
+      }
+      return visited;
+    });
     const groupSeq = new Yu.Sequence(members, mapLocation(node));
     return new Yu.TestGroup(nameExpr, groupSeq, mapLocation(node));
   }

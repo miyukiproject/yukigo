@@ -245,6 +245,10 @@ export function StatementTraverser<TBase extends VisitorConstructor<TraverseBase
         visitObject(node: Object): void {
             node.identifier.accept(this);
             node.expression.accept(this);
+            node.extendsSymbol?.accept(this);
+            if (node.extendsArgs) {
+                this.traverseCollection(node.extendsArgs);
+            }
         }
         visitClass(node: Class): void {
             node.identifier.accept(this);

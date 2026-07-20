@@ -75,9 +75,15 @@ export class RuntimeObject extends YuValue {
     return objectScope;
   }
 
-  public toJSON(): unknown {
+  public toJSON(keyOrSeen?: string | Set<YuValue>): unknown {
+    const seen = keyOrSeen instanceof Set ? keyOrSeen : new Set<YuValue>();
+    if (seen.has(this)) return { identifier: this.identifier, circular: true };
+    seen.add(this);
+    
     const fieldsJSON: Record<string, unknown> = {};
-    for (const [key, val] of this.fields) fieldsJSON[key] = val.toJSON();
+    for (const [key, val] of this.fields) fieldsJSON[key] = val.toJSON(seen);
+    
+    seen.delete(this);
     return {
       identifier: this.identifier,
       className: this.className,
@@ -85,12 +91,16 @@ export class RuntimeObject extends YuValue {
     };
   }
 
-  public toString(): string {
+  public toString(seen = new Set<YuValue>()): string {
+    if (seen.has(this)) return this.identifier || this.className || "object (circular)";
+    seen.add(this);
+
     const fieldsArray: string[] = [];
     for (const [k, v] of this.fields.entries()) {
-      fieldsArray.push(`${k}=${v ? v.toString() : "nil"}`);
+      fieldsArray.push(`${k}=${v ? v.toString(seen) : "nil"}`);
     }
     const name = this.identifier || this.className || "object";
+    seen.delete(this);
     return `${name}[${fieldsArray.join(", ")}]`;
   }
 }

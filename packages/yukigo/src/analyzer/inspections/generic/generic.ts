@@ -388,33 +388,72 @@ export class UsesType extends ScopedVisitor {
     if (node.value === this.targetBinding) throw new StopTraversalException();
   }
 }
-@AutoScoped
-export class HasBinding extends ScopedVisitor {
+export class HasBinding extends InspectionVisitor {
+  private readonly targetBinding: string;
+
+  constructor(targetBinding: string) {
+    super();
+    this.targetBinding = targetBinding;
+    console.log("[HasBinding] INSTANTIATED for:", targetBinding);
+  }
+
+  private check(node: { identifier?: SymbolPrimitive }): void {
+    if (node.identifier) {
+      console.log("[HasBinding] check:", node.identifier.value, "target:", this.targetBinding);
+      if (node.identifier.value === this.targetBinding) {
+        throw new StopTraversalException();
+      }
+    }
+  }
+
   visitFunction(node: Function): void {
-    throw new StopTraversalException();
+    this.check(node);
+    super.visitFunction(node);
   }
   visitObject(node: Object): void {
-    throw new StopTraversalException();
+    this.check(node);
+    super.visitObject(node);
   }
   visitClass(node: Class): void {
-    throw new StopTraversalException();
+    this.check(node);
+    super.visitClass(node);
   }
   visitRule(node: Rule): void {
-    throw new StopTraversalException();
+    this.check(node);
+    super.visitRule(node);
   }
   visitFact(node: Fact): void {
-    throw new StopTraversalException();
+    this.check(node);
+    super.visitFact(node);
   }
   visitTypeAlias(node: TypeAlias): void {
-    throw new StopTraversalException();
+    this.check(node);
+    super.visitTypeAlias(node);
   }
   visitTypeSignature(node: TypeSignature): void {
-    throw new StopTraversalException();
+    this.check(node);
+    super.visitTypeSignature(node);
   }
   visitRecord(node: RecordNode): void {
-    throw new StopTraversalException();
+    if ((node as any).identifier && (node as any).identifier.value === this.targetBinding) {
+      throw new StopTraversalException();
+    }
+    super.visitRecord(node);
+  }
+  visitVariable(node: Variable): void {
+    this.check(node);
+    super.visitVariable(node);
+  }
+  visitMethod(node: Method): void {
+    this.check(node);
+    super.visitMethod(node);
+  }
+  visitProcedure(node: Procedure): void {
+    this.check(node);
+    super.visitProcedure(node);
   }
 }
+
 
 export class SubordinatesDeclarationsTo extends InspectionVisitor {
   constructor(

@@ -9,6 +9,7 @@ import {
   Test,
   Assert,
   ASTNode,
+  NativeBody,
 } from "yukigo-ast";
 import { InferenceEngine, PatternVisitor } from "./inference.js";
 import { CoreHM } from "./core.js";
@@ -100,17 +101,17 @@ export class FunctionRegistrarVisitor implements Visitor<void> {
       this.env.set(functionName, funcScheme);
     }
     for (const equation of node.equations) {
-      if (isUnguardedBody(equation.body)) {
+      if (Array.isArray(equation.body)) {
+        for (const guard of equation.body) {
+          guard.body.accept(this);
+        }
+      } else if (isUnguardedBody(equation.body)) {
         const statements = equation.body.sequence.statements;
         statements
           .filter((stmt) => stmt instanceof Function)
           .forEach((func) => {
             this.env.set(func.identifier.value, funcScheme);
           });
-      } else {
-        for (const guard of equation.body) {
-          guard.body.accept(this);
-        }
       }
     }
   }
@@ -292,6 +293,7 @@ export class FunctionCheckerVisitor implements Visitor<void> {
           if (sub.success === false) throw Error(sub.error);
         } else {
           // Handles GuardedBody case
+          if (!Array.isArray(equation.body)) return;
           for (const guard of equation.body) {
             // checks if condition expression in guard is a resolves to YuBoolean
             const condition = guard.condition.accept(inferenceEngine);

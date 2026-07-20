@@ -87,6 +87,10 @@ export class Object extends ASTNode {
   public expression: Expression;
   /** @hidden */
   public identifier: SymbolPrimitive;
+  /** @hidden */
+  public extendsSymbol?: SymbolPrimitive;
+  /** @hidden */
+  public extendsArgs?: Expression[];
 
   constructor(
     identifier: SymbolPrimitive,
@@ -105,6 +109,8 @@ export class Object extends ASTNode {
       type: "Object",
       identifier: this.identifier.toJSON(),
       expression: this.expression.toJSON(),
+      extendsSymbol: this.extendsSymbol ? this.extendsSymbol.toJSON() : undefined,
+      extendsArgs: this.extendsArgs ? this.extendsArgs.map(a => a.toJSON()) : undefined,
     };
   }
 }

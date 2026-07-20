@@ -185,9 +185,18 @@ providers.set(
   (rec) => new StepCommand(new YuString(String(rec.value))),
 );
 providers.set(
+  "YuArray.printString",
+  (arr) => new StepCommand(new YuString(arr.toString())),
+);
+providers.set(
   "YuNumber.equals",
   (rec, args) =>
     new StepCommand(new YuBoolean(rec.value === (args[0] as any).value)),
+);
+providers.set(
+  "YuString.contains",
+  (rec, args) =>
+    new StepCommand(new YuBoolean(rec.value.includes((args[0] as any).value))),
 );
 
 export { providers };

@@ -76,12 +76,13 @@ export class WollokNativeBridge {
    * Instancia una clase/módulo de Wollok y le setea sus campos iniciales.
    */
   public *instantiate(
-    className: string,
+    className: string | { fullyQualifiedName: string, name?: string },
     initialFields: Record<string, YuValue>,
   ): Generator<any, any, any> {
-    const shortName = className.includes(".")
-      ? className.split(".").pop()!
-      : className;
+    const classStr = typeof className === "string" ? className : (className.name || className.fullyQualifiedName);
+    const shortName = classStr.includes(".")
+      ? classStr.split(".").pop()!
+      : classStr;
 
     // 1. Caminamos la cadena hacia arriba para ubicar el Map raíz definitivo de la sesión
     let currentEnv = this.ctx.env;
@@ -106,7 +107,7 @@ export class WollokNativeBridge {
       }
     }
 
-    const instance = (classDef as any).newInstance();
+    const instance = (classDef as any).instantiate("instance_" + Math.random().toString(36).substring(7));
 
     for (const [fieldName, yuValue] of Object.entries(initialFields)) {
       instance.setField(fieldName, yuValue);
@@ -152,7 +153,7 @@ export function buildWollokNativeProviders(
           const pairs: string[] = [];
           for (const [key, variable] of self.fields.entries()) {
             // DIAGNÓSTICO: Sacamos un log temporal para ver qué forma tiene tu objeto Variable en runtime
-            console.log(`[WollokBridge-Debug] Campo '${key}':`, variable);
+            //console.log(`[WollokBridge-Debug] Campo '${key}':`, variable);
 
             let innerVal: any = variable;
 
@@ -181,12 +182,12 @@ export function buildWollokNativeProviders(
           fieldsString = `[${pairs.join(", ")}]`;
         }
 
-        const objectName = self.identifier || "Object";
+        const objectName = self.className || self.identifier || "Object";
         const fullyQualifiedString = `${objectName}${fieldsString}`;
 
-        console.log(
+/*         console.log(
           `[WollokBridge-Debug] String final para kindName: '${fullyQualifiedString}'`,
-        );
+        ); */
 
         const wollokFacade = {
           id: self.id,
@@ -195,40 +196,36 @@ export function buildWollokNativeProviders(
               ? self.innerValue
               : undefined,
           fields: self.fields,
+          get: (fieldName: string) => {
+            const raw = self.fields?.get(fieldName);
+            if (!raw) return raw;
+            const val = typeof raw.value !== "undefined" ? raw.value : raw;
+            return {
+              innerNumber: val,
+              innerString: val,
+              innerBoolean: val,
+              innerValue: val
+            };
+          },
           module: {
-            fullyQualifiedName: fullyQualifiedString,
-            name: fullyQualifiedString,
+            fullyQualifiedName: objectName,
+            name: objectName,
             is: () => true,
           },
         };
 
         // 3. Armamos el contexto simulado para el Bridge, incluyendo el reify
+        const bridge = new WollokNativeBridge(ctx);
         const bridgeContext = {
           ...methods, // Heredamos los otros métodos hermanos
-
-          reify: function* (value: any) {
-            if (value && typeof value.execute === "function") {
-              yield value;
-              return value;
-            }
-
-            let reifiedValue;
-            if (typeof value === "string") reifiedValue = new YuString(value);
-            else if (typeof value === "number")
-              reifiedValue = new YuNumber(value);
-            else if (typeof value === "boolean")
-              reifiedValue = new YuBoolean(value);
-            else reifiedValue = value;
-
-            const cmd = new StepCommand(reifiedValue);
-            yield cmd;
-            return cmd;
-          },
+          reify: bridge.reify.bind(bridge),
+          instantiate: bridge.instantiate.bind(bridge),
+          send: bridge.send.bind(bridge)
         };
 
         // 4. Vinculamos el generador nativo al bridge simulado
         const boundNativeFunction = nativeFunction.bind(bridgeContext);
-        const iterator = boundNativeFunction(wollokFacade, args, ctx);
+        const iterator = (boundNativeFunction as any)(wollokFacade, ...args);
 
         // Tu pump recursivo CPS sigue exactamente igual
         const pump = (lastResult: any): any => {

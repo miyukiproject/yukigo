@@ -17,8 +17,8 @@ import { YuBoolean } from "./scalars/YuBoolean.js";
  * Base class for all Yukigo values.
  */
 export abstract class YuValue {
-  abstract toString(): string;
-  abstract toJSON(): unknown;
+  abstract toString(seen?: Set<YuValue>): string;
+  abstract toJSON(keyOrSeen?: string | Set<YuValue>): unknown;
 
   public getType(): string {
     return this.constructor.name.replace("Yu", "");

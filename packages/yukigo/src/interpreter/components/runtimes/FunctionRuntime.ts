@@ -195,7 +195,6 @@ export class FunctionRuntime {
     evaluatorFactory: EvaluatorFactory,
   ): void {
     const ctx = new RuntimeContext();
-    console.log(`[evaluateSequence] Total statements: ${seq.statements.length}`);
     new EnvBuilderVisitor(ctx).build(seq.statements);
     const evaluator = evaluatorFactory(ctx);
 
@@ -240,7 +239,6 @@ export class FunctionRuntime {
       if (index >= seq.statements.length) return new StepCommand(lastResult);
 
       const stmt = seq.statements[index];
-      console.log(`[evaluateSequence] Evaluating statement ${index}: ${stmt.constructor.name} (stmt: ${JSON.stringify(stmt)})`);
       if (stmt.is(Function)) return evaluateNext(index + 1, lastResult);
 
       if (!stmt.is(Return))

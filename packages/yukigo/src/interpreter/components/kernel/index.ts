@@ -24,7 +24,7 @@ export class YukigoKernel {
   private finalResult: YuValue | undefined;
   private searchExhausted = false;
 
-  private catchHandlerStack: CatchHandler[] = [];
+  private catchHandlerStack: { handler: CatchHandler; continuationDepth: number }[] = [];
 
   constructor(
     public readonly evaluator: Evaluator,
@@ -48,18 +48,22 @@ export class YukigoKernel {
       this.finalResult = value;
       return;
     }
-    console.log(`[Kernel] Popping continuation! value: ${value}`);
+    //console.log(`[Kernel] Popping continuation! value: ${value}`);
     return next(value);
   }
 
   public pushCatchHandler(handler: CatchHandler): void {
-    console.log(`[Kernel-${this.kid}] 📥 APILANDO CatchHandler. Total actual: ${this.catchHandlerStack.length}`);
-    this.catchHandlerStack.push(handler);
+    // Save current continuation stack length so we know where to unwind if an error is raised inside the try block
+    this.catchHandlerStack.push({
+      handler,
+      continuationDepth: this.continuationStack.length,
+    });
   }
 
   public popCatchHandler(): CatchHandler | undefined {
-    console.log(`[Kernel-${this.kid}] 📤 DESAPILANDO Catch por éxito.`);
-    return this.catchHandlerStack.pop();
+    //console.log(`[Kernel-${this.kid}] 📤 DESAPILANDO Catch por éxito.`);
+    const entry = this.catchHandlerStack.pop();
+    return entry?.handler;
   }
 
   /**
@@ -68,16 +72,9 @@ export class YukigoKernel {
   public handleRaise(
     exception: YuValue | InterpreterError,
   ): ExecutionCommand | void {
-    console.log(
-      `[Kernel-${this.kid}] 💥 RAISE RECIBIDO:`,
-      exception instanceof InterpreterError ? exception.context : "YuValue",
-    );
-    const handler = this.catchHandlerStack.pop();
-    console.log(
-      `[Kernel-${this.kid}] 🔍 Buscando handler... Encontrado:`,
-      !!handler,
-    );
-    if (!handler) {
+    console.error("handleRaise called with:", exception);
+    const entry = this.catchHandlerStack.pop();
+    if (!entry) {
       // if no catch found, we have no other option than to throw the error and break the flow.
       if (exception instanceof InterpreterError) {
         throw this.buildSemanticError(exception);
@@ -89,10 +86,10 @@ export class YukigoKernel {
       }
     }
 
-    // TODO: Maybe we need a pointer to know until what point to clear.
-    this.continuationStack = [];
+    // Unwind continuation stack to the point where the try block was entered
+    this.continuationStack.length = entry.continuationDepth;
 
-    return handler(exception);
+    return entry.handler(exception);
   }
 
   /**

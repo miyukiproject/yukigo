@@ -106,6 +106,13 @@ export class YuString
     return c.equalsWithString(this);
   }
 
+  public contains(other: YuValue): ExecutionCommand {
+    if (other instanceof YuString) {
+      return boolean(this.value.includes(other.value));
+    }
+    return raise(new UnsupportedOperation(other, "contains"));
+  }
+
   public equalsWithNumber(left: YuNumber): ExecutionCommand {
     return new StepCommand(
       new YuBoolean(left.value.toString() === this.toJSON()),
