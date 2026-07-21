@@ -308,9 +308,6 @@ export class InterpreterVisitor implements Evaluator {
         return new StepCommand(new YuString(node.value));
       }
       const val = this.context.lookup(node.value);
-      if (val instanceof RuntimeFunction && val.arity === 0) {
-        return this.context.funcRuntime.apply(val, []);
-      }
       return new StepCommand(val);
     } catch (error) {
       return new FailCommand(
@@ -1086,11 +1083,6 @@ export class InterpreterVisitor implements Evaluator {
           try {
             return this.context.objRuntime.dispatch(receiver, methodName, args);
           } catch (error: any) {
-            console.log(
-              "[VISITOR-DEBUG] Catching error:",
-              error?.constructor?.name,
-              error instanceof InterpreterError,
-            );
             if (error instanceof InterpreterError) {
               const mappedErrors = this.context.dispatchHook(
                 "onInterpreterError",
@@ -1250,13 +1242,14 @@ export class InterpreterVisitor implements Evaluator {
       if (msg instanceof RuntimeObject) {
         const messageVal = msg.getField("message");
         const msgStr = messageVal ? messageVal.toString() : msg.toString();
-        return new FailCommand(new InterpreterError("Raise", msgStr));
+        console.log("[visitRaise] msg is an object", msg)
+        return new RaiseCommand(msg);
       }
       const msgStr = msg.toJSON();
       if (typeof msgStr !== "string") {
-        return new FailCommand(new InterpreterError("Raise", msg.toString()));
+        return new RaiseCommand(new InterpreterError("Raise", msg.toString()));
       }
-      return new FailCommand(new InterpreterError("Raise", msgStr));
+      return new RaiseCommand(new InterpreterError("Raise", msgStr));
     });
   }
 

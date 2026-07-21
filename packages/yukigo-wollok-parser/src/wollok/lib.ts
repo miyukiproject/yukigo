@@ -28,7 +28,7 @@ object console {
 /**
  * Exception to handle other values expected in assert.throwsException... methods
  */
-class OtherValueExpectedException inherits wollok.lang.Exception {}
+class OtherValueExpectedException inherits Exception {}
 
 /**
  * Exception to handle difference between current and expected values
@@ -117,6 +117,7 @@ object assert {
    */
   @Type(name="Void")
   method throwsException(@Type(name="{ () => Any }") block) {
+    console.println("pase")
     self.checkNotNull(block, "throwsException")
     var failed = false
     try {
