@@ -117,7 +117,6 @@ object assert {
    */
   @Type(name="Void")
   method throwsException(@Type(name="{ () => Any }") block) {
-    console.println("pase")
     self.checkNotNull(block, "throwsException")
     var failed = false
     try {

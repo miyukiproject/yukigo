@@ -113,12 +113,12 @@ export class Tester {
     const reports: TestReport[] = [];
 
     for (const node of nodes) {
-      if (!node.is(Test) && !node.is(TestGroup)) continue;  
+      if (!node.is(Test) && !node.is(TestGroup)) continue;
 
       const interpreter = new Interpreter(this.ast, this.config);
       const visitor = new TestExecutor(interpreter);
       node.accept(visitor);
-      
+
       if (visitor.report) reports.push(visitor.report);
     }
     return reports;

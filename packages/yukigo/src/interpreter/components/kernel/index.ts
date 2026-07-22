@@ -72,7 +72,6 @@ export class YukigoKernel {
   public handleRaise(
     exception: YuValue | InterpreterError,
   ): ExecutionCommand | void {
-    console.error("handleRaise called with:", exception);
     const entry = this.catchHandlerStack.pop();
     if (!entry) {
       // if no catch found, we have no other option than to throw the error and break the flow.

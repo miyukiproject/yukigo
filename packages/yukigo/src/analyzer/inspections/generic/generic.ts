@@ -394,12 +394,12 @@ export class HasBinding extends InspectionVisitor {
   constructor(targetBinding: string) {
     super();
     this.targetBinding = targetBinding;
-    console.log("[HasBinding] INSTANTIATED for:", targetBinding);
+    //console.log("[HasBinding] INSTANTIATED for:", targetBinding);
   }
 
   private check(identifier: SymbolPrimitive): void {
     if (identifier) {
-      console.log("[HasBinding] check:", identifier.value, "target:", this.targetBinding);
+      //console.log("[HasBinding] check:", identifier.value, "target:", this.targetBinding);
       if (identifier.value === this.targetBinding) {
         throw new StopTraversalException();
       }

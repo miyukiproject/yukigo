@@ -381,7 +381,7 @@ export class InterpreterVisitor implements Evaluator {
     if (node.operator === "Plus") {
       return new BindCommand(this.evaluate(node.left), (left) => {
         return new BindCommand(this.evaluate(node.right), (right) => {
-          if (left instanceof YuString && right instanceof YuString) {
+          if (left instanceof YuString || right instanceof YuString) {
             return new StepCommand(
               new YuString(left.toString() + right.toString()),
             );
@@ -829,10 +829,6 @@ export class InterpreterVisitor implements Evaluator {
     };
 
     // Le entregamos el CatchCommand al Kernel para que lo apile ANTES de ejecutar el cuerpo
-    console.log(
-      `[Visitor-Debug] Creando CatchCommand para nodo Try. Body:`,
-      node.body.constructor.name,
-    );
     return new CatchCommand(catchHandler, bodyCommand);
   }
 
@@ -929,10 +925,6 @@ export class InterpreterVisitor implements Evaluator {
   }
 
   visitLambda(node: Lambda): ExecutionCommand {
-    console.log(
-      "[Visitor-Debug] Evaluando nodo Lambda. Parámetros:",
-      node.parameters.length,
-    );
     const patterns = node.parameters;
     const equation: EquationRuntime = {
       patterns,
@@ -1239,12 +1231,8 @@ export class InterpreterVisitor implements Evaluator {
 
   visitRaise(node: Raise): ExecutionCommand {
     return new BindCommand(this.evaluate(node.body), (msg) => {
-      if (msg instanceof RuntimeObject) {
-        const messageVal = msg.getField("message");
-        const msgStr = messageVal ? messageVal.toString() : msg.toString();
-        console.log("[visitRaise] msg is an object", msg)
-        return new RaiseCommand(msg);
-      }
+      if (msg instanceof RuntimeObject) return new RaiseCommand(msg);
+
       const msgStr = msg.toJSON();
       if (typeof msgStr !== "string") {
         return new RaiseCommand(new InterpreterError("Raise", msg.toString()));

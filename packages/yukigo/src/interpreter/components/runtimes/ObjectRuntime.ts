@@ -10,6 +10,7 @@ import {
   YuBoolean,
   YuArray,
   YuNumber,
+  YuNil,
 } from "../../primitives/index.js";
 import { error, raise } from "../../utils.js";
 import { RuntimeContext } from "../RuntimeContext.js";
@@ -42,27 +43,23 @@ export class ObjectRuntime {
       console.log("Dispatching primitive", receiver, methodName, args);
       return this.dispatchPrimitive(receiver, methodName, args);
     }
+    console.log(`[dispatch] ${receiver} method called with: ${args}`);
+    console.log(`[dispatch] Receiver: `, receiver);
 
     const chain = this.getResolutionChain(receiver);
 
     const arity = args.length;
     const arityKey = `${methodName}/${arity}`;
-
+    console.log(`[dispatch] arityKey: `, arityKey);
     let match = this.findMethodInChain(chain, arityKey);
-
+    console.log(`[dispatch] match: `, match);
+    
     if (!match) {
       match = this.findMethodInChain(chain, methodName);
     }
+    console.log(`[dispatch] findMethodInChain.match: `, match);
 
     if (!match) {
-      if (receiver.hasField(methodName)) {
-        if (args.length === 0) {
-          return new StepCommand(receiver.getField(methodName));
-        } else if (args.length === 1) {
-          receiver.setField(methodName, args[0]);
-          return new StepCommand(receiver);
-        }
-      }
       if (methodName === "toString") {
         return new StepCommand(new YuString(receiver.toString()));
       }
@@ -246,6 +243,8 @@ export class ObjectRuntime {
     methodName: string,
     args: YuValue[],
   ): ExecutionCommand {
+    if (!receiver || receiver.isNil)
+      return new StepCommand(YuNil.getInstance());
     // Obtenemos el identificador polimórfico del tipo (ej: "YuArray", "YuNumber", "YuString", "RuntimeFunction")
     const typeKey = receiver.constructor.name;
     const lookupKey = `${typeKey}.${methodName}`;
