@@ -126,7 +126,7 @@ describe("Tester class", () => {
   });
 
   it("should report errors that are not FailedAssert", () => {
-    // test "Error" { 1 + "a" }
+    // test "Error" { 1 * "a" }
     const errorTest = new Test(
       new StringPrimitive("Error"),
       new Sequence([
@@ -134,7 +134,7 @@ describe("Tester class", () => {
           new Lambda(
             [new VariablePattern(new SymbolPrimitive("b"))],
             new ArithmeticBinaryOperation(
-              "Plus",
+              "Multiply",
               new SymbolPrimitive("b"),
               new StringPrimitive("a"),
             ),
@@ -146,7 +146,6 @@ describe("Tester class", () => {
 
     const tester = new Tester([errorTest]);
     const results = tester.test([errorTest]);
-    console.log(results)
     expect(results[0].status).to.equal("error");
     expect(results[0].message).to.contain("Type mismatch");
   });
