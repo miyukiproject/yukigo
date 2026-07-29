@@ -30,6 +30,7 @@ import { YuNil } from "../primitives/scalars/YuNil.js";
 import { YuString } from "../primitives/sequences/YuString.js";
 import { isTrue } from "../utils.js";
 import { LogicResult } from "../primitives/entities/LogicResult.js";
+import { RuntimeFunction } from "../primitives/entities/RuntimeFunction.js";
 
 export class FailedAssert extends Error {
   constructor(
@@ -62,20 +63,38 @@ class AssertionVisitor implements Visitor<ExecutionCommand> {
       actualError = new YuString((error as Error).message);
     }
 
+    if (!node.message) {
+      if (this.negated === threw) {
+        return new FailCommand(
+          new FailedAssert(
+            actualError,
+            undefined,
+            threw
+              ? `Expected code NOT to fail, but it failed with "${actualError?.value}"`
+              : `Expected code to fail, but it succeeded`,
+          ),
+        );
+      }
+      return new StepCommand(YuNil.getInstance());
+    }
+
     return new BindCommand(
       this.interpreter.evaluate(node.message),
       (expectedError) => {
-        if (!(expectedError instanceof YuString))
-          return new RaiseCommand(
-            new InterpreterError(
-              "Tester",
-              `Expected YuString as message in Failure Assertion`,
-            ),
-          );
+        const isAnyException =
+          expectedError instanceof RuntimeFunction ||
+          (expectedError && String(expectedError).includes("anyException"));
+
+        const expMsg =
+          isAnyException || expectedError instanceof YuNil || !expectedError
+            ? undefined
+            : expectedError instanceof YuString
+              ? expectedError.value
+              : expectedError.toString();
+
         const passed =
           threw &&
-          (expectedError === undefined ||
-            actualError?.value?.includes(expectedError.value));
+          (expMsg === undefined || actualError?.value?.includes(expMsg));
 
         if (this.negated === passed) {
           if (!threw) {
@@ -91,7 +110,7 @@ class AssertionVisitor implements Visitor<ExecutionCommand> {
               new FailedAssert(
                 actualError,
                 expectedError,
-                `Expected error message to contain "${expectedError}", but got "${actualError}"`,
+                `Expected error message to contain "${expMsg}", but got "${actualError?.value}"`,
               ),
             );
           }
@@ -107,7 +126,7 @@ class AssertionVisitor implements Visitor<ExecutionCommand> {
         this.interpreter.evaluate(node.expected),
         (expected) => {
           return new BindCommand(
-            EqualityComparer.compare(value, expected),
+            EqualityComparer.compare(value, expected, this.interpreter.context),
             (passed) => {
               const isPassed = isTrue(passed);
               if (this.negated === isPassed) {

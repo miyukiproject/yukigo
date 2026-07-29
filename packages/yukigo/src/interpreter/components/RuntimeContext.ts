@@ -12,6 +12,13 @@ import { UnboundVariable } from "../errors.js";
 import { YuValue } from "../primitives/YuValue.js";
 import { YukigoHook } from "./hooks/YukigoHook.js";
 
+import { RuntimeFunction } from "../primitives/index.js";
+import {
+  ExecutionCommand,
+  StepCommand,
+  BindCommand,
+} from "./kernel/commands.js";
+
 export const DefaultConfiguration: InterpreterConfig = {
   nativeProviders: new Map(),
   lazyLoading: false,
@@ -87,6 +94,19 @@ export class RuntimeContext {
 
   public setEnv(env: EnvStack) {
     this.env = env;
+  }
+
+  public forceValue(val: YuValue): ExecutionCommand {
+    if (
+      val instanceof RuntimeFunction &&
+      val.arity === 0 &&
+      (val.pendingArgs?.length ?? 0) === 0
+    ) {
+      return new BindCommand(this.funcRuntime.apply(val, []), (res) =>
+        this.forceValue(res),
+      );
+    }
+    return new StepCommand(val);
   }
   public isDefined(name: string): boolean {
     let current: EnvStack | null = this.env;

@@ -126,7 +126,7 @@ import {
 } from "../primitives/index.js";
 
 export class InterpreterVisitor implements Evaluator {
-  constructor(private context: RuntimeContext) {
+  constructor(public context: RuntimeContext) {
     this.context.evaluatorFactory = (ctx) => new InterpreterVisitor(ctx);
   }
 
@@ -379,23 +379,27 @@ export class InterpreterVisitor implements Evaluator {
     node: ArithmeticBinaryOperation,
   ): ExecutionCommand {
     if (node.operator === "Plus") {
-      return new BindCommand(this.evaluate(node.left), (left) => {
-        return new BindCommand(this.evaluate(node.right), (right) => {
-          if (left instanceof YuString || right instanceof YuString) {
-            return new StepCommand(
-              new YuString(left.toString() + right.toString()),
-            );
-          }
-          const areSameType = left.getType() === right.getType();
-          if (left.asNumeric && right.asNumeric && areSameType) {
-            return ArithmeticBinaryTable.Plus(left.asNumeric, right.asNumeric);
-          }
-          return new FailCommand(
-            new InterpreterError(
-              "ArithmeticBinaryOperation",
-              `Type mismatch: ${left.getType()}, ${right.getType()}`,
-            ),
-          );
+      return new BindCommand(this.evaluate(node.left), (rawLeft) => {
+        return new BindCommand(this.context.forceValue(rawLeft), (left) => {
+          return new BindCommand(this.evaluate(node.right), (rawRight) => {
+            return new BindCommand(this.context.forceValue(rawRight), (right) => {
+              if (left instanceof YuString || right instanceof YuString) {
+                return new StepCommand(
+                  new YuString(left.toString() + right.toString()),
+                );
+              }
+              const areSameType = left.getType() === right.getType();
+              if (left.asNumeric && right.asNumeric && areSameType) {
+                return ArithmeticBinaryTable.Plus(left.asNumeric, right.asNumeric);
+              }
+              return new FailCommand(
+                new InterpreterError(
+                  "ArithmeticBinaryOperation",
+                  `Type mismatch: ${left.getType()}, ${right.getType()}`,
+                ),
+              );
+            });
+          });
         });
       });
     }
@@ -409,66 +413,88 @@ export class InterpreterVisitor implements Evaluator {
   }
 
   visitListUnaryOperation(node: ListUnaryOperation): ExecutionCommand {
-    return new BindCommand(this.evaluate(node.operand), (operand) => {
-      if (!operand.asSequence)
-        return new FailCommand(
-          new InterpreterError(
-            "ListUnaryOperation",
-            `Expected Sequence but got ${operand.getType()}`,
-          ),
-        );
+    return new BindCommand(this.evaluate(node.operand), (rawOperand) => {
+      return new BindCommand(this.context.forceValue(rawOperand), (operand) => {
+        if (!operand.asSequence)
+          return new FailCommand(
+            new InterpreterError(
+              "ListUnaryOperation",
+              `Expected Sequence but got ${operand.getType()}`,
+            ),
+          );
 
-      return new BindCommand(
-        this.context.lazyRuntime.realizeList(operand),
-        (arr) => {
-          const seq = arr.asSequence;
-          if (!seq)
-            return new RaiseCommand(
-              new InterpreterError(
-                `[${node.operator}]`,
-                `Expected ${arr} to be a YuSequence.`,
-              ),
-            );
-          const fn = ListUnaryTable[node.operator];
-          if (!fn)
-            return new FailCommand(
-              new InterpreterError(
-                "ListUnaryOperation",
-                `Unknown operator: ${node.operator}`,
-              ),
-            );
-          return fn(seq);
-        },
-      );
+        return new BindCommand(
+          this.context.lazyRuntime.realizeList(operand),
+          (arr) => {
+            const seq = arr.asSequence;
+            if (!seq)
+              return new RaiseCommand(
+                new InterpreterError(
+                  `[${node.operator}]`,
+                  `Expected ${arr} to be a YuSequence.`,
+                ),
+              );
+            const fn = ListUnaryTable[node.operator];
+            if (!fn)
+              return new FailCommand(
+                new InterpreterError(
+                  "ListUnaryOperation",
+                  `Unknown operator: ${node.operator}`,
+                ),
+              );
+            return fn(seq);
+          },
+        );
+      });
     });
   }
 
   visitListBinaryOperation(node: ListBinaryOperation): ExecutionCommand {
     if (node.operator === "Concat") {
       const capturedCtx = this.context.clone();
-      return new BindCommand(this.evaluate(node.left), (left) => {
-        const seqL = left.asSequence as YuSequence;
-        if (!seqL)
-          return new RaiseCommand(
-            new InterpreterError(
-              "ListBinaryOperation",
-              "Invalid left operand for lazy Concat",
-            ),
-          );
+      return new BindCommand(this.evaluate(node.left), (rawLeft) => {
+        return new BindCommand(this.context.forceValue(rawLeft), (left) => {
+          const seqL = left.asSequence as YuSequence;
+          if (!seqL)
+            return new RaiseCommand(
+              new InterpreterError(
+                "ListBinaryOperation",
+                "Invalid left operand for lazy Concat",
+              ),
+            );
 
-        if (this.context.config.lazyLoading) {
-          const lazyRight = new LazyList(
-            () => {
-              if (!capturedCtx.evaluatorFactory)
-                return new RaiseCommand(
-                  new InterpreterError(
-                    "ListBinaryOperation",
-                    "EvaluatorFactory not initialized in RuntimeContext",
-                  ),
-                );
-              const subEvaluator = capturedCtx.evaluatorFactory(capturedCtx);
-              const subKernel = new YukigoKernel(subEvaluator);
-              const right = subKernel.run(new EvalCommand(node.right));
+          if (this.context.config.lazyLoading) {
+            const lazyRight = new LazyList(
+              () => {
+                if (!capturedCtx.evaluatorFactory)
+                  return new RaiseCommand(
+                    new InterpreterError(
+                      "ListBinaryOperation",
+                      "EvaluatorFactory not initialized in RuntimeContext",
+                    ),
+                  );
+                const subEvaluator = capturedCtx.evaluatorFactory(capturedCtx);
+                const subKernel = new YukigoKernel(subEvaluator);
+                const rawRight = subKernel.run(new EvalCommand(node.right));
+                const right = subKernel.run(capturedCtx.forceValue(rawRight));
+                const seqR = right.asSequence as YuSequence;
+                if (!seqR)
+                  return new RaiseCommand(
+                    new InterpreterError(
+                      "ListBinaryOperation",
+                      "Invalid right operand for lazy Concat",
+                    ),
+                  );
+                return seqR.step();
+              },
+              "LazyRight",
+              capturedCtx,
+            );
+            return this.context.lazyRuntime.evaluateConcat(seqL, lazyRight);
+          }
+
+          return new BindCommand(this.evaluate(node.right), (rawRight) => {
+            return new BindCommand(this.context.forceValue(rawRight), (right) => {
               const seqR = right.asSequence as YuSequence;
               if (!seqR)
                 return new RaiseCommand(
@@ -477,24 +503,9 @@ export class InterpreterVisitor implements Evaluator {
                     "Invalid right operand for lazy Concat",
                   ),
                 );
-              return seqR.step();
-            },
-            "LazyRight",
-            capturedCtx,
-          );
-          return this.context.lazyRuntime.evaluateConcat(seqL, lazyRight);
-        }
-
-        return new BindCommand(this.evaluate(node.right), (right) => {
-          const seqR = right.asSequence as YuSequence;
-          if (!seqR)
-            return new RaiseCommand(
-              new InterpreterError(
-                "ListBinaryOperation",
-                "Invalid right operand for lazy Concat",
-              ),
-            );
-          return seqL.concat(seqR);
+              return seqL.concat(seqR);
+            });
+          });
         });
       });
     }
@@ -508,75 +519,76 @@ export class InterpreterVisitor implements Evaluator {
   }
 
   visitComparisonOperation(node: ComparisonOperation): ExecutionCommand {
-    if (node.operator === "Equal" || node.operator === "NotEqual") {
-      return new BindCommand(
-        this.evaluate(node.left),
-        (left) =>
-          new BindCommand(
-            this.evaluate(node.right),
-            (right) =>
-              new BindCommand(EqualityComparer.compare(left, right), (eq) => {
-                const isEq = isTrue(eq);
-                return new StepCommand(
-                  new YuBoolean(node.operator === "Equal" ? isEq : !isEq),
-                );
-              }),
-          ),
-      );
-    }
+    return new BindCommand(this.evaluate(node.left), (rawLeft) => {
+      return new BindCommand(this.context.forceValue(rawLeft), (left) => {
+        return new BindCommand(this.evaluate(node.right), (rawRight) => {
+          return new BindCommand(this.context.forceValue(rawRight), (right) => {
+            if (node.operator === "Equal" || node.operator === "NotEqual") {
+              return new BindCommand(
+                EqualityComparer.compare(left, right, this.context),
+                (eq) => {
+                  const isEq = isTrue(eq);
+                  return new StepCommand(
+                    new YuBoolean(node.operator === "Equal" ? isEq : !isEq),
+                  );
+                },
+              );
+            }
 
-    return new BindCommand(this.evaluate(node.left), (left) => {
-      return new BindCommand(this.evaluate(node.right), (right) => {
-        if (left instanceof RuntimeObject) {
-          const objRuntime = this.context.objRuntime;
-          const chain = objRuntime.getResolutionChain(left);
-          const hasCompare = !!objRuntime.findMethodInChain(chain, "compare");
-          if (hasCompare) {
-            return new BindCommand(
-              this.context.objRuntime.dispatch(left, "compare", [right]),
-              (compRes) => {
-                if (compRes instanceof YuNumber) {
-                  const val = compRes.value;
-                  let isTrue = false;
-                  if (node.operator === "GreaterOrEqualThan") isTrue = val >= 0;
-                  else if (node.operator === "GreaterThan") isTrue = val > 0;
-                  else if (node.operator === "LessOrEqualThan")
-                    isTrue = val <= 0;
-                  else if (node.operator === "LessThan") isTrue = val < 0;
-                  return new StepCommand(new YuBoolean(isTrue));
-                }
-                return new RaiseCommand(
-                  new InterpreterError(
-                    "ComparisonOperation",
-                    "compare method did not return a number",
-                  ),
+            if (left instanceof RuntimeObject) {
+              const objRuntime = this.context.objRuntime;
+              const chain = objRuntime.getResolutionChain(left);
+              const hasCompare =
+                !!objRuntime.findMethodInChain(chain, "compare/1") ||
+                !!objRuntime.findMethodInChain(chain, "compare");
+              if (hasCompare) {
+                return new BindCommand(
+                  this.context.objRuntime.dispatch(left, "compare", [right]),
+                  (compRes) => {
+                    if (compRes instanceof YuNumber) {
+                      const val = compRes.value;
+                      let isTrue = false;
+                      if (node.operator === "GreaterOrEqualThan") isTrue = val >= 0;
+                      else if (node.operator === "GreaterThan") isTrue = val > 0;
+                      else if (node.operator === "LessOrEqualThan")
+                        isTrue = val <= 0;
+                      else if (node.operator === "LessThan") isTrue = val < 0;
+                      return new StepCommand(new YuBoolean(isTrue));
+                    }
+                    return new RaiseCommand(
+                      new InterpreterError(
+                        "ComparisonOperation",
+                        "compare method did not return a number",
+                      ),
+                    );
+                  },
                 );
-              },
-            );
-          }
-        }
+              }
+            }
 
-        if (!ComparisonOperationTable[node.operator]) {
-          return new FailCommand(
-            new InterpreterError(
-              "ComparisonOperation",
-              `Unknown op: ${node.operator}`,
-            ),
-          );
-        }
-        try {
-          return ComparisonOperationTable[node.operator](
-            left as any,
-            right as any,
-          );
-        } catch (error) {
-          return new FailCommand(
-            new InterpreterError(
-              "ComparisonOperation",
-              (error as Error).message,
-            ),
-          );
-        }
+            if (!ComparisonOperationTable[node.operator]) {
+              return new FailCommand(
+                new InterpreterError(
+                  "ComparisonOperation",
+                  `Unknown op: ${node.operator}`,
+                ),
+              );
+            }
+            try {
+              return ComparisonOperationTable[node.operator](
+                left as any,
+                right as any,
+              );
+            } catch (error) {
+              return new FailCommand(
+                new InterpreterError(
+                  "ComparisonOperation",
+                  (error as Error).message,
+                ),
+              );
+            }
+          });
+        });
       });
     });
   }
@@ -1264,29 +1276,33 @@ export class InterpreterVisitor implements Evaluator {
     typeGuard: (a: YuValue, b: YuValue) => boolean,
     contextName: string,
   ): ExecutionCommand {
-    return new BindCommand(this.evaluate(node.left), (left) => {
-      return new BindCommand(this.evaluate(node.right), (right) => {
-        if (!typeGuard(left, right)) {
-          return new FailCommand(
-            new InterpreterError(
-              contextName,
-              `Type mismatch: ${left.getType()}, ${right.getType()}`,
-            ),
-          );
-        }
+    return new BindCommand(this.evaluate(node.left), (rawLeft) => {
+      return new BindCommand(this.context.forceValue(rawLeft), (left) => {
+        return new BindCommand(this.evaluate(node.right), (rawRight) => {
+          return new BindCommand(this.context.forceValue(rawRight), (right) => {
+            if (!typeGuard(left, right)) {
+              return new FailCommand(
+                new InterpreterError(
+                  contextName,
+                  `Type mismatch: ${left.getType()}, ${right.getType()}`,
+                ),
+              );
+            }
 
-        const fn = table[node.operator];
-        if (!fn) {
-          return new FailCommand(
-            new InterpreterError(contextName, `Unknown op: ${node.operator}`),
-          );
-        }
+            const fn = table[node.operator];
+            if (!fn) {
+              return new FailCommand(
+                new InterpreterError(contextName, `Unknown op: ${node.operator}`),
+              );
+            }
 
-        try {
-          return fn(left as T, right as T);
-        } catch (e) {
-          return new FailCommand(e as Error);
-        }
+            try {
+              return fn(left as T, right as T);
+            } catch (e) {
+              return new FailCommand(e as Error);
+            }
+          });
+        });
       });
     });
   }
@@ -1297,26 +1313,28 @@ export class InterpreterVisitor implements Evaluator {
     typeGuard: (a: YuValue) => boolean,
     contextName: string,
   ): ExecutionCommand {
-    return new BindCommand(this.evaluate(node.operand), (operand) => {
-      if (!typeGuard(operand))
-        return new FailCommand(
-          new InterpreterError(
-            contextName,
-            `Type mismatch: ${operand.getType()}`,
-          ),
-        );
+    return new BindCommand(this.evaluate(node.operand), (rawOperand) => {
+      return new BindCommand(this.context.forceValue(rawOperand), (operand) => {
+        if (!typeGuard(operand))
+          return new FailCommand(
+            new InterpreterError(
+              contextName,
+              `Type mismatch: ${operand.getType()}`,
+            ),
+          );
 
-      const fn = table[node.operator];
-      if (!fn)
-        return new FailCommand(
-          new InterpreterError(contextName, `Unknown op: ${node.operator}`),
-        );
+        const fn = table[node.operator];
+        if (!fn)
+          return new FailCommand(
+            new InterpreterError(contextName, `Unknown op: ${node.operator}`),
+          );
 
-      try {
-        return fn(operand as T);
-      } catch (e) {
-        return new FailCommand(e as Error);
-      }
+        try {
+          return fn(operand as T);
+        } catch (e) {
+          return new FailCommand(e as Error);
+        }
+      });
     });
   }
 

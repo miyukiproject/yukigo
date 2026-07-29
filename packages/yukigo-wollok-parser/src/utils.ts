@@ -137,6 +137,40 @@ type WollokNativeFunction = (
   ctx: any,
 ) => Generator<any, any, any>;
 
+function toWollokFacade(arg: any): any {
+  if (!arg || typeof arg !== "object") return arg;
+  const innerVal = typeof arg.value !== "undefined" ? arg.value : arg;
+  const objectName = arg.className || arg.identifier || "Object";
+  return {
+    id: arg.id,
+    innerNumber: typeof innerVal === "number" ? innerVal : arg.innerNumber,
+    innerString: typeof innerVal === "string" ? innerVal : arg.innerString,
+    innerBoolean: typeof innerVal === "boolean" ? innerVal : arg.innerBoolean,
+    innerValue: innerVal,
+    fields: arg.fields,
+    get: (fieldName: string) => {
+      const raw = arg.fields?.get(fieldName);
+      if (!raw) return raw;
+      const val = typeof raw.value !== "undefined" ? raw.value : raw;
+      return {
+        innerNumber: typeof val === "number" ? val : (val?.innerNumber),
+        innerString: typeof val === "string" ? val : (val?.innerString),
+        innerBoolean: typeof val === "boolean" ? val : (val?.innerBoolean),
+        innerValue: val
+      };
+    },
+    getField: (fieldName: string) => {
+      if (typeof arg.getField === "function") return arg.getField(fieldName);
+      return arg.fields?.get(fieldName);
+    },
+    module: {
+      fullyQualifiedName: objectName,
+      name: objectName,
+      is: () => true,
+    },
+  };
+}
+
 export function buildWollokNativeProviders(
   specs: Record<string, Record<string, WollokNativeFunction>>,
 ): Map<string, any> {
@@ -189,30 +223,8 @@ export function buildWollokNativeProviders(
           `[WollokBridge-Debug] String final para kindName: '${fullyQualifiedString}'`,
         ); */
 
-        const wollokFacade = {
-          id: self.id,
-          innerValue:
-            typeof self.innerValue !== "undefined"
-              ? self.innerValue
-              : undefined,
-          fields: self.fields,
-          get: (fieldName: string) => {
-            const raw = self.fields?.get(fieldName);
-            if (!raw) return raw;
-            const val = typeof raw.value !== "undefined" ? raw.value : raw;
-            return {
-              innerNumber: val,
-              innerString: val,
-              innerBoolean: val,
-              innerValue: val
-            };
-          },
-          module: {
-            fullyQualifiedName: objectName,
-            name: objectName,
-            is: () => true,
-          },
-        };
+        const wollokFacade = toWollokFacade(self);
+        const wrappedArgs = args.map((a) => toWollokFacade(a));
 
         // 3. Armamos el contexto simulado para el Bridge, incluyendo el reify
         const bridge = new WollokNativeBridge(ctx);
@@ -225,7 +237,7 @@ export function buildWollokNativeProviders(
 
         // 4. Vinculamos el generador nativo al bridge simulado
         const boundNativeFunction = nativeFunction.bind(bridgeContext);
-        const iterator = (boundNativeFunction as any)(wollokFacade, ...args);
+        const iterator = (boundNativeFunction as any)(wollokFacade, ...wrappedArgs);
 
         // Tu pump recursivo CPS sigue exactamente igual
         const pump = (lastResult: any): any => {

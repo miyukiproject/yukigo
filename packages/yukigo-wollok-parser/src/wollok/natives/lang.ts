@@ -978,8 +978,6 @@ const lang: Natives = {
     *compare(self: RuntimeObject, aDate: RuntimeObject): Execution<RuntimeValue> {
       assertIsNotNull(aDate, '(compare)', '_aDate')
 
-      console.log("aDate en compare:", aDate, aDate.constructor.name);
-      
       let otherDay, otherMonth, otherYear;
       if (typeof (aDate as any).get === 'function') {
         otherDay = (aDate as any).get('day')!.innerNumber!

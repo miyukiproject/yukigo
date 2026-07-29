@@ -40,24 +40,18 @@ export class ObjectRuntime {
     args: YuValue[],
   ): ExecutionCommand {
     if (!isRuntimeObject(receiver)) {
-      console.log("Dispatching primitive", receiver, methodName, args);
       return this.dispatchPrimitive(receiver, methodName, args);
     }
-    console.log(`[dispatch] ${receiver} method called with: ${args}`);
-    console.log(`[dispatch] Receiver: `, receiver);
 
     const chain = this.getResolutionChain(receiver);
 
     const arity = args.length;
     const arityKey = `${methodName}/${arity}`;
-    console.log(`[dispatch] arityKey: `, arityKey);
     let match = this.findMethodInChain(chain, arityKey);
-    console.log(`[dispatch] match: `, match);
     
     if (!match) {
       match = this.findMethodInChain(chain, methodName);
     }
-    console.log(`[dispatch] findMethodInChain.match: `, match);
 
     if (!match) {
       if (methodName === "toString") {
@@ -67,7 +61,6 @@ export class ObjectRuntime {
         const errorMsg = args[0] ? args[0].toString() : "An error occurred";
         return new RaiseCommand(new InterpreterError("Raise", errorMsg));
       }
-      console.log("El objeto destinatario", receiver);
       return raise(
         error(
           "MethodDispatch",

@@ -1,4 +1,13 @@
-import { AST, Expression, YukigoParser } from "yukigo-ast";
+import {
+  AST,
+  Expression,
+  Function,
+  StringPrimitive,
+  Test,
+  TestGroup,
+  UnguardedBody,
+  YukigoParser,
+} from "yukigo-ast";
 import { parse } from "wollok-ts";
 import { WollokToYukigoTransformer } from "./transformer.js";
 import { lib } from "./wollok/lib.js";
@@ -13,7 +22,8 @@ import {
   YuString,
 } from "../../yukigo/dist/interpreter/primitives/index.js";
 import { StepCommand } from "../../yukigo/dist/interpreter/components/kernel/commands.js";
-import { inspect } from "util";
+import { Interpreter } from "yukigo";
+import { YukigoHook } from "../../yukigo/dist/interpreter/components/hooks/YukigoHook.js";
 
 class UnexpectedToken extends Error {
   constructor(line: number, column: number, expectation: string) {
@@ -199,4 +209,20 @@ providers.set(
     new StepCommand(new YuBoolean(rec.value.includes((args[0] as any).value))),
 );
 
-export { providers };
+function createWollokTestConfig(ast: AST): YukigoHook {
+  const testGroup = ast.find((node) => node instanceof TestGroup);
+  const initializeNode = (testGroup?.group.statements.find(
+    (stmt) =>
+      stmt instanceof Function && stmt.identifier.value === "initialize",
+  ) as Function)?.equations?.[0].body as UnguardedBody;
+
+  return {
+    beforeEachTest: (interpreter: Interpreter, testNode: Test) => {
+      if (initializeNode) {
+        interpreter.evaluate(initializeNode.sequence);
+      }
+    },
+  };
+}
+
+export { providers, createWollokTestConfig };
