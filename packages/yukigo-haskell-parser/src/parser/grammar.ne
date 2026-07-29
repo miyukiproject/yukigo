@@ -88,8 +88,7 @@ declaration -> (function_declaration
                 | typeclass_declaration
                 | instance_declaration
                 | apply_operator
-                | test_declaration
-                | "let" function_declaration) {% (d) => d[0][0] === "let" ? d[0][1] : d[0][0] %}
+                | test_declaration) {% (d) => d[0][0] %}
 
 expression -> 
   (type_cast
@@ -105,7 +104,7 @@ test_declaration ->
     | "describe" expression "$" "do" %lbracket test_body %rbracket {% (d) => new TestGroup(d[1], new Sequence(d[5])) %}
     | "it" expression "do" %lbracket test_body %rbracket {% (d) => new Test(d[1], new Sequence(d[4])) %}
     | "it" expression "$" "do" %lbracket test_body %rbracket {% (d) => new Test(d[1], new Sequence(d[5])) %}
-    | "let" function_declaration {% (d) => d[1] %}
+    | "let" %lbracket function_declaration %rbracket {% (d) => d[2] %}
     | assertion {% id %}
 
 test_body -> 
