@@ -1,6 +1,7 @@
 @{% 
 const { 
     NumberPrimitive, 
+    BooleanPrimitive,
     StringPrimitive, 
     Rule, 
     Fact, 
@@ -97,7 +98,7 @@ exist ->
     | variable {% (d) => new Exist(d[0], []) %}
     
 assertion -> "assertion" %lparen _ expression _ %rparen {% (d) => 
-    new Assert(null, new Truth(asSequence(d[3]))) 
+    new Assert(new BooleanPrimitive(false), new Truth(asSequence(d[3]))) 
 %}
 
 assignment -> 
