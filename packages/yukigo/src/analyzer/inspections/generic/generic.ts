@@ -17,6 +17,7 @@ import {
   LogicalBinaryOperation,
   LogicalUnaryOperation,
   Method,
+  NativeBody,
   Object,
   ParameterizedType,
   Print,
@@ -260,6 +261,7 @@ export class HasDirectRecursion extends InspectionVisitor {
   override visitEquation(node: Equation): void {
     this.isInsideBody = true;
     try {
+      if(node.body instanceof NativeBody) return
       if (isUnguardedBody(node.body)) {
         node.body.accept(this);
       } else {
@@ -386,33 +388,62 @@ export class UsesType extends ScopedVisitor {
     if (node.value === this.targetBinding) throw new StopTraversalException();
   }
 }
-@AutoScoped
-export class HasBinding extends ScopedVisitor {
+export class HasBinding extends InspectionVisitor {
+  private readonly targetBinding: string;
+
+  constructor(targetBinding: string) {
+    super();
+    this.targetBinding = targetBinding;
+  }
+
+  private check(identifier: SymbolPrimitive): void {
+      if (identifier && identifier.value === this.targetBinding) {
+        throw new StopTraversalException();
+      }
+  }
+
   visitFunction(node: Function): void {
-    throw new StopTraversalException();
+    this.check(node.identifier);
+    super.visitFunction(node);
   }
   visitObject(node: Object): void {
-    throw new StopTraversalException();
+    this.check(node.identifier);
+    super.visitObject(node);
   }
   visitClass(node: Class): void {
-    throw new StopTraversalException();
+    this.check(node.identifier);
+    super.visitClass(node);
   }
   visitRule(node: Rule): void {
-    throw new StopTraversalException();
+    this.check(node.identifier);
+    super.visitRule(node);
   }
   visitFact(node: Fact): void {
-    throw new StopTraversalException();
+    this.check(node.identifier);
+    super.visitFact(node);
   }
   visitTypeAlias(node: TypeAlias): void {
-    throw new StopTraversalException();
-  }
-  visitTypeSignature(node: TypeSignature): void {
-    throw new StopTraversalException();
+    this.check(node.identifier);
+    super.visitTypeAlias(node);
   }
   visitRecord(node: RecordNode): void {
-    throw new StopTraversalException();
+    this.check(node.name);
+    super.visitRecord(node);
+  }
+  visitVariable(node: Variable): void {
+    this.check(node.identifier);
+    super.visitVariable(node);
+  }
+  visitMethod(node: Method): void {
+    this.check(node.identifier);
+    super.visitMethod(node);
+  }
+  visitProcedure(node: Procedure): void {
+    this.check(node.identifier);
+    super.visitProcedure(node);
   }
 }
+
 
 export class SubordinatesDeclarationsTo extends InspectionVisitor {
   constructor(

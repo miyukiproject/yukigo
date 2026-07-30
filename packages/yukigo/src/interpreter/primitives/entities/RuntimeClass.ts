@@ -1,11 +1,13 @@
-import { ExecutionCommand, StepCommand } from "../../components/kernel/commands.js";
+import {
+  ExecutionCommand,
+  StepCommand,
+} from "../../components/kernel/commands.js";
 import { InterpreterError } from "../../errors.js";
-import { boolean } from "../../utils.js";
+import { boolean, error, raise } from "../../utils.js";
 import { YuBoolean } from "../index.js";
 import { YuValue } from "../YuValue.js";
 import { RuntimeFunction } from "./RuntimeFunction.js";
 import { RuntimeObject } from "./RuntimeObject.js";
-
 
 export class RuntimeClass extends YuValue {
   constructor(
@@ -14,11 +16,18 @@ export class RuntimeClass extends YuValue {
     public methods: Map<string, RuntimeFunction>,
     public mixins: string[],
     public superclass?: string,
+    public fieldInitializers?: Map<string, any>,
     private isAbstract: boolean = false,
-  ) { super(); }
+  ) {
+    super();
+  }
 
-  public equals(other: YuValue): ExecutionCommand { return boolean(other === this); }
-  public compare(other: YuValue): ExecutionCommand { throw new Error("Classes are not comparable"); }
+  public equals(other: YuValue): ExecutionCommand {
+    return boolean(other === this);
+  }
+  public compare(other: YuValue): ExecutionCommand {
+    return raise(error("RuntimeClass.compare", "Classes are not comparable"));
+  }
 
   public getHierarchy(): string[] {
     const hierarchy = [...this.mixins.reverse()];
@@ -59,4 +68,3 @@ export class RuntimeClass extends YuValue {
 export function isRuntimeClass(val: YuValue): val is RuntimeClass {
   return val instanceof RuntimeClass;
 }
-

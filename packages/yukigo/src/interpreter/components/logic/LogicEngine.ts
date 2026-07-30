@@ -29,7 +29,7 @@ import {
   BacktrackCommand,
 } from "../kernel/commands.js";
 import { VariableTerm, CompoundTerm, ConstantTerm } from "./LogicTerm.js";
-import { Evaluator } from "../../utils.js";
+import { error, Evaluator, raise } from "../../utils.js";
 import { YuValue } from "../../primitives/YuValue.js";
 import {
   Substitution,
@@ -72,6 +72,12 @@ export class LogicEngine {
     evaluator: Evaluator,
     private context: RuntimeContext,
   ) {
+    if (!this.context.logicState) {
+      this.context.logicState = {
+        variableCounter: 0,
+        idToName: new Map<number, string>(),
+      };
+    }
     this.translator = new LogicTranslator(evaluator, this.context);
     this.dispatch = this.buildDispatch();
   }
@@ -87,12 +93,8 @@ export class LogicEngine {
         (termsRes: YuValue) => {
           const terms = termsRes.asSequence;
           if (!terms || !(terms instanceof YuArray))
-            throw new Error("Expected array of terms");
-          return this.runKernel(
-            node,
-            terms.items as LogicTerm[],
-            substs,
-          );
+            return raise(error("LogicEngine", "Expected array of terms"));
+          return this.runKernel(node, terms.items as LogicTerm[], substs);
         },
       );
 
@@ -149,10 +151,7 @@ export class LogicEngine {
         Exist,
         (node, substs, scope) => goalKernel(node as Exist, substs, scope),
       ],
-      [
-        If,
-        (node, substs, scope) => this.solveIf(node as If, substs, scope),
-      ],
+      [If, (node, substs, scope) => this.solveIf(node as If, substs, scope)],
       [
         Call,
         (node, substs, scope) => {
@@ -160,11 +159,14 @@ export class LogicEngine {
           return new BindCommand(
             this.translator.expressionToTerm(callNode.callee, scope),
             (calleeTermVal) => {
-              const calleeTerm = (calleeTermVal as LogicTerm).instantiate(substs).resolve(substs);
+              const calleeTerm = (calleeTermVal as LogicTerm)
+                .instantiate(substs)
+                .resolve(substs);
               return new BindCommand(
                 this.resolveArgSequentially(callNode.args, substs, scope),
                 (argsRes) => {
-                  const resolvedArgs = (argsRes as YuArray).items as LogicTerm[];
+                  const resolvedArgs = (argsRes as YuArray)
+                    .items as LogicTerm[];
                   let targetPredicate: string;
                   let targetArgs: LogicTerm[];
 
@@ -193,11 +195,11 @@ export class LogicEngine {
                     substs,
                     this.translator,
                   );
-                }
+                },
               );
-            }
+            },
           );
-        }
+        },
       ],
     ]);
   }
@@ -396,7 +398,7 @@ export class LogicEngine {
       const isTrue =
         (result instanceof YuBoolean && result.value) ||
         (result instanceof LogicResult && result.success) ||
-        (result instanceof YuNil);
+        result instanceof YuNil;
       if (!isTrue) return new BacktrackCommand();
 
       return new StepCommand(new LogicResult([new LogicAnswer(true, substs)]));

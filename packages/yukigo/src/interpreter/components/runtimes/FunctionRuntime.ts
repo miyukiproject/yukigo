@@ -1,7 +1,20 @@
-import { Sequence, Return, Function, isUnguardedBody } from "yukigo-ast";
+import {
+  Sequence,
+  Return,
+  Function,
+  isUnguardedBody,
+  NativeBody,
+} from "yukigo-ast";
 import { Bindings } from "../../index.js";
 import { PatternMatcher } from "../PatternMatcher.js";
-import { boolean, Evaluator, PrimitiveThunk, isTrue } from "../../utils.js";
+import {
+  boolean,
+  Evaluator,
+  PrimitiveThunk,
+  isTrue,
+  raise,
+  error,
+} from "../../utils.js";
 import { InterpreterError } from "../../errors.js";
 import { EnvBuilderVisitor } from "../EnvBuilder.js";
 import { RuntimeContext } from "../RuntimeContext.js";
@@ -13,7 +26,14 @@ import {
   FailCommand,
 } from "../kernel/commands.js";
 import { YuValue } from "../../primitives/YuValue.js";
-import { RuntimeFunction, YuBoolean, isRuntimeFunction, EquationRuntime, YuNil } from "../../primitives/index.js";
+import {
+  RuntimeFunction,
+  YuBoolean,
+  isRuntimeFunction,
+  EquationRuntime,
+  YuNil,
+  RuntimeClass,
+} from "../../primitives/index.js";
 
 class NonExhaustivePatterns extends InterpreterError {
   constructor(funcName: string) {
@@ -26,10 +46,7 @@ type EvaluatorFactory = (ctx: RuntimeContext) => Evaluator;
 export class FunctionRuntime {
   constructor(private context: RuntimeContext) {}
 
-  public apply(
-    func: RuntimeFunction,
-    args: YuValue[],
-  ): ExecutionCommand {
+  public apply(func: RuntimeFunction, args: YuValue[]): ExecutionCommand {
     const funcName = func.identifier;
     const equations = func.equations;
     const oldEnv = this.context.env;
@@ -37,7 +54,7 @@ export class FunctionRuntime {
     const tryNextEquation = (eqIndex: number): ExecutionCommand => {
       if (eqIndex >= equations.length) {
         this.context.setEnv(oldEnv);
-        throw new NonExhaustivePatterns(func.name);
+        return raise(new NonExhaustivePatterns(func.name));
       }
 
       const eq = equations[eqIndex];
@@ -52,7 +69,8 @@ export class FunctionRuntime {
           if (!isTrue(matchRes)) return tryNextEquation(eqIndex + 1);
 
           const localEnv = new Map<string, YuValue>(bindings);
-          if (func.closure) this.context.setEnv(this.context.cloneEnv(func.closure));
+          if (func.closure)
+            this.context.setEnv(this.context.cloneEnv(func.closure));
           this.context.pushEnv(localEnv);
 
           const evaluatorFactory: EvaluatorFactory = (ctx) =>
@@ -76,7 +94,28 @@ export class FunctionRuntime {
               ),
               nextWithEnvRestore,
             );
+          if (body instanceof NativeBody) {
+            const currentHolder = this.context.lookup(
+              "__CONTEXT_CLASS__",
+            ) as RuntimeClass;
+            const holderName = currentHolder.identifier;
+            const lookupKey = `${holderName}.${funcName}`;
 
+            const nativeImpl =
+              this.context.config.nativeProviders.get(lookupKey);
+
+            if (nativeImpl) {
+              const capturedContext = this.context.clone();
+              // Es responsabilidad del proveedor externo devolver un ExecutionCommand válido de Yukigo
+              return new BindCommand(
+                nativeImpl(this.context.lookup("self"), args, capturedContext),
+                nextWithEnvRestore,
+              );
+            }
+
+            const voidObj = this.context.lookup("void");
+            return nextWithEnvRestore(voidObj ?? YuNil.getInstance());
+          }
           // GuardedBody
           if (Array.isArray(body) && body.length > 0) {
             const prototypeBody = body[0].body;
@@ -208,7 +247,7 @@ export class FunctionRuntime {
         });
 
       if (!stmt.body)
-        throw new Error("[FunctionRuntime]: Return \`body\` was undefined");
+        return raise(error("FunctionRuntime", "Return \`body\` was undefined"));
       return evaluator.evaluate(stmt.body);
     };
 

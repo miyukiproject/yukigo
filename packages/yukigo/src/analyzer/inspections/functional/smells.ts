@@ -11,6 +11,7 @@ import {
   isUnguardedBody,
   Otherwise,
   GuardedBody,
+  NativeBody,
 } from "yukigo-ast";
 import { AutoScoped, ScopedVisitor, VisitorConstructor } from "../../utils.js";
 import { Uses } from "../generic/generic.js";
@@ -39,6 +40,7 @@ export class HasRedundantLambda extends ScopedVisitor {
 @AutoScoped
 export class HasRedundantGuards extends ScopedVisitor {
   visitEquation(node: Equation): void {
+    if (node.body instanceof NativeBody) return;
     if (isUnguardedBody(node.body)) return;
     // If there is only 1 guard...
     if (node.body.length === 1) {

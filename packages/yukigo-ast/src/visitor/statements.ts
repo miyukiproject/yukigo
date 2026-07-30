@@ -5,6 +5,7 @@ import {
     Field,
     UnguardedBody,
     GuardedBody,
+    NativeBody,
     Equation,
     Switch,
     Case,
@@ -61,6 +62,7 @@ export interface StatementVisitor<TReturn> {
     visitRecord(node: Record): TReturn;
     visitUnguardedBody(node: UnguardedBody): TReturn;
     visitGuardedBody(node: GuardedBody): TReturn;
+    visitNativeBody(node: NativeBody): TReturn;
     visitEquation(node: Equation): TReturn;
     visitSwitch(node: Switch): TReturn;
     visitCase(node: Case): TReturn;
@@ -134,6 +136,7 @@ export function StatementTraverser<TBase extends VisitorConstructor<TraverseBase
             node.condition.accept(this);
             node.body.accept(this);
         }
+        visitNativeBody(node: NativeBody): void {}
         visitEquation(node: Equation): void {
             if (Array.isArray(node.body)) {
                 this.traverseCollection(node.body);
@@ -242,6 +245,10 @@ export function StatementTraverser<TBase extends VisitorConstructor<TraverseBase
         visitObject(node: Object): void {
             node.identifier.accept(this);
             node.expression.accept(this);
+            node.extendsSymbol?.accept(this);
+            if (node.extendsArgs) {
+                this.traverseCollection(node.extendsArgs);
+            }
         }
         visitClass(node: Class): void {
             node.identifier.accept(this);

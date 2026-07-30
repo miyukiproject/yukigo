@@ -303,8 +303,8 @@ describe("Operations Tables", () => {
         it("should throw if array contains non-numbers", () => {
           const badInput = array([number(10), string("hello"), number(20)]);
 
-          expect(() => runCmd(ops.DetectMax(badInput))).to.throw(/requires numbers/);
-          expect(() => runCmd(ops.DetectMin(badInput))).to.throw(/requires numbers/);
+          expect(() => runCmd(ops.DetectMax(badInput))).to.throw(/\[DetectMax\] elements must be numbers/);
+          expect(() => runCmd(ops.DetectMin(badInput))).to.throw(/\[DetectMin\] elements must be numbers/);
         });
       });
     });

@@ -27,7 +27,11 @@ import {
   Throw,
   Try,
   Variable,
+  Test,
+  Describe,
+  Program,
 } from "wollok-ts";
+import { inspect } from "util";
 
 const ARITHMETIC_BINARY_OPS: Record<string, Yu.ArithmeticBinaryOperator> = {
   "+": "Plus",
@@ -36,8 +40,6 @@ const ARITHMETIC_BINARY_OPS: Record<string, Yu.ArithmeticBinaryOperator> = {
   "/": "Divide",
   "%": "Modulo",
   "**": "Power",
-  max: "Max",
-  min: "Min",
 };
 
 const COMPARISON_OPS: Record<string, Yu.ComparisonOperatorType> = {
@@ -78,6 +80,8 @@ function mapLocation(wollokNode: Node): Yu.SourceLocation | undefined {
   return undefined;
 }
 
+let anonymousIdCounter = 0;
+
 export class WollokToYukigoTransformer {
   public transform(root: Package): Yu.AST {
     const result = this.visit(root);
@@ -98,6 +102,12 @@ export class WollokToYukigoTransformer {
       case "Mixin":
       case "Class":
         return this.visitClass(node as Class | Mixin);
+      case "Program":
+        return this.visitProgram(node as Program);
+      case "Describe":
+        return this.visitDescribe(node as Describe);
+      case "Test":
+        return this.visitTest(node as Test);
       case "Method":
         return this.visitMethod(node as Method);
       case "Body":
@@ -227,8 +237,8 @@ export class WollokToYukigoTransformer {
 
   private visitTry(node: Try): Yu.Try {
     const body = this.visit(node.body);
-
-    const catchExprs: Yu.Catch[] = (node.catches || []).map((c: any) =>
+    const rawCatches = node.catches;
+    const catchExprs: Yu.Catch[] = rawCatches.map((c: any) =>
       this.visitCatch(c),
     );
 
@@ -260,16 +270,56 @@ export class WollokToYukigoTransformer {
     );
   }
 
-  private visitSingleton(node: Singleton): Yu.Object {
-    const name = node.name;
-    if (!name)
-      throw new Error("Parser: In Singleton, name cannot be undefined");
-    const identifier = new Yu.SymbolPrimitive(node.name, mapLocation(node));
+  private visitSingleton(node: Singleton): Yu.Object | Yu.Lambda {
+    // 1. Detectamos la clausura mirando los supertipos (¡Match exacto con tu JSON!)
+    const isClosure = node.supertypes?.some(
+      (t: any) => t.reference?.name === "wollok.lang.Closure",
+    );
+
+    if (isClosure) {
+      // 2. Buscamos el método <apply> (¡Match exacto con tu JSON!)
+      const applyMethod = node.members.find(
+        (m: any) => m.name === "apply" || m.name === "<apply>",
+      ) as Method;
+
+      if (applyMethod && applyMethod.body && applyMethod.body !== "native") {
+        const params = (applyMethod.parameters || []).map((p: any) =>
+          this.visit(p),
+        );
+        // Transformamos el cuerpo del <apply> en la secuencia ejecutable del Lambda
+        const bodyExpr = this.visit(applyMethod.body);
+        return new Yu.Lambda(params, bodyExpr, mapLocation(node));
+      }
+    }
+
+    // 3. Fallback: Si no es Closure, armamos el objeto anónimo normal
+    const name = node.name || `anonymous_object_${anonymousIdCounter++}`;
+    const identifier = new Yu.SymbolPrimitive(name, mapLocation(node));
 
     const members = node.members.map((m: Node) => this.visit(m));
     const bodyExpression = new Yu.Sequence(members, mapLocation(node));
 
-    return new Yu.Object(identifier, bodyExpression, mapLocation(node));
+    const obj = new Yu.Object(identifier, bodyExpression, mapLocation(node));
+    const supertype = node.supertypes && node.supertypes[0];
+
+    if (supertype && !isClosure) {
+      const superclass = new Yu.SymbolPrimitive(
+        supertype.reference.name,
+        mapLocation(supertype),
+      );
+      (obj as any).extendsSymbol = superclass;
+      (obj as any).extendsArgs = (supertype.args || []).map((arg: any) =>
+        this.visit(arg),
+      );
+    } else {
+      (obj as any).extendsSymbol = new Yu.SymbolPrimitive(
+        "Object",
+        mapLocation(node),
+      );
+      (obj as any).extendsArgs = [];
+    }
+
+    return obj;
   }
 
   private visitClass(node: Class | Mixin): Yu.Class {
@@ -297,30 +347,37 @@ export class WollokToYukigoTransformer {
 
   private visitMethod(node: Method): Yu.Method {
     const identifier = new Yu.SymbolPrimitive(node.name, mapLocation(node));
-    const body = node.body;
     const patterns: Yu.Pattern[] = (node.parameters || []).map((param) =>
       this.visit(param),
     );
 
-    if (node.body === "native")
-      throw Error("Native methods not supported yet.");
-    if (!body) throw new Error("Parser: In Method, body cannot be undefined.");
-    if (body === "native")
-      throw new Error(
-        "Parser: In Method, native bodies are not supported yet.",
-      );
-    const bodySequence = this.visit(body);
-    const unguardedBody = new Yu.UnguardedBody(bodySequence, mapLocation(body));
+    const methodBody: Yu.UnguardedBody | Yu.NativeBody = this.getBody(node);
 
     const equation = new Yu.Equation(
       patterns,
-      unguardedBody,
+      methodBody,
       undefined,
       mapLocation(node),
     );
 
     return new Yu.Method(identifier, [equation], mapLocation(node));
   }
+  private getBody(node: Method) {
+    const body = node.body;
+
+    // Abstract methods have no body
+    if (!body)
+      return new Yu.UnguardedBody(
+        new Yu.Sequence([], mapLocation(node)),
+        mapLocation(node),
+      );
+
+    if (body === "native") return new Yu.NativeBody(mapLocation(node));
+
+    const bodySequence = this.visit(body);
+    return new Yu.UnguardedBody(bodySequence, mapLocation(body));
+  }
+
   private visitParameter(node: Parameter): Yu.VariablePattern {
     const nameSymbol = new Yu.SymbolPrimitive(node.name, mapLocation(node));
     return new Yu.VariablePattern(nameSymbol, mapLocation(node));
@@ -355,6 +412,15 @@ export class WollokToYukigoTransformer {
       if (unaryExpr) return unaryExpr;
     }
 
+    if (receiver instanceof Yu.NilPrimitive) {
+      return new Yu.Send(
+        new Yu.SymbolPrimitive(op, loc),
+        new Yu.SymbolPrimitive("apply", loc),
+        args,
+        loc,
+      );
+    }
+
     const selector = new Yu.SymbolPrimitive(op, loc);
     return new Yu.Send(receiver, selector, args, loc);
   }
@@ -382,10 +448,37 @@ export class WollokToYukigoTransformer {
 
     return new Yu.StringPrimitive(String(val), loc);
   }
+
+  private visitProgram(node: Program): Yu.Sequence {
+    return this.visit(node.body);
+  }
+
+  private visitDescribe(node: Describe): Yu.TestGroup {
+    const nameExpr = new Yu.StringPrimitive(node.name, mapLocation(node));
+    const members = node.members.map((m: any) => {
+      const visited = this.visit(m);
+      if (visited instanceof Yu.Method) {
+        return new Yu.Function(
+          visited.identifier,
+          visited.equations,
+          mapLocation(m),
+        );
+      }
+      return visited;
+    });
+    const groupSeq = new Yu.Sequence(members, mapLocation(node));
+    return new Yu.TestGroup(nameExpr, groupSeq, mapLocation(node));
+  }
+
+  private visitTest(node: Test): Yu.Test {
+    const nameExpr = new Yu.StringPrimitive(node.name, mapLocation(node));
+    const bodySeq = this.visit(node.body);
+    return new Yu.Test(nameExpr, bodySeq, [], mapLocation(node));
+  }
 }
 
 const WollokListTypes = ["wollok.lang.List", "wollok.lang.Set"];
-type WollokList = readonly [Reference<Class>, List<Expression>]
+type WollokList = readonly [Reference<Class>, List<Expression>];
 const isCollection = (val: LiteralValue): val is WollokList =>
   Array.isArray(val) &&
   "name" in val[0] &&

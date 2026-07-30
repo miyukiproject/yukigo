@@ -1,4 +1,9 @@
-import { Continuation, ExecutionCommand, StepCommand } from "./commands.js";
+import {
+  CatchHandler,
+  Continuation,
+  ExecutionCommand,
+  StepCommand,
+} from "./commands.js";
 import { boolean, EnvStack, Evaluator } from "../../utils.js";
 import { ErrorFrame, InterpreterError } from "../../errors.js";
 import { YuBoolean, YuNil, YuValue } from "../../primitives/index.js";
@@ -12,11 +17,14 @@ export interface ChoicePoint {
 }
 
 export class YukigoKernel {
+  public readonly kid = Math.floor(Math.random() * 9999);
   private logicalTrace: ExecutionCommand[] = [];
   private continuationStack: Continuation[] = [];
   private choiceStack: ChoicePoint[] = [];
   private finalResult: YuValue | undefined;
   private searchExhausted = false;
+
+  private catchHandlerStack: { handler: CatchHandler; continuationDepth: number }[] = [];
 
   constructor(
     public readonly evaluator: Evaluator,
@@ -41,6 +49,44 @@ export class YukigoKernel {
       return;
     }
     return next(value);
+  }
+
+  public pushCatchHandler(handler: CatchHandler): void {
+    // Save current continuation stack length so we know where to unwind if an error is raised inside the try block
+    this.catchHandlerStack.push({
+      handler,
+      continuationDepth: this.continuationStack.length,
+    });
+  }
+
+  public popCatchHandler(): CatchHandler | undefined {
+    const entry = this.catchHandlerStack.pop();
+    return entry?.handler;
+  }
+
+  /**
+   * Handles RaiseCommand.
+   */
+  public handleRaise(
+    exception: YuValue | InterpreterError,
+  ): ExecutionCommand | void {
+    const entry = this.catchHandlerStack.pop();
+    if (!entry) {
+      // if no catch found, we have no other option than to throw the error and break the flow.
+      if (exception instanceof InterpreterError) {
+        throw this.buildSemanticError(exception);
+      } else {
+        // TODO: I think this if-else is unnecessary
+        throw this.buildSemanticError(
+          new InterpreterError("UncaughtException", String(exception)),
+        );
+      }
+    }
+
+    // Unwind continuation stack to the point where the try block was entered
+    this.continuationStack.length = entry.continuationDepth;
+
+    return entry.handler(exception);
   }
 
   /**

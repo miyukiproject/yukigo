@@ -17,7 +17,7 @@ import {
   YuSummable,
 } from "../capabilities.js";
 import { LazyStepResult, YuBoolean } from "../index.js";
-import { boolean, number } from "../../utils.js";
+import { boolean, number, raise } from "../../utils.js";
 
 export class YuString
   extends YuValue
@@ -62,7 +62,7 @@ export class YuString
 
   public plus(other: YuValue): ExecutionCommand {
     const s = other.asSummable;
-    if (!s) throw new UnsupportedOperation(other, "plus");
+    if (!s) return raise(new UnsupportedOperation(other, "plus"));
     return s.plusWithString(this);
   }
 
@@ -85,7 +85,7 @@ export class YuString
 
   public concat(other: YuValue): ExecutionCommand {
     const seq = other.asSequence
-    if (!seq) throw new UnsupportedOperation(other, "concat");
+    if (!seq) return raise(new UnsupportedOperation(other, "concat"));
     return seq.concatWithString(this)
   }
 
@@ -104,6 +104,13 @@ export class YuString
     const c = other.asComparable;
     if (!c) return boolean(false);
     return c.equalsWithString(this);
+  }
+
+  public contains(other: YuValue): ExecutionCommand {
+    if (other instanceof YuString) {
+      return boolean(this.value.includes(other.value));
+    }
+    return raise(new UnsupportedOperation(other, "contains"));
   }
 
   public equalsWithNumber(left: YuNumber): ExecutionCommand {
@@ -126,7 +133,7 @@ export class YuString
 
   public compare(other: YuValue): ExecutionCommand {
     const c = other.asComparable;
-    if (!c) throw new UnsupportedOperation(other, "compare");
+    if (!c) return raise(new UnsupportedOperation(other, "compare"));
     return c.compareWithString(this);
   }
 
@@ -134,7 +141,7 @@ export class YuString
     return new StepCommand(new YuNumber(left.value - Number(this.toJSON())));
   }
   public compareWithBoolean(): ExecutionCommand {
-    throw new UnsupportedOperation(this, "compare");
+    return raise(new UnsupportedOperation(this, "compare"));
   }
   public compareWithString(left: YuString): ExecutionCommand {
     return new StepCommand(
@@ -142,10 +149,10 @@ export class YuString
     );
   }
   public compareWithArray(): ExecutionCommand {
-    throw new UnsupportedOperation(this, "compare");
+    return raise(new UnsupportedOperation(this, "compare"));
   }
   public compareWithNil(): ExecutionCommand {
-    throw new UnsupportedOperation(this, "compare");
+    return raise(new UnsupportedOperation(this, "compare"));
   }
 
   public toJSON(): string {

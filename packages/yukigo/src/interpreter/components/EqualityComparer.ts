@@ -7,6 +7,8 @@ import {
   StepCommand,
   BindCommand,
 } from "./kernel/commands.js";
+import { RuntimeFunction } from "../primitives/entities/RuntimeFunction.js";
+import { RuntimeContext } from "./RuntimeContext.js";
 
 /**
  * Utility to perform deep equality checks between YuValues,
@@ -17,12 +19,37 @@ export class EqualityComparer {
    * Performs a deep equality check between two values.
    * If both are sequences, they are compared element by element lazily.
    */
-  public static compare(a: YuValue, b: YuValue): ExecutionCommand {
+  public static compare(
+    a: YuValue,
+    b: YuValue,
+    ctx?: RuntimeContext,
+  ): ExecutionCommand {
+    if (
+      ctx &&
+      a instanceof RuntimeFunction &&
+      a.arity === 0 &&
+      (a.pendingArgs?.length ?? 0) === 0
+    ) {
+      return new BindCommand(ctx.forceValue(a), (forcedA) =>
+        this.compare(forcedA, b, ctx),
+      );
+    }
+    if (
+      ctx &&
+      b instanceof RuntimeFunction &&
+      b.arity === 0 &&
+      (b.pendingArgs?.length ?? 0) === 0
+    ) {
+      return new BindCommand(ctx.forceValue(b), (forcedB) =>
+        this.compare(a, forcedB, ctx),
+      );
+    }
+
     const seqA = a.asSequence;
     const seqB = b.asSequence;
 
     if (seqA && seqB) {
-      return this.compareSequences(seqA, seqB);
+      return this.compareSequences(seqA, seqB, ctx);
     }
 
     const compA = a.asComparable;
@@ -34,6 +61,7 @@ export class EqualityComparer {
   private static compareSequences(
     sA: Sequence | null,
     sB: Sequence | null,
+    ctx?: RuntimeContext,
   ): ExecutionCommand {
     if (!sA && !sB) return boolean(true);
 
@@ -64,13 +92,13 @@ export class EqualityComparer {
 
         // Compare heads recursively
         return new BindCommand(
-          this.compare(stepResA.head as YuValue, stepResB.head as YuValue),
+          this.compare(stepResA.head as YuValue, stepResB.head as YuValue, ctx),
           (headsEqual) => {
             const areHeadsEqual = isTrue(headsEqual);
             if (!areHeadsEqual) return boolean(false);
 
             // Compare tails
-            return this.compareSequences(stepResA.tail, stepResB.tail);
+            return this.compareSequences(stepResA.tail, stepResB.tail, ctx);
           },
         );
       });

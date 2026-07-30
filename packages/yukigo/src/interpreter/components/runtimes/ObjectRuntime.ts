@@ -8,12 +8,17 @@ import {
   YuString,
   isRuntimeClass,
   YuBoolean,
+  YuArray,
+  YuNumber,
+  YuNil,
 } from "../../primitives/index.js";
+import { error, raise } from "../../utils.js";
 import { RuntimeContext } from "../RuntimeContext.js";
 import {
   ExecutionCommand,
   BindCommand,
   StepCommand,
+  RaiseCommand,
 } from "../kernel/commands.js";
 
 type OOPEntity = RuntimeClass | RuntimeObject;
@@ -34,17 +39,35 @@ export class ObjectRuntime {
     methodName: string,
     args: YuValue[],
   ): ExecutionCommand {
-    if (!isRuntimeObject(receiver))
-      throw new InterpreterError("[ObjectRuntime.dispatch]", `${receiver} is not an object`);
+    if (!isRuntimeObject(receiver)) {
+      return this.dispatchPrimitive(receiver, methodName, args);
+    }
 
     const chain = this.getResolutionChain(receiver);
-    const match = this.findMethodInChain(chain, methodName);
 
-    if (!match)
-      throw new InterpreterError(
-        "MethodDispatch",
-        `${receiver.className} does not understand '${methodName}'.`,
+    const arity = args.length;
+    const arityKey = `${methodName}/${arity}`;
+    let match = this.findMethodInChain(chain, arityKey);
+    
+    if (!match) {
+      match = this.findMethodInChain(chain, methodName);
+    }
+
+    if (!match) {
+      if (methodName === "toString") {
+        return new StepCommand(new YuString(receiver.toString()));
+      }
+      if (methodName === "error") {
+        const errorMsg = args[0] ? args[0].toString() : "An error occurred";
+        return new RaiseCommand(new InterpreterError("Raise", errorMsg));
+      }
+      return raise(
+        error(
+          "MethodDispatch",
+          `${receiver.className} does not understand '${methodName}'.`,
+        ),
       );
+    }
 
     const objectScope = receiver.createDispatchScope(
       match,
@@ -67,38 +90,47 @@ export class ObjectRuntime {
     const self = this.context.lookup("self") as RuntimeObject;
     const currentHolder = this.context.lookup("__CONTEXT_CLASS__") as OOPEntity;
     const currentMethodName = this.context.lookup("__METHOD_NAME__");
-    const targetMethodName = methodName
-      ? new YuString(methodName)
-      : (currentMethodName as YuString);
 
     if (!self || !currentHolder)
-      throw new InterpreterError(
-        "SuperError",
-        "'super' used outside of a method context",
+      return raise(
+        error("dispatchSuper", "'super' used outside of a method context"),
       );
 
     const chain = this.getResolutionChain(self);
-
     const currentIndex = chain.findIndex((c) => c === currentHolder);
 
     if (currentIndex === -1)
-      throw new Error("Fatal: Execution context not found in hierarchy chain");
-
-    const remainingChain = chain.slice(currentIndex + 1);
-    const match = this.findMethodInChain(
-      remainingChain,
-      targetMethodName.toJSON(),
-    );
-
-    if (!match)
-      throw new InterpreterError(
-        "Super",
-        `Super method '${targetMethodName.toJSON()}' not found`,
+      return raise(
+        error(
+          "dispatchSuper",
+          "Execution context not found in hierarchy chain",
+        ),
       );
 
-    const objectScope = self.createDispatchScope(match, targetMethodName);
+    const remainingChain = chain.slice(currentIndex + 1);
 
+    const baseName = methodName || (currentMethodName as YuString).toJSON();
+    const arityKey = `${baseName}/${args.length}`;
+
+    let match = this.findMethodInChain(remainingChain, arityKey);
+
+    // Fallback: si no encuentra con aridad, buscar solo por nombre (para compatibilidad)
+    if (!match && methodName) {
+      match = this.findMethodInChain(remainingChain, methodName);
+    }
+    if (!match && !methodName) {
+      match = this.findMethodInChain(
+        remainingChain,
+        (currentMethodName as YuString).toJSON(),
+      );
+    }
+
+    if (!match)
+      return raise(error("Super", `Super method '${baseName}' not found`));
+
+    const objectScope = self.createDispatchScope(match, new YuString(baseName));
     this.context.pushEnv(objectScope);
+
     return new BindCommand(
       this.context.funcRuntime.apply(match.method, args),
       (res) => {
@@ -108,7 +140,7 @@ export class ObjectRuntime {
     );
   }
 
-  private getResolutionChain(receiver: RuntimeObject): OOPEntity[] {
+  public getResolutionChain(receiver: RuntimeObject): OOPEntity[] {
     const chain: OOPEntity[] = [receiver];
 
     if (receiver.className) {
@@ -139,14 +171,14 @@ export class ObjectRuntime {
   private getClassDef(name: string): RuntimeClass {
     const classDef = this.context.lookup(name);
     if (!isRuntimeClass(classDef))
-      throw new InterpreterError(
+      throw error(
         "expandClassHierarchy",
         "classDef was expected to be a RuntimeClass",
       );
     return classDef;
   }
 
-  private findMethodInChain(
+  public findMethodInChain(
     chain: Array<OOPEntity>,
     methodName: string,
   ): OOPMatch | undefined {
@@ -195,6 +227,36 @@ export class ObjectRuntime {
     throw new InterpreterError(
       "ObjectRuntime",
       "Receiver is not an OOP entity",
+    );
+  }
+
+  public dispatchPrimitive(
+    receiver: YuValue,
+    methodName: string,
+    args: YuValue[],
+  ): ExecutionCommand {
+    if (!receiver || receiver.isNil)
+      return new StepCommand(YuNil.getInstance());
+    // Obtenemos el identificador polimórfico del tipo (ej: "YuArray", "YuNumber", "YuString", "RuntimeFunction")
+    const typeKey = receiver.constructor.name;
+    const lookupKey = `${typeKey}.${methodName}`;
+
+    // Buscamos si el ecosistema/lenguaje proveyó una implementación externa para este caso
+    const nativeImpl = this.context.config.nativeProviders.get(lookupKey);
+
+    if (nativeImpl) {
+      // Delegamos la subtarea de forma declarativa pasándole el receptor como contexto
+      return new BindCommand(
+        nativeImpl(receiver, args, this.context),
+        (res) => new StepCommand(res),
+      );
+    }
+
+    return raise(
+      error(
+        "ObjectRuntime.dispatch",
+        `Primitive type '${typeKey}' does not understand method '${methodName}'.`,
+      ),
     );
   }
 }

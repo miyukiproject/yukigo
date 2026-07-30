@@ -9,7 +9,10 @@ import {
 } from "yukigo-ast";
 import { Interpreter } from "../interpreter/index.js";
 import { FailedAssert } from "../interpreter/components/TestRunner.js";
-import { InterpreterConfig } from "../interpreter/components/RuntimeContext.js";
+import {
+  DefaultConfiguration,
+  InterpreterConfig,
+} from "../interpreter/components/RuntimeContext.js";
 import { UnexpectedNode } from "../interpreter/errors.js";
 
 export type TestStatus = "passed" | "failed" | "error";
@@ -24,17 +27,37 @@ export interface TestReport {
 
 class TestExecutor extends TraverseVisitor {
   public report: TestReport | null = null;
-  constructor(private interpreter: Interpreter) {
+
+  constructor(
+    private ast: AST,
+    private config: InterpreterConfig,
+    private parentGroupStatements: ASTNode[] = [],
+  ) {
     super();
   }
 
   visitTest(node: Test): void {
-    const name = this.evaluateName(node.name);
+    const interpreter = new Interpreter(this.ast, this.config);
+    for (const stmt of this.parentGroupStatements) {
+      if (!(stmt instanceof Test) && !(stmt instanceof TestGroup)) {
+        interpreter.evaluate(stmt);
+      }
+    }
+
+    const name = this.evaluateName(interpreter, node.name);
     const start = Date.now();
 
     try {
-      //this.bindParameters(node);
-      this.interpreter.evaluate(node);
+      interpreter
+        .getContext()
+        .dispatchHook("beforeEachTest", interpreter, node);
+
+      interpreter.evaluate(node);
+
+      interpreter
+        .getContext()
+        .dispatchHook("afterEachTest", interpreter, node);
+
       this.report = {
         name,
         status: "passed",
@@ -45,31 +68,29 @@ class TestExecutor extends TraverseVisitor {
     }
   }
 
-  /*   private bindParameters(node: Test): void {
-    if (!node.args || node.args.length === 0) return;
-
-    for (const pattern of node.args) {
-      if (pattern instanceof VariablePattern) {
-        this.interpreter.define(pattern.name.value, null);
-      }
-    }
-  } */
-
   visitTestGroup(node: TestGroup): void {
-    const name = this.evaluateName(node.name);
+    const interpreter = new Interpreter(this.ast, this.config);
+    const name = this.evaluateName(interpreter, node.name);
     const start = Date.now();
 
     try {
       const children: TestReport[] = [];
+      const nonTestStmts = node.group.statements.filter(
+        (stmt) => !(stmt instanceof Test) && !(stmt instanceof TestGroup),
+      );
+
       for (const stmt of node.group.statements) {
         if (stmt instanceof Test || stmt instanceof TestGroup) {
-          const visitor = new TestExecutor(this.interpreter);
+          const visitor = new TestExecutor(
+            this.ast,
+            this.config,
+            [...this.parentGroupStatements, ...nonTestStmts],
+          );
           stmt.accept(visitor);
           if (visitor.report) children.push(visitor.report);
-        } else {
-          this.interpreter.evaluate(stmt);
         }
       }
+
       const anyFailed = children.some((c) => c.status !== "passed");
       this.report = {
         name,
@@ -82,9 +103,9 @@ class TestExecutor extends TraverseVisitor {
     }
   }
 
-  private evaluateName(nameExpr: Expression): string {
+  private evaluateName(interpreter: Interpreter, nameExpr: Expression): string {
     try {
-      return String(this.interpreter.evaluate(nameExpr));
+      return String(interpreter.evaluate(nameExpr));
     } catch {
       return "Unknown Test";
     }
@@ -99,6 +120,7 @@ class TestExecutor extends TraverseVisitor {
     const message = error instanceof Error ? error.message : String(error);
     return { name, status: "error", message, duration };
   }
+
   public fallback(node: ASTNode): void {
     throw new UnexpectedNode(node.constructor.name, "TestExecutor");
   }
@@ -111,7 +133,7 @@ class TestExecutor extends TraverseVisitor {
 export class Tester {
   constructor(
     private ast: AST,
-    private config?: InterpreterConfig,
+    private config: InterpreterConfig = DefaultConfiguration,
   ) {}
 
   /**
@@ -121,13 +143,14 @@ export class Tester {
    */
   public test(nodes: AST): TestReport[] {
     const reports: TestReport[] = [];
+
     for (const node of nodes) {
-      if (node instanceof Test || node instanceof TestGroup) {
-        const interpreter = new Interpreter(this.ast, this.config);
-        const visitor = new TestExecutor(interpreter);
-        node.accept(visitor);
-        if (visitor.report) reports.push(visitor.report);
-      }
+      if (!node.is(Test) && !node.is(TestGroup)) continue;
+
+      const visitor = new TestExecutor(this.ast, this.config);
+      node.accept(visitor);
+
+      if (visitor.report) reports.push(visitor.report);
     }
     return reports;
   }

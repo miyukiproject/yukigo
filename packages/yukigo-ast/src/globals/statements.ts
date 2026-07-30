@@ -231,9 +231,9 @@ export class UnguardedBody extends ASTNode {
 }
 
 export function isUnguardedBody(
-  body: UnguardedBody | GuardedBody[],
+  body: UnguardedBody | GuardedBody[] | NativeBody,
 ): body is UnguardedBody {
-  return !Array.isArray(body);
+  return body instanceof UnguardedBody;
 }
 
 /**
@@ -268,6 +268,20 @@ export class GuardedBody extends ASTNode {
   }
 }
 
+export class NativeBody extends ASTNode {
+  constructor(loc?: SourceLocation) {
+    super(loc);
+  }
+  public accept<R>(visitor: Visitor<R>): R {
+    return this.dispatchVisit(visitor, visitor.visitNativeBody);
+  }
+  public toJSON(): SerializeNode {
+    return {
+      type: "NativeBody",
+    };
+  }
+}
+
 /**
  * Represents one Equation with its arguments and body. Allows for overloading and pattern matching.
  * You may define the return statement to access it more easily.
@@ -281,12 +295,12 @@ export class Equation extends ASTNode {
   /** @hidden */
   public patterns: Pattern[];
   /** @hidden */
-  public body: UnguardedBody | GuardedBody[];
+  public body: UnguardedBody | GuardedBody[] | NativeBody;
   /** @hidden */
   public returnExpr?: Return;
   constructor(
     patterns: Pattern[],
-    body: UnguardedBody | GuardedBody[],
+    body: UnguardedBody | GuardedBody[] | NativeBody,
     returnExpr?: Return,
     loc?: SourceLocation,
   ) {
@@ -304,9 +318,9 @@ export class Equation extends ASTNode {
     return {
       type: "Equation",
       patterns: this.patterns.map((pattern) => pattern.toJSON()),
-      body: isUnguardedBody(this.body)
-        ? this.body.toJSON()
-        : this.body.map((guard) => guard.toJSON()),
+      body: Array.isArray(this.body)
+        ? this.body.map((guard) => guard.toJSON())
+        : this.body.toJSON(),
       return: this.returnExpr?.toJSON(),
     };
   }

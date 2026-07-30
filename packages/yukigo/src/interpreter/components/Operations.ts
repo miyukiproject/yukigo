@@ -8,7 +8,11 @@ import {
 } from "../primitives/capabilities.js";
 import { YuValue, YuNumber, YuArray, YuString } from "../primitives/index.js";
 import { compareResult, not, number } from "../utils.js";
-import { ExecutionCommand, StepCommand } from "./kernel/commands.js";
+import {
+  ExecutionCommand,
+  RaiseCommand,
+  StepCommand,
+} from "./kernel/commands.js";
 
 export type UnaryOp<T extends YuValue> = (x: T) => ExecutionCommand;
 export type BinaryOp<T1 extends YuValue, T2 = T1> = (
@@ -56,30 +60,14 @@ export const StringOperationTable: BinaryTable<YuSummable> = {
 };
 
 export const BitwiseBinaryTable: BinaryTable<YuNumeric> = {
-  BitwiseOr: (a, b) =>
-    new StepCommand(
-      new YuNumber(a.value | b.value),
-    ),
-  BitwiseAnd: (a, b) =>
-    new StepCommand(
-      new YuNumber(a.value & b.value),
-    ),
-  BitwiseLeftShift: (a, b) =>
-    new StepCommand(
-      new YuNumber(a.value << b.value),
-    ),
+  BitwiseOr: (a, b) => new StepCommand(new YuNumber(a.value | b.value)),
+  BitwiseAnd: (a, b) => new StepCommand(new YuNumber(a.value & b.value)),
+  BitwiseLeftShift: (a, b) => new StepCommand(new YuNumber(a.value << b.value)),
   BitwiseRightShift: (a, b) =>
-    new StepCommand(
-      new YuNumber(a.value >> b.value),
-    ),
+    new StepCommand(new YuNumber(a.value >> b.value)),
   BitwiseUnsignedRightShift: (a, b) =>
-    new StepCommand(
-      new YuNumber(a.value >>> b.value),
-    ),
-  BitwiseXor: (a, b) =>
-    new StepCommand(
-      new YuNumber(a.value ^ b.value),
-    ),
+    new StepCommand(new YuNumber(a.value >>> b.value)),
+  BitwiseXor: (a, b) => new StepCommand(new YuNumber(a.value ^ b.value)),
 };
 
 export const BitwiseUnaryTable: UnaryTable<YuNumeric> = {
@@ -99,22 +87,30 @@ export const ListUnaryTable: UnaryTable<YuSequence> = {
   DetectMax: (a) => {
     const items = [...a].map((i) => {
       const n = i.toJSON();
-      if (typeof n !== "number") throw new Error("DetectMax requires numbers"); // TODO:make it work with chars, etc.
       return n;
     });
-    return number(Math.max(...items));
+    if (items.some((n) => typeof n !== "number"))
+      return new RaiseCommand(
+        new InterpreterError("DetectMax", "elements must be numbers"),
+      ); // TODO: make it work with chars, etc.
+    return number(Math.max(...(items as number[])));
   },
   DetectMin: (a) => {
     const items = [...a].map((i) => {
       const n = i.toJSON();
-      if (typeof n !== "number") throw new Error("DetectMin requires numbers"); // TODO: make it work with chars, etc.
       return n;
     });
-    return number(Math.min(...items));
+    if (items.some((n) => typeof n !== "number"))
+      return new RaiseCommand(
+        new InterpreterError("DetectMin", "elements must be numbers"),
+      ); // TODO: make it work with chars, etc.
+    return number(Math.min(...items as number[]));
   },
   Flatten: (a) => {
     if (!(a instanceof YuArray))
-      throw new InterpreterError("[Flat operator]", "Operand must be a YuArray");
+      return new RaiseCommand(
+        new InterpreterError("[Flat operator]", "Operand must be a YuArray"),
+      );
     return new StepCommand(a.flat());
   },
 };

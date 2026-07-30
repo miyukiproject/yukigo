@@ -1,8 +1,5 @@
-import {
-  RangeExpression,
-  ConsExpression,
-} from "yukigo-ast";
-import { Evaluator } from "../../utils.js";
+import { RangeExpression, ConsExpression } from "yukigo-ast";
+import { error, Evaluator, raise } from "../../utils.js";
 import { RuntimeContext } from "../RuntimeContext.js";
 import {
   ExecutionCommand,
@@ -16,7 +13,11 @@ import { YuNil } from "../../primitives/scalars/YuNil.js";
 import { YuNumber } from "../../primitives/scalars/YuNumber.js";
 import { YuArray } from "../../primitives/sequences/YuArray.js";
 import { YuString } from "../../primitives/sequences/YuString.js";
-import { isLazyList, LazyList, LazyStepResult } from "../../primitives/entities/LazyList.js";
+import {
+  isLazyList,
+  LazyList,
+  LazyStepResult,
+} from "../../primitives/entities/LazyList.js";
 
 export class LazyRuntime {
   constructor(private context: RuntimeContext) {}
@@ -25,11 +26,17 @@ export class LazyRuntime {
    * Realizes a list or lazy list into a YuArray.
    */
   public realizeList(val: YuValue): ExecutionCommand {
-    if (this.context.config.debug) console.log(`[LazyRuntime] realizeList: input`, val);
+    if (this.context.config.debug)
+      console.log(`[LazyRuntime] realizeList: input`, val);
     if (val instanceof YuNil) return new StepCommand(new YuArray([]));
     const seq = val.asSequence;
     if (seq) return seq.realize();
-    throw new Error(`Expected Sequence, got ${val.getType()}`);
+    return raise(
+      error(
+        "LazyRuntime.realizeList",
+        `Expected Sequence, got ${val.getType()}`,
+      ),
+    );
   }
 
   public evaluateRange(
@@ -39,7 +46,9 @@ export class LazyRuntime {
     return new BindCommand(evaluator.evaluate(node.start), (startVal) => {
       const startNum = startVal.toJSON();
       if (typeof startNum !== "number")
-        throw new Error("Range start must be a number");
+        return raise(
+          error("LazyRuntime.evaluateRange", "Range start must be a number"),
+        );
 
       const hasEnd = node.end != null;
 
@@ -66,7 +75,9 @@ export class LazyRuntime {
         return new BindCommand(evaluator.evaluate(node.end!), (endVal) => {
           const endNum = endVal.toJSON();
           if (typeof endNum !== "number")
-            throw new Error("Range end must be a number");
+            return raise(
+              error("LazyRuntime.evaluateRange", "Range end must be a number"),
+            );
 
           if (this.context.config.lazyLoading) {
             const range = createLazyRange(startNum, endNum);
@@ -87,9 +98,14 @@ export class LazyRuntime {
       return new BindCommand(evaluator.evaluate(node.step), (secondVal) => {
         const secondNum = secondVal.toJSON();
         if (typeof secondNum !== "number")
-          throw new Error("Range step must be a number");
+          return raise(
+            error("LazyRuntime.evaluateRange", "Range step must be a number"),
+          );
         const step = secondNum - startNum;
-        if (step === 0) throw new Error("Range step cannot be zero");
+        if (step === 0)
+          return raise(
+            error("LazyRuntime.evaluateRange", "Range step cannot be zero"),
+          );
         return finishWithStep(step);
       });
     });
@@ -102,30 +118,50 @@ export class LazyRuntime {
     const ctx = this.context;
     if (ctx.config.lazyLoading) {
       const capturedCtx = ctx.clone();
-      const conjoinedLazyList = new LazyList(() => {
-        if (!capturedCtx.evaluatorFactory)
-          throw new Error("EvaluatorFactory not initialized");
-        
-        const subEvaluator = capturedCtx.evaluatorFactory(capturedCtx);
-        
-        return new BindCommand(subEvaluator.evaluate(node.head), (head) => {
-          return new BindCommand(subEvaluator.evaluate(node.tail), (tailRes) => {
-            if (tailRes instanceof YuNil) {
-              return new StepCommand(new LazyStepResult(head, null));
-            }
-            const tailSeq = tailRes.asSequence;
-            if (tailSeq) {
-                if (isLazyList(tailSeq)) 
+      const conjoinedLazyList = new LazyList(
+        () => {
+          if (!capturedCtx.evaluatorFactory)
+            return raise(
+              error(
+                "LazyRuntime.evaluateRange",
+                "EvaluatorFactory not initialized",
+              ),
+            );
+
+          const subEvaluator = capturedCtx.evaluatorFactory(capturedCtx);
+
+          return new BindCommand(subEvaluator.evaluate(node.head), (head) => {
+            return new BindCommand(
+              subEvaluator.evaluate(node.tail),
+              (tailRes) => {
+                if (tailRes instanceof YuNil) {
+                  return new StepCommand(new LazyStepResult(head, null));
+                }
+                const tailSeq = tailRes.asSequence;
+                if (tailSeq) {
+                  if (isLazyList(tailSeq))
                     return new StepCommand(new LazyStepResult(head, tailSeq));
-                
-                return new StepCommand(
-                    new LazyStepResult(head, this.arrayToLazyList([...tailSeq]))
+
+                  return new StepCommand(
+                    new LazyStepResult(
+                      head,
+                      this.arrayToLazyList([...tailSeq]),
+                    ),
+                  );
+                }
+                return raise(
+                  error(
+                    "LazyRuntime.evaluateRange",
+                    `Invalid tail in cons: ${tailRes.getType()}`,
+                  ),
                 );
-            }
-            throw new Error(`Invalid tail in cons: ${tailRes.getType()}`);
+              },
+            );
           });
-        });
-      }, "Cons", capturedCtx);
+        },
+        "Cons",
+        capturedCtx,
+      );
 
       return new StepCommand(conjoinedLazyList);
     }
@@ -133,19 +169,19 @@ export class LazyRuntime {
     // Eager behavior
     return new BindCommand(evaluator.evaluate(node.head), (head) => {
       return new BindCommand(evaluator.evaluate(node.tail), (tail) => {
-        if (tail instanceof YuString) return new StepCommand(new YuString(head.toJSON() + tail.toJSON()));
+        if (tail instanceof YuString)
+          return new StepCommand(new YuString(head.toJSON() + tail.toJSON()));
         const tailSeq = tail.asSequence;
         if (tailSeq instanceof YuArray) {
-            return new StepCommand(new YuArray([head, ...tailSeq]));
+          return new StepCommand(new YuArray([head, ...tailSeq]));
         }
-        throw new Error("Expected Array in eager Cons");
+        return raise(
+          error("LazyRuntime.evaluateRange", "Expected Array in eager Cons"),
+        );
       });
     });
   }
-  private arrayToLazyList(
-    arr: YuValue[],
-    index: number = 0,
-  ): LazyList | null {
+  private arrayToLazyList(arr: YuValue[], index: number = 0): LazyList | null {
     if (index >= arr.length) return null;
     return new LazyList(() => {
       return new StepCommand(
@@ -153,19 +189,21 @@ export class LazyRuntime {
       );
     });
   }
-  public evaluateConcat(
-    left: YuSequence,
-    right: YuSequence,
-  ): ExecutionCommand {
+  public evaluateConcat(left: YuSequence, right: YuSequence): ExecutionCommand {
     if (this.context.config.lazyLoading) {
       const createConcatList = (L: YuSequence, R: YuSequence): LazyList => {
         return new LazyList(() => {
           return new BindCommand(L.step(), (stepRes) => {
             if (stepRes.isNil) return R.step();
-            
+
             const stepResult = stepRes.asStepResult;
             if (!stepResult)
-                throw new Error("Concat: step did not return StepResult");
+              return raise(
+                error(
+                  "LazyRuntime.evaluateRange",
+                  "Concat: step did not return StepResult",
+                ),
+              );
 
             return new StepCommand(
               new LazyStepResult(
@@ -185,4 +223,3 @@ export class LazyRuntime {
     return left.concat(right);
   }
 }
-
