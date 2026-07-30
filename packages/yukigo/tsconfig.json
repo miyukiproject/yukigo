@@ -6,15 +6,16 @@
     "moduleResolution": "nodenext",
     "lib": ["es2025", "dom"],
     "outDir": "./dist",
-    "rootDir": "src",
+    "rootDir": "./",
     "declaration": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": true,
+    "types": ["node", "mocha", "chai"]
   },
-  "include": ["src"],
+  "include": ["src/**/*", "tests/**/*"],
   "exclude": [
     "dist/**/*"
   ],

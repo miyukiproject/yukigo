@@ -8,6 +8,12 @@ import {
   StepCommand,
 } from "../../src/interpreter/components/kernel/commands.js";
 import { Evaluator } from "../../src/interpreter/utils.js";
+import {
+  YuNil,
+  YuNumber,
+  YuString,
+  YuValue,
+} from "../../src/interpreter/primitives/index.js";
 
 describe("YukigoKernel", () => {
   class MockEvaluator {
@@ -30,10 +36,11 @@ describe("YukigoKernel", () => {
   });
 
   it("must execute a StepCommand and end", () => {
-    const command = new StepCommand(42);
-    const result = kernel.run(command);
+    const command = new StepCommand(new YuNumber(42));
+    const result = kernel.run(command) as YuNumber;
 
-    expect(result).to.eq(42);
+    expect(result).to.be.instanceOf(YuNumber);
+    expect(result.value).to.equal(42);
     expect(kernel.getLogicalTrace().length).to.eq(1);
     expect(kernel.getLogicalTrace()[0].name).to.eq("STEP");
   });
@@ -41,39 +48,43 @@ describe("YukigoKernel", () => {
   it("must chain multiple commands via BindCommand", () => {
     // Chain: (Step 10) -> (add 5) -> (multiply 2)
     const command = new BindCommand(
-      new StepCommand(10),
+      new StepCommand(new YuNumber(10)),
       (a) =>
         new BindCommand(
-          new StepCommand(5),
+          new StepCommand(new YuNumber(5)),
           (b) =>
             new BindCommand(
-              new StepCommand((a as number) + (b as number)),
-              (sum) => new StepCommand((sum as number) * 2),
+              a.asNumeric?.plus(b) || new StepCommand(YuNil.getInstance()),
+              (sum) =>
+                sum.asNumeric?.multiply(new YuNumber(2)) ||
+                new StepCommand(YuNil.getInstance()),
             ),
         ),
     );
 
-    const result = kernel.run(command);
+    const result = kernel.run(command) as YuNumber;
 
-    expect(result).to.eq(30);
+    expect(result).to.be.instanceOf(YuNumber);
+    expect(result.value).to.equal(30);
   });
 
   it("must delegate EvalCommand to injected Evaluator", () => {
-    const dummyNode = { type: "Dummy", mockValue: 99 } as any;
+    const dummyNode = { type: "Dummy", mockValue: new YuNumber(99) } as any;
 
     const command = new BindCommand(
       new EvalCommand(dummyNode),
-      (val) => new StepCommand((val as number) + 1), // 99 + 1
+      (val) => (val as YuNumber).plus(new YuNumber(1)), // 99 + 1
     );
 
-    const result = kernel.run(command);
+    const result = kernel.run(command) as YuNumber;
 
-    expect(result).to.eq(100);
+    expect(result).to.be.instanceOf(YuNumber);
+    expect(result.value).to.equal(100);
   });
 
   it("must abort execution if FailCommand is raised", () => {
     const command = new BindCommand(
-      new StepCommand(1),
+      new StepCommand(new YuNumber(1)),
       () => new FailCommand(new Error("Fallo simulado")),
     );
 
@@ -83,17 +94,19 @@ describe("YukigoKernel", () => {
   });
 
   it("must not overflow with deep recursive steps (50000 iterations)", () => {
-    const iteraciones = 50000;
+    const iteraciones = new YuNumber(50000);
 
-    const recursiveStep = (count: number): ExecutionCommand => {
-      if (count === 0) return new StepCommand("fin");
+    const recursiveStep = (count: YuNumber): ExecutionCommand => {
+      if (count.equals(new YuNumber(0)))
+        return new StepCommand(new YuString("fin"));
       return new BindCommand(new StepCommand(count), () =>
-        recursiveStep(count - 1),
+        recursiveStep(count.minus(new YuNumber(1))),
       );
     };
 
-    const result = kernel.run(recursiveStep(iteraciones));
+    const result = kernel.run(recursiveStep(iteraciones)) as YuValue;
 
-    expect(result).to.eq("fin");
+    expect(result).to.be.instanceOf(YuString);
+    expect((result as YuString).value).to.equal("fin");
   });
 });

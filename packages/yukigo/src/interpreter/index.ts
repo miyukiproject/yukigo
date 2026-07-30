@@ -1,4 +1,4 @@
-import { PrimitiveValue, AST, ASTNode } from "yukigo-ast";
+import { AST, ASTNode } from "yukigo-ast";
 import { InterpreterVisitor } from "./components/Visitor.js";
 import { EnvBuilderVisitor } from "./components/EnvBuilder.js";
 import {
@@ -7,8 +7,9 @@ import {
 } from "./components/RuntimeContext.js";
 import { YukigoKernel } from "./components/kernel/index.js";
 import { EvalCommand } from "./components/kernel/commands.js";
+import { YuValue } from "./primitives/index.js";
 
-export type Bindings = [string, PrimitiveValue][];
+export type Bindings = [string, YuValue][];
 
 /**
  * The Interpreter class is responsible for evaluating the Abstract Syntax Tree (AST)
@@ -35,9 +36,9 @@ export class Interpreter {
    * @param expr The root Expression node to be evaluated.
    * @returns The resulting primitive value (number, string, boolean, etc.) after evaluation.
    */
-  public evaluate(expr: ASTNode): PrimitiveValue {
+  public evaluate(expr: ASTNode): YuValue {
     const visitor = new InterpreterVisitor(this.context);
-    const outputMode = this.context.config.outputMode
+    const outputMode = this.context.config.outputMode;
     const kernel = new YukigoKernel(visitor, outputMode);
     return kernel.run(new EvalCommand(expr));
   }

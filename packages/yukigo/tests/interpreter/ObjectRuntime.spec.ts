@@ -1,115 +1,107 @@
 import { expect } from "chai";
 import {
-  PrimitiveValue,
-  RuntimeFunction,
   UnguardedBody,
   Sequence,
   Return,
   SymbolPrimitive,
   NumberPrimitive,
   VariablePattern,
-  RuntimeObject,
-  RuntimeClass,
   StringPrimitive,
   Primitive,
   Super,
   ArithmeticBinaryOperation,
-  EnvStack,
 } from "yukigo-ast";
-import { createGlobalEnv } from "../../src/interpreter/utils.js";
+import { createGlobalEnv, EnvStack } from "../../src/interpreter/utils.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
 import { YukigoKernel } from "../../src/interpreter/components/kernel/index.js";
 import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
-import { EvalCommand } from "../../src/interpreter/components/kernel/commands.js";
-
-const createEmptyEnv = () => ({ head: new Map(), tail: null });
+import {
+  YuValue,
+  RuntimeFunction,
+  RuntimeClass,
+  RuntimeObject,
+  YuNumber,
+  YuString,
+} from "../../src/interpreter/primitives/index.js";
 
 const createMethodMap = (
   methods: RuntimeFunction[],
 ): Map<string, RuntimeFunction> =>
-  new Map(methods.map((m) => [m.identifier, m]));
+  new Map(methods.map((m) => [m.identifier!, m]));
 const createMethod = (name: string, returnVal: Primitive): RuntimeFunction => {
-  return {
-    type: "Function",
-    identifier: name,
-    arity: 0,
-    pendingArgs: [],
-    equations: [
+  return new RuntimeFunction(
+    0,
+    [
       {
         patterns: [],
         body: new UnguardedBody(new Sequence([new Return(returnVal)])),
       },
     ],
-  };
+    name,
+    [],
+  );
 };
 
 const createClass = (
+  env: EnvStack,
   name: string,
   superclass?: string,
   methodDefs: Map<string, RuntimeFunction> = new Map(),
   mixins: string[] = [],
 ): RuntimeClass => {
-  return {
-    type: "Class",
-    identifier: name,
-    fields: new Map(),
-    methods: methodDefs,
-    superclass,
-    mixins,
-  };
+  const cls = new RuntimeClass(name, new Map(), methodDefs, mixins, superclass);
+  env.head.set(name, cls);
+  return cls;
 };
 
 describe("ctx.objRuntime", () => {
   let objectInstance: RuntimeObject;
   let kernel: YukigoKernel;
   const className = "TestClass";
-  const initialFields = new Map<string, PrimitiveValue>([
-    ["count", 10],
-    ["name", "Yukigo"],
+  const initialFields = new Map<string, YuValue>([
+    ["count", new YuNumber(10)],
+    ["name", new YuString("Yukigo")],
   ]);
   const methods = new Map<string, RuntimeFunction>();
-  const classDef: RuntimeClass = {
-    type: "Class",
-    identifier: className,
-    fields: initialFields,
+  const classDef = new RuntimeClass(
+    className,
+    initialFields,
     methods,
-    mixins: [],
-    superclass: undefined,
-  };
+    [],
+    undefined,
+  );
   const env: EnvStack = createGlobalEnv();
   env.head.set(className, classDef);
   const ctx = new RuntimeContext();
   ctx.setEnv(env);
   beforeEach(() => {
-    objectInstance = ctx.objRuntime.instantiate(
-      className,
-      "obj",
-      initialFields,
-      methods,
-    );
+    env.head.clear();
+    env.head.set(className, classDef);
+    objectInstance = classDef.instantiate("obj");
     kernel = new YukigoKernel(new InterpreterVisitor(ctx));
   });
 
   describe("instantiate()", () => {
     it("debe crear un objeto con la estructura correcta", () => {
-      expect(objectInstance.type).to.equal("Object");
+      expect(objectInstance).to.be.an.instanceOf(RuntimeObject);
       expect(objectInstance.className).to.equal(className);
     });
 
     it("debe clonar el mapa de campos (no usar la referencia original)", () => {
-      const fieldsDef = new Map([["x", 1]]);
-      const obj = ctx.objRuntime.instantiate("A", "objA", fieldsDef, new Map());
+      const fieldsDef = new Map([["x", new YuNumber(1)]]);
+      const classA = new RuntimeClass("A", fieldsDef, new Map(), []);
+      const obj = classA.instantiate("objA");
 
-      fieldsDef.set("x", 2);
+      fieldsDef.set("x", new YuNumber(2));
 
-      expect(obj.fields.get("x")).to.equal(1);
+      expect((obj.fields.get("x") as YuValue).toJSON()).to.equal(1);
     });
   });
 
   describe("Field Access (Get/Set)", () => {
     it("getField debe devolver el valor de un campo existente", () => {
       const val = ctx.objRuntime.getField(objectInstance, "count");
-      expect(val).to.equal(10);
+      expect(val.toJSON()).to.equal(10);
     });
 
     it("getField debe lanzar error si el campo no existe", () => {
@@ -120,30 +112,29 @@ describe("ctx.objRuntime", () => {
 
     it("getField debe lanzar error si el target no es un objeto", () => {
       expect(() => {
-        ctx.objRuntime.getField(123 as any, "count");
+        ctx.objRuntime.getField(new YuNumber(123) as any, "count");
       }).to.throw(/Target is not an object/);
     });
 
     it("setField debe actualizar el valor de un campo existente", () => {
-      ctx.objRuntime.setField(objectInstance, "count", 20);
-      expect(objectInstance.fields.get("count")).to.equal(20);
+      ctx.objRuntime.setField(objectInstance, "count", new YuNumber(20));
+      expect((objectInstance.fields.get("count") as YuValue).toJSON()).to.equal(
+        20,
+      );
     });
 
     it("setField debe lanzar error si intentas crear un campo nuevo (strict mode)", () => {
       expect(() => {
-        ctx.objRuntime.setField(objectInstance, "newProp", 99);
+        ctx.objRuntime.setField(objectInstance, "newProp", new YuNumber(99));
       }).to.throw(/Cannot set unknown field/);
     });
   });
 
   describe("dispatch()", () => {
     it("debe ejecutar un método que accede a 'self' (campos del objeto)", () => {
-      const getCountMethod: RuntimeFunction = {
-        type: "Function",
-        identifier: "getCount",
-        arity: 0,
-        pendingArgs: [],
-        equations: [
+      const getCountMethod = new RuntimeFunction(
+        0,
+        [
           {
             patterns: [],
             body: new UnguardedBody(
@@ -151,31 +142,23 @@ describe("ctx.objRuntime", () => {
             ),
           },
         ],
-      };
+        "getCount",
+        [],
+      );
 
       objectInstance.methods.set("getCount", getCountMethod);
 
       const result = kernel.run(
-        ctx.objRuntime.dispatch(
-          objectInstance,
-          "getCount",
-          [],
-          env,
-        ),
-      );
+        ctx.objRuntime.dispatch(objectInstance, "getCount", []),
+      ) as YuValue;
 
-      expect(result).to.equal(10);
+      expect(result.toJSON()).to.equal(10);
     });
 
     it("debe fallar si el método no existe", () => {
       expect(() => {
         kernel.run(
-          ctx.objRuntime.dispatch(
-            objectInstance,
-            "unknownMethod",
-            [],
-            env,
-          ),
+          ctx.objRuntime.dispatch(objectInstance, "unknownMethod", []),
         );
       }).to.throw(/does not understand 'unknownMethod'/);
     });
@@ -184,10 +167,9 @@ describe("ctx.objRuntime", () => {
       expect(() => {
         kernel.run(
           ctx.objRuntime.dispatch(
-            "soy un string" as any,
+            new YuString("soy un string") as any,
             "toString",
             [],
-            createEmptyEnv() as any,
           ),
         );
       }).to.throw(/is not an object/);
@@ -195,338 +177,214 @@ describe("ctx.objRuntime", () => {
 
     it("debe permitir argumentos en el método", () => {
       const returnArgAST = new Return(new SymbolPrimitive("val"));
-      const addMethod: RuntimeFunction = {
-        type: "Function",
-        identifier: "echo",
-        arity: 1,
-        pendingArgs: [],
-        equations: [
+      const addMethod = new RuntimeFunction(
+        1,
+        [
           {
             patterns: [new VariablePattern(new SymbolPrimitive("val"))],
             body: new UnguardedBody(new Sequence([returnArgAST])),
           },
         ],
-      };
+        "echo",
+        [],
+      );
 
       objectInstance.methods.set("echo", addMethod);
 
       const result = kernel.run(
-        ctx.objRuntime.dispatch(
-          objectInstance,
-          "echo",
-          [999],
-          env,
-        ),
-      );
+        ctx.objRuntime.dispatch(objectInstance, "echo", [new YuNumber(999)]),
+      ) as YuValue;
 
-      expect(result).to.equal(999);
+      expect(result.toJSON()).to.equal(999);
     });
   });
   describe("Method Lookup", () => {
     it("debe delegar a la superclase si el método no está en la instancia ni en la clase", () => {
-      env.head.set(
+      createClass(
+        env,
         "Animal",
-        createClass(
-          "Animal",
-          undefined,
-          createMethodMap([createMethod("speak", new StringPrimitive("Guau"))]),
-        ),
+        undefined,
+        createMethodMap([createMethod("speak", new StringPrimitive("Guau"))]),
       );
-      env.head.set("Perro", createClass("Perro", "Animal"));
+      const Perro = createClass(env, "Perro", "Animal");
 
-      const perro = ctx.objRuntime.instantiate(
-        "Perro",
-        "dogObj",
-        new Map(),
-        new Map(),
-      );
+      const perro = Perro.instantiate("dogObj");
 
       const res = kernel.run(
-        ctx.objRuntime.dispatch(
-          perro,
-          "speak",
-          [],
-          env,
-        ),
-      );
-      expect(res).to.equal("Guau");
+        ctx.objRuntime.dispatch(perro, "speak", []),
+      ) as YuValue;
+      expect(res.toJSON()).to.equal("Guau");
     });
 
     it("debe subir múltiples niveles en la jerarquía (Abuelo -> Padre -> Hijo)", () => {
-      env.head.set(
+      createClass(
+        env,
         "A",
-        createClass(
-          "A",
-          undefined,
-          createMethodMap([createMethod("id", new NumberPrimitive(1))]),
-        ),
+        undefined,
+        createMethodMap([createMethod("id", new NumberPrimitive(1))]),
       );
-      env.head.set("B", createClass("B", "A"));
-      env.head.set("C", createClass("C", "B"));
+      createClass(env, "B", "A");
+      const C = createClass(env, "C", "B");
 
-      const objC = ctx.objRuntime.instantiate(
-        "C",
-        "objC",
-        new Map(),
-        new Map(),
-      );
+      const objC = C.instantiate("objC");
       expect(
-        kernel.run(
-          ctx.objRuntime.dispatch(
-            objC,
-            "id",
-            [],
-            env,
-          ),
-        ),
+        (
+          kernel.run(ctx.objRuntime.dispatch(objC, "id", [])) as YuValue
+        ).toJSON(),
       ).to.equal(1);
     });
 
     it("debe encontrar métodos definidos en un Mixin", () => {
-      env.head.set(
+      createClass(
+        env,
         "Volador",
-        createClass(
-          "Volador",
-          undefined,
-          createMethodMap([createMethod("volar", new StringPrimitive("Wosh"))]),
-        ),
+        undefined,
+        createMethodMap([createMethod("volar", new StringPrimitive("Wosh"))]),
       );
-      env.head.set(
-        "Ave",
-        createClass("Ave", undefined, undefined, ["Volador"]),
-      );
+      const Ave = createClass(env, "Ave", undefined, undefined, ["Volador"]);
 
-      const pepita = ctx.objRuntime.instantiate(
-        "Ave",
-        "birdObj",
-        new Map(),
-        new Map(),
-      );
+      const pepita = Ave.instantiate("birdObj");
       expect(
-        kernel.run(
-          ctx.objRuntime.dispatch(
-            pepita,
-            "volar",
-            [],
-            env,
-          ),
-        ),
+        (
+          kernel.run(ctx.objRuntime.dispatch(pepita, "volar", [])) as YuValue
+        ).toJSON(),
       ).to.equal("Wosh");
     });
 
     it("debe soportar Mixines recursivos (Mixin incluye otro Mixin)", () => {
-      env.head.set(
+      createClass(
+        env,
         "HabilidadA",
-        createClass(
-          "HabilidadA",
-          undefined,
-          createMethodMap([createMethod("skill", new StringPrimitive("Fire"))]),
-        ),
+        undefined,
+        createMethodMap([createMethod("skill", new StringPrimitive("Fire"))]),
       );
-      env.head.set(
+      createClass(env, "HabilidadB", undefined, undefined, ["HabilidadA"]);
+      const Heroe = createClass(env, "Heroe", undefined, undefined, [
         "HabilidadB",
-        createClass("HabilidadB", undefined, undefined, ["HabilidadA"]),
-      );
-      env.head.set(
-        "Heroe",
-        createClass("Heroe", undefined, undefined, ["HabilidadB"]),
-      );
+      ]);
 
-      const heroe = ctx.objRuntime.instantiate(
-        "Heroe",
-        "heroObj",
-        new Map(),
-        new Map(),
-      );
+      const heroe = Heroe.instantiate("heroObj");
       expect(
-        kernel.run(
-          ctx.objRuntime.dispatch(
-            heroe,
-            "skill",
-            [],
-            env,
-          ),
-        ),
+        (
+          kernel.run(ctx.objRuntime.dispatch(heroe, "skill", [])) as YuValue
+        ).toJSON(),
       ).to.equal("Fire");
     });
 
     it("Prioridad: La Clase Propia gana a Mixines y Superclase", () => {
-      env.head.set(
+      createClass(
+        env,
         "Super",
-        createClass(
-          "Super",
-          undefined,
-          createMethodMap([createMethod("val", new NumberPrimitive(1))]),
-        ),
+        undefined,
+        createMethodMap([createMethod("val", new NumberPrimitive(1))]),
       );
-      env.head.set(
+      createClass(
+        env,
         "Mixin",
-        createClass(
-          "Mixin",
-          undefined,
-          createMethodMap([createMethod("val", new NumberPrimitive(2))]),
-        ),
+        undefined,
+        createMethodMap([createMethod("val", new NumberPrimitive(2))]),
       );
 
-      env.head.set(
+      const Child = createClass(
+        env,
         "Child",
-        createClass(
-          "Child",
-          "Super",
-          createMethodMap([createMethod("val", new NumberPrimitive(3))]),
-          ["Mixin"],
-        ),
+        "Super",
+        createMethodMap([createMethod("val", new NumberPrimitive(3))]),
+        ["Mixin"],
       );
 
-      const child = ctx.objRuntime.instantiate(
-        "Child",
-        "childObj",
-        new Map(),
-        new Map(),
-      );
+      const child = Child.instantiate("childObj");
       expect(
-        kernel.run(
-          ctx.objRuntime.dispatch(
-            child,
-            "val",
-            [],
-            env,
-          ),
-        ),
+        (
+          kernel.run(ctx.objRuntime.dispatch(child, "val", [])) as YuValue
+        ).toJSON(),
       ).to.equal(3);
     });
 
     it("Prioridad: El Mixin gana a la Superclase", () => {
-      env.head.set(
+      createClass(
+        env,
         "Super",
-        createClass(
-          "Super",
-          undefined,
-          createMethodMap([createMethod("val", new NumberPrimitive(1))]),
-        ),
+        undefined,
+        createMethodMap([createMethod("val", new NumberPrimitive(1))]),
       );
-      env.head.set(
+      createClass(
+        env,
         "Mixin",
-        createClass(
-          "Mixin",
-          undefined,
-          createMethodMap([createMethod("val", new NumberPrimitive(2))]),
-        ),
+        undefined,
+        createMethodMap([createMethod("val", new NumberPrimitive(2))]),
       );
-      env.head.set(
-        "Child",
-        createClass("Child", "Super", undefined, ["Mixin"]),
-      );
+      const Child = createClass(env, "Child", "Super", undefined, ["Mixin"]);
 
-      const child = ctx.objRuntime.instantiate(
-        "Child",
-        "childObj",
-        new Map(),
-        new Map(),
-      );
+      const child = Child.instantiate("childObj");
       expect(
-        kernel.run(
-          ctx.objRuntime.dispatch(
-            child,
-            "val",
-            [],
-            env,
-          ),
-        ),
+        (
+          kernel.run(ctx.objRuntime.dispatch(child, "val", [])) as YuValue
+        ).toJSON(),
       ).to.equal(2);
     });
 
     it("Prioridad: El último Mixin de la lista gana (Shadowing de derecha a izquierda)", () => {
-      env.head.set(
+      createClass(
+        env,
         "MixinA",
-        createClass(
-          "MixinA",
-          undefined,
-          createMethodMap([createMethod("val", new NumberPrimitive(10))]),
-        ),
+        undefined,
+        createMethodMap([createMethod("val", new NumberPrimitive(10))]),
       );
-      env.head.set(
+      createClass(
+        env,
         "MixinB",
-        createClass(
-          "MixinB",
-          undefined,
-          createMethodMap([createMethod("val", new NumberPrimitive(20))]),
-        ),
+        undefined,
+        createMethodMap([createMethod("val", new NumberPrimitive(20))]),
       );
 
-      env.head.set(
-        "Clase",
-        createClass("Clase", undefined, undefined, ["MixinA", "MixinB"]),
-      );
+      const Clase = createClass(env, "Clase", undefined, undefined, [
+        "MixinA",
+        "MixinB",
+      ]);
 
-      const obj = ctx.objRuntime.instantiate(
-        "Clase",
-        "objC",
-        new Map(),
-        new Map(),
-      );
+      const obj = Clase.instantiate("objC");
       expect(
-        kernel.run(
-          ctx.objRuntime.dispatch(
-            obj,
-            "val",
-            [],
-            env,
-          ),
-        ),
+        (
+          kernel.run(ctx.objRuntime.dispatch(obj, "val", [])) as YuValue
+        ).toJSON(),
       ).to.equal(20);
     });
 
     it("Prioridad: Orden inverso de Mixines", () => {
-      env.head.set(
+      createClass(
+        env,
         "MixinA",
-        createClass(
-          "MixinA",
-          undefined,
-          createMethodMap([createMethod("val", new NumberPrimitive(10))]),
-        ),
+        undefined,
+        createMethodMap([createMethod("val", new NumberPrimitive(10))]),
       );
-      env.head.set(
+      createClass(
+        env,
         "MixinB",
-        createClass(
-          "MixinB",
-          undefined,
-          createMethodMap([createMethod("val", new NumberPrimitive(20))]),
-        ),
+        undefined,
+        createMethodMap([createMethod("val", new NumberPrimitive(20))]),
       );
 
-      env.head.set(
-        "Clase",
-        createClass("Clase", undefined, undefined, ["MixinB", "MixinA"]),
-      );
+      const Clase = createClass(env, "Clase", undefined, undefined, [
+        "MixinB",
+        "MixinA",
+      ]);
 
-      const obj = ctx.objRuntime.instantiate(
-        "Clase",
-        "obj",
-        new Map(),
-        new Map(),
-      );
+      const obj = Clase.instantiate("obj");
       expect(
-        kernel.run(
-          ctx.objRuntime.dispatch(
-            obj,
-            "val",
-            [],
-            env,
-          ),
-        ),
+        (
+          kernel.run(ctx.objRuntime.dispatch(obj, "val", [])) as YuValue
+        ).toJSON(),
       ).to.equal(10);
     });
   });
   describe("Super", () => {
     it("debe invocar al método de la superclase y operar con el resultado", () => {
-      env.head.set(
+      createClass(
+        env,
         "Base",
-        createClass(
-          "Base",
-          undefined,
-          createMethodMap([createMethod("calc", new NumberPrimitive(10))]),
-        ),
+        undefined,
+        createMethodMap([createMethod("calc", new NumberPrimitive(10))]),
       );
 
       const astBody = new UnguardedBody(
@@ -541,41 +399,33 @@ describe("ctx.objRuntime", () => {
         ]),
       );
 
-      const methodHijo: RuntimeFunction = {
-        type: "Function",
-        identifier: "calc",
-        arity: 0,
-        pendingArgs: [],
-        equations: [
+      const methodHijo = new RuntimeFunction(
+        0,
+        [
           {
             patterns: [],
             body: astBody,
           },
         ],
-      };
-
-      const Hijo: RuntimeClass = {
-        type: "Class",
-        identifier: "Hijo",
-        fields: new Map(),
-        methods: new Map([["calc", methodHijo]]),
-        superclass: "Base",
-        mixins: [],
-      };
-      env.head.set("Hijo", Hijo);
-
-      const hijoInstance = ctx.objRuntime.instantiate(
-        "Hijo",
-        "childObj",
-        new Map(),
-        new Map(),
+        "calc",
+        [],
       );
+
+      const Hijo = createClass(
+        env,
+        "Hijo",
+        "Base",
+        new Map([["calc", methodHijo]]),
+        [],
+      );
+
+      const hijoInstance = Hijo.instantiate("childObj");
 
       const result = kernel.run(
-        ctx.objRuntime.dispatch(hijoInstance, "calc", [], env),
-      );
+        ctx.objRuntime.dispatch(hijoInstance, "calc", []),
+      ) as YuValue;
 
-      expect(result).to.equal(15);
+      expect(result.toJSON()).to.equal(15);
     });
   });
 });

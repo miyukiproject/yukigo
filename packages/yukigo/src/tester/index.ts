@@ -95,6 +95,7 @@ class TestExecutor extends TraverseVisitor {
     if (error instanceof FailedAssert)
       return { name, status: "failed", message: error.message, duration };
 
+    console.error(error);
     const message = error instanceof Error ? error.message : String(error);
     return { name, status: "error", message, duration };
   }

@@ -11,7 +11,6 @@ import {
   Object as AstObject,
   PrimitiveMethod,
   Implement,
-  ASTNode,
   Equation,
   UnguardedBody,
   Sequence,
@@ -20,6 +19,7 @@ import {
   Print,
   StringPrimitive,
   Variable,
+  SourceLocation,
 } from "yukigo-ast";
 import { Analyzer, InspectionRule } from "../../src/analyzer/index.js";
 
@@ -150,7 +150,7 @@ describe("OOP Inspections", () => {
   describe("DeclaresPrimitive", () => {
     it("should detect primitive operator override", () => {
       const op: any = "==";
-      const ast = [new PrimitiveMethod(op, [], undefined)];
+      const ast = [new PrimitiveMethod(op, [], new SourceLocation(0,0))];
       expect(runSingleRule(ast, "DeclaresPrimitive", true, undefined, ["=="]))
         .to.be.true;
     });

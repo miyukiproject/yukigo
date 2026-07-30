@@ -3,28 +3,45 @@ import {
   ASTNode,
   Attribute,
   Class,
-  EquationRuntime,
   Fact,
   Function,
-  isRuntimePredicate,
   Method,
-  PrimitiveValue,
   Rule,
-  RuntimeClass,
-  RuntimeFunction,
   TraverseVisitor,
   Object,
-  RuntimeObject,
   Variable,
-  Return,
   Sequence,
-  SymbolPrimitive,
 } from "yukigo-ast";
 import { InterpreterVisitor } from "./Visitor.js";
 import { RuntimeContext } from "./RuntimeContext.js";
 import { InterpreterError, UnexpectedNode } from "../errors.js";
 import { YukigoKernel } from "./kernel/index.js";
 import { EvalCommand } from "./kernel/commands.js";
+import { RuntimeFunction, EquationRuntime, RuntimeClass, RuntimeObject, isRuntimePredicate, RuntimePredicate, YuValue } from "../primitives/index.js";
+
+class NotValidPredicate extends InterpreterError {
+  constructor(identifier: string) {
+    super(
+      "[EnvBuilder]",
+      `"${identifier}" is not a predicate. Maybe there is something else defined as "${identifier}"?`,
+    );
+  }
+}
+
+class FunctionWithNoEquations extends InterpreterError {
+  constructor(identifier: string) {
+    super("[EnvBuilder]", `Function ${identifier} has no equations`);
+  }
+}
+
+class FunctionArityMismatch extends InterpreterError {
+  constructor(identifier: string) {
+    super(
+      "[EnvBuilder]",
+      `All equations of ${identifier} must have the same arity`,
+    );
+  }
+}
 
 /**
  * Builds the initial environment by collecting all top-level function declarations.
@@ -47,15 +64,14 @@ export class EnvBuilderVisitor extends TraverseVisitor {
     if (this.ctx.config.debug)
       console.log(`[EnvBuilder] Defining function: ${name}`);
 
-    if (node.equations.length === 0)
-      throw new Error(`Function ${name} has no equations`);
+    if (node.equations.length === 0) throw new FunctionWithNoEquations(name);
 
     const arity = node.equations[0].patterns.length;
 
     if (node.equations.some((eq) => eq.patterns.length !== arity))
-      throw new Error(`All equations of ${name} must have the same arity`);
+      throw new FunctionArityMismatch(name);
 
-    let placeholder: RuntimeFunction = {type: "Function", arity: 0, equations: []};
+    let placeholder = new RuntimeFunction(0, []);
     this.ctx.define(name, placeholder);
 
     const equations: EquationRuntime[] = node.equations.map((eq) => ({
@@ -63,13 +79,13 @@ export class EnvBuilderVisitor extends TraverseVisitor {
       body: eq.body,
     }));
 
-    const runtimeFunc: RuntimeFunction = {
-      type: "Function",
-      identifier: name,
+    const runtimeFunc = new RuntimeFunction(
       arity,
       equations,
-      closure: this.ctx.env,
-    };
+      name,
+      undefined,
+      this.ctx.env,
+    );
     this.ctx.define(name, runtimeFunc);
   }
   visitClass(node: Class): void {
@@ -88,14 +104,13 @@ export class EnvBuilderVisitor extends TraverseVisitor {
     const fields = collector.collectedFields;
     const methods = collector.collectedMethods;
 
-    const runtimeClass: RuntimeClass = {
-      type: "Class",
+    const runtimeClass = new RuntimeClass(
       identifier,
       fields,
       methods,
-      superclass,
       mixins,
-    };
+      superclass,
+    );
 
     this.ctx.define(identifier, runtimeClass);
   }
@@ -111,13 +126,7 @@ export class EnvBuilderVisitor extends TraverseVisitor {
     const fields = collector.collectedFields;
     const methods = collector.collectedMethods;
 
-    const runtimeObject: RuntimeObject = {
-      type: "Object",
-      identifier,
-      className: "",
-      fields,
-      methods,
-    };
+    const runtimeObject = new RuntimeObject(identifier, "", fields, methods);
 
     this.ctx.define(identifier, runtimeObject);
   }
@@ -126,20 +135,15 @@ export class EnvBuilderVisitor extends TraverseVisitor {
 
     if (this.ctx.config.debug)
       console.log(`[EnvBuilder] Defining fact: ${identifier}`);
-    try {
+
+    if (this.ctx.isDefined(identifier)) {
       const runtimeValue = this.ctx.lookup(identifier);
       if (!isRuntimePredicate(runtimeValue))
-        throw new InterpreterError(
-          "EnvBuilder",
-          `"${identifier}" is not a predicate. Maybe there is something else defined as "${identifier}"?`,
-        );
-      runtimeValue.equations.push(node);
-    } catch (error) {
-      this.ctx.define(identifier, {
-        kind: "Predicate",
-        identifier,
-        equations: [node],
-      });
+        throw new NotValidPredicate(identifier);
+      runtimeValue.addClause(node);
+    } else {
+      const predicate = new RuntimePredicate(identifier, [node]);
+      this.ctx.define(identifier, predicate);
     }
   }
 
@@ -148,20 +152,15 @@ export class EnvBuilderVisitor extends TraverseVisitor {
 
     if (this.ctx.config.debug)
       console.log(`[EnvBuilder] Defining rule: ${identifier}`);
-    try {
+
+    if (this.ctx.isDefined(identifier)) {
       const runtimeValue = this.ctx.lookup(identifier);
       if (!isRuntimePredicate(runtimeValue))
-        throw new InterpreterError(
-          "EnvBuilder",
-          `"${identifier}" is not a predicate. Maybe there is something else defined as "${identifier}"?`,
-        );
-      runtimeValue.equations.push(node);
-    } catch (error) {
-      this.ctx.define(identifier, {
-        kind: "Predicate",
-        identifier,
-        equations: [node],
-      });
+        throw new NotValidPredicate(identifier);
+      runtimeValue.addClause(node);
+    } else {
+      const predicate = new RuntimePredicate(identifier, [node]);
+      this.ctx.define(identifier, predicate);
     }
   }
   visitVariable(node: Variable): void {
@@ -184,14 +183,14 @@ export class EnvBuilderVisitor extends TraverseVisitor {
 
 class OOPCollector extends TraverseVisitor {
   public collectedMethods: Map<string, RuntimeFunction> = new Map();
-  public collectedFields: Map<string, PrimitiveValue> = new Map();
+  public collectedFields: Map<string, YuValue> = new Map();
   visitMethod(node: Method) {
-    const runtimeMethod: RuntimeFunction = {
-      type: "Function",
-      identifier: node.identifier.value,
-      arity: node.equations[0].patterns.length,
-      equations: node.equations,
-    };
+    const runtimeMethod = new RuntimeFunction(
+      node.equations[0].patterns.length,
+      node.equations,
+      node.identifier.value,
+    );
+
     this.collectedMethods.set(node.identifier.value, runtimeMethod);
   }
 

@@ -1,18 +1,12 @@
 import {
   Fact,
   Rule,
-  isRuntimePredicate,
   UnguardedBody,
   Visitor,
   isUnguardedBody,
   GuardedBody,
   ASTNode,
-  Substitution,
-  isLogicResult,
-  LogicResult,
-  LogicAnswer,
   Pattern,
-  LogicTerm,
 } from "yukigo-ast";
 import { LogicExecutable } from "./LogicEngine.js";
 import { RuntimeContext } from "../RuntimeContext.js";
@@ -27,6 +21,15 @@ import {
 } from "../kernel/commands.js";
 import { LogicTranslator } from "./LogicTranslator.js";
 import { VariableTerm } from "./LogicTerm.js";
+import {
+  LogicTerm,
+  Substitution,
+  isLogicResult,
+  LogicResult,
+  LogicAnswer,
+  isRuntimePredicate,
+  YuBoolean,
+} from "../../primitives/index.js";
 
 /**
  * Unified parameter list unification.
@@ -37,13 +40,22 @@ function unifyParameters(
   baseSubst: Substitution,
   translator: LogicTranslator,
   scope: Map<string, VariableTerm>,
-): Substitution | null {
-  let subst: Substitution = new Map(baseSubst);
-  for (let i = 0; i < patterns.length; i++) {
-    const term = translator.patternToTerm(patterns[i], scope);
-    if (!term.unify(args[i], subst)) return null;
-  }
-  return subst;
+  onSuccess: (subst: Substitution) => ExecutionCommand,
+  onFailure: () => ExecutionCommand,
+): ExecutionCommand {
+  const next = (index: number, currentSubst: Substitution): ExecutionCommand => {
+    if (index >= patterns.length) {
+      return onSuccess(currentSubst);
+    }
+    const term = translator.patternToTerm(patterns[index], scope);
+    return new BindCommand(term.unify(args[index], currentSubst), (res) => {
+      if (res instanceof YuBoolean && res.value) {
+        return next(index + 1, currentSubst);
+      }
+      return onFailure();
+    });
+  };
+  return next(0, new Map(baseSubst));
 }
 
 class KernelBodyVisitor implements Visitor<ExecutionCommand> {
@@ -100,54 +112,53 @@ export class GoalKernelVisitor implements Visitor<ExecutionCommand> {
   ) {}
 
   public visitFact(fact: Fact): ExecutionCommand {
-    if (fact.patterns.length !== this.args.length)
-      return new BacktrackCommand();
-
     const scope = new Map<string, VariableTerm>();
-    const substs = unifyParameters(
+    return unifyParameters(
       fact.patterns,
       this.args,
       this.baseSubst,
       this.translator,
       scope,
+      (substs) => new StepCommand(new LogicResult([new LogicAnswer(true, substs)])),
+      () => new BacktrackCommand(),
     );
-
-    if (!substs) return new BacktrackCommand();
-    return new StepCommand(new LogicResult([new LogicAnswer(true, substs)]));
   }
 
   public visitRule(rule: Rule): ExecutionCommand {
-    if (rule.equations.length === 0) return new BacktrackCommand();
+    const tryEquation = (eqIndex: number): ExecutionCommand => {
+      if (eqIndex >= rule.equations.length) {
+        return new BacktrackCommand();
+      }
 
-    const arity = rule.equations[0].patterns.length;
-    if (arity !== this.args.length) return new BacktrackCommand();
-
-    const alternatives: ExecutionCommand[] = [];
-
-    for (const eq of rule.equations) {
+      const eq = rule.equations[eqIndex];
       const scope = new Map<string, VariableTerm>();
-      const substs = unifyParameters(
+
+      return unifyParameters(
         eq.patterns,
         this.args,
         this.baseSubst,
         this.translator,
         scope,
+        (substs) => {
+          const bodyVisitor = new KernelBodyVisitor(this.solveBody, substs, scope);
+          let currentCmd: ExecutionCommand;
+          if (isUnguardedBody(eq.body)) {
+            currentCmd = eq.body.accept(bodyVisitor);
+          } else {
+            const branches = eq.body.map((b) => b.accept(bodyVisitor));
+            currentCmd = branches.length === 1 ? branches[0] : new ChoiceCommand(branches);
+          }
+
+          return new ChoiceCommand([
+            currentCmd,
+            tryEquation(eqIndex + 1),
+          ]);
+        },
+        () => tryEquation(eqIndex + 1),
       );
-      if (!substs) continue;
-      const bodyVisitor = new KernelBodyVisitor(this.solveBody, substs, scope);
+    };
 
-      if (isUnguardedBody(eq.body)) {
-        alternatives.push(eq.body.accept(bodyVisitor));
-      } else {
-        const branches = eq.body.map((b) => b.accept(bodyVisitor));
-        alternatives.push(new ChoiceCommand(branches));
-      }
-    }
-
-    if (alternatives.length === 0) return new BacktrackCommand();
-    return alternatives.length === 1
-      ? alternatives[0]
-      : new ChoiceCommand(alternatives);
+    return tryEquation(0);
   }
 
   public fallback(node: ASTNode): ExecutionCommand {
@@ -172,28 +183,19 @@ export function solveGoalKernel(
   baseSubst: Substitution,
   translator: LogicTranslator,
 ): ExecutionCommand {
-  let equations: (Rule | Fact)[];
+  const pred = ctx.isDefined(predicateName) ? ctx.lookup(predicateName) : null;
 
-  try {
-    const pred = ctx.lookup(predicateName);
-    if (!pred || !isRuntimePredicate(pred)) return new BacktrackCommand();
-    equations = pred.equations;
-  } catch (error) {
-    return new BacktrackCommand();
-  }
+  const validPredicate =
+    !!pred && isRuntimePredicate(pred) && pred.validateArity(args.length);
 
-  const clauseVisitor = new GoalKernelVisitor(
-    args,
-    baseSubst,
-    solveBody,
-    translator,
-  );
+  if (!validPredicate) return new BacktrackCommand();
 
-  const choices: ExecutionCommand[] = equations
-    .map((clause) => clause.accept(clauseVisitor))
+  const visitor = new GoalKernelVisitor(args, baseSubst, solveBody, translator);
+
+  const choices = pred
+    .apply(visitor)
     .filter((c) => !(c instanceof FailCommand));
 
   if (choices.length === 0) return new BacktrackCommand();
-
   return choices.length === 1 ? choices[0] : new ChoiceCommand(choices);
 }

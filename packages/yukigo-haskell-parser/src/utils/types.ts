@@ -1,5 +1,3 @@
-import { YukigoPrimitive } from "yukigo-ast";
-
 export const keywords = [
   "type",
   "where",
@@ -35,11 +33,11 @@ export const keywords = [
 ];
 
 export enum YUTYPES { // primitivos 
-  YuNumber = "YuNumber", 
-  YuString = "YuString", 
-  YuChar = "YuChar", 
-  YuBoolean = "YuBoolean", 
-  YuNil = "YuNil", 
+  YuNumber = "Number", 
+  YuString = "String", 
+  YuChar = "Char", 
+  YuBoolean = "Boolean", 
+  YuNil = "Nil", 
   // constructores 
   Tuple = "Tuple", 
   List = "List", 

@@ -1,24 +1,23 @@
-import {
-  ASTNode,
-  isLogicResult,
-  LogicAnswer,
-  LogicResult,
-  LogicTerm,
-  Pattern,
-  PrimitiveValue,
-  Substitution,
-} from "yukigo-ast";
+import { ASTNode, Pattern } from "yukigo-ast";
 import { YukigoKernel } from "./index.js";
 import { ErrorFrame } from "../../errors.js";
 import { LogicTranslator } from "../logic/LogicTranslator.js";
 import { Scope } from "../logic/LogicEngine.js";
 import { ListTerm } from "../logic/LogicTerm.js";
 import { InterpreterVisitor } from "../Visitor.js";
+import {
+  YuValue,
+  Substitution,
+  isLogicResult,
+  LogicResult,
+  LogicAnswer,
+  LogicTerm,
+} from "../../primitives/index.js";
 
 /**
  * A Continuation is a function that receives a value and decides what is the next Command to execute
  */
-export type Continuation = (result: PrimitiveValue) => ExecutionCommand;
+export type Continuation = (result: YuValue) => ExecutionCommand;
 
 export type TraceEntry = { frame: ErrorFrame; key: string };
 
@@ -58,7 +57,7 @@ export class EvalCommand implements ExecutionCommand {
 export class StepCommand implements ExecutionCommand {
   readonly name = "STEP";
 
-  constructor(public readonly value: PrimitiveValue) {}
+  constructor(public readonly value: YuValue) {}
 
   execute(kernel: YukigoKernel): ExecutionCommand | void {
     return kernel.popAndExecute(this.value);

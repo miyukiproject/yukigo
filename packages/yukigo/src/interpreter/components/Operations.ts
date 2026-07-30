@@ -1,108 +1,130 @@
-import { PrimitiveValue } from "yukigo-ast";
-import { isArrayOfNumbers } from "../utils.js";
+import { InterpreterError } from "../errors.js";
+import {
+  YuNumeric,
+  YuComparable,
+  YuLogic,
+  YuSummable,
+  YuSequence,
+} from "../primitives/capabilities.js";
+import { YuValue, YuNumber, YuArray, YuString } from "../primitives/index.js";
+import { compareResult, not, number } from "../utils.js";
+import { ExecutionCommand, StepCommand } from "./kernel/commands.js";
 
-export type UnaryOp<T, R = T> = (x: T) => R;
-export type BinaryOp<T, R = T> = (x: T, y: T) => R;
-export type OperatorTable<T> = Record<string, T>;
+export type UnaryOp<T extends YuValue> = (x: T) => ExecutionCommand;
+export type BinaryOp<T1 extends YuValue, T2 = T1> = (
+  x: T1,
+  y: T2,
+) => ExecutionCommand;
+export type BinaryTable<T1 extends YuValue, T2 = T1> = Record<
+  string,
+  BinaryOp<T1, T2>
+>;
+export type UnaryTable<T extends YuValue> = Record<string, UnaryOp<T>>;
 
-export const ArithmeticBinaryTable: OperatorTable<BinaryOp<number>> = {
-  Plus: (a, b) => a + b,
-  Minus: (a, b) => a - b,
-  Multiply: (a, b) => a * b,
-  Divide: (a, b) => a / b,
-  Modulo: (a, b) => a % b,
-  Power: (a, b) => a ** b,
-  Min: (a, b) => Math.min(a, b),
-  Max: (a, b) => Math.max(a, b),
+export const ArithmeticBinaryTable: BinaryTable<YuNumeric> = {
+  Plus: (a, b) => a.plus(b),
+  Minus: (a, b) => a.minus(b),
+  Multiply: (a, b) => a.multiply(b),
+  Divide: (a, b) => a.divide(b),
+  Modulo: (a, b) => a.modulo(b),
+  Power: (a, b) => a.power(b),
+  Min: (a, b) => a.min(b),
+  Max: (a, b) => a.max(b),
 };
 
-export const ComparisonOperationTable: OperatorTable<BinaryOp<boolean>> = {
-  Equal: (a, b) => a == b,
-  NotEqual: (a, b) => a != b,
-  Same: (a, b) => a === b,
-  NotSame: (a, b) => a !== b,
-  //Similar: (a, b) => ,
-  //NotSimilar: (a, b) => ,
-  GreaterOrEqualThan: (a, b) => a >= b,
-  GreaterThan: (a, b) => a > b,
-  LessOrEqualThan: (a, b) => a <= b,
-  LessThan: (a, b) => a < b,
-};
-export const LogicalBinaryTable: OperatorTable<
-  (l: boolean, r: () => boolean) => boolean
-> = {
-  And: (left: boolean, rightThunk: () => boolean) => left && rightThunk(),
-  Or: (left: boolean, rightThunk: () => boolean) => left || rightThunk(),
+export const ComparisonOperationTable: BinaryTable<YuComparable> = {
+  Equal: (a, b) => a.equals(b),
+  NotEqual: (a, b) => not(a.equals(b)),
+  Same: (a, b) => a.isSame(b),
+  NotSame: (a, b) => not(a.isSame(b)),
+  GreaterOrEqualThan: (a, b) => compareResult(a.compare(b), (res) => res >= 0),
+  GreaterThan: (a, b) => compareResult(a.compare(b), (res) => res > 0),
+  LessOrEqualThan: (a, b) => compareResult(a.compare(b), (res) => res <= 0),
+  LessThan: (a, b) => compareResult(a.compare(b), (res) => res < 0),
 };
 
-export const BitwiseBinaryTable: OperatorTable<BinaryOp<number>> = {
-  BitwiseOr: (a, b) => a | b,
-  BitwiseAnd: (a, b) => a & b,
-  BitwiseLeftShift: (a, b) => a << b,
-  BitwiseRightShift: (a, b) => a >> b,
-  BitwiseUnsignedRightShift: (a, b) => a >>> b,
-  BitwiseXor: (a, b) => a ^ b,
+export const LogicalBinaryTable: BinaryTable<YuLogic, () => ExecutionCommand> =
+  {
+    And: (left, rightThunk) =>
+      left.value ? rightThunk() : new StepCommand(left),
+    Or: (left, rightThunk) =>
+      left.value ? new StepCommand(left) : rightThunk(),
+  };
+
+export const StringOperationTable: BinaryTable<YuSummable> = {
+  Concat: (a, b) => a.plus(b),
 };
 
-class StringConcatError extends Error {
-  constructor(a: any, b: any) {
-    super(
-      `String Concatenation: operands must be strings or numbers, got ${typeof a} and ${typeof b}`,
-    );
-  }
-}
+export const BitwiseBinaryTable: BinaryTable<YuNumeric> = {
+  BitwiseOr: (a, b) =>
+    new StepCommand(
+      new YuNumber(a.value | b.value),
+    ),
+  BitwiseAnd: (a, b) =>
+    new StepCommand(
+      new YuNumber(a.value & b.value),
+    ),
+  BitwiseLeftShift: (a, b) =>
+    new StepCommand(
+      new YuNumber(a.value << b.value),
+    ),
+  BitwiseRightShift: (a, b) =>
+    new StepCommand(
+      new YuNumber(a.value >> b.value),
+    ),
+  BitwiseUnsignedRightShift: (a, b) =>
+    new StepCommand(
+      new YuNumber(a.value >>> b.value),
+    ),
+  BitwiseXor: (a, b) =>
+    new StepCommand(
+      new YuNumber(a.value ^ b.value),
+    ),
+};
 
-export const StringOperationTable: OperatorTable<BinaryOp<any, string>> = {
-  Concat: (a, b) => {
-    const validConcatType = (operand: unknown) =>
-      typeof operand === "string" || typeof operand === "number";
-    if (!validConcatType(a) || !validConcatType(b))
-      throw new StringConcatError(a, b);
+export const BitwiseUnaryTable: UnaryTable<YuNumeric> = {
+  BitwiseNot: (a) => number(~a.value),
+};
 
-    return String(a) + String(b);
+export const LogicalUnaryTable: UnaryTable<YuLogic> = {
+  Negation: (a) => a.not(),
+};
+
+export const ListBinaryTable: BinaryTable<YuSequence> = {
+  Concat: (a, b) => a.concat(b),
+};
+
+export const ListUnaryTable: UnaryTable<YuSequence> = {
+  Size: (a) => a.size(),
+  DetectMax: (a) => {
+    const items = [...a].map((i) => {
+      const n = i.toJSON();
+      if (typeof n !== "number") throw new Error("DetectMax requires numbers"); // TODO:make it work with chars, etc.
+      return n;
+    });
+    return number(Math.max(...items));
+  },
+  DetectMin: (a) => {
+    const items = [...a].map((i) => {
+      const n = i.toJSON();
+      if (typeof n !== "number") throw new Error("DetectMin requires numbers"); // TODO: make it work with chars, etc.
+      return n;
+    });
+    return number(Math.min(...items));
+  },
+  Flatten: (a) => {
+    if (!(a instanceof YuArray))
+      throw new InterpreterError("[Flat operator]", "Operand must be a YuArray");
+    return new StepCommand(a.flat());
   },
 };
 
-export const BitwiseUnaryTable: OperatorTable<UnaryOp<number>> = {
-  BitwiseNot: (a) => ~a,
-};
-export const LogicalUnaryTable: OperatorTable<UnaryOp<boolean>> = {
-  Negation: (a: boolean) => !a,
-};
-export const ListBinaryTable: OperatorTable<BinaryOp<any, PrimitiveValue>> = {
-  Concat: (a, b) => {
-    const res = a.concat(b);
-    if (typeof a === "string" && typeof b === "string") {
-      const hasNonString = res.some((c: any) => typeof c !== "string");
-      if (!hasNonString) return res.join("");
-    }
-    return res;
-  },
-};
-export const ListUnaryTable: OperatorTable<
-  UnaryOp<PrimitiveValue[], PrimitiveValue>
-> = {
-  Size: (a: PrimitiveValue[]) => a.length,
-  DetectMax: (a: PrimitiveValue[]) => {
-    if (!isArrayOfNumbers(a))
-      throw new Error("Operand of DetectMax must be Array of numbers");
-    return Math.max(...a);
-  },
-  DetectMin: (a: PrimitiveValue[]) => {
-    if (!isArrayOfNumbers(a))
-      throw new Error("Operand of DetectMin must be Array of numbers");
-    return Math.min(...a);
-  },
-  Flatten: (a: PrimitiveValue[]) => a.flat(),
-};
-export const ArithmeticUnaryTable: OperatorTable<
-  UnaryOp<number, number | string>
-> = {
-  Round: (a) => Math.round(a),
-  Absolute: (a) => Math.abs(a),
-  Ceil: (a) => Math.ceil(a),
-  Floor: (a) => Math.floor(a),
-  Negation: (a) => a * -1,
-  Sqrt: (a) => Math.sqrt(a),
-  ToString: (a) => String(a),
+export const ArithmeticUnaryTable: UnaryTable<YuNumeric> = {
+  Round: (a) => a.round(),
+  Absolute: (a) => a.abs(),
+  Ceil: (a) => a.ceil(),
+  Floor: (a) => a.floor(),
+  Negation: (a) => a.negation(),
+  Sqrt: (a) => a.sqrt(),
+  ToString: (a) => new StepCommand(new YuString(String(a.toJSON()))),
 };

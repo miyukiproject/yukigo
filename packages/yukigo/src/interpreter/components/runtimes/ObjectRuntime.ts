@@ -1,15 +1,20 @@
-import {
-  PrimitiveValue,
-  RuntimeFunction,
-  RuntimeObject,
-  isRuntimeObject,
-  isRuntimeClass,
-  RuntimeClass,
-  EnvStack,
-} from "yukigo-ast";
 import { InterpreterError } from "../../errors.js";
+import {
+  YuValue,
+  RuntimeClass,
+  RuntimeObject,
+  RuntimeFunction,
+  isRuntimeObject,
+  YuString,
+  isRuntimeClass,
+  YuBoolean,
+} from "../../primitives/index.js";
 import { RuntimeContext } from "../RuntimeContext.js";
-import { ExecutionCommand } from "../kernel/commands.js";
+import {
+  ExecutionCommand,
+  BindCommand,
+  StepCommand,
+} from "../kernel/commands.js";
 
 type OOPEntity = RuntimeClass | RuntimeObject;
 
@@ -21,38 +26,18 @@ type OOPMatch = {
 export class ObjectRuntime {
   constructor(private context: RuntimeContext) {}
   /**
-   * Creates a new instance of an Object.
-   * Typically called by visitNew()
-   */
-  public instantiate(
-    className: string,
-    identifier: string,
-    fieldDefinitions: Map<string, PrimitiveValue>,
-    methodDefinitions: Map<string, RuntimeFunction>,
-  ): RuntimeObject {
-    return {
-      type: "Object",
-      className,
-      identifier,
-      fields: new Map(fieldDefinitions),
-      methods: methodDefinitions,
-    };
-  }
-
-  /**
    * Handles Method Calls (Message Passing).
    * Reuses FunctionRuntime to execute the method body.
    */
   public dispatch(
-    receiver: PrimitiveValue,
+    receiver: YuValue,
     methodName: string,
-    args: PrimitiveValue[],
-    env: EnvStack,
+    args: YuValue[],
   ): ExecutionCommand {
     if (!isRuntimeObject(receiver))
-      throw new Error(`${receiver} is not an object`);
+      throw new InterpreterError("[ObjectRuntime.dispatch]", `${receiver} is not an object`);
 
-    const chain = this.getResolutionChain(receiver, env);
+    const chain = this.getResolutionChain(receiver);
     const match = this.findMethodInChain(chain, methodName);
 
     if (!match)
@@ -61,23 +46,30 @@ export class ObjectRuntime {
         `${receiver.className} does not understand '${methodName}'.`,
       );
 
-    const objectScope = this.createDispatchScope(receiver, match, methodName);
+    const objectScope = receiver.createDispatchScope(
+      match,
+      new YuString(methodName),
+    );
     this.context.pushEnv(objectScope);
-    return this.context.funcRuntime.apply(match.method, args);
+    return new BindCommand(
+      this.context.funcRuntime.apply(match.method, args),
+      (res) => {
+        this.context.popEnv();
+        return new StepCommand(res);
+      },
+    );
   }
 
   /**
    * Handles calls to super() or super.method()
    */
-  public dispatchSuper(
-    currentEnv: EnvStack,
-    methodName: string,
-    args: PrimitiveValue[],
-  ): ExecutionCommand {
+  public dispatchSuper(methodName: string, args: YuValue[]): ExecutionCommand {
     const self = this.context.lookup("self") as RuntimeObject;
     const currentHolder = this.context.lookup("__CONTEXT_CLASS__") as OOPEntity;
     const currentMethodName = this.context.lookup("__METHOD_NAME__");
-    const targetMethodName = methodName || (currentMethodName as string);
+    const targetMethodName = methodName
+      ? new YuString(methodName)
+      : (currentMethodName as YuString);
 
     if (!self || !currentHolder)
       throw new InterpreterError(
@@ -85,7 +77,7 @@ export class ObjectRuntime {
         "'super' used outside of a method context",
       );
 
-    const chain = this.getResolutionChain(self, currentEnv);
+    const chain = this.getResolutionChain(self);
 
     const currentIndex = chain.findIndex((c) => c === currentHolder);
 
@@ -93,130 +85,116 @@ export class ObjectRuntime {
       throw new Error("Fatal: Execution context not found in hierarchy chain");
 
     const remainingChain = chain.slice(currentIndex + 1);
-    const match = this.findMethodInChain(remainingChain, targetMethodName);
+    const match = this.findMethodInChain(
+      remainingChain,
+      targetMethodName.toJSON(),
+    );
 
     if (!match)
       throw new InterpreterError(
         "Super",
-        `Super method '${targetMethodName}' not found`,
+        `Super method '${targetMethodName.toJSON()}' not found`,
       );
 
-    const objectScope = this.createDispatchScope(self, match, targetMethodName);
+    const objectScope = self.createDispatchScope(match, targetMethodName);
 
     this.context.pushEnv(objectScope);
-    return this.context.funcRuntime.apply(match.method, args);
+    return new BindCommand(
+      this.context.funcRuntime.apply(match.method, args),
+      (res) => {
+        this.context.popEnv();
+        return new StepCommand(res);
+      },
+    );
   }
-  private createDispatchScope(
-    self: RuntimeObject,
-    match: OOPMatch,
-    targetName: PrimitiveValue,
-  ) {
-    const objectScope = new Map<string, PrimitiveValue>();
-    objectScope.set("self", self);
-    objectScope.set("__CONTEXT_CLASS__", match.holder);
-    objectScope.set("__METHOD_NAME__", targetName);
 
-    for (const [key, val] of self.fields) objectScope.set(key, val);
-    return objectScope;
-  }
-  private getResolutionChain(
-    receiver: RuntimeObject,
-    env: EnvStack,
-  ): Array<RuntimeObject | RuntimeClass> {
-    const chain: Array<RuntimeObject | RuntimeClass> = [];
-
-    chain.push(receiver);
+  private getResolutionChain(receiver: RuntimeObject): OOPEntity[] {
+    const chain: OOPEntity[] = [receiver];
 
     if (receiver.className) {
-      this.expandClassHierarchy(receiver.className, env, chain);
+      const hierarchy = this.expandClassHierarchy(receiver.className);
+      chain.push(...hierarchy);
     }
 
     return chain;
   }
-  private expandClassHierarchy(
-    className: string,
-    env: EnvStack,
-    chain: Array<RuntimeObject | RuntimeClass>,
-  ) {
-    const classDef = this.context.lookup(className);
+  private expandClassHierarchy(className: string): OOPEntity[] {
+    const chain: OOPEntity[] = [];
+    const visited = new Set<string>();
+    const queue = [className];
+
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      // occurs check to avoid circular loops
+      if (visited.has(current)) continue;
+      visited.add(current);
+
+      const classDef = this.getClassDef(current);
+      chain.push(classDef);
+      queue.push(...classDef.getHierarchy());
+    }
+
+    return chain;
+  }
+  private getClassDef(name: string): RuntimeClass {
+    const classDef = this.context.lookup(name);
     if (!isRuntimeClass(classDef))
       throw new InterpreterError(
         "expandClassHierarchy",
         "classDef was expected to be a RuntimeClass",
       );
-
-    chain.push(classDef);
-
-    const classDefCopy = [...classDef.mixins];
-
-    if (classDef.mixins)
-      classDefCopy.reverse().forEach((mixinName) => {
-        this.expandClassHierarchy(mixinName, env, chain);
-      });
-
-    if (classDef.superclass)
-      this.expandClassHierarchy(classDef.superclass, env, chain);
+    return classDef;
   }
+
   private findMethodInChain(
-    chain: Array<RuntimeObject | RuntimeClass>,
+    chain: Array<OOPEntity>,
     methodName: string,
   ): OOPMatch | undefined {
-    for (const link of chain) {
-      if (link.methods.has(methodName))
-        return {
-          method: link.methods.get(methodName)!,
-          holder: link,
-        };
-    }
-    return undefined;
+    const match = chain.find((def) => def.methods.has(methodName));
+    if (!match) return undefined;
+    return {
+      method: match.methods.get(methodName)!,
+      holder: match,
+    };
   }
 
   /**
    * Field Access (Get)
    * e.g. self.myField
    */
-  public getField(receiver: PrimitiveValue, fieldName: string): PrimitiveValue {
+  public getField(receiver: YuValue, fieldName: string): YuValue {
     if (!isRuntimeObject(receiver))
       throw new InterpreterError("FieldAccess", "Target is not an object");
 
-    if (!receiver.fields.has(fieldName)) {
-      if (receiver.methods.has(fieldName))
-        return receiver.methods.get(fieldName);
-
-      throw new InterpreterError(
-        "FieldAccess",
-        `Field '${fieldName}' not found in ${receiver.className}`,
-      );
-    }
-
-    return receiver.fields.get(fieldName);
+    if (receiver.hasMethod(fieldName)) return receiver.getMethod(fieldName);
+    return receiver.getField(fieldName);
   }
 
   /**
    * Field Mutation (Set)
    * e.g. self.myField = 10
    */
-  public setField(
-    receiver: PrimitiveValue,
-    fieldName: string,
-    value: PrimitiveValue,
-  ): PrimitiveValue {
+  public setField(obj: YuValue, fieldName: string, value: YuValue): YuValue {
     if (!this.context.config.mutability)
       throw new InterpreterError(
         "FieldAssignment",
         `Cannot mutate field '${fieldName}': mutability is disabled`,
       );
 
+    const receiver = this.getReceiver(obj);
+
     if (!isRuntimeObject(receiver))
       throw new InterpreterError("FieldAssignment", "Target is not an object");
 
-    if (!receiver.fields.has(fieldName))
-      throw new InterpreterError(
-        "FieldAssignment",
-        `Cannot set unknown field '${fieldName}'`,
-      );
+    receiver.setField(fieldName, value);
+    return new YuBoolean(true);
+  }
 
-    receiver.fields.set(fieldName, value);
-    return value;
+  private getReceiver(obj: YuValue): OOPEntity {
+    if (isRuntimeObject(obj) || isRuntimeClass(obj)) return obj;
+    throw new InterpreterError(
+      "ObjectRuntime",
+      "Receiver is not an OOP entity",
+    );
   }
 }

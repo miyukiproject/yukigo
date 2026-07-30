@@ -1,4 +1,5 @@
 import { SourceLocation } from "yukigo-ast";
+import { YuValue } from "./primitives/YuValue.js";
 
 export interface ErrorFrame {
   nodeType: string;
@@ -51,5 +52,17 @@ export class UnexpectedValue extends InterpreterError {
 export class UnboundVariable extends Error {
   constructor(name: string) {
     super(`Unbound variable: ${name}`);
+  }
+}
+
+export class NotConcatenable extends InterpreterError {
+  constructor() {
+    super("[Concat]", "Cannot concat non-concatenable types.");
+  }
+}
+
+export class UnsupportedOperation extends InterpreterError {
+  constructor(val: YuValue, op: string) {
+    super("[Unsupported]", `${val.getType()} does not support '${op}'`);
   }
 }

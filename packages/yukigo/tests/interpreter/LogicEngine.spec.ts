@@ -9,19 +9,14 @@ import {
   Goal,
   Pattern,
   Rule,
-  LogicResult,
   Equation,
   Sequence,
   UnguardedBody,
   Statement,
   Variable,
   NilPrimitive,
-  LazyList,
   LogicConstraint,
   Expression,
-  RuntimePredicate,
-  LogicTerm,
-  Substitution,
   Query,
 } from "yukigo-ast";
 import { createGlobalEnv } from "../../src/interpreter/utils.js";
@@ -37,6 +32,19 @@ import {
   ConsTerm,
   CompoundTerm,
 } from "../../src/interpreter/components/logic/LogicTerm.js";
+import {
+  YuValue,
+  RuntimePredicate,
+  LogicTerm,
+  Substitution,
+  YuString,
+  YuNumber,
+  LazyList,
+  LazyStepResult,
+  YuNil,
+  LogicResult,
+  YuBoolean,
+} from "../../src/interpreter/primitives/index.js";
 
 const s = (val: string) => new SymbolPrimitive(val);
 const n = (val: number) => new NumberPrimitive(val);
@@ -51,46 +59,39 @@ const makeRule = (id: string, body: Equation[]) => new Rule(s(id), body);
 const makeGoal = (id: string, args: Pattern[]) => new Goal(s(id), args);
 const makeConstraint = (expr: Expression) => new LogicConstraint(expr);
 
-const factsParent: RuntimePredicate = {
-  kind: "Fact",
-  identifier: "parent",
-  equations: [
-    makeFact("parent", [lit("zeus"), lit("ares")]),
-    makeFact("parent", [lit("zeus"), lit("athena")]),
-    makeFact("parent", [lit("hera"), lit("ares")]),
-  ],
-};
-const rulesSibling: RuntimePredicate = {
-  kind: "Rule",
-  identifier: "sibling",
-  equations: [
-    makeRule("sibling", [
-      makeEq(
-        [varPat("X"), varPat("Y")],
-        [
-          makeConstraint(makeGoal("parent", [varPat("Z"), varPat("X")])),
-          makeConstraint(makeGoal("parent", [varPat("Z"), varPat("Y")])),
-        ],
-      ),
-    ]),
-  ],
-};
-
-const env = createGlobalEnv();
-const context = new RuntimeContext({
-  debug: false,
-  outputMode: "all",
-});
-context.setEnv(env);
-context.define("sibling", rulesSibling);
-context.define("parent", factsParent);
+const factsParent = new RuntimePredicate("parent", [
+  makeFact("parent", [lit("zeus"), lit("ares")]),
+  makeFact("parent", [lit("zeus"), lit("athena")]),
+  makeFact("parent", [lit("hera"), lit("ares")]),
+]);
+const rulesSibling = new RuntimePredicate("sibling", [
+  makeRule("sibling", [
+    makeEq(
+      [varPat("X"), varPat("Y")],
+      [
+        makeConstraint(makeGoal("parent", [varPat("Z"), varPat("X")])),
+        makeConstraint(makeGoal("parent", [varPat("Z"), varPat("Y")])),
+      ],
+    ),
+  ]),
+]);
 
 describe("Logic Engine & Unification", () => {
   let engine: LogicEngine;
   let evaluator: InterpreterVisitor;
   let kernel: YukigoKernel;
+  let context: RuntimeContext;
+  let globalEnv: any;
 
   beforeEach(() => {
+    globalEnv = createGlobalEnv();
+    context = new RuntimeContext({
+      debug: false,
+      outputMode: "all",
+    });
+    context.setEnv(globalEnv);
+    context.define("sibling", rulesSibling);
+    context.define("parent", factsParent);
     evaluator = new InterpreterVisitor(context);
     engine = new LogicEngine(evaluator, context);
     kernel = new YukigoKernel(evaluator, "all");
@@ -101,33 +102,39 @@ describe("Logic Engine & Unification", () => {
     t2: LogicTerm,
     substs: Substitution = new Map(),
   ) => {
-    return t1.unify(t2, substs) ? substs : null;
+    const cmd = t1.unify(t2, substs);
+    const k = new YukigoKernel(evaluator, "first");
+    const res = k.run(cmd);
+    if (res instanceof YuBoolean && res.value) {
+      return substs;
+    }
+    return null;
   };
 
   describe("Unification Algorithm", () => {
     it("should unify two identical literals", () => {
-      const p1 = new ConstantTerm("cat");
-      const p2 = new ConstantTerm("cat");
+      const p1 = new ConstantTerm(new YuString("cat"));
+      const p2 = new ConstantTerm(new YuString("cat"));
       const result = unify(p1, p2);
       expect(result).to.not.be.null;
     });
 
     it("should not unify different literals", () => {
-      const p1 = new ConstantTerm("cat");
-      const p2 = new ConstantTerm("dog");
+      const p1 = new ConstantTerm(new YuString("cat"));
+      const p2 = new ConstantTerm(new YuString("dog"));
       const result = unify(p1, p2);
       expect(result).to.be.null;
     });
 
     it("should unify a variable with a literal", () => {
       const v1 = new VariableTerm(1, "X");
-      const p2 = new ConstantTerm("cat");
+      const p2 = new ConstantTerm(new YuString("cat"));
       const result = unify(v1, p2);
 
       expect(result).to.not.be.null;
       const resolved = v1.resolve(result!);
       expect(resolved).to.be.instanceOf(ConstantTerm);
-      expect((resolved as ConstantTerm).value).to.equal("cat");
+      expect((resolved as ConstantTerm).value.toJSON()).to.equal("cat");
     });
 
     it("should unify two variables (aliasing)", () => {
@@ -140,27 +147,39 @@ describe("Logic Engine & Unification", () => {
 
     describe("ConsPattern Unification", () => {
       it("should unify two identical ConsPatterns", () => {
-        const p1 = new ConsTerm(new ConstantTerm(1), new ListTerm([]));
-        const p2 = new ConsTerm(new ConstantTerm(1), new ListTerm([]));
+        const p1 = new ConsTerm(
+          new ConstantTerm(new YuNumber(1)),
+          new ListTerm([]),
+        );
+        const p2 = new ConsTerm(
+          new ConstantTerm(new YuNumber(1)),
+          new ListTerm([]),
+        );
         const result = unify(p1, p2);
         expect(result).to.not.be.null;
       });
 
       it("should unify ConsPattern with equivalent ListPattern", () => {
         const cons = new ConsTerm(
-          new ConstantTerm(1),
-          new ListTerm([new ConstantTerm(2)]),
+          new ConstantTerm(new YuNumber(1)),
+          new ListTerm([new ConstantTerm(new YuNumber(2))]),
         );
-        const list = new ListTerm([new ConstantTerm(1), new ConstantTerm(2)]);
+        const list = new ListTerm([
+          new ConstantTerm(new YuNumber(1)),
+          new ConstantTerm(new YuNumber(2)),
+        ]);
         const result = unify(cons, list);
         expect(result).to.not.be.null;
       });
 
       it("should unify ListPattern with equivalent ConsPattern", () => {
-        const list = new ListTerm([new ConstantTerm(1), new ConstantTerm(2)]);
+        const list = new ListTerm([
+          new ConstantTerm(new YuNumber(1)),
+          new ConstantTerm(new YuNumber(2)),
+        ]);
         const cons = new ConsTerm(
-          new ConstantTerm(1),
-          new ListTerm([new ConstantTerm(2)]),
+          new ConstantTerm(new YuNumber(1)),
+          new ListTerm([new ConstantTerm(new YuNumber(2))]),
         );
         const result = unify(list, cons);
         expect(result).to.not.be.null;
@@ -168,10 +187,13 @@ describe("Logic Engine & Unification", () => {
 
       it("should fail if heads do not match", () => {
         const cons = new ConsTerm(
-          new ConstantTerm(1),
-          new ListTerm([new ConstantTerm(2)]),
+          new ConstantTerm(new YuNumber(1)),
+          new ListTerm([new ConstantTerm(new YuNumber(2))]),
         );
-        const list = new ListTerm([new ConstantTerm(3), new ConstantTerm(2)]);
+        const list = new ListTerm([
+          new ConstantTerm(new YuNumber(3)),
+          new ConstantTerm(new YuNumber(2)),
+        ]);
         const result = unify(cons, list);
         expect(result).to.be.null;
       });
@@ -187,7 +209,10 @@ describe("Logic Engine & Unification", () => {
       });
 
       it("should bind variables in ConsPattern", () => {
-        const list = new ListTerm([new ConstantTerm(1), new ConstantTerm(2)]);
+        const list = new ListTerm([
+          new ConstantTerm(new YuNumber(1)),
+          new ConstantTerm(new YuNumber(2)),
+        ]);
 
         const vH = new VariableTerm(1, "H");
         const vT = new VariableTerm(2, "T");
@@ -211,14 +236,15 @@ describe("Logic Engine & Unification", () => {
       });
 
       it("should unify infinite LazyList with Variable lazily", () => {
-        const gen = function* () {
-          let i = 1;
-          while (true) yield i++;
+        const createLazyRange = (val: number): LazyList => {
+          return new LazyList(() => {
+            return new StepCommand(
+              new LazyStepResult(new YuNumber(val), createLazyRange(val + 1)),
+            );
+          }, `Range(${val})`);
         };
-        const lazyList: LazyList = {
-          type: "LazyList",
-          generator: gen,
-        };
+
+        const lazyList = createLazyRange(1);
 
         evaluator.evaluate = (node: any) => {
           if (
@@ -228,17 +254,17 @@ describe("Logic Engine & Unification", () => {
             return new StepCommand(lazyList);
           }
           if (node instanceof SymbolPrimitive)
-            return new StepCommand(node.value);
-          return new StepCommand(null);
+            return new StepCommand(new YuString(node.value));
+          return new StepCommand(YuNil.getInstance());
         };
 
         const infiniteVar = new Variable(s("Infinite"), new NilPrimitive(null));
         const xVar = new Variable(s("X"), new NilPrimitive(null));
 
-        const result = kernel.run(engine.unifyExpr(xVar, infiniteVar)) as [
-          boolean,
-        ];
-        expect(result[0]).to.be.true;
+        const result = kernel.run(
+          engine.unifyExpr(xVar, infiniteVar),
+        ) as YuValue[];
+        expect(result[0].toJSON()).to.be.true;
       });
     });
   });
@@ -263,8 +289,8 @@ describe("Logic Engine & Unification", () => {
 
       expect(results.every((res) => res.allSuccessful())).to.be.true;
 
-      const names = results.map(
-        (res) => (res.solutions.get("Child") as ConstantTerm).value,
+      const names = results.map((res) =>
+        (res.solutions.get("Child") as ConstantTerm).value.toJSON(),
       );
 
       expect(names).to.include("ares");
@@ -283,8 +309,8 @@ describe("Logic Engine & Unification", () => {
     const query = new Query([goal]);
     const results = kernel.run(engine.solveQuery(query)) as LogicResult[];
     expect(results.every((res) => res.allSuccessful())).to.be.true;
-    const names = results.map(
-      (res) => (res.solutions.get("Child") as ConstantTerm).value,
+    const names = results.map((res) =>
+      (res.solutions.get("Child") as ConstantTerm).value.toJSON(),
     );
     expect(names).to.include("ares");
     expect(names).to.include("athena");
@@ -297,8 +323,8 @@ describe("Logic Engine & Unification", () => {
       const results = kernel.run(engine.solveQuery(query)) as LogicResult[];
       expect(results[0]).to.be.instanceOf(LogicResult);
       expect(results[1]).to.be.instanceOf(LogicResult);
-      const names = results.map(
-        (res) => (res.solutions.get("X") as ConstantTerm).value,
+      const names = results.map((res) =>
+        (res.solutions.get("X") as ConstantTerm).value.toJSON(),
       );
       expect(names).to.include("ares");
       expect(names).to.include("athena");
@@ -324,7 +350,9 @@ describe("Logic Engine & Unification", () => {
       const list = solution.get("List") as ListTerm;
       expect(list).to.not.be.undefined;
 
-      const names = list.elements.map((el) => (el as ConstantTerm).value);
+      const names = list.elements.map((el) =>
+        (el as ConstantTerm).value.toJSON(),
+      );
       expect(names).to.have.lengthOf(2);
       expect(names).to.include("ares");
       expect(names).to.include("athena");
@@ -332,11 +360,11 @@ describe("Logic Engine & Unification", () => {
 
     describe("Expression Unification", () => {
       it("should successfully unify a variable with an array expression", () => {
-        env.head.set("myList", "dummy");
+        globalEnv.head.set("myList", new YuString("dummy"));
         const X = new Variable(s("X"), new NilPrimitive(null));
         const myList = new Variable(s("myList"), new NilPrimitive(null));
-        const result = kernel.run(engine.unifyExpr(X, myList));
-        expect(result[0]).to.be.true;
+        const result = kernel.run(engine.unifyExpr(X, myList)) as YuValue[];
+        expect(result[0].toJSON()).to.be.true;
       });
     });
   });

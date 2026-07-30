@@ -3,13 +3,16 @@ import {
   ASTNode,
   Equality,
   Failure,
-  PrimitiveValue,
   Test,
   TestGroup,
   Truth,
   Visitor,
+  Sequence,
+  Exist,
+  LogicConstraint,
 } from "yukigo-ast";
 import { InterpreterVisitor } from "./Visitor.js";
+import { LogicEngine } from "./logic/LogicEngine.js";
 import {
   ExecutionCommand,
   StepCommand,
@@ -17,13 +20,20 @@ import {
   FailCommand,
 } from "./kernel/commands.js";
 import { LazyRuntime } from "./runtimes/LazyRuntime.js";
-import { UnexpectedNode } from "../errors.js";
+import { InterpreterError, UnexpectedNode } from "../errors.js";
 import { YukigoKernel } from "./kernel/index.js";
+import { EqualityComparer } from "./EqualityComparer.js";
+import { YuValue } from "../primitives/YuValue.js";
+import { YuBoolean } from "../primitives/scalars/YuBoolean.js";
+import { YuNil } from "../primitives/scalars/YuNil.js";
+import { YuString } from "../primitives/sequences/YuString.js";
+import { isTrue } from "../utils.js";
+import { LogicResult } from "../primitives/entities/LogicResult.js";
 
 export class FailedAssert extends Error {
   constructor(
-    public actual?: PrimitiveValue,
-    public expected?: PrimitiveValue,
+    public actual?: YuValue,
+    public expected?: YuValue,
     message?: string,
   ) {
     super(message || `Assertion failed: expected ${expected}, got ${actual}`);
@@ -40,20 +50,21 @@ class AssertionVisitor implements Visitor<ExecutionCommand> {
 
   visitFailure(node: Failure): ExecutionCommand {
     let threw = false;
-    let actualError: string | undefined;
+    let actualError: YuString | undefined;
 
     try {
       new YukigoKernel(this.interpreter).run(this.interpreter.evaluate(node.func));
     } catch (error) {
       threw = true;
-      actualError = (error as Error).message;
+      actualError = new YuString((error as Error).message);
     }
 
     return new BindCommand(this.interpreter.evaluate(node.message), (expectedError) => {
+      if(!(expectedError instanceof YuString)) throw new InterpreterError("[Tester]", `Expected YuString as message in Failure Assertion`)
       const passed =
         threw &&
         (expectedError === undefined ||
-          actualError?.includes(expectedError as string));
+          actualError?.value?.includes(expectedError.value));
 
       if (this.negated === passed) {
         if (!threw) {
@@ -74,15 +85,16 @@ class AssertionVisitor implements Visitor<ExecutionCommand> {
           );
         }
       }
-      return new StepCommand(undefined);
+      return new StepCommand(YuNil.getInstance());
     });
   }
 
   visitEquality(node: Equality): ExecutionCommand {
     return new BindCommand(this.interpreter.evaluate(node.value), (value) => {
       return new BindCommand(this.interpreter.evaluate(node.expected), (expected) => {
-        return new BindCommand(this.lazyRuntime.deepEqual(value, expected), (passed) => {
-          if (this.negated === passed) {
+        return new BindCommand(EqualityComparer.compare(value, expected), (passed) => {
+          const isPassed = isTrue(passed);
+          if (this.negated === isPassed) {
             return new FailCommand(
               new FailedAssert(
                 value,
@@ -93,7 +105,7 @@ class AssertionVisitor implements Visitor<ExecutionCommand> {
               ),
             );
           }
-          return new StepCommand(undefined);
+          return new StepCommand(YuNil.getInstance());
         });
       });
     });
@@ -101,19 +113,19 @@ class AssertionVisitor implements Visitor<ExecutionCommand> {
 
   visitTruth(node: Truth): ExecutionCommand {
     return new BindCommand(this.interpreter.evaluate(node.body), (value) => {
-      const isTruthy = Boolean(value);
+      const isTruthy = isTrue(value) || (value instanceof LogicResult && value.success);
       if (this.negated === isTruthy) {
         return new FailCommand(
           new FailedAssert(
             value,
-            !this.negated,
+            new YuBoolean(!this.negated),
             this.negated
               ? `Expected value to be falsy, but got ${JSON.stringify(value)}`
               : `Expected value to be truthy, but got ${JSON.stringify(value)}`,
           ),
         );
       }
-      return new StepCommand(undefined);
+      return new StepCommand(YuNil.getInstance());
     });
   }
   public fallback(node: ASTNode): ExecutionCommand {
@@ -135,11 +147,25 @@ export class TestRunner implements Visitor<ExecutionCommand> {
     return this.interpreter.evaluate(node.group);
   }
   visitTest(node: Test): ExecutionCommand {
+    if (node.body.is(Sequence)) {
+      const hasLogicGoal = node.body.statements.some(
+        (stmt) => stmt.is(Exist) || stmt.is(LogicConstraint) || stmt.is(Assert),
+      );
+      if (hasLogicGoal) {
+        const engine = new LogicEngine(this.interpreter, this.interpreter.getContext());
+        const scope = new Map();
+        return engine.solveConjunction(node.body.statements, new Map(), scope);
+      }
+    }
     return this.interpreter.evaluate(node.body);
   }
   visitAssert(node: Assert): ExecutionCommand {
-    return new BindCommand(this.interpreter.evaluate(node.negated), (negatedVal) => {
-      const isNegated = Boolean(negatedVal);
+    const negatedCmd = node.negated
+      ? this.interpreter.evaluate(node.negated)
+      : new StepCommand(new YuBoolean(false));
+
+    return new BindCommand(negatedCmd, (negatedVal) => {
+      const isNegated = isTrue(negatedVal);
       const visitor = new AssertionVisitor(
         this.interpreter,
         isNegated,

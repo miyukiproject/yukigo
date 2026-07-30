@@ -23,6 +23,7 @@ export const PrologLexerConfig = {
   period: ".",
   semicolon: ";",
   colonDash: ":-",
+  colon: ":",
   consOp: "|",
   queryOp: "?-",
   comparisonOp: /@<|@=<|@>=|@>|<|=<|>=|>|=@=|\\=@=|=:=|=\\=|==|\\==|\\=|=/,

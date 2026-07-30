@@ -1,6 +1,5 @@
 import {
   Expression,
-  PrimitiveValue,
   Variable,
   ListPrimitive,
   ConsExpression,
@@ -17,9 +16,7 @@ import {
   ConstructorPattern,
   ASTNode,
   PatternVisitor,
-  LogicTerm,
   Visitor,
-  isLogicTerm,
 } from "yukigo-ast";
 import {
   VariableTerm,
@@ -29,7 +26,6 @@ import {
   WildcardTerm,
   CompoundTerm,
 } from "./LogicTerm.js";
-import { Substitution } from "yukigo-ast";
 import { Evaluator } from "../../utils.js";
 import { InterpreterError } from "../../errors.js";
 import { RuntimeContext } from "../RuntimeContext.js";
@@ -38,6 +34,17 @@ import {
   StepCommand,
   BindCommand,
 } from "../kernel/commands.js";
+import { YuValue } from "../../primitives/YuValue.js";
+import {
+  LogicTerm,
+  YuNumber,
+  YuString,
+  YuBoolean,
+  YuNil,
+  isLogicTerm,
+  isRuntimeObject,
+  Substitution,
+} from "../../primitives/index.js";
 
 /**
  * Sync visitor to convert Patterns to LogicTerms.
@@ -61,7 +68,14 @@ class PatternToTermVisitor implements PatternVisitor<LogicTerm> {
     return new VariableTerm(this.translator.getNextId(name), name);
   }
   visitLiteralPattern(node: LiteralPattern): LogicTerm {
-    return new ConstantTerm(node.name.value ?? null);
+    const raw = node.name.value;
+    let wrapped: YuNumber | YuString | YuBoolean | YuNil;
+    if (typeof raw === "number") wrapped = new YuNumber(raw);
+    else if (typeof raw === "string") wrapped = new YuString(raw);
+    else if (typeof raw === "boolean") wrapped = new YuBoolean(raw);
+    else wrapped = YuNil.getInstance();
+
+    return new ConstantTerm(wrapped);
   }
   visitListPattern(node: ListPattern): LogicTerm {
     return new ListTerm(node.elements.map((el) => el.accept(this)));
@@ -143,6 +157,7 @@ class ExpressionToTermVisitor implements Visitor<ExecutionCommand> {
     const next = (index: number): ExecutionCommand => {
       if (index >= node.value.length)
         return new StepCommand(new ListTerm(terms));
+
       return new BindCommand(
         this.translator.expressionToTerm(
           node.value[index] as Expression,
@@ -205,6 +220,10 @@ class ExpressionToTermVisitor implements Visitor<ExecutionCommand> {
         return new StepCommand(this.translator.primitiveToTerm(val));
       });
     }
+    const isVariable = /^[A-Z_]/.test(name);
+    if (!isVariable) {
+      return new StepCommand(new ConstantTerm(new YuString(name)));
+    }
     if (this.scope) {
       let term = this.scope.get(name);
       if (!term) {
@@ -261,36 +280,27 @@ export class LogicTranslator {
   /**
    * Converts a PrimitiveValue to a LogicTerm.
    */
-  public primitiveToTerm(val: PrimitiveValue): LogicTerm {
+  public primitiveToTerm(val: YuValue): LogicTerm {
     if (
-      val === null ||
-      typeof val === "number" ||
-      typeof val === "string" ||
-      typeof val === "boolean"
+      val.asNumeric ||
+      val.asSummable instanceof YuString ||
+      val.asLogic ||
+      val instanceof YuNil
     ) {
-      return new ConstantTerm(val);
+      return new ConstantTerm(val as any);
     }
-    if (Array.isArray(val)) {
-      return new ListTerm(val.map((v) => this.primitiveToTerm(v)));
+    const seq = val.asSequence;
+    if (seq) {
+      return new ListTerm([...seq].map((v) => this.primitiveToTerm(v)));
     }
-    if (
-      val &&
-      typeof val === "object" &&
-      "type" in val &&
-      val.type === "Object"
-    ) {
+    if (isRuntimeObject(val)) {
       const args: LogicTerm[] = [];
-      for (const [_, fieldVal] of (val as any).fields) {
+      for (const [_, fieldVal] of val.fields) {
         args.push(this.primitiveToTerm(fieldVal));
       }
-      return new CompoundTerm(
-        (val as any).className || (val as any).identifier,
-        args,
-      );
+      return new CompoundTerm(val.className || val.identifier, args);
     }
-    if (val && typeof val === "object" && "logicTermType" in val) {
-      return val as LogicTerm;
-    }
+    if (isLogicTerm(val)) return val;
 
     throw new InterpreterError(
       "primitiveToTerm",

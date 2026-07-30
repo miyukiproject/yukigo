@@ -1,6 +1,5 @@
 import { expect } from "chai";
 import {
-  EquationRuntime,
   UnguardedBody,
   Sequence,
   Return,
@@ -9,20 +8,16 @@ import {
   LiteralPattern,
   VariablePattern,
   GuardedBody,
-  EnvStack,
-  RuntimeFunction,
   StringPrimitive,
-  Variable,
-  Expression,
   BooleanPrimitive,
   Equation,
 } from "yukigo-ast";
 import { FunctionRuntime } from "../../src/interpreter/components/runtimes/FunctionRuntime.js";
-import { createGlobalEnv } from "../../src/interpreter/utils.js";
+import { createGlobalEnv, EnvStack } from "../../src/interpreter/utils.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
 import { YukigoKernel } from "../../src/interpreter/components/kernel/index.js";
 import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
-import { EvalCommand } from "../../src/interpreter/components/kernel/commands.js";
+import { YuValue, EquationRuntime, RuntimeFunction, YuNumber } from "../../src/interpreter/primitives/index.js";
 
 const symbol = (val: string) => new SymbolPrimitive(val);
 const num = (val: number) => new NumberPrimitive(val);
@@ -30,19 +25,15 @@ const str = (val: string) => new StringPrimitive(val);
 const litPat = (val: number | string) =>
   new LiteralPattern(typeof val === "number" ? num(val) : symbol(val));
 const varPat = (name: string) => new VariablePattern(symbol(name));
-const varExpr = (name: string, expr: Expression) =>
-  new Variable(symbol(name), expr);
+
 const seq = (stmts: any[]) => new Sequence(stmts);
 const unguarded = (stmts: any[]) => new UnguardedBody(seq(stmts));
-const guarded = (guards: { cond: any; body: Expression }[]): GuardedBody[] => {
-  return guards.map((g) => new GuardedBody(g.cond, g.body));
-};
 
 const makeRunFunc = (
   identifier: string,
   arity: number,
   equations: EquationRuntime[],
-): RuntimeFunction => ({ type: "Function", identifier, arity, equations });
+) => new RuntimeFunction(arity, equations, identifier);
 
 describe("FunctionRuntime", () => {
   let globalEnv: EnvStack;
@@ -69,12 +60,11 @@ describe("FunctionRuntime", () => {
         body: unguarded([str("twenty")]),
       };
 
-      const result = kernel.run(funcRuntime.apply(
-        makeRunFunc("f", 1, [eq1, eq2]),
-        [20],
-      ));
+      const result = kernel.run(
+        funcRuntime.apply(makeRunFunc("f", 1, [eq1, eq2]), [new YuNumber(20)]),
+      ) as YuValue;
 
-      expect(result).to.equal("twenty");
+      expect(result.toJSON()).to.equal("twenty");
     });
 
     it("should throw error if no pattern matches (Non-exhaustive)", () => {
@@ -84,7 +74,7 @@ describe("FunctionRuntime", () => {
       };
 
       expect(() => {
-        kernel.run(funcRuntime.apply(makeRunFunc("f", 1, [eq1]), [99]));
+        kernel.run(funcRuntime.apply(makeRunFunc("f", 1, [eq1]), [new YuNumber(99)]));
       }).to.throw(/Non-exhaustive patterns/);
     });
 
@@ -95,7 +85,7 @@ describe("FunctionRuntime", () => {
       };
 
       expect(() => {
-        kernel.run(funcRuntime.apply(makeRunFunc("f", 2, [eq1]), [1, 2]));
+        kernel.run(funcRuntime.apply(makeRunFunc("f", 2, [eq1]), [new YuNumber(1), new YuNumber(2)]));
       }).to.throw(/Non-exhaustive patterns/);
     });
   });
@@ -108,17 +98,14 @@ describe("FunctionRuntime", () => {
       };
 
       const result = kernel.run(
-        funcRuntime.apply(
-          makeRunFunc("identity", 1, [eq1]),
-          [500],
-        ),
-      );
+        funcRuntime.apply(makeRunFunc("identity", 1, [eq1]), [new YuNumber(500)]),
+      ) as YuValue;
 
-      expect(result).to.equal(500);
+      expect(result.toJSON()).to.equal(500);
     });
 
     it("should prioritize local scope over global scope", () => {
-      globalEnv.head.set("X", 1);
+      globalEnv.head.set("X", new YuNumber(1));
 
       const eq1: EquationRuntime = new Equation(
         [new VariablePattern(new SymbolPrimitive("X"))],
@@ -127,12 +114,9 @@ describe("FunctionRuntime", () => {
       );
 
       const result = kernel.run(
-        funcRuntime.apply(
-          makeRunFunc("shadow", 1, [eq1]),
-          [999],
-        ),
-      );
-      expect(result).to.equal(999);
+        funcRuntime.apply(makeRunFunc("shadow", 1, [eq1]), [new YuNumber(999)]),
+      ) as YuValue;
+      expect(result.toJSON()).to.equal(999);
     });
   });
 
@@ -149,9 +133,9 @@ describe("FunctionRuntime", () => {
       };
 
       const result = kernel.run(
-        funcRuntime.apply(makeRunFunc("guards", 1, [eq]), [0]),
-      );
-      expect(result).to.equal(2);
+        funcRuntime.apply(makeRunFunc("guards", 1, [eq]), [new YuNumber(0)]),
+      ) as YuValue;
+      expect(result.toJSON()).to.equal(2);
     });
 
     it("should fall through to next equation if no guard matches", () => {
@@ -166,12 +150,9 @@ describe("FunctionRuntime", () => {
       };
 
       const result = kernel.run(
-        funcRuntime.apply(
-          makeRunFunc("fallback", 1, [eq1, eq2]),
-          [0],
-        ),
-      );
-      expect(result).to.equal(2);
+        funcRuntime.apply(makeRunFunc("fallback", 1, [eq1, eq2]), [new YuNumber(0)]),
+      ) as YuValue;
+      expect(result.toJSON()).to.equal(2);
     });
   });
 
@@ -184,8 +165,8 @@ describe("FunctionRuntime", () => {
 
       const result = kernel.run(
         funcRuntime.apply(makeRunFunc("seq", 1, [eq]), []),
-      );
-      expect(result).to.equal(30);
+      ) as YuValue;
+      expect(result.toJSON()).to.equal(30);
     });
 
     it("should return early with Return statement", () => {
@@ -198,8 +179,8 @@ describe("FunctionRuntime", () => {
 
       const result = kernel.run(
         funcRuntime.apply(makeRunFunc("earlyRet", 1, [eq]), []),
-      );
-      expect(result).to.equal(99);
+      ) as YuValue;
+      expect(result.toJSON()).to.equal(99);
     });
 
     it("should return undefined for empty sequence", () => {
@@ -209,8 +190,8 @@ describe("FunctionRuntime", () => {
       };
       const result = kernel.run(
         funcRuntime.apply(makeRunFunc("empty", 1, [eq]), []),
-      );
-      expect(result).to.be.undefined;
+      ) as YuValue;
+      expect(result.toJSON()).to.be.null; // YuNil.toJSON() is null
     });
   });
 });

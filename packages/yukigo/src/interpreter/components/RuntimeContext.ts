@@ -1,9 +1,9 @@
-import { Environment, EnvStack, PrimitiveValue } from "yukigo-ast";
 import { FunctionRuntime } from "./runtimes/FunctionRuntime.js";
 import { LazyRuntime } from "./runtimes/LazyRuntime.js";
 import { ObjectRuntime } from "./runtimes/ObjectRuntime.js";
-import { createGlobalEnv } from "../utils.js";
+import { createGlobalEnv, Environment, EnvStack, Evaluator } from "../utils.js";
 import { UnboundVariable } from "../errors.js";
+import { YuValue } from "../primitives/YuValue.js";
 
 export const DefaultConfiguration: Required<InterpreterConfig> = {
   lazyLoading: false,
@@ -19,6 +19,8 @@ export interface InterpreterConfig {
   outputMode?: LogicSearchMode;
   mutability?: boolean;
 }
+
+export type EvaluatorFactory = (ctx: RuntimeContext) => Evaluator;
 
 export class UninitializedConfig extends Error {
   constructor() {
@@ -46,6 +48,7 @@ export class RuntimeContext {
   public lazyRuntime: LazyRuntime;
   public funcRuntime: FunctionRuntime;
   public objRuntime: ObjectRuntime;
+  public evaluatorFactory?: EvaluatorFactory;
   public logicState: LogicState = {
     variableCounter: 0,
     idToName: new Map<number, string>(),
@@ -80,7 +83,7 @@ export class RuntimeContext {
   }
   public replace(
     name: string,
-    value: PrimitiveValue,
+    value: YuValue,
     onReplace?: (env: Environment) => void,
   ): boolean {
     let current: EnvStack | null = this.env;
@@ -103,11 +106,11 @@ export class RuntimeContext {
       );
     this.env = this.env.tail;
   }
-  public lookup(name: string): PrimitiveValue {
+  public lookup(name: string): YuValue {
     let current: EnvStack | null = this.env;
 
     while (current !== null) {
-      if (current.head.has(name)) return current.head.get(name);
+      if (current.head.has(name)) return current.head.get(name) as YuValue;
       current = current.tail;
     }
 
@@ -116,7 +119,7 @@ export class RuntimeContext {
   public remove(name: string): void {
     this.env.head.delete(name);
   }
-  public define(name: string, value: PrimitiveValue): void {
+  public define(name: string, value: YuValue): void {
     this.env.head.set(name, value);
   }
 
@@ -124,7 +127,7 @@ export class RuntimeContext {
     const target = env ?? this.env;
     return {
       head: new Map(target.head),
-      tail: target.tail,
+      tail: target.tail ? this.cloneEnv(target.tail) : null,
     };
   }
 
@@ -133,6 +136,7 @@ export class RuntimeContext {
     const newCtx = new RuntimeContext(this.config);
     newCtx.setEnv(this.cloneEnv(target));
     newCtx.logicState = this.logicState; // share logic state
+    newCtx.evaluatorFactory = this.evaluatorFactory;
     return newCtx;
   }
 }
