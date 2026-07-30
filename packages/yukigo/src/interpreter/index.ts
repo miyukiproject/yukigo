@@ -42,3 +42,5 @@ export class Interpreter {
     return kernel.run(new EvalCommand(expr));
   }
 }
+
+export { InterpreterConfig };
