@@ -4,7 +4,8 @@ import {
   Equation,
   SymbolPrimitive,
   UnguardedBody,
-  GuardedBody,
+  Guard,
+  GuardedExpression,
   Sequence,
   CompositionExpression,
   Lambda,
@@ -19,6 +20,7 @@ import {
   If,
   TypeSignature,
   SimpleType,
+  Return,
 } from "yukigo-ast";
 import { Analyzer, InspectionRule } from "../../src/analyzer/index.js";
 
@@ -26,9 +28,7 @@ describe("Functional Inspections", () => {
   const createSymbol = (name: string) => new SymbolPrimitive(name);
   const createSequence = (expr: any) => new Sequence([expr]);
   const createEquation = (patterns: any[], bodyExpr: any) => {
-    const body = Array.isArray(bodyExpr)
-      ? bodyExpr
-      : new UnguardedBody(createSequence(bodyExpr));
+    const body = new UnguardedBody(createSequence(bodyExpr));
 
     return new Equation(patterns, body, undefined);
   };
@@ -43,7 +43,7 @@ describe("Functional Inspections", () => {
     inspection: string,
     expected: boolean,
     binding?: string,
-    args: string[] = []
+    args: string[] = [],
   ) => {
     const rule: InspectionRule = { inspection, binding, args, expected };
     const results = analyzer.analyze(ast, [rule]);
@@ -53,8 +53,17 @@ describe("Functional Inspections", () => {
 
   describe("UsesGuards", () => {
     it("detects guards when they are present", () => {
-      const guardedBody = new GuardedBody(mockExpr, mockExpr);
-      const equation = new Equation([], [guardedBody, guardedBody], undefined);
+      const body = new UnguardedBody(
+        new Sequence([
+          new Return(
+            new GuardedExpression([
+              new Guard(mockExpr, mockExpr),
+              new Guard(mockExpr, mockExpr),
+            ]),
+          ),
+        ]),
+      );
+      const equation = new Equation([], body, undefined);
       const func = createFunction("f", [equation]);
       expect(runSingleRule([func], "UsesGuards", true, "f")).to.be.true;
     });
@@ -66,8 +75,12 @@ describe("Functional Inspections", () => {
     });
 
     it("should respect binding scope", () => {
-      const guardedBody = new GuardedBody(mockExpr, mockExpr);
-      const equation = new Equation([], [guardedBody], undefined);
+      const body = new UnguardedBody(
+        new Sequence([
+          new Return(new GuardedExpression([new Guard(mockExpr, mockExpr)])),
+        ]),
+      );
+      const equation = new Equation([], body, undefined);
       const func = createFunction("g", [equation]);
       expect(runSingleRule([func], "UsesGuards", false, "f")).to.be.true;
     });
@@ -199,9 +212,10 @@ describe("Functional Inspections", () => {
     it("is True when signature exists", () => {
       const signature = new TypeSignature(
         new SymbolPrimitive("MockType"),
-        new SimpleType("simple", [])
+        new SimpleType("simple", []),
       );
-      expect(runSingleRule([signature], "HasTypeSignature", true, "MockType")).to.be.true;
+      expect(runSingleRule([signature], "HasTypeSignature", true, "MockType"))
+        .to.be.true;
     });
   });
 });

@@ -56,6 +56,7 @@ import {
   Truth,
   Equality,
   Failure,
+  GuardedExpression,
 } from "yukigo-ast";
 import {
   Environment,
@@ -1188,9 +1189,21 @@ export class InferenceEngine implements Visitor<Result<Type>> {
 
     return thenResult;
   }
-  // visitGuardedBody(node: GuardedBody): Result<Type> {
-  //   return node.body.accept(this);
-  // }
+  visitGuardedExpression(node: GuardedExpression): Result<Type> {
+    let finalType: Type | undefined;
+
+    for (const guard of node.guards) {
+      const condRes = this.visit(guard.condition);
+      if (condRes.success === false) return condRes;
+
+      const bodyRes = this.visit(guard.body);
+      if (bodyRes.success === false) return bodyRes;
+
+      if (!finalType) finalType = bodyRes.value;
+    }
+
+    return { success: true, value: finalType! };
+  }
 
   visitReturn(node: Return): Result<Type> {
     return node.body

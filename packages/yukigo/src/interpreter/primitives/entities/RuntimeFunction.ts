@@ -1,4 +1,4 @@
-import { GuardedBody, NativeBody, Pattern, UnguardedBody } from "yukigo-ast";
+import { Body, Pattern } from "yukigo-ast";
 import { YuValue } from "../YuValue.js";
 import {
   boolean,
@@ -11,7 +11,7 @@ import { ExecutionCommand } from "../../components/kernel/commands.js";
 
 export interface EquationRuntime {
   patterns: Pattern[];
-  body: GuardedBody[] | UnguardedBody | NativeBody;
+  body: Body;
 }
 /**
  * Runtime Function used in the Interpreter

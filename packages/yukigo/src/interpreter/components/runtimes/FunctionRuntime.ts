@@ -2,8 +2,10 @@ import {
   Sequence,
   Return,
   Function,
-  isUnguardedBody,
   NativeBody,
+  UnguardedBody,
+  Visitor,
+  GuardedExpression,
 } from "yukigo-ast";
 import { Bindings } from "../../index.js";
 import { PatternMatcher } from "../PatternMatcher.js";
@@ -18,22 +20,22 @@ import {
 import { InterpreterError } from "../../errors.js";
 import { EnvBuilderVisitor } from "../EnvBuilder.js";
 import { RuntimeContext } from "../RuntimeContext.js";
-import { InterpreterVisitor } from "../Visitor.js";
 import {
   ExecutionCommand,
   StepCommand,
   BindCommand,
   FailCommand,
+  RaiseCommand,
 } from "../kernel/commands.js";
 import { YuValue } from "../../primitives/YuValue.js";
 import {
   RuntimeFunction,
-  YuBoolean,
   isRuntimeFunction,
   EquationRuntime,
   YuNil,
   RuntimeClass,
 } from "../../primitives/index.js";
+import { InterpreterVisitor } from "../Visitor.js";
 
 class NonExhaustivePatterns extends InterpreterError {
   constructor(funcName: string) {
@@ -73,88 +75,82 @@ export class FunctionRuntime {
             this.context.setEnv(this.context.cloneEnv(func.closure));
           this.context.pushEnv(localEnv);
 
-          const evaluatorFactory: EvaluatorFactory = (ctx) =>
-            new InterpreterVisitor(ctx);
-
-          const body = eq.body;
-
-          // Restore env after body execution
           const nextWithEnvRestore = (res: YuValue) => {
             this.context.setEnv(oldEnv);
             return new StepCommand(res);
           };
 
-          // UnguardedBody
-          if (isUnguardedBody(body))
-            return new BindCommand(
-              this.evaluateSequence(
-                body.sequence,
-                this.context,
-                evaluatorFactory,
-              ),
-              nextWithEnvRestore,
-            );
-          if (body instanceof NativeBody) {
-            const currentHolder = this.context.lookup(
-              "__CONTEXT_CLASS__",
-            ) as RuntimeClass;
-            const holderName = currentHolder.identifier;
-            const lookupKey = `${holderName}.${funcName}`;
+          const evaluatorFactory: EvaluatorFactory = (ctx) => {
+            const evaluator = new InterpreterVisitor(ctx);
 
-            const nativeImpl =
-              this.context.config.nativeProviders.get(lookupKey);
+            evaluator.visitGuardedExpression = (
+              expr: GuardedExpression,
+            ): ExecutionCommand => {
+              const tryNextGuard = (guardIndex: number): ExecutionCommand => {
+                // if no guard is true, then we clear the env and jump to next eq
+                if (guardIndex >= expr.guards.length) {
+                  this.context.setEnv(oldEnv);
+                  return tryNextEquation(eqIndex + 1);
+                }
 
-            if (nativeImpl) {
-              const capturedContext = this.context.clone();
-              // Es responsabilidad del proveedor externo devolver un ExecutionCommand válido de Yukigo
+                const guard = expr.guards[guardIndex];
+                return new BindCommand(
+                  evaluator.evaluate(guard.condition),
+                  (cond) => {
+                    if (!isTrue(cond)) return tryNextGuard(guardIndex + 1);
+                    return evaluator.evaluate(guard.body);
+                  },
+                );
+              };
+
+              return tryNextGuard(0);
+            };
+            return evaluator;
+          };
+          return eq.body.accept({
+            visitUnguardedBody: (b: UnguardedBody) => {
               return new BindCommand(
-                nativeImpl(this.context.lookup("self"), args, capturedContext),
+                this.evaluateSequence(
+                  b.sequence,
+                  this.context,
+                  evaluatorFactory,
+                ),
                 nextWithEnvRestore,
               );
-            }
+            },
 
-            const voidObj = this.context.lookup("void");
-            return nextWithEnvRestore(voidObj ?? YuNil.getInstance());
-          }
-          // GuardedBody
-          if (Array.isArray(body) && body.length > 0) {
-            const prototypeBody = body[0].body;
-            if (prototypeBody instanceof Sequence)
-              this.preloadDefinitions(prototypeBody, evaluatorFactory);
-          }
+            visitNativeBody: (b: NativeBody) => {
+              const currentHolder = this.context.lookup(
+                "__CONTEXT_CLASS__",
+              ) as RuntimeClass;
+              const lookupKey = `${currentHolder.identifier}.${funcName}`;
+              const nativeImpl =
+                this.context.config.nativeProviders.get(lookupKey);
 
-          const tryNextGuard = (guardIndex: number): ExecutionCommand => {
-            if (guardIndex >= body.length) {
-              this.context.setEnv(oldEnv);
-              return tryNextEquation(eqIndex + 1);
-            }
-
-            const evaluator = evaluatorFactory(this.context);
-            const guard = body[guardIndex];
-            return new BindCommand(
-              evaluator.evaluate(guard.condition),
-              (cond) => {
-                if (!isTrue(cond)) return tryNextGuard(guardIndex + 1);
-
-                if (!(guard.body instanceof Sequence))
-                  return new BindCommand(
-                    evaluator.evaluate(guard.body),
-                    nextWithEnvRestore,
-                  );
-
+              if (nativeImpl) {
+                const capturedContext = this.context.clone();
                 return new BindCommand(
-                  this.evaluateSequence(
-                    guard.body,
-                    this.context,
-                    evaluatorFactory,
+                  nativeImpl(
+                    this.context.lookup("self"),
+                    args,
+                    capturedContext,
                   ),
                   nextWithEnvRestore,
                 );
-              },
-            );
-          };
+              }
 
-          return tryNextGuard(0);
+              const voidObj = this.context.lookup("void");
+              return nextWithEnvRestore(voidObj ?? YuNil.getInstance());
+            },
+            fallback: (node) => {
+              return new RaiseCommand(
+                new InterpreterError(
+                  "FunctionRuntime.apply",
+                  `Unexpected node: ${node.toJSON()}`,
+                ),
+              );
+            },
+          } as Visitor<ExecutionCommand>);
         },
       );
     };
@@ -200,7 +196,6 @@ export class FunctionRuntime {
 
     for (const stmt of seq.statements) {
       if (stmt.is(Function) || stmt.is(Return)) continue;
-      // We ignore the result of preload
       evaluator.evaluate(stmt);
     }
   }

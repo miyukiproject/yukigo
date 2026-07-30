@@ -13,7 +13,6 @@ import {
   Fact,
   Function,
   If,
-  isUnguardedBody,
   LogicalBinaryOperation,
   LogicalUnaryOperation,
   Method,
@@ -261,12 +260,8 @@ export class HasDirectRecursion extends InspectionVisitor {
   override visitEquation(node: Equation): void {
     this.isInsideBody = true;
     try {
-      if(node.body instanceof NativeBody) return
-      if (isUnguardedBody(node.body)) {
-        node.body.accept(this);
-      } else {
-        this.traverseCollection(node.body);
-      }
+      if (node.body instanceof NativeBody) return;
+      node.body.accept(this);
     } finally {
       this.isInsideBody = false;
     }
@@ -397,9 +392,9 @@ export class HasBinding extends InspectionVisitor {
   }
 
   private check(identifier: SymbolPrimitive): void {
-      if (identifier && identifier.value === this.targetBinding) {
-        throw new StopTraversalException();
-      }
+    if (identifier && identifier.value === this.targetBinding) {
+      throw new StopTraversalException();
+    }
   }
 
   visitFunction(node: Function): void {
@@ -443,7 +438,6 @@ export class HasBinding extends InspectionVisitor {
     super.visitProcedure(node);
   }
 }
-
 
 export class SubordinatesDeclarationsTo extends InspectionVisitor {
   constructor(

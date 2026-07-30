@@ -1,4 +1,3 @@
-import { inspect } from "util";
 import { YukigoHaskellParser } from "../src/index.js";
 import { assert } from "chai";
 

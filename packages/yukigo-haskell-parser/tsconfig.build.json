@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": "src"
+  },
+  "exclude": [
+    "dist/**/*",
+    "tests/**/*"
+  ],
+  "references": [
+    {
+      "path": "../yukigo-ast"
+    }
+  ],
+}

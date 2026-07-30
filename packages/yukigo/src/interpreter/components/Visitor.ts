@@ -65,6 +65,7 @@ import {
   Try,
   Catch,
   Attribute,
+  GuardedExpression,
 } from "yukigo-ast";
 import {
   ArithmeticBinaryTable,
@@ -382,23 +383,29 @@ export class InterpreterVisitor implements Evaluator {
       return new BindCommand(this.evaluate(node.left), (rawLeft) => {
         return new BindCommand(this.context.forceValue(rawLeft), (left) => {
           return new BindCommand(this.evaluate(node.right), (rawRight) => {
-            return new BindCommand(this.context.forceValue(rawRight), (right) => {
-              if (left instanceof YuString || right instanceof YuString) {
-                return new StepCommand(
-                  new YuString(left.toString() + right.toString()),
+            return new BindCommand(
+              this.context.forceValue(rawRight),
+              (right) => {
+                if (left instanceof YuString || right instanceof YuString) {
+                  return new StepCommand(
+                    new YuString(left.toString() + right.toString()),
+                  );
+                }
+                const areSameType = left.getType() === right.getType();
+                if (left.asNumeric && right.asNumeric && areSameType) {
+                  return ArithmeticBinaryTable.Plus(
+                    left.asNumeric,
+                    right.asNumeric,
+                  );
+                }
+                return new FailCommand(
+                  new InterpreterError(
+                    "ArithmeticBinaryOperation",
+                    `Type mismatch: ${left.getType()}, ${right.getType()}`,
+                  ),
                 );
-              }
-              const areSameType = left.getType() === right.getType();
-              if (left.asNumeric && right.asNumeric && areSameType) {
-                return ArithmeticBinaryTable.Plus(left.asNumeric, right.asNumeric);
-              }
-              return new FailCommand(
-                new InterpreterError(
-                  "ArithmeticBinaryOperation",
-                  `Type mismatch: ${left.getType()}, ${right.getType()}`,
-                ),
-              );
-            });
+              },
+            );
           });
         });
       });
@@ -494,17 +501,20 @@ export class InterpreterVisitor implements Evaluator {
           }
 
           return new BindCommand(this.evaluate(node.right), (rawRight) => {
-            return new BindCommand(this.context.forceValue(rawRight), (right) => {
-              const seqR = right.asSequence as YuSequence;
-              if (!seqR)
-                return new RaiseCommand(
-                  new InterpreterError(
-                    "ListBinaryOperation",
-                    "Invalid right operand for lazy Concat",
-                  ),
-                );
-              return seqL.concat(seqR);
-            });
+            return new BindCommand(
+              this.context.forceValue(rawRight),
+              (right) => {
+                const seqR = right.asSequence as YuSequence;
+                if (!seqR)
+                  return new RaiseCommand(
+                    new InterpreterError(
+                      "ListBinaryOperation",
+                      "Invalid right operand for lazy Concat",
+                    ),
+                  );
+                return seqL.concat(seqR);
+              },
+            );
           });
         });
       });
@@ -548,8 +558,10 @@ export class InterpreterVisitor implements Evaluator {
                     if (compRes instanceof YuNumber) {
                       const val = compRes.value;
                       let isTrue = false;
-                      if (node.operator === "GreaterOrEqualThan") isTrue = val >= 0;
-                      else if (node.operator === "GreaterThan") isTrue = val > 0;
+                      if (node.operator === "GreaterOrEqualThan")
+                        isTrue = val >= 0;
+                      else if (node.operator === "GreaterThan")
+                        isTrue = val > 0;
                       else if (node.operator === "LessOrEqualThan")
                         isTrue = val <= 0;
                       else if (node.operator === "LessThan") isTrue = val < 0;
@@ -765,6 +777,27 @@ export class InterpreterVisitor implements Evaluator {
     });
   }
 
+  public visitGuardedExpression(expr: GuardedExpression): ExecutionCommand {
+    const tryNextGuard = (guardIndex: number): ExecutionCommand => {
+      if (guardIndex >= expr.guards.length) {
+        return new RaiseCommand(
+          new InterpreterError(
+            "PatternMatch",
+            "Non-exhaustive guards in equation: the pattern matched but no guard succeeded.",
+          ),
+        );
+      }
+
+      const guard = expr.guards[guardIndex];
+      return new BindCommand(this.evaluate(guard.condition), (cond) => {
+        if (!isTrue(cond)) return tryNextGuard(guardIndex + 1);
+        return this.evaluate(guard.body);
+      });
+    };
+
+    return tryNextGuard(0);
+  }
+
   visitTry(node: Try): ExecutionCommand {
     const tryStartEnv = this.context.env;
 
@@ -790,12 +823,7 @@ export class InterpreterVisitor implements Evaluator {
       }
 
       if (!exceptionObj) {
-        if (typeof this.context.config.wrapException === "function") {
-          exceptionObj = this.context.config.wrapException(
-            errorObj,
-            this.context,
-          ) as YuValue;
-        } else if (errorObj instanceof InterpreterError) {
+        if (errorObj instanceof InterpreterError) {
           exceptionObj = new YuString(errorObj.message);
         } else {
           exceptionObj = errorObj as YuValue;
@@ -1292,7 +1320,10 @@ export class InterpreterVisitor implements Evaluator {
             const fn = table[node.operator];
             if (!fn) {
               return new FailCommand(
-                new InterpreterError(contextName, `Unknown op: ${node.operator}`),
+                new InterpreterError(
+                  contextName,
+                  `Unknown op: ${node.operator}`,
+                ),
               );
             }
 

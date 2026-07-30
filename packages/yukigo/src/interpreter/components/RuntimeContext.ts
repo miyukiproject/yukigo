@@ -18,6 +18,7 @@ import {
   StepCommand,
   BindCommand,
 } from "./kernel/commands.js";
+import { InterpreterConfig } from "../../utils/helpers.js";
 
 export const DefaultConfiguration: InterpreterConfig = {
   nativeProviders: new Map(),
@@ -26,17 +27,6 @@ export const DefaultConfiguration: InterpreterConfig = {
   outputMode: "first",
   mutability: true,
 };
-
-export type LogicSearchMode = "first" | "all" | "stream";
-export interface InterpreterConfig {
-  nativeProviders: Map<string, NativeExtension>;
-  lazyLoading: boolean;
-  debug: boolean;
-  outputMode: LogicSearchMode;
-  mutability: boolean;
-  wrapException?: (error: any, ctx: RuntimeContext) => YuValue; // @deprecated
-  hooks?: YukigoHook[];
-}
 
 export type EvaluatorFactory = (ctx: RuntimeContext) => Evaluator;
 

@@ -1,10 +1,24 @@
 import { parseDocument } from "yaml";
 import { InspectionRule } from "../analyzer/index.js";
+import { NativeExtension } from "../interpreter/utils.js";
+import { RuntimeContext } from "../interpreter/components/RuntimeContext.js";
+import { YuValue } from "../interpreter/index.js";
+import { YukigoHook } from "../interpreter/components/hooks/YukigoHook.js";
 
 type MulangInspection = {
   inspection: string;
   binding: string;
 };
+
+export type LogicSearchMode = "first" | "all" | "stream";
+export interface InterpreterConfig {
+  nativeProviders: Map<string, NativeExtension>;
+  lazyLoading: boolean;
+  debug: boolean;
+  outputMode: LogicSearchMode;
+  mutability: boolean;
+  hooks?: YukigoHook[];
+}
 
 const isValidFormat = (inspection: any): inspection is MulangInspection =>
   typeof inspection === "object" &&

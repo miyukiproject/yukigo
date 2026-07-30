@@ -3,11 +3,10 @@ import {
   Rule,
   UnguardedBody,
   Visitor,
-  isUnguardedBody,
-  GuardedBody,
   ASTNode,
   Pattern,
   NativeBody,
+  Guard,
 } from "yukigo-ast";
 import { LogicExecutable } from "./LogicEngine.js";
 import { RuntimeContext } from "../RuntimeContext.js";
@@ -70,24 +69,28 @@ class KernelBodyVisitor implements Visitor<ExecutionCommand> {
     private readonly scope: Map<string, VariableTerm>,
   ) {}
 
+  public visitNativeBody(body: NativeBody): ExecutionCommand {
+    return new StepCommand(YuNil.getInstance());
+  }
+
   public visitUnguardedBody(body: UnguardedBody): ExecutionCommand {
     return this.solveBody(body.sequence.statements, this.substs, this.scope);
   }
 
-  public visitGuardedBody(body: GuardedBody): ExecutionCommand {
+  public visitGuard(guard: Guard): ExecutionCommand {
     return new BindCommand(
-      this.solveBody([body.condition], this.substs, this.scope),
+      this.solveBody([guard.condition], this.substs, this.scope),
       (res) => {
-        if (isLogicResult(res) && res.allSuccessful()) {
-          const solutions = res.getSuccessfulSolutions();
-          if (solutions.length === 1) {
-            return this.solveBody([body.body], solutions[0], this.scope);
-          }
-          return new ChoiceCommand(
-            solutions.map((s) => this.solveBody([body.body], s, this.scope)),
-          );
-        }
-        return new BacktrackCommand();
+        if (!isLogicResult(res) || !res.allSuccessful())
+          return new BacktrackCommand();
+
+        const solutions = res.getSuccessfulSolutions();
+        if (solutions.length === 1)
+          return this.solveBody([guard.body], solutions[0], this.scope);
+
+        return new ChoiceCommand(
+          solutions.map((s) => this.solveBody([guard.body], s, this.scope)),
+        );
       },
     );
   }
@@ -118,14 +121,16 @@ export class GoalKernelVisitor implements Visitor<ExecutionCommand> {
 
   public visitFact(fact: Fact): ExecutionCommand {
     const scope = new Map<string, VariableTerm>();
+    const onSuccess = (substs: Substitution) =>
+      new StepCommand(new LogicResult([new LogicAnswer(true, substs)]));
+
     return unifyParameters(
       fact.patterns,
       this.args,
       this.baseSubst,
       this.translator,
       scope,
-      (substs) =>
-        new StepCommand(new LogicResult([new LogicAnswer(true, substs)])),
+      onSuccess,
       () => new BacktrackCommand(),
     );
   }
@@ -139,32 +144,25 @@ export class GoalKernelVisitor implements Visitor<ExecutionCommand> {
       const eq = rule.equations[eqIndex];
       const scope = new Map<string, VariableTerm>();
 
+      const onFailure = () => tryEquation(eqIndex + 1);
+      const onSuccess = (substs: Substitution) => {
+        const bodyVisitor = new KernelBodyVisitor(
+          this.solveBody,
+          substs,
+          scope,
+        );
+        const currentCmd = eq.body.accept(bodyVisitor);
+        return new ChoiceCommand([currentCmd, tryEquation(eqIndex + 1)]);
+      };
+
       return unifyParameters(
         eq.patterns,
         this.args,
         this.baseSubst,
         this.translator,
         scope,
-        (substs) => {
-          const bodyVisitor = new KernelBodyVisitor(
-            this.solveBody,
-            substs,
-            scope,
-          );
-          let currentCmd: ExecutionCommand;
-          if (eq.body instanceof NativeBody) return new StepCommand(YuNil.getInstance());
-
-          if (isUnguardedBody(eq.body)) {
-            currentCmd = eq.body.accept(bodyVisitor);
-          } else {
-            const branches = eq.body.map((b) => b.accept(bodyVisitor));
-            currentCmd =
-              branches.length === 1 ? branches[0] : new ChoiceCommand(branches);
-          }
-
-          return new ChoiceCommand([currentCmd, tryEquation(eqIndex + 1)]);
-        },
-        () => tryEquation(eqIndex + 1),
+        onSuccess,
+        onFailure,
       );
     };
 
@@ -196,7 +194,7 @@ export function solveGoalKernel(
   const pred = ctx.isDefined(predicateName) ? ctx.lookup(predicateName) : null;
 
   const validPredicate =
-    !!pred && isRuntimePredicate(pred) && pred.validateArity(args.length);
+    isRuntimePredicate(pred) && pred.validateArity(args.length);
 
   if (!validPredicate) return new BacktrackCommand();
 

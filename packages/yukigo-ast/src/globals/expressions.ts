@@ -313,6 +313,48 @@ export class NamedArgument extends ASTNode {
   }
 }
 
+export class GuardedExpression extends ASTNode {
+  public guards: Guard[];
+
+  constructor(guards: Guard[], loc?: SourceLocation) {
+    super(loc);
+    this.guards = guards;
+  }
+
+  public accept<R>(visitor: Visitor<R>): R {
+    return this.dispatchVisit(visitor, visitor.visitGuardedExpression);
+  }
+
+  public toJSON(): SerializeNode {
+    return {
+      type: "GuardedExpression",
+      guards: this.guards.map((g) => g.toJSON()),
+    };
+  }
+}
+
+export class Guard extends ASTNode {
+  /** @hidden */
+  public body: Expression;
+  /** @hidden */
+  public condition: Expression;
+  constructor(condition: Expression, body: Expression, loc?: SourceLocation) {
+    super(loc);
+    this.condition = condition;
+    this.body = body;
+  }
+  public accept<R>(visitor: Visitor<R>): R {
+    return this.dispatchVisit(visitor, visitor.visitGuard);
+  }
+  public toJSON(): SerializeNode {
+    return {
+      type: "Guard",
+      condition: this.condition.toJSON(),
+      body: this.body.toJSON(),
+    };
+  }
+}
+
 export type Expression =
   | Primitive
   | Operation
@@ -333,6 +375,8 @@ export type Expression =
   | Forall
   | Findall
   | Not
+  | Guard
+  | GuardedExpression
   | TypeCast
   | ListComprehension
   | RangeExpression

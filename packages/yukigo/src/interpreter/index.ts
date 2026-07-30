@@ -2,13 +2,14 @@ import { AST, ASTNode } from "yukigo-ast";
 import { InterpreterVisitor } from "./components/Visitor.js";
 import { EnvBuilderVisitor } from "./components/EnvBuilder.js";
 import {
-  InterpreterConfig,
   RuntimeContext,
 } from "./components/RuntimeContext.js";
 import { YukigoKernel } from "./components/kernel/index.js";
 import { EvalCommand } from "./components/kernel/commands.js";
 import { YuValue } from "./primitives/index.js";
+import { InterpreterConfig } from "../utils/helpers.js";
 export * from "./primitives/index.js";
+
 export type Bindings = [string, YuValue][];
 
 /**
@@ -47,5 +48,3 @@ export class Interpreter {
     return this.context;
   }
 }
-
-export { InterpreterConfig };

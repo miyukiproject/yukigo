@@ -3,12 +3,12 @@ import {
   Function,
   Visitor,
   Return,
-  isUnguardedBody,
   Sequence,
   TestGroup,
   Test,
   Assert,
   ASTNode,
+  UnguardedBody,
   NativeBody,
 } from "yukigo-ast";
 import { InferenceEngine, PatternVisitor } from "./inference.js";
@@ -101,18 +101,13 @@ export class FunctionRegistrarVisitor implements Visitor<void> {
       this.env.set(functionName, funcScheme);
     }
     for (const equation of node.equations) {
-      if (Array.isArray(equation.body)) {
-        for (const guard of equation.body) {
-          guard.body.accept(this);
-        }
-      } else if (isUnguardedBody(equation.body)) {
-        const statements = equation.body.sequence.statements;
-        statements
-          .filter((stmt) => stmt instanceof Function)
-          .forEach((func) => {
-            this.env.set(func.identifier.value, funcScheme);
-          });
-      }
+      if (!equation.body.is(UnguardedBody)) continue;
+      const statements = equation.body.sequence.statements;
+      statements
+        .filter((stmt) => stmt instanceof Function)
+        .forEach((func) => {
+          this.env.set(func.identifier.value, funcScheme);
+        });
     }
   }
   visitTestGroup(node: TestGroup): void {
@@ -151,6 +146,7 @@ export class FunctionCheckerVisitor implements Visitor<void> {
     // Handle function without signature
     if (!funcScheme) {
       const firstEq = node.equations[0];
+      if (!firstEq.body.is(UnguardedBody)) return;
       this.environments.unshift(new Map());
       const inferenceEngine = new InferenceEngine(
         this.signatureMap,
@@ -175,36 +171,30 @@ export class FunctionCheckerVisitor implements Visitor<void> {
         }
       });
 
-      let inferredBodyType: Type;
-      if (isUnguardedBody(firstEq.body)) {
-        const equationStatements = firstEq.body.sequence.statements;
-        equationStatements.forEach((stmt) =>
-          stmt.accept(
-            new FunctionCheckerVisitor(
-              this.environments,
-              this.signatureMap,
-              this.coreHM,
-              this.errors,
-            ),
+      const equationStatements = firstEq.body.sequence.statements;
+      equationStatements.forEach((stmt) =>
+        stmt.accept(
+          new FunctionCheckerVisitor(
+            this.environments,
+            this.signatureMap,
+            this.coreHM,
+            this.errors,
           ),
-        );
-        const returnNode = equationStatements.find(
-          (stmt) => stmt instanceof Return,
-        );
-        if (!returnNode) return;
+        ),
+      );
+      const returnNode = equationStatements.find(
+        (stmt) => stmt instanceof Return,
+      );
+      if (!returnNode) return;
 
-        const returnResult = returnNode.accept(inferenceEngine);
-        if (returnResult.success === false) {
-          this.errors.push(
-            `Type error in '${functionName}': ${returnResult.error}`,
-          );
-          return;
-        }
-        inferredBodyType = returnResult.value;
-      } else {
-        // Handle guarded body inference if necessary
-        inferredBodyType = this.coreHM.freshVar(); // Placeholder
+      const returnResult = returnNode.accept(inferenceEngine);
+      if (returnResult.success === false) {
+        this.errors.push(
+          `Type error in '${functionName}': ${returnResult.error}`,
+        );
+        return;
       }
+      const inferredBodyType = returnResult.value;
 
       const fullFuncType = paramTypes.reduceRight(
         (acc, param) => functionType(param, acc),
@@ -220,6 +210,7 @@ export class FunctionCheckerVisitor implements Visitor<void> {
 
     const expectedArity = getArity(this.coreHM.instantiate(funcScheme));
     for (const [index, equation] of node.equations.entries()) {
+      if (!equation.body.is(UnguardedBody)) continue;
       if (equation.patterns.length > expectedArity) {
         this.errors.push(
           `Type error in '${functionName}': Too many parameters in equation ${index}. Expected max ${expectedArity}, got ${equation.patterns.length}`,
@@ -228,12 +219,8 @@ export class FunctionCheckerVisitor implements Visitor<void> {
       }
       try {
         const funcType = this.coreHM.instantiate(funcScheme);
-
-        // FIX 2: No buscamos el "ReturnType" final absoluto, sino el tipo restante
-        // Si funcType es A -> B -> C y consumimos 1 patrón, el cuerpo debe ser B -> C
         let expectedBodyType = funcType;
 
-        // "Pelamos" el tipo función tantas veces como argumentos explícitos tengamos
         for (let i = 0; i < equation.patterns.length; i++) {
           if (isFunctionType(expectedBodyType)) {
             expectedBodyType = expectedBodyType.args[1];
@@ -265,59 +252,32 @@ export class FunctionCheckerVisitor implements Visitor<void> {
             );
           }
         });
-        if (isUnguardedBody(equation.body)) {
-          const equationStatements = equation.body.sequence.statements;
-          equationStatements.forEach((stmt) =>
-            stmt.accept(
-              new FunctionCheckerVisitor(
-                this.environments,
-                this.signatureMap,
-                this.coreHM,
-                this.errors,
-              ),
+
+        const equationStatements = equation.body.sequence.statements;
+        equationStatements.forEach((stmt) =>
+          stmt.accept(
+            new FunctionCheckerVisitor(
+              this.environments,
+              this.signatureMap,
+              this.coreHM,
+              this.errors,
             ),
+          ),
+        );
+        const returnNode = equationStatements.find(
+          (stmt) => stmt instanceof Return,
+        );
+        if (!returnNode) return;
+        const returnResult = returnNode.accept(inferenceEngine);
+        if (returnResult.success === false) {
+          this.errors.push(
+            `Type error in '${functionName}': ${returnResult.error}`,
           );
-          const returnNode = equationStatements.find(
-            (stmt) => stmt instanceof Return,
-          );
-          if (!returnNode) return;
-          const returnResult = returnNode.accept(inferenceEngine);
-          if (returnResult.success === false) {
-            this.errors.push(
-              `Type error in '${functionName}': ${returnResult.error}`,
-            );
-            return;
-          }
-
-          const sub = this.coreHM.unify(returnResult.value, expectedBodyType);
-          if (sub.success === false) throw Error(sub.error);
-        } else {
-          // Handles GuardedBody case
-          if (!Array.isArray(equation.body)) return;
-          for (const guard of equation.body) {
-            // checks if condition expression in guard is a resolves to YuBoolean
-            const condition = guard.condition.accept(inferenceEngine);
-            if (condition.success === false) throw Error(condition.error);
-
-            const conditionSub = this.coreHM.unify(
-              condition.value,
-              booleanType,
-            );
-            if (conditionSub.success === false) throw Error(conditionSub.error);
-            let body = guard.body;
-            if (guard.body instanceof Sequence) {
-              const returnNode = guard.body.statements.find(
-                (stmt) => stmt instanceof Return,
-              );
-              if (!returnNode) return;
-              body = returnNode;
-            }
-            const bodyResult = body.accept(inferenceEngine);
-            if (bodyResult.success === false) throw Error(bodyResult.error);
-            const sub = this.coreHM.unify(bodyResult.value, expectedBodyType);
-            if (sub.success === false) throw Error(sub.error);
-          }
+          return;
         }
+
+        const sub = this.coreHM.unify(returnResult.value, expectedBodyType);
+        if (sub.success === false) throw Error(sub.error);
         this.environments.shift();
       } catch (error: any) {
         this.errors.push(`Type error in '${functionName}': ${error.message}`);
@@ -438,12 +398,15 @@ const formatBody = (t: Type, seen: SeenTypeNames): string => {
       : `${left} -> ${right}`;
   }
   if (isListType(t)) {
-    if (t.args[0].type === "TypeConstructor" && t.args[0].name === YUTYPES.YuChar) {
+    if (
+      t.args[0].type === "TypeConstructor" &&
+      t.args[0].name === YUTYPES.YuChar
+    ) {
       return YUTYPES.YuString;
     }
     return `[${showType(t.args[0])}]`;
   }
-  if (isTupleType(t)) 
+  if (isTupleType(t))
     return `(${t.args.map((arg) => showType(arg, seen)).join(", ")})`;
 
   const name = t.name;
@@ -486,7 +449,11 @@ export function getArity(type: Type): number {
 }
 
 export function isFunctionType(t: Type): t is FunctionType {
-  return t.type === "TypeConstructor" && t.name === YUTYPES.Arrow && t.args.length === 2;
+  return (
+    t.type === "TypeConstructor" &&
+    t.name === YUTYPES.Arrow &&
+    t.args.length === 2
+  );
 }
 export function isListType(t: Type): t is ListType {
   return t.name === YUTYPES.List;
@@ -500,9 +467,9 @@ export function isTupleType(t: Type): t is TupleType {
 export const isString = (t: Type) =>
   (t.type === "TypeConstructor" && t.name === YUTYPES.YuString) ||
   (t.type === "TypeConstructor" &&
-  t.name === YUTYPES.List &&
-  t.args[0].type === "TypeConstructor" &&
-  t.args[0].name === YUTYPES.YuChar);
+    t.name === YUTYPES.List &&
+    t.args[0].type === "TypeConstructor" &&
+    t.args[0].name === YUTYPES.YuChar);
 
 export function functionType(params: Type, returnType: Type): FunctionType {
   return {

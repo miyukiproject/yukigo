@@ -9,6 +9,8 @@ import {
     RangeExpression,
     NamedArgument,
     Generator,
+    GuardedExpression,
+    Guard,
 } from "../globals/expressions.js";
 import {
     CompositionExpression,
@@ -41,6 +43,8 @@ export interface ExpressionVisitor<TReturn> {
     visitOtherwise(node: Otherwise): TReturn;
     visitCompositionExpression(node: CompositionExpression): TReturn;
     visitLambda(node: Lambda): TReturn;
+    visitGuard(node: Guard): TReturn;
+    visitGuardedExpression(node: GuardedExpression): TReturn;
     visitApplication(node: Application): TReturn;
     visitExist(node: Exist): TReturn;
     visitNot(node: Not): TReturn;
@@ -79,6 +83,13 @@ export function ExpressionTraverser<TBase extends VisitorConstructor<TraverseBas
         visitLetInExpr(node: LetInExpression): void {
             node.expression.accept(this);
             node.declarations.accept(this);
+        }
+        visitGuardedExpression(node: GuardedExpression): void {
+            this.traverseCollection(node.guards)
+        }
+        visitGuard(node: Guard): void {
+            node.condition.accept(this);
+            node.body.accept(this);
         }
         visitCall(node: Call): void {
             node.callee.accept(this);

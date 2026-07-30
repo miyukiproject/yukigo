@@ -32,7 +32,8 @@ const {
   RangeExpression,
   TypeSignature,
   Return,
-  GuardedBody,
+  GuardedExpression,
+  Guard,
   Equation,
   Raise,
   UnguardedBody,
@@ -348,20 +349,24 @@ bindings_list ->
 
 equation -> 
   params guarded_rhs where_clause:? {% (d) => {
-      const body = d[1];
-      const finalBody = d[2] 
-        ? body.map(guard => new GuardedBody(guard.condition, new Sequence([...d[2], new Return(guard.body)])))
-        : body;
-      return new Equation(d[0], finalBody);
-    } %}
-  | params %assign return_expression where_clause:? {% d => new Equation(d[0], new UnguardedBody(new Sequence(d[3] ? [...d[3], d[2]] : [d[2]])), d[2]) %}
+      const guardsExpr = new GuardedExpression(d[1]);
+      const locals = d[2] || [];
+      
+      const sequence = new Sequence([...locals, new Return(guardsExpr)]);
+      
+      return new Equation(d[0], new UnguardedBody(sequence));
+  } %}
+  | params %assign return_expression where_clause:? {% (d) => {
+      const locals = d[3] || [];
+      return new Equation(d[0], new UnguardedBody(new Sequence([...locals, d[2]])));
+  } %}
 
 params -> parameter_list:? {% (d) => d[0] || [] %}
 
 guarded_rhs -> guarded_branch:+ {% (d) => d[0] %}
 
 guarded_branch -> 
-  "|" condition "=" expression {% (d) => new GuardedBody(d[1], d[3]) %}
+  "|" condition "=" expression {% (d) => new Guard(d[1], d[3]) %}
 
 condition -> 
   "otherwise" {% d => new Otherwise() %}

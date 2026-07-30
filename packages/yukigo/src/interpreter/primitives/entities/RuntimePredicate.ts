@@ -72,6 +72,6 @@ export class RuntimePredicate extends YuValue {
   }
 }
 
-export const isRuntimePredicate = (prim: YuValue): prim is RuntimePredicate => {
+export const isRuntimePredicate = (prim: unknown): prim is RuntimePredicate => {
   return prim instanceof RuntimePredicate;
 };

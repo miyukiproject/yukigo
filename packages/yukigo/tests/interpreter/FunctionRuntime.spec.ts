@@ -7,17 +7,23 @@ import {
   NumberPrimitive,
   LiteralPattern,
   VariablePattern,
-  GuardedBody,
+  GuardedExpression,
   StringPrimitive,
   BooleanPrimitive,
   Equation,
+  Guard,
 } from "yukigo-ast";
 import { FunctionRuntime } from "../../src/interpreter/components/runtimes/FunctionRuntime.js";
 import { createGlobalEnv, EnvStack } from "../../src/interpreter/utils.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
 import { YukigoKernel } from "../../src/interpreter/components/kernel/index.js";
 import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
-import { YuValue, EquationRuntime, RuntimeFunction, YuNumber } from "../../src/interpreter/primitives/index.js";
+import {
+  YuValue,
+  EquationRuntime,
+  RuntimeFunction,
+  YuNumber,
+} from "../../src/interpreter/primitives/index.js";
 
 const symbol = (val: string) => new SymbolPrimitive(val);
 const num = (val: number) => new NumberPrimitive(val);
@@ -74,7 +80,9 @@ describe("FunctionRuntime", () => {
       };
 
       expect(() => {
-        kernel.run(funcRuntime.apply(makeRunFunc("f", 1, [eq1]), [new YuNumber(99)]));
+        kernel.run(
+          funcRuntime.apply(makeRunFunc("f", 1, [eq1]), [new YuNumber(99)]),
+        );
       }).to.throw(/Non-exhaustive patterns/);
     });
 
@@ -85,7 +93,12 @@ describe("FunctionRuntime", () => {
       };
 
       expect(() => {
-        kernel.run(funcRuntime.apply(makeRunFunc("f", 2, [eq1]), [new YuNumber(1), new YuNumber(2)]));
+        kernel.run(
+          funcRuntime.apply(makeRunFunc("f", 2, [eq1]), [
+            new YuNumber(1),
+            new YuNumber(2),
+          ]),
+        );
       }).to.throw(/Non-exhaustive patterns/);
     });
   });
@@ -98,7 +111,9 @@ describe("FunctionRuntime", () => {
       };
 
       const result = kernel.run(
-        funcRuntime.apply(makeRunFunc("identity", 1, [eq1]), [new YuNumber(500)]),
+        funcRuntime.apply(makeRunFunc("identity", 1, [eq1]), [
+          new YuNumber(500),
+        ]),
       ) as YuValue;
 
       expect(result.toJSON()).to.equal(500);
@@ -123,13 +138,15 @@ describe("FunctionRuntime", () => {
   describe("Guarded Bodies", () => {
     it("should execute the body of the first true guard", () => {
       const guards = [
-        new GuardedBody(new BooleanPrimitive(false), num(1)),
-        new GuardedBody(new BooleanPrimitive(true), num(2)),
+        new Guard(new BooleanPrimitive(false), num(1)),
+        new Guard(new BooleanPrimitive(true), num(2)),
       ];
 
       const eq: EquationRuntime = {
         patterns: [varPat("_")],
-        body: guards,
+        body: new UnguardedBody(
+          new Sequence([new Return(new GuardedExpression(guards))]),
+        ),
       };
 
       const result = kernel.run(
@@ -141,7 +158,15 @@ describe("FunctionRuntime", () => {
     it("should fall through to next equation if no guard matches", () => {
       const eq1: EquationRuntime = {
         patterns: [varPat("_")],
-        body: [new GuardedBody(new BooleanPrimitive(false), num(1))],
+        body: new UnguardedBody(
+          new Sequence([
+            new Return(
+              new GuardedExpression([
+                new Guard(new BooleanPrimitive(false), num(1)),
+              ]),
+            ),
+          ]),
+        ),
       };
 
       const eq2: EquationRuntime = {
@@ -150,7 +175,9 @@ describe("FunctionRuntime", () => {
       };
 
       const result = kernel.run(
-        funcRuntime.apply(makeRunFunc("fallback", 1, [eq1, eq2]), [new YuNumber(0)]),
+        funcRuntime.apply(makeRunFunc("fallback", 1, [eq1, eq2]), [
+          new YuNumber(0),
+        ]),
       ) as YuValue;
       expect(result.toJSON()).to.equal(2);
     });

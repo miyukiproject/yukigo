@@ -8,10 +8,10 @@ import {
   ASTNode,
   BooleanPrimitive,
   Application,
-  isUnguardedBody,
   Otherwise,
-  GuardedBody,
   NativeBody,
+  Guard,
+  UnguardedBody,
 } from "yukigo-ast";
 import { AutoScoped, ScopedVisitor, VisitorConstructor } from "../../utils.js";
 import { Uses } from "../generic/generic.js";
@@ -39,16 +39,9 @@ export class HasRedundantLambda extends ScopedVisitor {
 
 @AutoScoped
 export class HasRedundantGuards extends ScopedVisitor {
-  visitEquation(node: Equation): void {
-    if (node.body instanceof NativeBody) return;
-    if (isUnguardedBody(node.body)) return;
-    // If there is only 1 guard...
-    if (node.body.length === 1) {
-      const guard = node.body[0];
-      // ...and that guard is "True" or "otherwise"
-      if (this.isAlwaysTrue(guard.condition))
+  visitGuard(node: Guard): void {
+    if (this.isAlwaysTrue(node.condition))
         throw new StopTraversalException();
-    }
   }
 
   private isAlwaysTrue(node: ASTNode): boolean {
@@ -62,7 +55,7 @@ export class HasRedundantGuards extends ScopedVisitor {
 
 @AutoScoped
 export class ShouldUseOtherwise extends ScopedVisitor {
-  visitGuardedBody(node: GuardedBody): void {
+  visitGuard(node: Guard): void {
     if (node.condition.is(BooleanPrimitive) && node.condition.value === true)
       throw new StopTraversalException();
   }

@@ -33,7 +33,7 @@ export class UsesGuards extends ScopedVisitor {
   constructor(scope?: string) {
     super(scope);
   }
-  visitGuardedBody(node: Yu.GuardedBody): void {
+  visitGuardedExpression(node: Yu.GuardedExpression): void {
     throw new Yu.StopTraversalException();
   }
 }

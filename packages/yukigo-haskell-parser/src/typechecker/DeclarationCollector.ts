@@ -24,7 +24,6 @@ import {
 import { CoreHM } from "./core.js";
 import { TypeBuilder } from "./TypeBuilder.js";
 import { typeMappings } from "../utils/types.js";
-import { UnexpectedNode } from "../utils/helpers.js";
 
 const builder = new TypeBuilder(new CoreHM());
 

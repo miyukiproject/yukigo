@@ -11,9 +11,9 @@ import { Interpreter } from "../interpreter/index.js";
 import { FailedAssert } from "../interpreter/components/TestRunner.js";
 import {
   DefaultConfiguration,
-  InterpreterConfig,
 } from "../interpreter/components/RuntimeContext.js";
 import { UnexpectedNode } from "../interpreter/errors.js";
+import { InterpreterConfig } from "../utils/helpers.js";
 
 export type TestStatus = "passed" | "failed" | "error";
 

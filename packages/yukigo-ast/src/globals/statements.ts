@@ -230,44 +230,6 @@ export class UnguardedBody extends ASTNode {
   }
 }
 
-export function isUnguardedBody(
-  body: UnguardedBody | GuardedBody[] | NativeBody,
-): body is UnguardedBody {
-  return body instanceof UnguardedBody;
-}
-
-/**
- * Represents the body of an Equation that does have guards.
- * For example, Haskell's guards
- * @example
- * f x
- *    | x > 2 = x * 2
- *    | otherwise = x / 2
- * @category Declarations
- */
-export class GuardedBody extends ASTNode {
-  /** @hidden */
-  public body: Expression;
-  /** @hidden */
-  public condition: Expression;
-
-  constructor(condition: Expression, body: Expression, loc?: SourceLocation) {
-    super(loc);
-    this.condition = condition;
-    this.body = body;
-  }
-  public accept<R>(visitor: Visitor<R>): R {
-    return this.dispatchVisit(visitor, visitor.visitGuardedBody);
-  }
-  public toJSON(): SerializeNode {
-    return {
-      type: "GuardedBody",
-      condition: this.condition.toJSON(),
-      body: this.body.toJSON(),
-    };
-  }
-}
-
 export class NativeBody extends ASTNode {
   constructor(loc?: SourceLocation) {
     super(loc);
@@ -282,6 +244,8 @@ export class NativeBody extends ASTNode {
   }
 }
 
+export type Body = UnguardedBody | NativeBody;
+
 /**
  * Represents one Equation with its arguments and body. Allows for overloading and pattern matching.
  * You may define the return statement to access it more easily.
@@ -295,12 +259,12 @@ export class Equation extends ASTNode {
   /** @hidden */
   public patterns: Pattern[];
   /** @hidden */
-  public body: UnguardedBody | GuardedBody[] | NativeBody;
+  public body: Body;
   /** @hidden */
   public returnExpr?: Return;
   constructor(
     patterns: Pattern[],
-    body: UnguardedBody | GuardedBody[] | NativeBody,
+    body: Body,
     returnExpr?: Return,
     loc?: SourceLocation,
   ) {

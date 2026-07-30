@@ -1,10 +1,10 @@
+import { Guard, GuardedExpression } from "../globals/expressions.js";
 import {
     Sequence,
     If,
     Return,
     Field,
     UnguardedBody,
-    GuardedBody,
     NativeBody,
     Equation,
     Switch,
@@ -61,7 +61,6 @@ export interface StatementVisitor<TReturn> {
     visitConstructor(node: Constructor): TReturn;
     visitRecord(node: Record): TReturn;
     visitUnguardedBody(node: UnguardedBody): TReturn;
-    visitGuardedBody(node: GuardedBody): TReturn;
     visitNativeBody(node: NativeBody): TReturn;
     visitEquation(node: Equation): TReturn;
     visitSwitch(node: Switch): TReturn;
@@ -131,10 +130,6 @@ export function StatementTraverser<TBase extends VisitorConstructor<TraverseBase
         }
         visitUnguardedBody(node: UnguardedBody): void {
             node.sequence.accept(this);
-        }
-        visitGuardedBody(node: GuardedBody): void {
-            node.condition.accept(this);
-            node.body.accept(this);
         }
         visitNativeBody(node: NativeBody): void {}
         visitEquation(node: Equation): void {
