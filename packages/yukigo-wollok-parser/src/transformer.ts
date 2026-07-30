@@ -236,7 +236,6 @@ export class WollokToYukigoTransformer {
   }
 
   private visitTry(node: Try): Yu.Try {
-    //console.log("[visitTry node]", inspect(node, false, null, true));
     const body = this.visit(node.body);
     const rawCatches = node.catches;
     const catchExprs: Yu.Catch[] = rawCatches.map((c: any) =>
@@ -348,25 +347,11 @@ export class WollokToYukigoTransformer {
 
   private visitMethod(node: Method): Yu.Method {
     const identifier = new Yu.SymbolPrimitive(node.name, mapLocation(node));
-    const body = node.body;
     const patterns: Yu.Pattern[] = (node.parameters || []).map((param) =>
       this.visit(param),
     );
 
-    let methodBody: Yu.UnguardedBody | Yu.NativeBody;
-    if (!body) {
-      // Abstract methods have no body
-      methodBody = new Yu.UnguardedBody(
-        new Yu.Sequence([], mapLocation(node)),
-        mapLocation(node),
-      );
-    } else if (body === "native") {
-      //console.log(node);
-      methodBody = new Yu.NativeBody(mapLocation(node));
-    } else {
-      const bodySequence = this.visit(body);
-      methodBody = new Yu.UnguardedBody(bodySequence, mapLocation(body));
-    }
+    const methodBody: Yu.UnguardedBody | Yu.NativeBody = this.getBody(node);
 
     const equation = new Yu.Equation(
       patterns,
@@ -377,6 +362,22 @@ export class WollokToYukigoTransformer {
 
     return new Yu.Method(identifier, [equation], mapLocation(node));
   }
+  private getBody(node: Method) {
+    const body = node.body;
+
+    // Abstract methods have no body
+    if (!body)
+      return new Yu.UnguardedBody(
+        new Yu.Sequence([], mapLocation(node)),
+        mapLocation(node),
+      );
+
+    if (body === "native") return new Yu.NativeBody(mapLocation(node));
+
+    const bodySequence = this.visit(body);
+    return new Yu.UnguardedBody(bodySequence, mapLocation(body));
+  }
+
   private visitParameter(node: Parameter): Yu.VariablePattern {
     const nameSymbol = new Yu.SymbolPrimitive(node.name, mapLocation(node));
     return new Yu.VariablePattern(nameSymbol, mapLocation(node));
@@ -416,7 +417,7 @@ export class WollokToYukigoTransformer {
         new Yu.SymbolPrimitive(op, loc),
         new Yu.SymbolPrimitive("apply", loc),
         args,
-        loc
+        loc,
       );
     }
 

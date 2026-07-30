@@ -77,7 +77,6 @@ export class ObjectRuntime {
     return new BindCommand(
       this.context.funcRuntime.apply(match.method, args),
       (res) => {
-        console.log("ObjectRuntime.dispatch", res);
         this.context.popEnv();
         return new StepCommand(res);
       },

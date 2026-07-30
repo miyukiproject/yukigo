@@ -76,10 +76,13 @@ export class WollokNativeBridge {
    * Instancia una clase/módulo de Wollok y le setea sus campos iniciales.
    */
   public *instantiate(
-    className: string | { fullyQualifiedName: string, name?: string },
+    className: string | { fullyQualifiedName: string; name?: string },
     initialFields: Record<string, YuValue>,
   ): Generator<any, any, any> {
-    const classStr = typeof className === "string" ? className : (className.name || className.fullyQualifiedName);
+    const classStr =
+      typeof className === "string"
+        ? className
+        : className.name || className.fullyQualifiedName;
     const shortName = classStr.includes(".")
       ? classStr.split(".").pop()!
       : classStr;
@@ -107,7 +110,9 @@ export class WollokNativeBridge {
       }
     }
 
-    const instance = (classDef as any).instantiate("instance_" + Math.random().toString(36).substring(7));
+    const instance = (classDef as any).instantiate(
+      "instance_" + Math.random().toString(36).substring(7),
+    );
 
     for (const [fieldName, yuValue] of Object.entries(initialFields)) {
       instance.setField(fieldName, yuValue);
@@ -153,10 +158,10 @@ function toWollokFacade(arg: any): any {
       if (!raw) return raw;
       const val = typeof raw.value !== "undefined" ? raw.value : raw;
       return {
-        innerNumber: typeof val === "number" ? val : (val?.innerNumber),
-        innerString: typeof val === "string" ? val : (val?.innerString),
-        innerBoolean: typeof val === "boolean" ? val : (val?.innerBoolean),
-        innerValue: val
+        innerNumber: typeof val === "number" ? val : val?.innerNumber,
+        innerString: typeof val === "string" ? val : val?.innerString,
+        innerBoolean: typeof val === "boolean" ? val : val?.innerBoolean,
+        innerValue: val,
       };
     },
     getField: (fieldName: string) => {
@@ -182,28 +187,10 @@ export function buildWollokNativeProviders(
 
       providers.set(lookupKey, (self: any, args: any[], ctx: any) => {
         // 1. Serializamos los campos internos del RuntimeObject de Yukigo (si tiene)
-        let fieldsString = "";
         if (self.fields && self.fields.size > 0) {
           const pairs: string[] = [];
           for (const [key, variable] of self.fields.entries()) {
-            // DIAGNÓSTICO: Sacamos un log temporal para ver qué forma tiene tu objeto Variable en runtime
-            //console.log(`[WollokBridge-Debug] Campo '${key}':`, variable);
-
-            let innerVal: any = variable;
-
-            // Si la variable contiene una celda o una expresión mutable interna de Yukigo, la abrimos paso a paso
-            if (variable && typeof variable === "object") {
-              if (typeof variable.value !== "undefined") {
-                innerVal = variable.value;
-              } else if (
-                variable.expression &&
-                typeof variable.expression.value !== "undefined"
-              ) {
-                innerVal = variable.expression.value;
-              } else if (typeof variable.getValue === "function") {
-                innerVal = variable.getValue();
-              }
-            }
+            const innerVal: any = getInnerValue(variable);
 
             // Desactivamos el envoltorio de los primitivos de Yukigo (YuNumber, YuString, YuBoolean)
             const finalPlainValue =
@@ -213,15 +200,7 @@ export function buildWollokNativeProviders(
 
             pairs.push(`${key}=${finalPlainValue}`);
           }
-          fieldsString = `[${pairs.join(", ")}]`;
         }
-
-        const objectName = self.className || self.identifier || "Object";
-        const fullyQualifiedString = `${objectName}${fieldsString}`;
-
-/*         console.log(
-          `[WollokBridge-Debug] String final para kindName: '${fullyQualifiedString}'`,
-        ); */
 
         const wollokFacade = toWollokFacade(self);
         const wrappedArgs = args.map((a) => toWollokFacade(a));
@@ -232,12 +211,15 @@ export function buildWollokNativeProviders(
           ...methods, // Heredamos los otros métodos hermanos
           reify: bridge.reify.bind(bridge),
           instantiate: bridge.instantiate.bind(bridge),
-          send: bridge.send.bind(bridge)
+          send: bridge.send.bind(bridge),
         };
 
         // 4. Vinculamos el generador nativo al bridge simulado
         const boundNativeFunction = nativeFunction.bind(bridgeContext);
-        const iterator = (boundNativeFunction as any)(wollokFacade, ...wrappedArgs);
+        const iterator = (boundNativeFunction as any)(
+          wollokFacade,
+          ...wrappedArgs,
+        );
 
         // Tu pump recursivo CPS sigue exactamente igual
         const pump = (lastResult: any): any => {
@@ -268,3 +250,20 @@ export function buildWollokNativeProviders(
 
   return providers;
 }
+
+const getInnerValue = (variable) => {
+  // Si la variable contiene una celda o una expresión mutable interna de Yukigo, la abrimos paso a paso
+  if (variable && typeof variable === "object") {
+    if (typeof variable.value !== "undefined") {
+      return variable.value;
+    } else if (
+      variable.expression &&
+      typeof variable.expression.value !== "undefined"
+    ) {
+      return variable.expression.value;
+    } else if (typeof variable.getValue === "function") {
+      return variable.getValue();
+    }
+  }
+  return variable
+};

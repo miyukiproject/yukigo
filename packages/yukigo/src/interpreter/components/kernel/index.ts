@@ -48,7 +48,6 @@ export class YukigoKernel {
       this.finalResult = value;
       return;
     }
-    //console.log(`[Kernel] Popping continuation! value: ${value}`);
     return next(value);
   }
 
@@ -61,7 +60,6 @@ export class YukigoKernel {
   }
 
   public popCatchHandler(): CatchHandler | undefined {
-    //console.log(`[Kernel-${this.kid}] 📤 DESAPILANDO Catch por éxito.`);
     const entry = this.catchHandlerStack.pop();
     return entry?.handler;
   }

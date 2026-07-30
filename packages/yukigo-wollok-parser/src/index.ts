@@ -74,7 +74,6 @@ export class YukigoWollokParser implements YukigoParser {
       throw this.handleUnexpectedToken(parserResult);
     const resultAST = parserResult.value;
     const transformer = new WollokToYukigoTransformer();
-    //console.log(inspect(resultAST, false, null, true));
 
     const yukigoAst = transformer.transform(resultAST);
 
