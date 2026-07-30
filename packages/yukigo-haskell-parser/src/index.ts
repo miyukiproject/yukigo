@@ -85,22 +85,23 @@ export class YukigoHaskellParser implements YukigoParser {
     const result = this.feedParser(processedCode);
     const fullAst = this.prelude.concat(result);
 
-    const makePrim = (name: string) =>
-      new Function(new SymbolPrimitive(name), [
+    const makePrim = (name: string) => {
+      const returnExpr = new Return(
+        new ArithmeticUnaryOperation(
+          "ToString",
+          new SymbolPrimitive("x"),
+        ),
+      );
+      return new Function(new SymbolPrimitive(name), [
         new Equation(
           [new VariablePattern(new SymbolPrimitive("x"))],
           new UnguardedBody(
-            new Sequence([
-              new Return(
-                new ArithmeticUnaryOperation(
-                  "ToString",
-                  new SymbolPrimitive("x"),
-                ),
-              ),
-            ]),
+            new Sequence([returnExpr]),
           ),
+          returnExpr,
         ),
       ]);
+    };
 
     const prims = [
       makePrim("primShow"),
@@ -119,24 +120,25 @@ export class YukigoHaskellParser implements YukigoParser {
       return t;
     };
 
+    const primShowStringReturnExpr = new Return(
+      new StringOperation(
+        "Concat",
+        new StringPrimitive('"'),
+        new StringOperation(
+          "Concat",
+          new SymbolPrimitive("s"),
+          new StringPrimitive('"'),
+        ),
+      ),
+    );
+
     const primShowString = new Function(new SymbolPrimitive("primShowString"), [
       new Equation(
         [new VariablePattern(new SymbolPrimitive("s"))],
         new UnguardedBody(
-          new Sequence([
-            new Return(
-              new StringOperation(
-                "Concat",
-                new StringPrimitive('"'),
-                new StringOperation(
-                  "Concat",
-                  new SymbolPrimitive("s"),
-                  new StringPrimitive('"'),
-                ),
-              ),
-            ),
-          ]),
+          new Sequence([primShowStringReturnExpr]),
         ),
+        primShowStringReturnExpr,
       ),
     ]);
 

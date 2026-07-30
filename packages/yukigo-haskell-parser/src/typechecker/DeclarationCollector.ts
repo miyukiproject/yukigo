@@ -25,16 +25,18 @@ import { CoreHM } from "./core.js";
 import { TypeBuilder } from "./TypeBuilder.js";
 import { typeMappings } from "../utils/types.js";
 
-const builder = new TypeBuilder(new CoreHM());
-
 export class DeclarationCollectorVisitor implements Visitor<void> {
+  private builder: TypeBuilder;
+
   constructor(
     private errors: string[],
     private typeAliasMap: Map<string, Type>,
     private recordMap: Map<string, Type>,
     private signatureMap: Map<string, TypeScheme>,
     private coreHM: CoreHM,
-  ) {}
+  ) {
+    this.builder = new TypeBuilder(this.coreHM);
+  }
 
   visitTypeAlias(node: TypeAlias) {
     const typeAliasIdentifier = node.identifier.value;
@@ -46,7 +48,7 @@ export class DeclarationCollectorVisitor implements Visitor<void> {
       return;
     }
 
-    const { type, constraints } = builder.build(node.value);
+    const { type, constraints } = this.builder.build(node.value);
     this.typeAliasMap.set(typeAliasIdentifier, type);
   }
   visitRecord(node: Record) {
@@ -73,7 +75,7 @@ export class DeclarationCollectorVisitor implements Visitor<void> {
         this.errors.push(`Constructor '${cons.name}' is already defined`);
         continue;
       }
-      const paramTypes = cons.fields.map((field) => builder.build(field.value));
+      const paramTypes = cons.fields.map((field) => this.builder.build(field.value));
       const returnType: TypeConstructor = {
         type: "TypeConstructor",
         name: recordIdentifier,
@@ -133,7 +135,7 @@ export class DeclarationCollectorVisitor implements Visitor<void> {
       return;
     }
     const typeVarMap = new Map<string, TypeVar>();
-    const { type, constraints } = builder.build(node.body, typeVarMap);
+    const { type, constraints } = this.builder.build(node.body, typeVarMap);
     const quantifiers = Array.from(typeVarMap.values()).map((tv) => tv.id);
     this.signatureMap.set(functionName, {
       type: "TypeScheme",

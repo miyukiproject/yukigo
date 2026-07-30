@@ -33,11 +33,11 @@ export const keywords = [
 ];
 
 export enum YUTYPES { // primitivos 
-  YuNumber = "Number", 
-  YuString = "String", 
-  YuChar = "Char", 
-  YuBoolean = "Boolean", 
-  YuNil = "Nil", 
+  YuNumber = "YuNumber", 
+  YuString = "YuString", 
+  YuChar = "YuChar", 
+  YuBoolean = "YuBoolean", 
+  YuNil = "YuNil", 
   // constructores 
   Tuple = "Tuple", 
   List = "List", 

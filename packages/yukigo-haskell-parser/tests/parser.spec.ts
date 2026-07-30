@@ -13,7 +13,8 @@ import {
   Equation,
   Failure,
   Function,
-  GuardedBody,
+  Guard,
+  GuardedExpression,
   If,
   LetInExpression,
   ListBinaryOperation,
@@ -330,21 +331,25 @@ describe("Parser Tests", () => {
     ]);
   });
   it("parses inline guards correctly", () => {
+    const returnExpr = new Return(
+      new GuardedExpression([
+        new Guard(
+          new ComparisonOperation(
+            "GreaterThan",
+            new SymbolPrimitive("x"),
+            new NumberPrimitive(40)
+          ),
+          new NumberPrimitive(2)
+        ),
+        new Guard(new Otherwise(), new NumberPrimitive(1)),
+      ])
+    );
     assert.deepEqual(parser.parse("f x | x > 40 = 2 | otherwise = 1"), [
       new Function(new SymbolPrimitive("f"), [
         new Equation(
           [new VariablePattern(new SymbolPrimitive("x"))],
-          [
-            new GuardedBody(
-              new ComparisonOperation(
-                "GreaterThan",
-                new SymbolPrimitive("x"),
-                new NumberPrimitive(40)
-              ),
-              new NumberPrimitive(2)
-            ),
-            new GuardedBody(new Otherwise(), new NumberPrimitive(1)),
-          ]
+          new UnguardedBody(new Sequence([returnExpr])),
+          returnExpr
         ),
       ]),
     ]);
@@ -356,21 +361,25 @@ describe("Parser Tests", () => {
     );
   });
   it("parses multi-line guards correctly", () => {
+    const returnExpr = new Return(
+      new GuardedExpression([
+        new Guard(
+          new ComparisonOperation(
+            "GreaterThan",
+            new SymbolPrimitive("x"),
+            new NumberPrimitive(40)
+          ),
+          new NumberPrimitive(2)
+        ),
+        new Guard(new Otherwise(), new NumberPrimitive(1)),
+      ])
+    );
     const ast = [
       new Function(new SymbolPrimitive("f"), [
         new Equation(
           [new VariablePattern(new SymbolPrimitive("x"))],
-          [
-            new GuardedBody(
-              new ComparisonOperation(
-                "GreaterThan",
-                new SymbolPrimitive("x"),
-                new NumberPrimitive(40)
-              ),
-              new NumberPrimitive(2)
-            ),
-            new GuardedBody(new Otherwise(), new NumberPrimitive(1)),
-          ]
+          new UnguardedBody(new Sequence([returnExpr])),
+          returnExpr
         ),
       ]),
     ];

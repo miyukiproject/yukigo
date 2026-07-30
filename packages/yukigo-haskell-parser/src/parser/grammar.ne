@@ -351,14 +351,14 @@ equation ->
   params guarded_rhs where_clause:? {% (d) => {
       const guardsExpr = new GuardedExpression(d[1]);
       const locals = d[2] || [];
+      const returnExpr = new Return(guardsExpr);
+      const sequence = new Sequence([...locals, returnExpr]);
       
-      const sequence = new Sequence([...locals, new Return(guardsExpr)]);
-      
-      return new Equation(d[0], new UnguardedBody(sequence));
+      return new Equation(d[0], new UnguardedBody(sequence), returnExpr);
   } %}
   | params %assign return_expression where_clause:? {% (d) => {
       const locals = d[3] || [];
-      return new Equation(d[0], new UnguardedBody(new Sequence([...locals, d[2]])));
+      return new Equation(d[0], new UnguardedBody(new Sequence([...locals, d[2]])), d[2]);
   } %}
 
 params -> parameter_list:? {% (d) => d[0] || [] %}
