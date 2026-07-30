@@ -17,7 +17,6 @@ import {
   ListType,
 } from "yukigo-ast";
 import { Bindings } from "../index.js";
-import { InterpreterVisitor } from "./Visitor.js";
 import {
   ExecutionCommand,
   StepCommand,
@@ -40,6 +39,7 @@ import {
   LazyStepResult,
   YuChar,
 } from "../primitives/index.js";
+import { InterpreterVisitor } from "./evaluators/index.js";
 
 /**
  * Recursively matches a value against a pattern node.

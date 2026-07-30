@@ -49,13 +49,6 @@ export type EnvStack = {
   tail: EnvStack | null;
 };
 
-export interface Evaluator {
-  evaluate(node: ASTNode): ExecutionCommand;
-  realizeList(val: YuValue): ExecutionCommand;
-  fallback(node: ASTNode): ExecutionCommand;
-  getContext(): RuntimeContext;
-}
-
 export function isArrayOfNumbers(arr: YuValue): boolean {
   const seq = arr.asSequence;
   if (!seq) return false;

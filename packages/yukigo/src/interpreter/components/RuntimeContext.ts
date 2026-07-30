@@ -5,8 +5,6 @@ import {
   createGlobalEnv,
   Environment,
   EnvStack,
-  Evaluator,
-  NativeExtension,
 } from "../utils.js";
 import { UnboundVariable } from "../errors.js";
 import { YuValue } from "../primitives/YuValue.js";
@@ -19,6 +17,7 @@ import {
   BindCommand,
 } from "./kernel/commands.js";
 import { InterpreterConfig } from "../../utils/helpers.js";
+import { Evaluator } from "./evaluators/BaseEvaluator.js";
 
 export const DefaultConfiguration: InterpreterConfig = {
   nativeProviders: new Map(),

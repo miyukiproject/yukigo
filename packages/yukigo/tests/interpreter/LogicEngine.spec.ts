@@ -21,7 +21,6 @@ import {
 } from "yukigo-ast";
 import { createGlobalEnv } from "../../src/interpreter/utils.js";
 import { LogicEngine } from "../../src/interpreter/components/logic/LogicEngine.js";
-import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
 import { YukigoKernel } from "../../src/interpreter/components/kernel/index.js";
 import { StepCommand } from "../../src/interpreter/components/kernel/commands.js";
@@ -45,6 +44,7 @@ import {
   LogicResult,
   YuBoolean,
 } from "../../src/interpreter/primitives/index.js";
+import { InterpreterVisitor } from "../../src/interpreter/components/evaluators/index.js";
 
 const s = (val: string) => new SymbolPrimitive(val);
 const n = (val: number) => new NumberPrimitive(val);

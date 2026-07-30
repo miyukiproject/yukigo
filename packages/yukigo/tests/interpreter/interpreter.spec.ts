@@ -33,13 +33,13 @@ import {
 import { Interpreter } from "../../src/interpreter/index.js";
 import { assert } from "chai";
 import { YukigoKernel } from "../../src/interpreter/components/kernel/index.js";
-import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
 import {
   YuValue,
   isLazyList,
   LazyStepResult,
 } from "../../src/interpreter/primitives/index.js";
+import { InterpreterVisitor } from "../../src/interpreter/components/evaluators/index.js";
 
 describe("Interpreter Spec", () => {
   let interpreter: Interpreter;

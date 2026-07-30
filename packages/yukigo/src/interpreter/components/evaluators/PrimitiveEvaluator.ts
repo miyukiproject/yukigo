@@ -7,7 +7,6 @@ import {
   PrimitiveVisitor,
   StringPrimitive,
   SymbolPrimitive,
-  Variable,
 } from "yukigo-ast";
 import {
   BindCommand,
@@ -24,7 +23,6 @@ import {
   YuString,
   YuValue,
 } from "../../primitives/index.js";
-import { boolean } from "../../utils.js";
 import { InterpreterError } from "../../errors.js";
 
 export function PrimitiveEvaluator<TBase extends Constructor<EvaluatorBase>>(
@@ -77,14 +75,6 @@ export function PrimitiveEvaluator<TBase extends Constructor<EvaluatorBase>>(
 
     visitBooleanPrimitive(node: BooleanPrimitive): ExecutionCommand {
       return new StepCommand(new YuBoolean(node.value));
-    }
-
-    visitVariable(node: Variable): ExecutionCommand {
-      const name = node.identifier.value;
-      return new BindCommand(this.evaluate(node.expression), (value) => {
-        this.context.define(name, value);
-        return boolean(true);
-      });
     }
   };
 }

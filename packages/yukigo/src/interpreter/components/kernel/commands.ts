@@ -4,7 +4,6 @@ import { ErrorFrame, InterpreterError } from "../../errors.js";
 import { LogicTranslator } from "../logic/LogicTranslator.js";
 import { Scope } from "../logic/LogicEngine.js";
 import { ListTerm } from "../logic/LogicTerm.js";
-import { InterpreterVisitor } from "../Visitor.js";
 import {
   YuValue,
   Substitution,
@@ -13,6 +12,7 @@ import {
   LogicAnswer,
   LogicTerm,
 } from "../../primitives/index.js";
+import { InterpreterVisitor } from "../evaluators/index.js";
 
 /**
  * A Continuation is a function that receives a value and decides what is the next Command to execute

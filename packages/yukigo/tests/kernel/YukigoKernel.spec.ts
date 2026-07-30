@@ -7,13 +7,13 @@ import {
   FailCommand,
   StepCommand,
 } from "../../src/interpreter/components/kernel/commands.js";
-import { Evaluator } from "../../src/interpreter/utils.js";
 import {
   YuNil,
   YuNumber,
   YuString,
   YuValue,
 } from "../../src/interpreter/primitives/index.js";
+import { Evaluator } from "../../src/interpreter/components/evaluators/BaseEvaluator.js";
 
 describe("YukigoKernel", () => {
   class MockEvaluator {

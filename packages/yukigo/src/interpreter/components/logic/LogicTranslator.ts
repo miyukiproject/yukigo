@@ -26,7 +26,7 @@ import {
   WildcardTerm,
   CompoundTerm,
 } from "./LogicTerm.js";
-import { error, Evaluator, raise } from "../../utils.js";
+import { error, raise } from "../../utils.js";
 import { InterpreterError } from "../../errors.js";
 import { RuntimeContext } from "../RuntimeContext.js";
 import {
@@ -45,6 +45,7 @@ import {
   isRuntimeObject,
   Substitution,
 } from "../../primitives/index.js";
+import { Evaluator } from "../evaluators/BaseEvaluator.js";
 
 /**
  * Sync visitor to convert Patterns to LogicTerms.

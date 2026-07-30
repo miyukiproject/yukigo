@@ -13,7 +13,6 @@ import {
   Sequence,
   NamedArgument,
 } from "yukigo-ast";
-import { InterpreterVisitor } from "./Visitor.js";
 import { RuntimeContext } from "./RuntimeContext.js";
 import { InterpreterError, UnexpectedNode } from "../errors.js";
 import { YukigoKernel } from "./kernel/index.js";
@@ -27,6 +26,7 @@ import {
   RuntimePredicate,
   YuValue,
 } from "../primitives/index.js";
+import { InterpreterVisitor } from "./evaluators/index.js";
 
 class NotValidPredicate extends InterpreterError {
   constructor(identifier: string) {

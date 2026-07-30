@@ -14,7 +14,6 @@ import {
 import { createGlobalEnv, EnvStack } from "../../src/interpreter/utils.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
 import { YukigoKernel } from "../../src/interpreter/components/kernel/index.js";
-import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
 import {
   YuValue,
   RuntimeFunction,
@@ -23,6 +22,7 @@ import {
   YuNumber,
   YuString,
 } from "../../src/interpreter/primitives/index.js";
+import { InterpreterVisitor } from "../../src/interpreter/components/evaluators/index.js";
 
 const createMethodMap = (
   methods: RuntimeFunction[],

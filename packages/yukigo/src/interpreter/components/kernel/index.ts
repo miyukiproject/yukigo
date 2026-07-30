@@ -2,11 +2,11 @@ import {
   CatchHandler,
   Continuation,
   ExecutionCommand,
-  StepCommand,
 } from "./commands.js";
-import { boolean, EnvStack, Evaluator } from "../../utils.js";
+import { boolean, EnvStack } from "../../utils.js";
 import { ErrorFrame, InterpreterError } from "../../errors.js";
-import { YuBoolean, YuNil, YuValue } from "../../primitives/index.js";
+import { YuNil, YuValue } from "../../primitives/index.js";
+import { Evaluator } from "../evaluators/BaseEvaluator.js";
 
 export type LogicSearchMode = "first" | "all" | "stream";
 

@@ -11,7 +11,6 @@ import { Bindings } from "../../index.js";
 import { PatternMatcher } from "../PatternMatcher.js";
 import {
   boolean,
-  Evaluator,
   PrimitiveThunk,
   isTrue,
   raise,
@@ -19,7 +18,7 @@ import {
 } from "../../utils.js";
 import { InterpreterError } from "../../errors.js";
 import { EnvBuilderVisitor } from "../EnvBuilder.js";
-import { RuntimeContext } from "../RuntimeContext.js";
+import { EvaluatorFactory, RuntimeContext } from "../RuntimeContext.js";
 import {
   ExecutionCommand,
   StepCommand,
@@ -35,15 +34,13 @@ import {
   YuNil,
   RuntimeClass,
 } from "../../primitives/index.js";
-import { InterpreterVisitor } from "../Visitor.js";
+import { InterpreterVisitor } from "../evaluators/index.js";
 
 class NonExhaustivePatterns extends InterpreterError {
   constructor(funcName: string) {
     super("PatternMatch", `Non-exhaustive patterns in '${funcName}'`);
   }
 }
-
-type EvaluatorFactory = (ctx: RuntimeContext) => Evaluator;
 
 export class FunctionRuntime {
   constructor(private context: RuntimeContext) {}

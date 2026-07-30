@@ -7,14 +7,15 @@ import {
   ListPrimitive,
   Expression,
 } from "yukigo-ast";
-import { createStream, Evaluator } from "../../src/interpreter/utils.js";
-import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
+import { createStream } from "../../src/interpreter/utils.js";
 import { fail } from "assert";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
 import { YukigoKernel } from "../../src/interpreter/components/kernel/index.js";
 import { StepCommand } from "../../src/interpreter/components/kernel/commands.js";
 import { YuValue } from "../../src/interpreter/primitives/YuValue.js";
 import { YuArray, YuNumber, LazyList, LazyStepResult, isLazyList } from "../../src/interpreter/primitives/index.js";
+import { Evaluator } from "../../src/interpreter/components/evaluators/BaseEvaluator.js";
+import { InterpreterVisitor } from "../../src/interpreter/components/evaluators/index.js";
 
 const num = (value: number) => new NumberPrimitive(value);
 

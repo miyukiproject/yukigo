@@ -23,8 +23,8 @@ import {
   ExecutionCommand,
 } from "../../src/interpreter/components/kernel/commands.js";
 import { YukigoKernel } from "../../src/interpreter/components/kernel/index.js";
-import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
+import { InterpreterVisitor } from "../../src/interpreter/components/evaluators/index.js";
 
 const number = (num: number) => new YuNumber(num);
 const string = (str: string) => new YuString(str);

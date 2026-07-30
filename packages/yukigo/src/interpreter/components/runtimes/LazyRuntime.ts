@@ -1,5 +1,5 @@
 import { RangeExpression, ConsExpression } from "yukigo-ast";
-import { error, Evaluator, raise } from "../../utils.js";
+import { error, raise } from "../../utils.js";
 import { RuntimeContext } from "../RuntimeContext.js";
 import {
   ExecutionCommand,
@@ -18,6 +18,7 @@ import {
   LazyList,
   LazyStepResult,
 } from "../../primitives/entities/LazyList.js";
+import { Evaluator } from "../evaluators/BaseEvaluator.js";
 
 export class LazyRuntime {
   constructor(private context: RuntimeContext) {}

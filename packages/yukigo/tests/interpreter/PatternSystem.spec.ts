@@ -14,9 +14,19 @@ import {
 import { PatternMatcher } from "../../src/interpreter/components/PatternMatcher.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
 import { YukigoKernel } from "../../src/interpreter/components/kernel/index.js";
-import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
 import { StepCommand } from "../../src/interpreter/components/kernel/commands.js";
-import { YuValue, YuNumber, YuArray, YuString, LazyList, YuNil, LazyStepResult, isLazyList, YuSequence } from "../../src/interpreter/primitives/index.js";
+import {
+  YuValue,
+  YuNumber,
+  YuArray,
+  YuString,
+  LazyList,
+  YuNil,
+  LazyStepResult,
+  isLazyList,
+  YuSequence,
+} from "../../src/interpreter/primitives/index.js";
+import { InterpreterVisitor } from "../../src/interpreter/components/evaluators/index.js";
 
 const s = (v: string) => new SymbolPrimitive(v);
 const n = (v: number) => new NumberPrimitive(v);
@@ -105,17 +115,24 @@ describe("Pattern System", () => {
 
     it("should match a list pattern exactly", () => {
       const p = new ListPattern([lit(1), lit(2)]);
-      expect(match(p, new YuArray([new YuNumber(1), new YuNumber(2)])).success).to.be.true;
+      expect(match(p, new YuArray([new YuNumber(1), new YuNumber(2)])).success)
+        .to.be.true;
       expect(match(p, new YuArray([new YuNumber(1)])).success).to.be.false;
-      expect(match(p, new YuArray([new YuNumber(1), new YuNumber(3)])).success).to.be.false;
+      expect(match(p, new YuArray([new YuNumber(1), new YuNumber(3)])).success)
+        .to.be.false;
     });
 
     it("should match a Cons pattern with array input", () => {
       const p = new ConsPattern(variable("H"), variable("T"));
-      const { success, bindings } = match(p, new YuArray([new YuNumber(1), new YuNumber(2), new YuNumber(3)]));
+      const { success, bindings } = match(
+        p,
+        new YuArray([new YuNumber(1), new YuNumber(2), new YuNumber(3)]),
+      );
 
       expect(success).to.be.true;
-      const map = new Map(bindings.map(([k, v]) => [k, (v as YuValue).toJSON()]));
+      const map = new Map(
+        bindings.map(([k, v]) => [k, (v as YuValue).toJSON()]),
+      );
       expect(map.get("H")).to.equal(1);
       expect(map.get("T")).to.deep.equal([2, 3]);
     });
@@ -142,9 +159,14 @@ describe("Pattern System", () => {
         variable("List"),
         new ListPattern([variable("X"), wildcard()]),
       );
-      const { success, bindings } = match(p, new YuArray([new YuNumber(1), new YuNumber(2)]));
+      const { success, bindings } = match(
+        p,
+        new YuArray([new YuNumber(1), new YuNumber(2)]),
+      );
       expect(success).to.be.true;
-      const map = new Map(bindings.map(([k, v]) => [k, (v as YuValue).toJSON()]));
+      const map = new Map(
+        bindings.map(([k, v]) => [k, (v as YuValue).toJSON()]),
+      );
       expect(map.get("List")).to.deep.equal([1, 2]);
       expect(map.get("X")).to.equal(1);
     });
@@ -167,7 +189,9 @@ describe("Pattern System", () => {
         const { success, bindings } = match(p, new YuString("abc"));
 
         expect(success).to.be.true;
-        const map = new Map(bindings.map(([k, v]) => [k, (v as YuValue).toJSON()]));
+        const map = new Map(
+          bindings.map(([k, v]) => [k, (v as YuValue).toJSON()]),
+        );
         expect(map.get("H")).to.equal("a");
         expect(map.get("T")).to.equal("bc");
       });
@@ -182,8 +206,14 @@ describe("Pattern System", () => {
       const createLazy = (items: number[]): LazyList => {
         const next = (idx: number): YuValue => {
           if (idx >= items.length) return YuNil.getInstance();
-          return new LazyList(() =>
-            new StepCommand(new LazyStepResult(new YuNumber(items[idx]), next(idx + 1) as YuSequence)),
+          return new LazyList(
+            () =>
+              new StepCommand(
+                new LazyStepResult(
+                  new YuNumber(items[idx]),
+                  next(idx + 1) as YuSequence,
+                ),
+              ),
           );
         };
         return next(0) as LazyList;
@@ -207,7 +237,9 @@ describe("Pattern System", () => {
 
         const step1 = kernel.run(tail.step()) as LazyStepResult;
         expect((step1.head as YuValue).toJSON()).to.equal(2);
-        const step2 = kernel.run((step1.tail as LazyList).step()) as LazyStepResult;
+        const step2 = kernel.run(
+          (step1.tail as LazyList).step(),
+        ) as LazyStepResult;
         expect((step2.head as YuValue).toJSON()).to.equal(3);
         expect(step2.tail).to.be.instanceOf(YuNil);
       });

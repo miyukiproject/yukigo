@@ -17,13 +17,13 @@ import { FunctionRuntime } from "../../src/interpreter/components/runtimes/Funct
 import { createGlobalEnv, EnvStack } from "../../src/interpreter/utils.js";
 import { RuntimeContext } from "../../src/interpreter/components/RuntimeContext.js";
 import { YukigoKernel } from "../../src/interpreter/components/kernel/index.js";
-import { InterpreterVisitor } from "../../src/interpreter/components/Visitor.js";
 import {
   YuValue,
   EquationRuntime,
   RuntimeFunction,
   YuNumber,
 } from "../../src/interpreter/primitives/index.js";
+import { InterpreterVisitor } from "../../src/interpreter/components/evaluators/index.js";
 
 const symbol = (val: string) => new SymbolPrimitive(val);
 const num = (val: number) => new NumberPrimitive(val);

@@ -16,7 +16,6 @@ import {
   If,
 } from "yukigo-ast";
 import { solveGoalKernel } from "./LogicResolver.js";
-import { InterpreterVisitor } from "../Visitor.js";
 import { LogicTranslator } from "./LogicTranslator.js";
 import { RuntimeContext } from "../RuntimeContext.js";
 import {
@@ -29,7 +28,7 @@ import {
   BacktrackCommand,
 } from "../kernel/commands.js";
 import { VariableTerm, CompoundTerm, ConstantTerm } from "./LogicTerm.js";
-import { error, Evaluator, raise } from "../../utils.js";
+import { error, raise } from "../../utils.js";
 import { YuValue } from "../../primitives/YuValue.js";
 import {
   Substitution,
@@ -43,6 +42,8 @@ import {
   YuNil,
   YuString,
 } from "../../primitives/index.js";
+import { Evaluator } from "../evaluators/BaseEvaluator.js";
+import { InterpreterVisitor } from "../evaluators/index.js";
 
 export type LogicExecutable =
   | Expression

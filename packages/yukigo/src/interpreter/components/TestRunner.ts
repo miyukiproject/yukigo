@@ -11,14 +11,12 @@ import {
   Exist,
   LogicConstraint,
 } from "yukigo-ast";
-import { InterpreterVisitor } from "./Visitor.js";
 import { LogicEngine } from "./logic/LogicEngine.js";
 import {
   ExecutionCommand,
   StepCommand,
   BindCommand,
   FailCommand,
-  RaiseCommand,
 } from "./kernel/commands.js";
 import { LazyRuntime } from "./runtimes/LazyRuntime.js";
 import { InterpreterError, UnexpectedNode } from "../errors.js";
@@ -31,6 +29,7 @@ import { YuString } from "../primitives/sequences/YuString.js";
 import { isTrue } from "../utils.js";
 import { LogicResult } from "../primitives/entities/LogicResult.js";
 import { RuntimeFunction } from "../primitives/entities/RuntimeFunction.js";
+import { Evaluator } from "./evaluators/BaseEvaluator.js";
 
 export class FailedAssert extends Error {
   constructor(
@@ -45,9 +44,8 @@ export class FailedAssert extends Error {
 
 class AssertionVisitor implements Visitor<ExecutionCommand> {
   constructor(
-    private interpreter: InterpreterVisitor,
+    private interpreter: Evaluator,
     private negated: boolean,
-    private lazyRuntime: LazyRuntime,
   ) {}
 
   visitFailure(node: Failure): ExecutionCommand {
@@ -126,7 +124,11 @@ class AssertionVisitor implements Visitor<ExecutionCommand> {
         this.interpreter.evaluate(node.expected),
         (expected) => {
           return new BindCommand(
-            EqualityComparer.compare(value, expected, this.interpreter.context),
+            EqualityComparer.compare(
+              value,
+              expected,
+              this.interpreter.getContext(),
+            ),
             (passed) => {
               const isPassed = isTrue(passed);
               if (this.negated === isPassed) {
@@ -175,7 +177,7 @@ class AssertionVisitor implements Visitor<ExecutionCommand> {
 
 export class TestRunner implements Visitor<ExecutionCommand> {
   constructor(
-    public interpreter: InterpreterVisitor,
+    public interpreter: Evaluator,
     private lazyRuntime: LazyRuntime,
   ) {}
 
@@ -209,11 +211,7 @@ export class TestRunner implements Visitor<ExecutionCommand> {
 
     return new BindCommand(negatedCmd, (negatedVal) => {
       const isNegated = isTrue(negatedVal);
-      const visitor = new AssertionVisitor(
-        this.interpreter,
-        isNegated,
-        this.lazyRuntime,
-      );
+      const visitor = new AssertionVisitor(this.interpreter, isNegated);
       return node.body.accept(visitor);
     });
   }

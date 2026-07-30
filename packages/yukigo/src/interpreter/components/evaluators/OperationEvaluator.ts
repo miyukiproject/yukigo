@@ -51,13 +51,8 @@ import {
 import { YukigoKernel } from "../kernel/index.js";
 import { EqualityComparer } from "../EqualityComparer.js";
 import { boolean, Environment, error, isTrue, raise } from "../../utils.js";
-import { LogicEngine } from "../logic/LogicEngine.js";
 import { RuntimeContext } from "../RuntimeContext.js";
-
-const getLogicEngine = (
-  evaluator: EvaluatorBase,
-  ctx: RuntimeContext,
-): LogicEngine => new LogicEngine(evaluator, ctx);
+import { getLogicEngine } from "./utils.js";
 
 const processBinary = <T extends YuValue>(
   evaluator: EvaluatorBase,
