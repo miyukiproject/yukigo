@@ -113,7 +113,10 @@ export class YukigoHaskellParser implements YukigoParser {
     const resolveYukigoType = (t: any): any => {
       if (t instanceof SimpleType) {
         const mapped = typeMappings[t.value];
-        if (mapped) return new SimpleType(mapped, t.constraints, t.loc);
+        if (mapped) {
+          const runtimeTypeName = mapped.replace(/^Yu/, "");
+          return new SimpleType(runtimeTypeName, t.constraints, t.loc);
+        }
         return t;
       }
       if (t instanceof ListType) return t;
