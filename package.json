@@ -41,5 +41,10 @@
     "vite": "$vite",
     "mocha": "$mocha",
     "serialize-javascript": "^7.0.5"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true,
+    "@swc/core@1.15.30": true,
+    "nx@22.6.5": true
   }
 }

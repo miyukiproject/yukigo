@@ -21,6 +21,9 @@
     },
     {
       "path": "./packages/yukigo-haskell-parser"
+    },
+    {
+      "path": "./packages/yukigo-e2e"
     }
   ]
 }

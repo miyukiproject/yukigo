@@ -9,16 +9,11 @@ import {
 } from "yukigo-ast";
 import { Bindings } from "../../index.js";
 import { PatternMatcher } from "../PatternMatcher.js";
-import {
-  boolean,
-  PrimitiveThunk,
-  isTrue,
-  raise,
-  error,
-} from "../../utils.js";
+import { boolean, PrimitiveThunk, isTrue, raise, error } from "../../utils.js";
 import { InterpreterError } from "../../errors.js";
 import { EnvBuilderVisitor } from "../EnvBuilder.js";
 import { EvaluatorFactory, RuntimeContext } from "../RuntimeContext.js";
+import { Evaluator } from "../evaluators/BaseEvaluator.js";
 import {
   ExecutionCommand,
   StepCommand,
@@ -34,7 +29,6 @@ import {
   YuNil,
   RuntimeClass,
 } from "../../primitives/index.js";
-import { InterpreterVisitor } from "../evaluators/index.js";
 
 class NonExhaustivePatterns extends InterpreterError {
   constructor(funcName: string) {
@@ -47,6 +41,7 @@ export class FunctionRuntime {
 
   public apply(func: RuntimeFunction, args: YuValue[]): ExecutionCommand {
     const funcName = func.identifier;
+    const selfContext = this.context;
     const equations = func.equations;
     const oldEnv = this.context.env;
 
@@ -77,33 +72,39 @@ export class FunctionRuntime {
             return new StepCommand(res);
           };
 
-          const evaluatorFactory: EvaluatorFactory = (ctx) => {
-            const evaluator = new InterpreterVisitor(ctx);
-
-            evaluator.visitGuardedExpression = (
+          const dummyVisitor = this.context.evaluatorFactory!(this.context);
+          const BaseVisitor = dummyVisitor.constructor as new (
+            ctx: RuntimeContext,
+          ) => Evaluator & {
+            visitGuardedExpression(
               expr: GuardedExpression,
-            ): ExecutionCommand => {
+            ): ExecutionCommand;
+          };
+
+          class GuardBacktrackingVisitor extends BaseVisitor {
+            override visitGuardedExpression(
+              expr: GuardedExpression,
+            ): ExecutionCommand {
               const tryNextGuard = (guardIndex: number): ExecutionCommand => {
-                // if no guard is true, then we clear the env and jump to next eq
                 if (guardIndex >= expr.guards.length) {
-                  this.context.setEnv(oldEnv);
+                  selfContext.setEnv(oldEnv);
                   return tryNextEquation(eqIndex + 1);
                 }
-
                 const guard = expr.guards[guardIndex];
                 return new BindCommand(
-                  evaluator.evaluate(guard.condition),
+                  this.evaluate(guard.condition),
                   (cond) => {
                     if (!isTrue(cond)) return tryNextGuard(guardIndex + 1);
-                    return evaluator.evaluate(guard.body);
+                    return this.evaluate(guard.body);
                   },
                 );
               };
-
               return tryNextGuard(0);
-            };
-            return evaluator;
-          };
+            }
+          }
+
+          const evaluatorFactory: EvaluatorFactory = (ctx) =>
+            new GuardBacktrackingVisitor(ctx);
           return eq.body.accept({
             visitUnguardedBody: (b: UnguardedBody) => {
               return new BindCommand(

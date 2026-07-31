@@ -30,7 +30,7 @@ class TestExecutor extends TraverseVisitor {
 
   constructor(
     private ast: AST,
-    private config: InterpreterConfig,
+    private config: Partial<InterpreterConfig>,
     private parentGroupStatements: ASTNode[] = [],
   ) {
     super();
@@ -133,7 +133,7 @@ class TestExecutor extends TraverseVisitor {
 export class Tester {
   constructor(
     private ast: AST,
-    private config: InterpreterConfig = DefaultConfiguration,
+    private config: Partial<InterpreterConfig> = DefaultConfiguration,
   ) {}
 
   /**

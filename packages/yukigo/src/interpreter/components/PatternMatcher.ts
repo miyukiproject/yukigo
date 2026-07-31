@@ -39,7 +39,6 @@ import {
   LazyStepResult,
   YuChar,
 } from "../primitives/index.js";
-import { InterpreterVisitor } from "./evaluators/index.js";
 
 /**
  * Recursively matches a value against a pattern node.
@@ -64,7 +63,9 @@ export class PatternMatcher {
 
   visitLiteralPattern(node: LiteralPattern): ExecutionCommand {
     return new BindCommand(this.ctx.forceValue(this.value), (val) => {
-      const literalValue = InterpreterVisitor.evaluateLiteral(
+      const visitor = this.ctx.evaluatorFactory!(this.ctx);
+      const VisitorClass = visitor.constructor as any;
+      const literalValue = VisitorClass.evaluateLiteral(
         node.name,
         this.ctx,
       );
