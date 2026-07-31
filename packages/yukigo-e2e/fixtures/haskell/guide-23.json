@@ -1,0 +1,320 @@
+[
+  {
+    "id": 222,
+    "guideId": 23,
+    "lesson": "Guardas: Básico",
+    "language": "haskell",
+    "solution": "minimoEntre a b | a < b = a\n                | otherwise = b",
+    "extra": null,
+    "test": "it \"minimoEntre 4 y 8 es 4\" $ do\n    minimoEntre 4 8 `shouldBe` 4\n\nit \"minimoEntre 6 y 2 es 2\" $ do\n    minimoEntre 6 2 `shouldBe` 2\n\nit \"minimoEntre 5 y 5 es 5\" $ do\n    minimoEntre 5 5 `shouldBe` 5",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "minimoEntre"
+      },
+      {
+        "inspection": "HasGuards",
+        "expected": true,
+        "args": [],
+        "binding": "minimoEntre"
+      }
+    ]
+  },
+  {
+    "id": 223,
+    "guideId": 23,
+    "lesson": "Otherwise",
+    "language": "haskell",
+    "solution": "cantidadDePochoclosParaMinutosDeCine d | d < 40 = 2\n  | d > 200 = 10\n  | otherwise = d/20",
+    "extra": null,
+    "test": "it \"cantidadDePochoclosParaMinutosDeCine 20 es 2\" $ do\n    cantidadDePochoclosParaMinutosDeCine 20 `shouldBe` 2\n\nit \"cantidadDePochoclosParaMinutosDeCine 60 es 3\" $ do\n    cantidadDePochoclosParaMinutosDeCine 60 `shouldBe` 3\n\nit \"cantidadDePochoclosParaMinutosDeCine 120 es 6\" $ do\n    cantidadDePochoclosParaMinutosDeCine 120 `shouldBe` 6\n    \nit \"cantidadDePochoclosParaMinutosDeCine 300 es 10\" $ do\n    cantidadDePochoclosParaMinutosDeCine 300 `shouldBe` 10",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "cantidadDePochoclosParaMinutosDeCine"
+      },
+      {
+        "inspection": "HasGuards",
+        "expected": true,
+        "args": [],
+        "binding": "cantidadDePochoclosParaMinutosDeCine"
+      },
+      {
+        "inspection": "UsesOtherwise",
+        "expected": true,
+        "args": [],
+        "binding": "cantidadDePochoclosParaMinutosDeCine"
+      }
+    ]
+  },
+  {
+    "id": 224,
+    "guideId": 23,
+    "lesson": "Orden de las Condiciones",
+    "language": "haskell",
+    "solution": "horasDuerme p | estudiaIngenieria p = 4\n              | programa p = 6",
+    "extra": "programa = snd\nestudiaIngenieria = fst\n",
+    "test": "it \"horasDuerme alguien no ingeniero si programador son 6\" $ do\n    horasDuerme (False, True) `shouldBe` 6\n\nit \"horasDuerme alguien ingeniero no programador son 4\" $ do\n    horasDuerme (True, False) `shouldBe` 4\n\nit \"horasDuerme alguien ingeniero y programador son 4\" $ do\n    horasDuerme (True, True) `shouldBe` 4\n\nit \"horasDuerme no ingeniero ni programador debe arrojar error\" $ do\n    Exception.evaluate (horasDuerme (False, False)) `shouldThrow` anyException\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "horasDuerme"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "estudiaIngenieria"
+        ],
+        "binding": "horasDuerme"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "programa"
+        ],
+        "binding": "horasDuerme"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": false,
+        "args": [
+          "&&"
+        ],
+        "binding": "horasDuerme"
+      }
+    ]
+  },
+  {
+    "id": 225,
+    "guideId": 23,
+    "lesson": "No todo lo que brilla es Oro",
+    "language": "haskell",
+    "solution": "siempreDiceLaVerdad p = (esChico p) || (esBorracho p)",
+    "extra": "esChico = fst\nesBorracho = snd",
+    "test": "it \"siempreDiceLaVerdad alguien no Borracho ni Chico es Falso\" $ do\n    (False, False) `shouldSatisfy` (not . siempreDiceLaVerdad)\n\nit \"siempreDiceLaVerdad alguien Borracho no Chico es Verdadero\" $ do\n    (True, False) `shouldSatisfy` siempreDiceLaVerdad\n\nit \"siempreDiceLaVerdad alguien Borracho y Chico es Verdadero\" $ do\n    (True, True) `shouldSatisfy` siempreDiceLaVerdad\n\nit \"siempreDiceLaVerdad alguien Chico no Borracho es Verdadero\" $ do\n    (False, True) `shouldSatisfy` siempreDiceLaVerdad\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "siempreDiceLaVerdad"
+      },
+      {
+        "inspection": "HasGuards",
+        "expected": false,
+        "args": [],
+        "binding": "siempreDiceLaVerdad"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "esBorracho"
+        ],
+        "binding": "siempreDiceLaVerdad"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "esChico"
+        ],
+        "binding": "siempreDiceLaVerdad"
+      }
+    ]
+  },
+  {
+    "id": 226,
+    "guideId": 23,
+    "lesson": "Pattern Matching, Introducción",
+    "language": "haskell",
+    "solution": null,
+    "extra": "esVocalCerrada 'i' = True\nesVocalCerrada 'u' = True\nesVocalCerrada 'a' = False\nesVocalCerrada 'e' = False\nesVocalCerrada 'o' = False",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 227,
+    "guideId": 23,
+    "lesson": "Cuando los patrones no encajan",
+    "language": "haskell",
+    "solution": "esCero 0 = True\nesCero a = False",
+    "extra": null,
+    "test": "it \"esCero 0 == True\" $ do \n   esCero 0 `shouldBe` True\n   \nit \"esCero 43 == False\" $ do \n   esCero 43 `shouldBe` False\n   \nit \"esCero 343 == False\" $ do \n   esCero 343 `shouldBe` False\n \nit \"esCero 2.5 == False\" $ do \n   esCero 2.5 `shouldBe` False\n    ",
+    "expectations": [
+      {
+        "inspection": "HasUsage",
+        "expected": false,
+        "args": [
+          "=="
+        ],
+        "binding": "esCero"
+      },
+      {
+        "inspection": "HasGuards",
+        "expected": false,
+        "args": [],
+        "binding": "esCero"
+      }
+    ]
+  },
+  {
+    "id": 228,
+    "guideId": 23,
+    "lesson": "Variable Anónima",
+    "language": "haskell",
+    "solution": "estadoDeAnimo \"Viernes\" = \"¡Estoy enamorado!\"\nestadoDeAnimo _ = \"Meh :S\"",
+    "extra": null,
+    "test": "it \"estadoDeAnimo \\\"Viernes\\\" es \\\"¡Estoy enamorado!\\\"\" $ do\n    estadoDeAnimo \"Viernes\" `shouldBe` \"¡Estoy enamorado!\"\n\nit \"estadoDeAnimo \\\"Jueves\\\" es \\\"Meh :S\\\"\" $ do\n    estadoDeAnimo \"Jueves\" `shouldBe` \"Meh :S\"",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "estadoDeAnimo"
+      },
+      {
+        "inspection": "HasGuards",
+        "expected": false,
+        "args": [],
+        "binding": "estadoDeAnimo"
+      },
+      {
+        "inspection": "HasAnonymousVariable",
+        "expected": true,
+        "args": [],
+        "binding": "estadoDeAnimo"
+      }
+    ]
+  },
+  {
+    "id": 229,
+    "guideId": 23,
+    "lesson": "Pausa: Volvieron los tipos",
+    "language": "haskell",
+    "solution": "esVocalCerrada :: Char -> Bool",
+    "extra": "esVocalCerrada 'o' = True\nesVocalCerrada 'u' = True\nesVocalCerrada 'a' = False\nesVocalCerrada 'e' = False\nesVocalCerrada 'i' = False\nesVocalCerrada _ = False",
+    "test": "it \"esVocalCerrada 'a' es True\" $ do \n  esVocalCerrada 'a' `shouldBe` False\n",
+    "expectations": [
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "esVocalCerrada"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "esVocalCerrada"
+      }
+    ]
+  },
+  {
+    "id": 230,
+    "guideId": 23,
+    "lesson": "Puntos Para Setenta!",
+    "language": "haskell",
+    "solution": "puntosParaSetenta :: (Eq a, Fractional a) => a -> a\npuntosParaSetenta 1 = 5.5\npuntosParaSetenta 10 = 0.5\npuntosParaSetenta 11 = 0.5\npuntosParaSetenta 12 = 0.5\npuntosParaSetenta a = a",
+    "extra": null,
+    "test": "it \"puntosParaSetenta 12 es 0.5\" $ do\n    puntosParaSetenta 12 `shouldBe` 0.5\n\nit \"puntosParaSetenta 11 es 0.5\" $ do\n    puntosParaSetenta 11 `shouldBe` 0.5\n\nit \"puntosParaSetenta 10 es 0.5\" $ do\n    puntosParaSetenta 10 `shouldBe` 0.5\n\nit \"puntosParaSetenta 1 es 5.5\" $ do\n    puntosParaSetenta 1 `shouldBe` 5.5\n\nit \"puntosParaSetenta 6 es 6\" $ do\n    puntosParaSetenta 6 `shouldBe` 6\n\nit \"puntosParaSetenta 7 es 7\" $ do\n    puntosParaSetenta 7 `shouldBe` 7",
+    "expectations": [
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "puntosParaSetenta"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "puntosParaSetenta"
+      },
+      {
+        "inspection": "HasGuards",
+        "expected": false,
+        "args": [],
+        "binding": "puntosParaSetenta"
+      }
+    ]
+  },
+  {
+    "id": 231,
+    "guideId": 23,
+    "lesson": "Tuplas",
+    "language": "haskell",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 232,
+    "guideId": 23,
+    "lesson": "Tipando tuplas",
+    "language": "haskell",
+    "solution": "distanciaAlOrigen p = sqrt ((fst p) * (fst p) + (snd p) * (snd p))",
+    "extra": null,
+    "test": "describe \"\" $ do\n  it \"distanciaAlOrigen (0,0) es 0\" $ do\n    distanciaAlOrigen (0,0) `shouldBe` 0\n\n  it \"distanciaAlOrigen (3,4) es 5\" $ do\n    distanciaAlOrigen (3,4) `shouldBe` 5\n\n  it \"distanciaAlOrigen (0,4) es 4\" $ do\n    distanciaAlOrigen (0,4) `shouldBe` 4",
+    "expectations": [
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "snd"
+        ],
+        "binding": "distanciaAlOrigen"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "fst"
+        ],
+        "binding": "distanciaAlOrigen"
+      }
+    ]
+  },
+  {
+    "id": 233,
+    "guideId": 23,
+    "lesson": "Pattern Matching con Tuplas",
+    "language": "haskell",
+    "solution": "poderSoldado (_, f, d) = f*d",
+    "extra": null,
+    "test": "describe \"\" $ do\n  it \"poderSoldado (\\\"Ryan\\\" ,12, 3) es 36\" $ do\n    poderSoldado (\"Ryan\" ,12, 3) `shouldBe` 36\n\n  it \"poderSoldado (\\\"Silvester\\\" ,50 ,1) es 50\" $ do\n    poderSoldado (\"Silvester\" ,50 ,1) `shouldBe` 50\n\n  it \"poderSoldado (\\\"Mambru\\\" ,2 ,3) es 6\" $ do\n    poderSoldado (\"Mambru\" ,2 ,3) `shouldBe` 6\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "poderSoldado"
+      },
+      {
+        "inspection": "HasAnonymousVariable",
+        "expected": true,
+        "args": [],
+        "binding": "poderSoldado"
+      }
+    ]
+  },
+  {
+    "id": 234,
+    "guideId": 23,
+    "lesson": "Gran poder, gran responsalibidad",
+    "language": "haskell",
+    "solution": null,
+    "extra": "soldadoLeGanaA ganador perdedor = poderSoldado ganador > poderSoldado perdedor\n\npoderSoldado (_, fuerza, destreza) = fuerza * destreza",
+    "test": null,
+    "expectations": []
+  }
+]

@@ -1,0 +1,173 @@
+[
+  {
+    "id": 365,
+    "guideId": 34,
+    "lesson": "Tuplas: agrupando indiviuos",
+    "language": "prolog",
+    "solution": null,
+    "extra": "personaje(jonSnow, (18, hombre)).\npersonaje(sansa, (15, mujer)).",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 366,
+    "guideId": 34,
+    "lesson": "Más Tuplas",
+    "language": "prolog",
+    "solution": "personaje(arya, (14, mujer)).\npersonaje(cersei, (34, mujer)).",
+    "extra": null,
+    "test": "test(arya_es_mujer) :-\n  personaje(arya, (_, mujer)).\n\ntest(arya_tiene_14) :-\n  personaje(arya, (14, _)).\n\ntest(cersei_es_mujer) :-\n  personaje(cersei, (_, mujer)).\n\ntest(cersei_tiene_34) :-\n  personaje(cersei, (34, _)).\n\n\n\n",
+    "expectations": []
+  },
+  {
+    "id": 367,
+    "guideId": 34,
+    "lesson": "Functores",
+    "language": "prolog",
+    "solution": "personaje(arya, stark(14, mujer)).\npersonaje(cersei, lannister(34, mujer)).",
+    "extra": null,
+    "test": "test(arya_es_mujer) :-\n  personaje(arya, stark(_, mujer)).\n\ntest(arya_tiene_14) :-\n  personaje(arya, stark(14, _)).\n\ntest(arya_es_stark) :-\n  personaje(arya, stark(_, _)).\n\ntest(cersei_es_mujer) :-\n  personaje(cersei, lannister(_, mujer)).\n\ntest(cersei_tiene_34) :-\n  personaje(cersei, lannister(34, _)).\n\ntest(cersei_es_lannister) :-\n  personaje(cersei, lannister(_, _)).\n\n\n",
+    "expectations": []
+  },
+  {
+    "id": 368,
+    "guideId": 34,
+    "lesson": "Patrones de Functores",
+    "language": "prolog",
+    "solution": "esStarkAdulto(N):-personaje(N, stark(E, _)), E > 15.",
+    "extra": "personaje(sansa, stark(15, mujer)).\npersonaje(jonSnow, stark(18, hombre)).\npersonaje(tyrion, lannister(30, hombre)).\n",
+    "test": "test('esStarkAdulto(jonSnow) es verdadero') :-\n  esStarkAdulto(jonSnow).\n\ntest('esStarkAdulto(cersei) es falso', fail) :-\n  esStarkAdulto(cersei).\n\ntest('esStarkAdulto(sansa) es falso', fail) :-\n  esStarkAdulto(sansa).",
+    "expectations": []
+  },
+  {
+    "id": 369,
+    "guideId": 34,
+    "lesson": "Patrones de Functores 2",
+    "language": "prolog",
+    "solution": "personajeAdulto(N):-personaje(N, stark(E, _)), E > 15.\npersonajeAdulto(N):-personaje(N, lannister(E, _)), E > 15.",
+    "extra": "personaje(cersei, lannister(30, mujer)).\npersonaje(arya, stark(14, mujer)).\npersonaje(jonSnow, stark(18, mujer)).\n",
+    "test": "test('personajeAdulto(jonSnow) es verdadero') :-\n  personajeAdulto(jonSnow).\n\ntest('personajeAdulto(cersei) es verdadero') :-\n  personajeAdulto(cersei).\n\ntest('personajeAdulto(arya) es falso', fail) :-\n  personajeAdulto(arya).",
+    "expectations": []
+  },
+  {
+    "id": 370,
+    "guideId": 34,
+    "lesson": "Diferentes pero no tanto",
+    "language": "prolog",
+    "solution": "personajeAdulto(N):-personaje(N, P), esAdulto(P).\nesAdulto(stark(E, _)):-mayor(E).\nesAdulto(lannister(E, _)):-mayor(E).\nmayor(E):-E>15.",
+    "extra": "personaje(cersei, lannister(30, mujer)).\npersonaje(arya, stark(14, mujer)).\npersonaje(jonSnow, stark(18, mujer)).\n",
+    "test": "test('personajeAdulto(jonSnow) es verdadero') :-\n  personajeAdulto(jonSnow).\n\ntest('personajeAdulto(cersei) es verdadero') :-\n  personajeAdulto(cersei).\n\ntest('personajeAdulto(arya) es falso', fail) :-\n  personajeAdulto(arya).",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "esAdulto"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "personajeAdulto"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "esAdulto"
+        ],
+        "binding": "personajeAdulto"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "personaje"
+        ],
+        "binding": "personajeAdulto"
+      }
+    ]
+  },
+  {
+    "id": 371,
+    "guideId": 34,
+    "lesson": "Functores vs predicados",
+    "language": "prolog",
+    "solution": "esPeligroso(N):-personaje(N, P), esPersonajePeligroso(P).\nesPersonajePeligroso(stark(_, _)).\nesPersonajePeligroso(lannister(M)):-M>=300.",
+    "extra": "personaje(joffrey,lannister(310)).\npersonaje(tommen,lannister(50)).\npersonaje(cersei,lannister(450)).\npersonaje(arya,stark(18,lobo(nymeria))).\n",
+    "test": "test('esPeligroso(joffrey) es verdadero') :-\n  esPeligroso(joffrey).\n\ntest('esPeligroso(tommen) es falso', fail) :-\n  esPeligroso(tommen).\n\ntest('esPeligroso(cersei) es verdadero') :-\n  esPeligroso(cersei).\n\ntest('esPeligroso(arya) es verdadero') :-\n  esPeligroso(arya).\n\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "esPeligroso"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "esPersonajePeligroso"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "personaje"
+        ],
+        "binding": "esPeligroso"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "esPersonajePeligroso"
+        ],
+        "binding": "esPeligroso"
+      }
+    ]
+  },
+  {
+    "id": 372,
+    "guideId": 34,
+    "lesson": "Diferentes aridades",
+    "language": "prolog",
+    "solution": "esPersonajePeligroso(nightwatch(_, lobo(_))).",
+    "extra": "personaje(jon,nightwatch(23,lobo(ghost))).\npersonaje(sam,nightwatch(23)).\n\nesPeligroso(Nombre) :-\n  personaje(Nombre, Personaje),\n  esPersonajePeligroso(Personaje).\n  \nesPersonajePeligroso(lannister(Oro)) :- Oro > 300.\nesPersonajePeligroso(stark(_, _)). ",
+    "test": "test('esPeligroso(jon) es verdadero') :-\n  esPeligroso(jon).\n\ntest('esPeligroso(sam) es falso', fail) :-\n  esPeligroso(sam).\n\n\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "esPersonajePeligroso"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "esPeligroso"
+      }
+    ]
+  },
+  {
+    "id": 373,
+    "guideId": 34,
+    "lesson": "Algo llamado polimorfismo",
+    "language": "prolog",
+    "solution": "cuantoSabePersonaje(lannister(_), mucho).\ncuantoSabePersonaje(stark(_, _), poco).\ncuantoSabePersonaje(nightwatch(_), poco).\ncuantoSabePersonaje(nightwatch(_, lobo(_)), nada).",
+    "extra": null,
+    "test": "test('cuantoSabePersonaje(lannister(340), mucho) es verdadero') :-\n  cuantoSabePersonaje(lannister(340), mucho).\n\ntest('cuantoSabePersonaje(lannister(100), mucho) es verdadero') :-\n  cuantoSabePersonaje(lannister(100), mucho).\n\ntest('cuantoSabePersonaje(nightwatch(23), poco) es verdadero') :-\n  cuantoSabePersonaje(nightwatch(23), Cuanto),\n  assertion(Cuanto == poco).\n\ntest('cuantoSabePersonaje(nightwatch(23, lobo(ghost)), nada) es verdadero') :-\n  cuantoSabePersonaje(nightwatch(23, lobo(ghost)), Cuanto),\n  assertion(Cuanto == nada).",
+    "expectations": []
+  },
+  {
+    "id": 374,
+    "guideId": 34,
+    "lesson": "Algo llamado polimorfismo 2",
+    "language": "prolog",
+    "solution": "cuantoSabe(N, C):-personaje(N, P), cuantoSabePersonaje(P, C).",
+    "extra": "personaje(joffrey,lannister(310)).\npersonaje(tommen,lannister(50)).\npersonaje(cersei,lannister(450)).\npersonaje(arya,stark(18,lobo(nymeria))).\npersonaje(jon,nightwatch(23,lobo(ghost))).\npersonaje(sam,nightwatch(23)).\n\ncuantoSabePersonaje(lannister(_), mucho).\ncuantoSabePersonaje(stark(_, _), poco).\ncuantoSabePersonaje(nightwatch(_), poco).\ncuantoSabePersonaje(nightwatch(_, lobo(_)), nada).\n",
+    "test": "test('cuantoSabe(cersei, mucho) es verdadero') :-\n  cuantoSabe(cersei, mucho).\n\ntest('cuantoSabe(jon, nada) es verdadero') :-\n  cuantoSabe(jon, Cuanto),\n  assertion(Cuanto == nada).",
+    "expectations": []
+  }
+]

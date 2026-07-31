@@ -1,0 +1,112 @@
+[
+  {
+    "id": 22,
+    "guideId": 3,
+    "lesson": "Las variables",
+    "language": "wollok",
+    "solution": "var saludo = \"hola\"\n\n\nvar saludoFormal = \"buen día\"",
+    "extra": "/*[IgnoreContentOnQuery]*/",
+    "test": "/*...extra...*/\n\ntest 'saludoFormal es \"buen día\"' {\n  /*...content...*/\n  assert.equals(\"buen día\", saludoFormal)\n}",
+    "expectations": []
+  },
+  {
+    "id": 23,
+    "guideId": 3,
+    "lesson": "Las variables son referencias",
+    "language": "wollok",
+    "solution": "var despedida = \"adiós\"\n\n\ndespedida.size()",
+    "extra": null,
+    "test": "test 'despedida apunta a \"adiós\"' {\n  /*...content...*/\n  assert.equals(\"adiós\", despedida)\n}",
+    "expectations": []
+  },
+  {
+    "id": 24,
+    "guideId": 3,
+    "lesson": "Referencias implícitas",
+    "language": "wollok",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 25,
+    "guideId": 3,
+    "lesson": "Múltiples referencias",
+    "language": "wollok",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 26,
+    "guideId": 3,
+    "lesson": "San Martín, ¡único!",
+    "language": "wollok",
+    "solution": "var donJose = sanMartin\n\n\nsanMartin.darBatalla()",
+    "extra": "/*[IgnoreContentOnQuery]*/\nobject sanMartin {\n  var batallas = 0\n  method batallas(){ return batallas }\n  method darBatalla() { batallas = batallas + 1 }\n}\n\nvar libertador = sanMartin\n",
+    "test": "test 'libertador hace referencia a sanMartin' {\n  /*...content...*/\n  assert.equals(sanMartin, libertador)\n}\n\ntest 'donJose hace referencia a sanMartin' {\n  /*...content...*/\n  assert.equals(sanMartin, donJose)\n}\n\ntest 'San martin luchó una batalla' {\n  /*...content...*/\n  assert.equals(1, sanMartin.batallas())\n  \n}",
+    "expectations": []
+  },
+  {
+    "id": 27,
+    "guideId": 3,
+    "lesson": "Variables y constantes",
+    "language": "wollok",
+    "solution": null,
+    "extra": "const otroSaludo = \"buen día\"\n/*...content...*/",
+    "test": "test \"existe objetosEquivalentes\" {\n  /*...content...*/\n  objetosEquivalentes  \n}\n\ntest \"objetosEquivalentes tiene tamaño 3\" {\n  /*...content...*/\n  assert.equals(3, objetosEquivalentes.size())  \n}\n\ntest \"todos los objetos de objetosEquivalentes son equivalentes\" {\n  /*...content...*/\n  assert.that(objetosEquivalentes.all { it => it == objetosEquivalentes.first()  })  \n}\n\n\ntest \"no todos los objetos de objetosEquivalentes son el mismo\" {\n  /*...content...*/\n  assert.that(objetosEquivalentes.any { it => ! (it === objetosEquivalentes.first())  })  \n}",
+    "expectations": []
+  },
+  {
+    "id": 28,
+    "guideId": 3,
+    "lesson": "Objetos bien conocidos",
+    "language": "wollok",
+    "solution": null,
+    "extra": "object sanMartin {\n  var batallas = 0\n  method batallas(){ \n    return batallas \n  }\n  method darBatalla() { \n    batallas = batallas + 1 \n  }\n}\n  \n\nobject agustin {\n  method jugar(){\n    sanMartin.darBatalla() \n  }\n  method estasCansado() {\n    return sanMartin.batallas() > 10\n  }\n}",
+    "test": "test \"existe abuelaClotilde\" {\n  abuelaClotilde\n}\n\ntest \"abuelaClotilde entiende el mensaje nieto(unNieto)\" {\n  abuelaClotilde.nieto(fito)\n}\n\ntest \"abuelaClotilde no debe inicializar por defecto a su nieto\" {\n  assert.throwsException({abuelaClotilde.alimentarNieto()})\n}\n\ntest \"abuelaClotilde.alimentarNieto() incrementa lo engorda 3 kg\" {\n  abuelaClotilde.nieto(fito)\n  abuelaClotilde.alimentarNieto()\n  assert.equals(73, fito.peso())\n}\n\n\ntest \"abuelaClotilde.alimentarNieto() lo alimenta dos veces\" {\n  abuelaClotilde.nieto(fito)\n  abuelaClotilde.alimentarNieto()\n  assert.equals(2, fito.cantidadDeLlamadas())\n}",
+    "expectations": []
+  },
+  {
+    "id": 29,
+    "guideId": 3,
+    "lesson": "Atributos y parámetros",
+    "language": "wollok",
+    "solution": "pepita.ciudad(iruya)",
+    "extra": "/*[IgnoreContentOnQuery]*/\nobject pepita {\n  var ciudad\n  var energia = 100\n  method ciudad(unaCiudad) {\n    ciudad = unaCiudad\n  }\n  method ciudad() {\n    return ciudad\n  }\n}\n\nobject iruya {\n  \n}\n\nobject rosario {\n  \n}",
+    "test": "/*[IgnoreContentOnQuery]*/\n\n/*...extra...*/\n\ntest \"inicializaste a la ciudad de pepita con iruya\" {\n  /*...content...*/\n  assert.equals(iruya, pepita.ciudad())\n}",
+    "expectations": []
+  },
+  {
+    "id": 30,
+    "guideId": 3,
+    "lesson": "Objetos compartidos",
+    "language": "wollok",
+    "solution": "object clotilde {\n  method nieto() {\n    return fito\n  }\n  \n  method alimentarNieto() {\n    clotilde.nieto().comer(2000)\n    clotilde.nieto().comer(1000)\n  }\n}",
+    "extra": "object fito {\n  var peso = 78 \n  \n  method comer(calorias) {\n     peso = peso + calorias/1000\n  }\n  method peso() {\n    return peso\n  }\n}\n\n\n",
+    "test": "/*[IgnoreContentOnQuery]*/\n\n/*...extra...*/\n\ntest \"el nieto de abuelaClotilde es fito\" {\n assert.that(clotilde.nieto() == fito)\n}\n\n\ntest \"abuelaClotilde.alimentarNieto() incrementa lo engorda 3 kg\" {\n  clotilde.alimentarNieto()\n  assert.equals(81, fito.peso())\n}\n\n\n",
+    "expectations": []
+  },
+  {
+    "id": 31,
+    "guideId": 3,
+    "lesson": "Más objetos compartidos",
+    "language": "wollok",
+    "solution": "melisa.novio(fito)\nclotilde.alimentarNieto()\nmelisa.novioEsFlaquitoComoLeGusta()",
+    "extra": "object fito {\n  var peso = 78 \n  method comer(calorias) {\n     peso = peso + calorias/1000\n  }\n  method peso() {\n    return peso\n  }\n}\n\nobject melisa {\n  var novio\n   \n  method novio(unNovio) {\n      novio = unNovio\n  }\n  method novio() {\n      return novio\n  } \n  method novioEsFlaquitoComoLeGusta() {\n     return novio.peso() < 80\n  }\n}\n\nobject clotilde{\n  const nieto = fito\n  \n  method nieto() {\n    return nieto\n  }\n  \n  method alimentarNieto() {\n    nieto.comer(2000)\n    nieto.comer(1000)\n  }\n}",
+    "test": "/*...extra...*/\n\ntest \"el novio de melisa es fito\" {\n  /*...content...*/\n assert.equals(fito, melisa.novio())\n}\n\ntest \"clotilde le dio de comer una vez a su nieto\" {\n  /*...content...*/\n assert.equals(81, fito.peso())\n}\n\ntest \"melisa no tiene un novio flaquito como le gusta \" {\n  /*...content...*/\n assert.notThat(melisa.novioEsFlaquitoComoLeGusta())\n}\n\n\n\n\n",
+    "expectations": []
+  },
+  {
+    "id": 32,
+    "guideId": 3,
+    "lesson": "Para cerrar",
+    "language": "wollok",
+    "solution": "object pianoFamiliar {\n  var afinacion = 100\n  \n  method tocar() {\n    afinacion -= afinacion/100\n  }\n  \n  method estaAfinado() {\n    return afinacion > 80\n  }\n  \n  method afinar(porcentaje) {\n    afinacion = (afinacion + (afinacion * porcentaje / 100).max(0)).min(100)\n  }\n}\n\n\nobject jazmin {\n  var piano\n  \n  method piano(unPiano) {\n    piano = unPiano\n  }\n  \n  method piano() {\n    return piano\n  }\n  \n  method tocar() {\n    self.piano().tocar()\n  }\n}\n\n\nobject lucio {\n  method afinar(piano, horas) {\n    piano.afinar(5 * horas)\n  }\n}",
+    "extra": null,
+    "test": "test \"existe el pianoFamiliar\" {\n  pianoFamiliar\n}\n\ntest \"existe jazmin\" {\n  jazmin\n}\n\ntest \"existe lucio\" {\n  lucio\n}\n\ntest \"el piano está inicialmente afinado\" {\n  assert.that(pianoFamiliar.estaAfinado())\n}\n\ntest \"después de tocar el piano 23 veces, ya no está afinado\" {\n  jazmin.piano(pianoFamiliar)  \n  23.times {x=> jazmin.tocar() }\n  assert.notThat(pianoFamiliar.estaAfinado())\n}\n\ntest \"lucio entiende afinar\" {\n  lucio.afinar(pianoFamiliar, 3)\n  assert.that(pianoFamiliar.estaAfinado())\n}\n\ntest \"después de tocar el piano 23 veces, y afinarlo durante 1 hora, está afinado\" {\n  jazmin.piano(pianoFamiliar)  \n  23.times {x=> jazmin.tocar() }\n  lucio.afinar(pianoFamiliar, 1)\n\n  assert.that(pianoFamiliar.estaAfinado())\n}\n\ntest \"después de tocar el piano 90 veces, y afinarlo durante 1 hora, no está afinado\" {\n  jazmin.piano(pianoFamiliar)  \n  90.times {x=> jazmin.tocar() }\n  lucio.afinar(pianoFamiliar, 1)\n\n  assert.notThat(pianoFamiliar.estaAfinado())\n}\n\ntest \"después de tocar el piano 90 veces, y afinarlo durante 20 horas, está afinado\" {\n  jazmin.piano(pianoFamiliar)  \n  90.times {x=> jazmin.tocar() }\n  lucio.afinar(pianoFamiliar, 20)\n\n  assert.that(pianoFamiliar.estaAfinado())\n}\n\ntest \"la afinación máxima es 100 aunque afine el piano durante 743 horas\" {\n  lucio.afinar(pianoFamiliar, 743)\n  jazmin.piano(pianoFamiliar)  \n  23.times {x=> jazmin.tocar() }\n  assert.notThat(pianoFamiliar.estaAfinado())\n}\n",
+    "expectations": []
+  }
+]

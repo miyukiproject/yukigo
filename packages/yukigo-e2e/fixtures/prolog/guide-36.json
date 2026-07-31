@@ -1,0 +1,161 @@
+[
+  {
+    "id": 380,
+    "guideId": 36,
+    "lesson": "El orden no importa... ¿verdad?",
+    "language": "prolog",
+    "solution": "puedePrestar(Alguien, Otro, Objeto):-tiene(Alguien, Objeto), necesita(Otro, Objeto), Alguien \\= Otro.",
+    "extra": "necesita(jose, pala).\nnecesita(maria, martillo).\n\ntiene(jose, martillo).\ntiene(jose, pala).",
+    "test": "test(es_inversible) :-\n  findall(\n    (Alguien, Otro, Objeto), \n    puedePrestar(Alguien, Otro, Objeto), \n    [(jose, maria, martillo)]).\n",
+    "expectations": []
+  },
+  {
+    "id": 381,
+    "guideId": 36,
+    "lesson": "El orden de las cláusulas",
+    "language": "prolog",
+    "solution": null,
+    "extra": "necesita(maria, martillo).\nnecesita(jose, pala).",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 382,
+    "guideId": 36,
+    "lesson": "Orden de las soluciones",
+    "language": "prolog",
+    "solution": null,
+    "extra": "necesitaVersion1(jose, pala).\nnecesitaVersion1(maria, martillo).\n\nnecesitaVersion2(maria, martillo).\nnecesitaVersion2(jose, pala).",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 383,
+    "guideId": 36,
+    "lesson": "Findall",
+    "language": "prolog",
+    "solution": "empleadosNecesitados(L):-findall(Emp, necesita(Emp, _), L).",
+    "extra": "necesita(jose, pala).\nnecesita(maria, martillo).\n",
+    "test": "test('empleadosNecesitados([jose, maria])') :-\n  empleadosNecesitados([jose, maria]).\n\ntest('no empleadosNecesitados([jose])') :-\n  \\+ empleadosNecesitados([jose]).",
+    "expectations": []
+  },
+  {
+    "id": 384,
+    "guideId": 36,
+    "lesson": "De muchas soluciones a una",
+    "language": "prolog",
+    "solution": "herramientasDemandadas(L):-findall(H, necesita(_, H), L).",
+    "extra": "necesita(jose, pala).\nnecesita(maria, martillo).\n",
+    "test": "test('herramientasDemandadas([pala, martilo])') :-\n  herramientasDemandadas([pala, martillo]).\n\ntest('no herramientasDemandadas([martilo])') :-\n  \\+ herramientasDemandadas([martillo]).\n",
+    "expectations": [
+      {
+        "inspection": "UsesFindall",
+        "expected": true,
+        "args": [],
+        "binding": "herramientasDemandadas"
+      }
+    ]
+  },
+  {
+    "id": 385,
+    "guideId": 36,
+    "lesson": "cuantoFalta",
+    "language": "prolog",
+    "solution": "cuantoFalta(C):-findall(I, necesita(_, I), Is), list_to_set(Is, IsL), length(IsL, C).",
+    "extra": "necesita(maria, pala).\nnecesita(maria, sierra).\nnecesita(jose, sarten).\nnecesita(hector, sarten).",
+    "test": "test('cuantoFalta(3)') :-\n  cuantoFalta(3).",
+    "expectations": [
+      {
+        "inspection": "UsesFindall",
+        "expected": true,
+        "args": [],
+        "binding": "cuantoFalta"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "cuantoFalta"
+      },
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "1"
+        ],
+        "binding": "cuantoFalta"
+      }
+    ]
+  },
+  {
+    "id": 386,
+    "guideId": 36,
+    "lesson": "Usar findall y no morir en el intento",
+    "language": "prolog",
+    "solution": "costoTotalDeHerramientasDemandadas(C):-findall(CU, (herramientaDemandada(H), costoHerramienta(H, CU)), CUs), sumlist(CUs, C).",
+    "extra": "costoHerramienta(martillo, 500).\ncostoHerramienta(pinza, 50).\ncostoHerramienta(tapa, 100).\n\nherramientaDemandada(martillo).\nherramientaDemandada(pinza).\n",
+    "test": "test('costoTotalDeHerramientasDemandadas(550) si se demanda un martillo de $500 y una pinza de $50') :-\n   costoTotalDeHerramientasDemandadas(550).\n\ntest('not(costoTotalDeHerramientasDemandadas(650)) si se demanda un martillo de $500 y una pinza de $50') :-\n   not(costoTotalDeHerramientasDemandadas(650)).\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "costoTotalDeHerramientasDemandadas"
+      },
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "1"
+        ],
+        "binding": "costoTotalDeHerramientasDemandadas"
+      },
+      {
+        "inspection": "UsesFindall",
+        "expected": true,
+        "args": [],
+        "binding": "costoTotalDeHerramientasDemandadas"
+      }
+    ]
+  },
+  {
+    "id": 387,
+    "guideId": 36,
+    "lesson": "Findall y la inversibilidad",
+    "language": "prolog",
+    "solution": "persona(P):-necesita(P, _).\nherramientasDemandadasPor(P, Hs):-persona(P), findall(H, necesita(P, H), Hs).",
+    "extra": "necesita(juan, martillo).\nnecesita(andrea, regla).\nnecesita(andrea, torno).",
+    "test": "test('herramientasDemandadasPor/2 funciona adecuadamente, 1') :-\n   herramientasDemandadasPor(juan,[martillo]).\n   \ntest('herramientasDemandadasPor/2 necesita funciona adecuadamente, 2') :-\n   herramientasDemandadasPor(andrea,[regla, torno]).\n   \ntest('herramientasDemandadasPor/2 esinversible') :-\n   findall((X, Hs), herramientasDemandadasPor(X,Hs), Pares),\n   member((juan, [martillo]), Pares),\n   member((andrea, [regla, torno]), Pares).",
+    "expectations": [
+      {
+        "inspection": "UsesFindall",
+        "expected": true,
+        "args": [],
+        "binding": "herramientasDemandadasPor"
+      }
+    ]
+  },
+  {
+    "id": 388,
+    "guideId": 36,
+    "lesson": "Findall en todos lados",
+    "language": "prolog",
+    "solution": "noLaNecesitaNadie(H):-not(necesita(_, H)).",
+    "extra": "necesita(maria, pala).\nnecesita(maria, sierra).\nnecesita(jose, sarten).\nnecesita(hector, sarten).",
+    "test": "test('Alguien necesita la sierra'):-\n  \\+ noLaNecesitaNadie(sierra).\n  \ntest('Alguien necesita la pala'):-\n  \\+ noLaNecesitaNadie(pala).\n  \ntest('Nadie necesita la llave francesa'):-\n  noLaNecesitaNadie(llaveFrancesa).",
+    "expectations": [
+      {
+        "inspection": "HasNot",
+        "expected": true,
+        "args": [],
+        "binding": "noLaNecesitaNadie"
+      },
+      {
+        "inspection": "UsesFindall",
+        "expected": false,
+        "args": [],
+        "binding": "noLaNecesitaNadie"
+      }
+    ]
+  }
+]

@@ -1,0 +1,757 @@
+[
+  {
+    "id": 249,
+    "guideId": 25,
+    "lesson": "sumarSegun",
+    "language": "haskell",
+    "solution": "sumarSegun :: (a -> Int) -> [a] -> Int\nsumarSegun f = sum . (map f)",
+    "extra": null,
+    "test": "describe \"sumarSegun\" $ do\n  it \"devuelve 9 dados id y [1,3,5]\" $ do\n    sumarSegun id [1,3,5] `shouldBe` 9\n  it \"devuelve 10 dados id y [2,1,7]\" $ do\n    sumarSegun id [2,1,7] `shouldBe` 10\n\n  it \"devuelve 4 dados (length.show) y \\\"hola\\\"\" $ do\n    sumarSegun (length.show) \"hola\" `shouldBe` 12\n",
+    "expectations": [
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "sumarSegun"
+      },
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": false,
+        "args": [],
+        "binding": "sumarSegun"
+      }
+    ]
+  },
+  {
+    "id": 250,
+    "guideId": 25,
+    "lesson": "alguno",
+    "language": "haskell",
+    "solution": "alguno :: (a -> Bool) -> [a] -> Bool\nalguno f = (1<=) . length . (filter f)",
+    "extra": null,
+    "test": "describe \"alguno\" $ do\r\n  it \"alguno even [2] == True\" $ do\r\n    alguno even [2] `shouldBe` True\r\n\r\n  it \"alguno even [4, 2, 1] == True\" $ do\r\n    alguno even [4, 2, 1] `shouldBe` True\r\n\r\n  it \"alguno even [9, 11] == False\" $ do\r\n    alguno even [9, 11] `shouldBe` False\r\n\r\n  it \"alguno (>0) [] == False\" $ do\r\n    alguno (>0) [] `shouldBe` False\r\n\r\n  it \"alguno ((>5).length) [\\\"hola\\\"] == False\" $ do\r\n    alguno ((>5).length) [\"hola\"] `shouldBe` False\r\n\r\n\r\n\r\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "alguno"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": false,
+        "args": [
+          "any"
+        ],
+        "binding": "alguno"
+      },
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": false,
+        "args": [],
+        "binding": "alguno"
+      },
+      {
+        "inspection": "HasConditional",
+        "expected": false,
+        "args": [],
+        "binding": "alguno"
+      },
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "alguno"
+      }
+    ]
+  },
+  {
+    "id": 251,
+    "guideId": 25,
+    "lesson": "esCapicua",
+    "language": "haskell",
+    "solution": "esCapicua l = (reverse (concat l)) == (concat l)",
+    "extra": null,
+    "test": "describe \"esCapicua\" $ do\n    it \"devuelve True dado neuquen\" $ do\n        (esCapicua [\"ne\",\"uqu\",\"en\"]) `shouldBe` True\n    it \"devuelve False dado pampa\" $ do\n        (esCapicua [\"pa\",\"m\",\"pa\"]) `shouldBe` False\n    it \"devuelve True dado una letra\" $ do\n        (esCapicua [\"L\"]) `shouldBe` True\n    it \"devuelve True dado vacio\" $ do\n        (esCapicua [\"\"]) `shouldBe` True\n    it \"devuelve True dada repeticiones de una letra\" $ do\n        (esCapicua [\"aa\",\"aaa\",\"aaaa\"]) `shouldBe` True\n    it \"devuelve True dado 123454321\" $ do\n        (esCapicua [[1,2],[3,4,5],[4,3,2],[1]]) `shouldBe` True\n    it \"devuelve True dado 1234554321\" $ do\n        (esCapicua [[1,2],[3,4,5,5],[4,3,2],[1]]) `shouldBe` True",
+    "expectations": [
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": false,
+        "args": [],
+        "binding": "esCapicua"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "esCapicua"
+      }
+    ]
+  },
+  {
+    "id": 252,
+    "guideId": 25,
+    "lesson": "esMultiploDeAlguno",
+    "language": "haskell",
+    "solution": "esMultiploDeAlguno m = any (esMultiploDe m)",
+    "extra": "esMultiploDe unNumero otroNumero = rem unNumero otroNumero == 0",
+    "test": "describe \"esMultiploDeAlguno\" $ do\n  it \"devuelve False 34 y [4,3,5]\" $ do\n    esMultiploDeAlguno 34 [4,3,5] `shouldBe` False\n\n  it \"devuelve True dados 15 y [2,3,4]\" $ do\n    esMultiploDeAlguno 15 [2,3,4] `shouldBe` True\n    \n  it \"devuelve True dados 10 y [2,4]\" $ do\n    esMultiploDeAlguno 10 [2, 4] `shouldBe` True\n    \n  it \"devuelve True dados 100 y []\" $ do\n    esMultiploDeAlguno 100 [] `shouldBe` False\n    \n  it \"devuelve True dados 100 y [50, 1, 8]\" $ do\n    esMultiploDeAlguno 100 [50, 1, 8] `shouldBe` True\n",
+    "expectations": [
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": false,
+        "args": [],
+        "binding": "esMultiploDeAlguno"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "esMultiploDeAlguno"
+      }
+    ]
+  },
+  {
+    "id": 253,
+    "guideId": 25,
+    "lesson": "Llamadas",
+    "language": "haskell",
+    "solution": "cuandoHabloMas (n, r) | sum n > sum r = \"normal\"\n                      | otherwise = \"reducido\"",
+    "extra": null,
+    "test": "describe \"llamadas\" $ do\n    it \"cuandoHabloMas ([1, 1, 3, 5, 1], [32,20,5]) == \\\"reducido\\\"\" $ do\n        cuandoHabloMas ([1, 1, 3, 5, 1], [32,20,5]) `shouldBe` \"reducido\"\n\n    it \"cuandoHabloMas ([1, 10, 10], [2]) == \\\"normal\\\"\" $ do\n        cuandoHabloMas ([1, 10, 10], [2]) `shouldBe` \"normal\"\n\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "cuandoHabloMas"
+      },
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": false,
+        "args": [],
+        "binding": "cuandoHabloMas"
+      }
+    ]
+  },
+  {
+    "id": 254,
+    "guideId": 25,
+    "lesson": "Más llamadas",
+    "language": "haskell",
+    "solution": "cuandoHizoMasLlamadas = comparador length\ncuandoHizoLaLlamadaMasLarga = comparador maximum \ncuandoHizoMasLlamadasBreves = comparador (length . (filter (2>)))\ncuandoHabloMas = comparador sum\ncomparador f (a, b) | f a > f b = \"normal\"\n                    | otherwise = \"reducido\"",
+    "extra": null,
+    "test": "describe \"más llamadas\" $ do\n    it \"cuandoHabloMas ([1, 1, 3, 5, 1], [32,20,5]) == \\\"reducido\\\"\" $ do\n        cuandoHabloMas ([1, 1, 3, 5, 1], [32,20,5]) `shouldBe` \"reducido\"\n\n    it \"cuandoHabloMas ([1, 10, 10], [2]) == \\\"normal\\\"\" $ do\n        cuandoHabloMas ([1, 10, 10], [2]) `shouldBe` \"normal\"\n\n    it \"cuandoHizoMas ([1, 1, 3, 5, 1], [32,20,5]) == \\\"normal\\\"\" $ do\n        cuandoHizoMasLlamadas ([1, 1, 3, 5, 1], [32,20,5]) `shouldBe` \"normal\"\n\n    it \"cuandoHizoMasLlamadas ([1, 10, 10], [2]) == \\\"normal\\\"\" $ do\n        cuandoHizoMasLlamadas ([1, 10, 10], [2]) `shouldBe` \"normal\"\n        \n    it \"cuandoHizoLaLlamadaMasLarga ([1, 1, 3, 5, 1], [32,20,5]) == \\\"reducido\\\"\" $ do\n        cuandoHizoLaLlamadaMasLarga ([1, 1, 3, 5, 1], [32,20,5]) `shouldBe` \"reducido\"\n\n    it \"cuandoHizoLaLlamadaMasLarga ([1, 10, 10], [2]) == \\\"normal\\\"\" $ do\n        cuandoHizoLaLlamadaMasLarga ([1, 10, 10], [2]) `shouldBe` \"normal\"\n        \n    it \"cuandoHizoMasLlamadasBreves ([1, 1, 3, 5, 1], [32,20,5]) == \\\"normal\\\"\" $ do\n        cuandoHizoMasLlamadasBreves ([1, 1, 3, 5, 1], [32,20,5]) `shouldBe` \"normal\"\n\n    it \"cuandoHizoMasLlamadasBreves ([1, 10, 10], [1, 1]) == \\\"reducido\\\"\" $ do\n        cuandoHizoMasLlamadasBreves ([1, 10, 10], [1, 1]) `shouldBe` \"reducido\"\n\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "cuandoHabloMas"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "cuandoHizoMasLlamadas"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "cuandoHizoLaLlamadaMasLarga"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "cuandoHizoMasLlamadasBreves"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "length"
+        ],
+        "binding": "cuandoHizoMasLlamadasBreves"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "sum"
+        ],
+        "binding": "cuandoHabloMas"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "length"
+        ],
+        "binding": "cuandoHizoMasLlamadas"
+      },
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": false,
+        "args": [],
+        "binding": "cuandoHabloMas"
+      },
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": false,
+        "args": [],
+        "binding": "cuandoHizoMasLlamadas"
+      },
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": false,
+        "args": [],
+        "binding": "cuandoHizoLaLlamadaMasLarga"
+      },
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": false,
+        "args": [],
+        "binding": "cuandoHizoMasLlamadasBreves"
+      }
+    ]
+  },
+  {
+    "id": 255,
+    "guideId": 25,
+    "lesson": "promedios",
+    "language": "haskell",
+    "solution": "promedios = map average",
+    "extra": "average xs = sum xs / (fromIntegral.length) xs\n",
+    "test": "describe \"promedios\" $ do\n  it \"devuelve [7,6.5,4,7.5]  dado  [[8,6]],[6,7],[6,2,4],[9,6]]\" $ do\n    promedios  [[8,6],[6,7],[6,2,4],[9,6]]`shouldBe` [7,6.5,4,7.5]\n\n  it \"devuelve [1,3,5]  dado  [[1,1], [1,3,5], [4,5,6]]\" $ do\n    promedios  [[1,1], [1,3,5], [4,5,6]]`shouldBe` [1,3,5]\n\n  it \"devuelve []  dado  []\" $ do\n    promedios  []`shouldBe` []\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "promedios"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "map"
+        ],
+        "binding": "promedios"
+      },
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": false,
+        "args": [],
+        "binding": "promedios"
+      }
+    ]
+  },
+  {
+    "id": 256,
+    "guideId": 25,
+    "lesson": "promediosSinAplazos",
+    "language": "haskell",
+    "solution": "promediosSinAplazos = map (average . (filter (4<=)))",
+    "extra": "average :: Fractional a => [a] -> a\naverage xs = sum xs / (fromIntegral.length) xs\n",
+    "test": "describe \"promediosSinAplazos\" $ do \r\n  it \"promediosSinAplazos de [[8,6],[6,2,4]] es [7,5]\" $ do\r\n    promediosSinAplazos [[8,6],[6,2,4]] `shouldBe` [7,5]\r\n    \r\n  it \"promediosSinAplazos de [[1, 8, 6, 3, 2, 2, 2, 1],[6,2,4]] es [7,5]\" $ do\r\n    promediosSinAplazos [[1, 8, 6, 3, 2, 2, 2, 1],[6,2,4]] `shouldBe` [7,5]\r\n    \r\n  it \"promediosSinAplazos de [[1,9],[1, 9], [1, 8]] es [9, 9, 8]\" $ do\r\n    promediosSinAplazos [[1,9],[1, 9], [1, 8]] `shouldBe` [9, 9, 8]\r\n    \r\n  it \"promediosSinAplazos de [] es []\" $ do\r\n    promediosSinAplazos [] `shouldBe` []\r\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "promediosSinAplazos"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "average"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "average"
+        ],
+        "binding": "promediosSinAplazos"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "map"
+        ],
+        "binding": "promediosSinAplazos"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "filter"
+        ],
+        "binding": "promediosSinAplazos"
+      },
+      {
+        "inspection": "HasComposition",
+        "expected": true,
+        "args": [],
+        "binding": "promediosSinAplazos"
+      },
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": false,
+        "args": [],
+        "binding": "promediosSinAplazos"
+      }
+    ]
+  },
+  {
+    "id": 257,
+    "guideId": 25,
+    "lesson": "mejoresNotas",
+    "language": "haskell",
+    "solution": "mejoresNotas = map maximum",
+    "extra": null,
+    "test": "describe \"mejoresNotas\" $ do\r\n  it \"mejoresNotas [[8,6,2,4],[7,9,4,5],[6,2,4,2],[9,6,7,10]] == [8,9,6,10]\" $ do\r\n    mejoresNotas [[8,6,2,4],[7,9,4,5],[6,2,4,2],[9,6,7,10]] `shouldBe` [8,9,6,10]\r\n\r\n  it \"mejoresNotas [[8,6,2,4],[9,6,7,10]] == [8,10]\" $ do\r\n    mejoresNotas [[8,6,2,4],[9,6,7,10]] `shouldBe` [8,10]\r\n\r\n  it \"mejoresNotas [] == []\" $ do\r\n    mejoresNotas [] `shouldBe` ([] :: [Int])\r\n\r\n  it \"mejoresNotas [[5, 10]] == [10]\" $ do\r\n    mejoresNotas [[5, 10]] `shouldBe` [10]\r\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "mejoresNotas"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "maximum"
+        ],
+        "binding": "mejoresNotas"
+      },
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": false,
+        "args": [],
+        "binding": "mejoresNotas"
+      }
+    ]
+  },
+  {
+    "id": 258,
+    "guideId": 25,
+    "lesson": "aprobo",
+    "language": "haskell",
+    "solution": "aprobo = all (4<=)",
+    "extra": null,
+    "test": "describe \"aprobo\" $ do\r\n\r\n  it \"aprobo [2] == False\" $ do\r\n    aprobo [2] `shouldBe` False\r\n\r\n  it \"aprobo [7,4,5] == True\" $ do\r\n    aprobo [7,4,5] `shouldBe` True\r\n\r\n  it \"aprobo [7,9,4,5] == True\" $ do\r\n    aprobo [7,9,4,5] `shouldBe` True\r\n\r\n  it \"aprobo [8,6,2,4] == False\" $ do\r\n    aprobo [8,6,2,4] `shouldBe` False\r\n\r\n\r\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "aprobo"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "all"
+        ],
+        "binding": "aprobo"
+      },
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": false,
+        "args": [],
+        "binding": "aprobo"
+      }
+    ]
+  },
+  {
+    "id": 259,
+    "guideId": 25,
+    "lesson": "quienesAprobaron",
+    "language": "haskell",
+    "solution": "quienesAprobaron = filter aprobo",
+    "extra": "aprobo :: [Int] -> Bool\naprobo = all (>=4)\n",
+    "test": "describe \"quienesAprobaron\" $ do\r\n\r\n  it \"quienesAprobaron [[8,6,2,4],[7,9,4,5],[6,2,4,2],[9,6,7,10]] == [[7,9,4,5],[9,6,7,10]]\" $ do\r\n    quienesAprobaron [[8,6,2,4],[7,9,4,5],[6,2,4,2],[9,6,7,10]] `shouldBe` [[7,9,4,5],[9,6,7,10]]\r\n\r\n  it \"quienesAprobaron [[7,9,4,5]] == [[7,9,4,5]]\" $ do\r\n    quienesAprobaron [[7,9,4,5]] `shouldBe` [[7,9,4,5]]\r\n\r\n\r\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "quienesAprobaron"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "aprobo"
+        ],
+        "binding": "quienesAprobaron"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "filter"
+        ],
+        "binding": "quienesAprobaron"
+      },
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": false,
+        "args": [],
+        "binding": "quienesAprobaron"
+      }
+    ]
+  },
+  {
+    "id": 260,
+    "guideId": 25,
+    "lesson": "hayAlgunNegativo",
+    "language": "haskell",
+    "solution": "hayAlgunNegativo = any (0>)",
+    "extra": null,
+    "test": "describe \"hayAlgunNegativo\" $ do\r\n  it \"hayAlgunNegativo [2,-3,9] == True\" $ do\r\n    hayAlgunNegativo [2,-3,9] `shouldBe` True\r\n\r\n  it \"hayAlgunNegativo [-10,9] == True\" $ do\r\n    hayAlgunNegativo [-10,9] `shouldBe` True\r\n\r\n  it \"hayAlgunNegativo [2,9] == False\" $ do\r\n    hayAlgunNegativo [2,9] `shouldBe` False\r\n\r\n  it \"hayAlgunNegativo [] == False\" $ do\r\n    hayAlgunNegativo [] `shouldBe` False\r\n\r\n\r\n\r\n\r\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "hayAlgunNegativo"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "any"
+        ],
+        "binding": "hayAlgunNegativo"
+      },
+      {
+        "inspection": "HasConditional",
+        "expected": false,
+        "args": [],
+        "binding": "hayAlgunNegativo"
+      },
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": false,
+        "args": [],
+        "binding": "hayAlgunNegativo"
+      }
+    ]
+  },
+  {
+    "id": 261,
+    "guideId": 25,
+    "lesson": "sumaPorFunciones",
+    "language": "haskell",
+    "solution": "sumaPorFunciones lfn = sum . (aplicarFunciones lfn)",
+    "extra": "aplicarFunciones fs x = map ($x) fs\n",
+    "test": "describe \"sumaPorFunciones\" $ do\r\n  it \"sumaPorFunciones [abs] (-8) == 22\" $ do\r\n    sumaPorFunciones [abs] (-8) `shouldBe` 8\r\n\r\n  it \"sumaPorFunciones [succ, succ] 10 == 22\" $ do\r\n    sumaPorFunciones [succ, succ] 10 `shouldBe` 22\r\n\r\n  it \"sumaPorFunciones [] 120 == 0\" $ do\r\n    sumaPorFunciones [] 120 `shouldBe` 0",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "sumaPorFunciones"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "aplicarFunciones"
+        ],
+        "binding": "sumaPorFunciones"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "aplicarFunciones"
+      },
+      {
+        "inspection": "HasComposition",
+        "expected": true,
+        "args": [],
+        "binding": "sumaPorFunciones"
+      },
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": false,
+        "args": [],
+        "binding": "sumaPorFunciones"
+      }
+    ]
+  },
+  {
+    "id": 262,
+    "guideId": 25,
+    "lesson": "cuantosCumplen",
+    "language": "haskell",
+    "solution": "cuantosCumplen :: (a -> Bool) -> [a] -> Int\ncuantosCumplen f = length . (filter f)",
+    "extra": null,
+    "test": "it \"cuantosCumplen (>4) [2, 3, 5] == 1\" $ do \n  cuantosCumplen (>4) [2, 3, 5] `shouldBe` 1\n  \nit \"cuantosCumplen (>6) [2, 3, 5] == 0\" $ do \n  cuantosCumplen (>5) [2, 3, 5] `shouldBe` 0\n  \n  \nit \"cuantosCumplen (id) [True, True, True] == 1\" $ do \n  cuantosCumplen id [True, True, True] `shouldBe` 3",
+    "expectations": [
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "cuantosCumplen"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "cuantosCumplen"
+      },
+      {
+        "inspection": "HasComposition",
+        "expected": true,
+        "args": [],
+        "binding": "cuantosCumplen"
+      },
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": false,
+        "args": [],
+        "binding": "cuantosCumplen"
+      }
+    ]
+  },
+  {
+    "id": 263,
+    "guideId": 25,
+    "lesson": "rechazar",
+    "language": "haskell",
+    "solution": "rechazar :: (a -> Bool) -> [a] -> [a]\nrechazar p xs = filter (not . p) xs",
+    "extra": null,
+    "test": "it \"rechazar id [True, False] == [False]\" $ do \n  rechazar id [True, False] `shouldBe` [False] \n\nit \"rechazar (>4) [2, 9] == [2]\" $ do \n  rechazar (>4) [2, 9] `shouldBe` [2] ",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "rechazar"
+      },
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "rechazar"
+      },
+      {
+        "inspection": "HasComposition",
+        "expected": true,
+        "args": [],
+        "binding": "rechazar"
+      },
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": false,
+        "args": [],
+        "binding": "rechazar"
+      }
+    ]
+  },
+  {
+    "id": 264,
+    "guideId": 25,
+    "lesson": "contiene",
+    "language": "haskell",
+    "solution": "contiene :: (Eq a) => a -> [a] -> Bool\ncontiene e = not . null . (filter (e==))",
+    "extra": null,
+    "test": "it \"contiene 4 [4, 5] == True\" $ do \n   contiene 4 [4, 5] `shouldBe` True\n\nit \"contiene 4 [] == False\" $ do \n   contiene 4 [] `shouldBe` False\n\nit \"contiene 4 [5, 6, 4] == True\" $ do \n   contiene 4 [5, 6, 4] `shouldBe` True",
+    "expectations": [
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "contiene"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "contiene"
+      },
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": false,
+        "args": [],
+        "binding": "contiene"
+      },
+      {
+        "inspection": "Uses",
+        "expected": false,
+        "args": [
+          "elem"
+        ],
+        "binding": "contiene"
+      }
+    ]
+  },
+  {
+    "id": 265,
+    "guideId": 25,
+    "lesson": "rotar",
+    "language": "haskell",
+    "solution": "rotar l = (tail l) ++ [head l]",
+    "extra": null,
+    "test": "it \"rotar [1, 2, 3] == [2, 3, 1]\" $ do \n   rotar [1, 2, 3] `shouldBe` [2, 3, 1]\n \nit \"rotar [3] == [3]\" $ do \n   rotar [3] `shouldBe` [3]\n   \nit \"rotar ['a', 'b'] == ['b', 'a']\" $ do \n   rotar ['a', 'b'] `shouldBe` ['b', 'a']",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "rotar"
+      },
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": false,
+        "args": [],
+        "binding": "rotar"
+      }
+    ]
+  },
+  {
+    "id": 266,
+    "guideId": 25,
+    "lesson": "iniciales",
+    "language": "haskell",
+    "solution": "iniciales :: [Char] -> [Char]\niniciales =  (map head) . (filter ((1<) . length)) . words",
+    "extra": null,
+    "test": "it \"iniciales \\\"paradigmas de programacion\\\"== \\\"pdp\\\"\" $ do \n   iniciales \"paradigmas de programacion\" `shouldBe` \"pdp\"\n   \nit \"iniciales \\\"programación orientada a objetos\\\" == \\\"poo\\\"\" $ do \n   iniciales \"programación orientada a objetos\" `shouldBe` \"poo\" ",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "iniciales"
+      },
+      {
+        "inspection": "HasComposition",
+        "expected": true,
+        "args": [],
+        "binding": "iniciales"
+      },
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": false,
+        "args": [],
+        "binding": "iniciales"
+      },
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "iniciales"
+      }
+    ]
+  },
+  {
+    "id": 267,
+    "guideId": 25,
+    "lesson": "pam",
+    "language": "haskell",
+    "solution": "pam :: [(a -> b)] -> a -> [b]\npam lfn a = map ($ a) lfn",
+    "extra": null,
+    "test": "describe \"pam\" $ do\r\n  it \"pam [succ,negate,abs] 10 == [11,-10,10]\" $ do\r\n    pam [succ,negate,abs] 10 `shouldBe` [11,-10,10]\r\n\r\n  it \"pam [] \\\"hola\\\" == []\" $ do\r\n    pam [] \"hola\" `shouldBe` ([]::[String])\r\n\r\n  it \"pam [length] \\\"hola\\\" == [4]\" $ do\r\n    pam [length] \"hola\" `shouldBe` [4]\r\n\r\n  it \"pam [id, not] True == [True, False]\" $ do\r\n    pam [id, not] True `shouldBe` [True, False]\r\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "pam"
+      },
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "pam"
+      },
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": false,
+        "args": [],
+        "binding": "pam"
+      }
+    ]
+  },
+  {
+    "id": 268,
+    "guideId": 25,
+    "lesson": "armarFixture",
+    "language": "haskell",
+    "solution": "armarFixture :: (Eq a) => [a] -> [a] -> [(a, a)]\narmarFixture l1 = (filter sonDistintos) . (zipWith armarTupla l1)\narmarTupla a b = (a, b)\nsonDistintos (a, b) = a /= b",
+    "extra": null,
+    "test": "it \"armarFixture [\\\"boca\\\", \\\"river\\\", \\\"racing\\\"] [\\\"river\\\", \\\"velez\\\", \\\"independiente\\\"]  == [(\\\"boca\\\", \\\"river\\\"), (\\\"river\\\", \\\"velez\\\"), (\\\"racing\\\", \\\"independiente\\\")] \" $ do\n    armarFixture [\"boca\", \"river\", \"racing\"] [\"river\", \"velez\", \"independiente\"]  `shouldBe` [(\"boca\", \"river\"), (\"river\", \"velez\"), (\"racing\", \"independiente\")] \n\nit \"armarFixture [\\\"boca\\\", \\\"river\\\"] [\\\"boca\\\", \\\"velez\\\"]  == [(\\\"river\\\", \\\"velez\\\")] \" $ do\n    armarFixture [\"boca\", \"river\"] [\"boca\", \"velez\"]  `shouldBe` ([(\"river\", \"velez\")] :: [(String, String)]) \n    \nit \"armarFixture [\\\"boca\\\"] [\\\"boca\\\"]  == [] \" $ do\n    armarFixture [\"boca\"] [\"boca\"]  `shouldBe` ([] :: [(String, String)]) ",
+    "expectations": [
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "zipWith"
+        ],
+        "binding": "armarFixture"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "armarFixture"
+      },
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "armarFixture"
+      },
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": false,
+        "args": [],
+        "binding": "armarFixture"
+      }
+    ]
+  },
+  {
+    "id": 269,
+    "guideId": 25,
+    "lesson": "Cuántas Muzzas",
+    "language": "haskell",
+    "solution": "cuantasMuzzas = ceiling . (/8) . sum . (map snd) . (filter ((\"muzza\" ==) . fst))",
+    "extra": null,
+    "test": "describe \"cuantasMuzzas\" $ do\n    it \"El ejemplo del enunciado debe dar 2 pizzas de muzza\" $ do\n        (cuantasMuzzas [(\"fugaza\",1), (\"muzza\",2), (\"muzza\",3), (\"fugaza\",1), (\"morrone\",1), (\"muzza\",4)]) `shouldBe` 2\n    it \"Con 8 porciones debe dar 1 sóla pizza\" $ do\n        (cuantasMuzzas [(\"fugaza\",1), (\"muzza\",2), (\"muzza\",3), (\"fugaza\",1), (\"morrone\",1), (\"muzza\",3)]) `shouldBe` 1\n    it \"Con 7 porciones debe dar 1 sóla pizza\" $ do\n        (cuantasMuzzas [(\"fugaza\",1), (\"muzza\",1), (\"muzza\",3), (\"fugaza\",1), (\"morrone\",1), (\"muzza\",3)]) `shouldBe` 1",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "cuantasMuzzas"
+      },
+      {
+        "inspection": "HasComposition",
+        "expected": true,
+        "args": [],
+        "binding": "cuantasMuzzas"
+      },
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": false,
+        "args": [],
+        "binding": "cuantasMuzzas"
+      },
+      {
+        "inspection": "DoesTypeTest",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  }
+]

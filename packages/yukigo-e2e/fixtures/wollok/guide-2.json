@@ -1,0 +1,149 @@
+[
+  {
+    "id": 8,
+    "guideId": 2,
+    "lesson": "Declarando objetos",
+    "language": "wollok",
+    "solution": null,
+    "extra": "object anastasia {\n  \n} ",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 9,
+    "guideId": 2,
+    "lesson": "Pepita y anastasia",
+    "language": "wollok",
+    "solution": "object pepita {\n        // Vacío\n}",
+    "extra": "object anastasia {\n  \n}",
+    "test": "test \"anastasia\" {\n  assert.that(anastasia != pepita)\n}",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "pepita"
+      }
+    ]
+  },
+  {
+    "id": 10,
+    "guideId": 2,
+    "lesson": "Métodos",
+    "language": "wollok",
+    "solution": null,
+    "extra": "\nobject pepita {\n   method cantar() {\n      return \"pri pri pri\"\n   }\n}\n\nobject anastasia {\n  \n}",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 11,
+    "guideId": 2,
+    "lesson": "Pepita esta feliz",
+    "language": "wollok",
+    "solution": "object pepita {\n  method volarEnCirculos() {\n    \n  }\n  \n  method estaFeliz() {\n    return true\n  }\n}",
+    "extra": null,
+    "test": "test \"Existe pepita\" {\n  pepita\n}\n\ntest \"Pepita entiende el mensaje estaFeliz()\" {\n  pepita.estaFeliz()\n}\n\ntest \"El mensaje estaFeliz() responde afirmativamente\" {\n  assert.that(pepita.estaFeliz())\n}\n\n",
+    "expectations": []
+  },
+  {
+    "id": 12,
+    "guideId": 2,
+    "lesson": "Atributos",
+    "language": "wollok",
+    "solution": null,
+    "extra": "object pepita {\n  var energia = 100\n  \n  method estaFeliz() {\n     return energia >= 90\n  }\n}",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 13,
+    "guideId": 2,
+    "lesson": "Atributos variables",
+    "language": "wollok",
+    "solution": null,
+    "extra": "object pepita {\n  var energia = 100\n  \n  method estaFeliz() {\n     return energia >= 90\n  }\n  \n  method volarEnCirculos() {\n     energia = energia - 20\n  }\n}",
+    "test": "test \"pepita tiene inicialmente 100 unidades de energía\" {\n  assert.equals(pepita.toString().contains(\"energia=100\"))\n}\n\ntest \"pepita pierde 20 unidades de energía cuando vuela en circulos\" {\n  pepita.volarEnCirculos()\n  assert.equals(pepita.toString().contains(\"energia=80\"))\n  \n}\n\ntest \"pepita gana 10 unidades de energía cuando come una lombriz\" {\n  pepita.comerLombriz()\n  assert.equals(pepita.toString().contains(\"energia=110\"))\n}",
+    "expectations": []
+  },
+  {
+    "id": 14,
+    "guideId": 2,
+    "lesson": "Asignaciones y referencias",
+    "language": "wollok",
+    "solution": "object pepita {\n  var energia = 100\n  \n  method estaFeliz() {\n    return energia >= 90\n  }\n  method volarEnCirculos() {\n    energia = energia - 20\n  }\n  \n  method comerLombriz() {\n    energia += 10\n  }\n}",
+    "extra": null,
+    "test": "test \"pepita tiene inicialmente 100 unidades de energía\" {\n  assert.that(pepita.toString().contains(\"energia=100\"))\n}\n\ntest \"pepita pierde 20 unidades de energía cuando vuela en circulos\" {\n  pepita.volarEnCirculos()\n  assert.that(pepita.toString().contains(\"energia=80\"))\n  \n}\n\ntest \"pepita gana 10 unidades de energía cuando come una lombriz\" {\n  pepita.comerLombriz()\n  assert.that(pepita.toString().contains(\"energia=110\"))\n}",
+    "expectations": []
+  },
+  {
+    "id": 15,
+    "guideId": 2,
+    "lesson": "Ciudades",
+    "language": "wollok",
+    "solution": "object pepita {\n  var energia = 100\n  var ciudad = rosario\n  \n  method estaFeliz() {\n    return energia >= 90\n  }\n  \n  method volarEnCirculos() {\n    energia = energia - 20\n  }\n  \n  method comerLombriz() {\n    energia = energia + 10\n  }\n  \n  method volarHacia(ciudadDestino) {\n    ciudad = ciudadDestino\n    energia -= 100\n  }\n}\n\n\nobject rosario {}\nobject buenosAires {}",
+    "extra": null,
+    "test": "test \"pepita tiene un atributo ciudad\" {\n  assert.that(pepita.toString().contains(\"ciudad\")) \n}\n\ntest \"la ciudad de pepita inicial es rosario\" {\n  assert.that(pepita.toString().contains(\"ciudad=rosario\")) \n}\n\ntest \"si pepita vuela hacia Buenos Aires pierde 100 de energia\" {\n  pepita.volarHacia(buenosAires)\n  assert.that(pepita.toString().contains(\"energia=0\")) \n}\n\ntest \"si pepita vuela hacia Buenos Aires su ciudad es Buenos Aires\" {\n  pepita.volarHacia(buenosAires)\n  assert.that(pepita.toString().contains(\"ciudad=buenosAires\")) \n}",
+    "expectations": []
+  },
+  {
+    "id": 16,
+    "guideId": 2,
+    "lesson": "Estado interno",
+    "language": "wollok",
+    "solution": null,
+    "extra": "object pepita {\n  var energia = 100\n  var ciudad = rosario\n  \n  method estaFeliz(){\n    return energia >= 90\n  }\n  \n  method volarHacia(destino) {\n      energia = energia - 100\n      ciudad = destino\n  }\n  \n  method volarEnCirculos() {\n     energia = energia - 20\n  }\n  \n  method comerLombriz() {\n      energia = energia + 10\n  }\n  \n}\n\nobject buenosAires { }\n\nobject rosario { }",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 17,
+    "guideId": 2,
+    "lesson": "Métodos de acceso",
+    "language": "wollok",
+    "solution": null,
+    "extra": "object pepita {\n  var energia = 100\n  var ciudad = rosario\n\n   method energia() {\n      return energia\n   }\n\n   method energia(valor) {\n      energia = valor\n   }\n\n}\n\nobject buenosAires {}\nobject rosario {}",
+    "test": "/*...extra...*/\n\ntest \"estadoDePepita\" {\n  var estadoDePepita\n  var estadoDeEnrique\n  var estadoDeNokia1100\n  var estadoDeMotorolaC115\n  \n  /*...content...*/\n  \n  assert.equals(#{\"energia\", \"ciudad\"}, estadoDePepita)\n}\n\ntest \"estadoDeNokia1100\" {\n  var estadoDePepita\n  var estadoDeEnrique\n  var estadoDeNokia1100\n  var estadoDeMotorolaC115\n  \n  /*...content...*/\n  \n  assert.equals(#{}, estadoDeNokia1100)\n}\n\ntest \"estadoDeMotoralC115\" {\n  var estadoDePepita\n  var estadoDeEnrique\n  var estadoDeNokia1100\n  var estadoDeMotorolaC115\n  \n  /*...content...*/\n  \n  assert.equals(#{}, estadoDeMotorolaC115)\n}\n\ntest \"estadoDeEnrique\" {\n  var estadoDePepita\n  var estadoDeEnrique\n  var estadoDeNokia1100\n  var estadoDeMotorolaC115\n  \n  /*...content...*/\n  \n  assert.equals(#{\"celular\", \"cantidadDePesosEnBilletera\", \"fraseFavorita\"}, estadoDeEnrique)\n  assert.equals(3, estadoDeEnrique.size())\n  \n}",
+    "expectations": []
+  },
+  {
+    "id": 18,
+    "guideId": 2,
+    "lesson": "¿Dónde estás?",
+    "language": "wollok",
+    "solution": "object pepita {\n  var energia = 100\n  var ciudad = rosario\n  \n  method energia() {\n    return energia\n  }\n  \n  method ciudad() {\n    return ciudad\n  }\n  \n}\n\n\nobject rosario {}\nobject buenosAires {}",
+    "extra": null,
+    "test": "test \"Pepita tiene el getter energia()\" {\n  assert.equals(100, pepita.energia()) \n}\n\ntest \"Pepita no tiene el setter energia(valor)\" {\n  assert.throwsException({pepita.energia(200)})\n}\n\ntest \"Pepita tiene el getter ciudad()\" {\n  assert.equals(rosario, pepita.ciudad()) \n}\n",
+    "expectations": []
+  },
+  {
+    "id": 19,
+    "guideId": 2,
+    "lesson": "Volando lejos",
+    "language": "wollok",
+    "solution": "object pepita {\n  var energia = 100\n  var ciudad = rosario\n  \n  method volarHacia(destino) {\n    energia -= (destino.kilometro() - ciudad.kilometro()).abs() / 10\n    ciudad = destino\n  }\n    \n  method energia() {\n    return energia\n  }\n  \n  method ciudad() {\n    return ciudad\n  }\n}\n\n\nobject rosario {\n  method kilometro() {\n    return 298\n  }\n}\n\n\nobject buenosAires {\n  method kilometro() {\n    return 0\n  }\n}\n\n\nobject cordoba {\n  method kilometro() {\n    return 696\n  }\n}",
+    "extra": null,
+    "test": "test \"si pepita está en rosario y vuela a buenosAires, pierde 29.8 de energía\" { \n   pepita.volarHacia(buenosAires)\n   assert.equals(pepita.energia(), 70.2) \n}\n\ntest \"si pepita está en rosario y vuela a rosario, no pierde energia\" { \n   pepita.volarHacia(rosario)\n   assert.equals(pepita.energia(), 100) \n}\n\ntest \"si pepita está en rosario y vuela a cordoba su energia debe quedar en 60.2\" { \n   pepita.volarHacia(cordoba)\n   assert.equals(60.2, pepita.energia()) \n}\n\ntest \"si pepita está en rosario y vuela a buenosAires, queda en buenos aires\" { \n  pepita.volarHacia(buenosAires)\n  assert.equals(buenosAires, pepita.ciudad())\n  \n}\n",
+    "expectations": []
+  },
+  {
+    "id": 20,
+    "guideId": 2,
+    "lesson": "Yo mismo: el self",
+    "language": "wollok",
+    "solution": "object rosario {\n  method kilometro() {\n      return 298\n  }\n}\n\n\nobject buenosAires {\n  method kilometro() {\n     return 0\n  }\n}\n\n\nobject cordoba {\n  method kilometro() {\n     return 696\n  }\n}\n\n\nobject pepita {\n  var energia = 100\n  var ciudad = rosario\n  \n  method volarHacia(destino) {\n    energia = energia - self.distancia(destino) / 10\n    ciudad = destino\n  }\n\n\n  method distancia(destino) {\n    return (ciudad.kilometro() - destino.kilometro()).abs()\n  }\n  \n  method energia() {\n    return energia\n  }\n  \n  method ciudad() {\n    return ciudad\n  }\n  \n  method volarALaCapital() {\n    self.volarHacia(buenosAires)\n  }\n}",
+    "extra": null,
+    "test": "\ntest \"si está en rosario, la distancia a rosario es 0\" {\n  assert.equals(0, pepita.distancia(rosario))\n}\n\ntest \"si está en rosario, la distancia a buenosAires es 298\" {\n  assert.equals(298, pepita.distancia(buenosAires))\n}\n  \ntest \"si pepita está en rosario y vuela a buenosAires, su energia es 70.2\" { \n   pepita.volarHacia(buenosAires)\n   assert.equals(pepita.energia(), 70.2) \n}\n\ntest \"si pepita está en rosario y vuela a la capital, su energia es 70.2 \" { \n   pepita.volarALaCapital()\n   assert.equals(70.2, pepita.energia()) \n}\n\ntest \"si pepita está en rosario y vuela a la capital, su ciudad es Buenos Aires \" { \n   pepita.volarALaCapital()\n   assert.equals(buenosAires, pepita.ciudad()) \n}\n\n\n",
+    "expectations": []
+  },
+  {
+    "id": 21,
+    "guideId": 2,
+    "lesson": "Responsabilidades: ¿Quién se encarga?",
+    "language": "wollok",
+    "solution": "object rosario {\n  method kilometro() {\n      return 298\n  }\n}\n\n\nobject buenosAires {\n  method kilometro() {\n     return 0\n  }\n}\n\n\nobject cordoba {\n  method kilometro() {\n     return 696\n  }\n}\n\n\nobject pepita {\n  var energia = 100\n  var ciudad = rosario\n  \n  method volarHacia(destino) {\n    energia = energia - mapa.distanciaEntre(ciudad, destino)/10\n    ciudad = destino\n  }\n\n\n  method energia() {\n    return energia\n  }\n  \n  method ciudad() {\n    return ciudad\n  }\n}\n\n\nobject mapa {\n  method distanciaEntre(unaCiudad, otraCiudad) {\n    return (unaCiudad.kilometro() - otraCiudad.kilometro()).abs()\n  }\n}",
+    "extra": null,
+    "test": "test \"la distancia rosario -> rosario es 0\" {\n  assert.equals(0, mapa.distanciaEntre(rosario, rosario))\n}\n\ntest \"la distancia rosario -> buenosAires es 298\" {\n  assert.equals(298, mapa.distanciaEntre(rosario, buenosAires))\n}\n\ntest \"si pepita está en rosario y vuela a buenosAires, queda con energia 70.2\" { \n   pepita.volarHacia(buenosAires)\n   assert.equals(70.2, pepita.energia()) \n}\n\ntest \"si pepita está en rosario y vuela a rosario, no pierde energia\" { \n   pepita.volarHacia(rosario)\n   assert.equals(100, pepita.energia()) \n}\n",
+    "expectations": []
+  }
+]

@@ -1,0 +1,83 @@
+[
+  {
+    "id": 270,
+    "guideId": 26,
+    "lesson": "Introducción",
+    "language": "haskell",
+    "solution": null,
+    "extra": "cuentoDeLaBuenaPipa = \"querés conocer el cuento de la buena pipa? (Sí!) \" ++ cuentoDeLaBuenaPipa",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 271,
+    "guideId": 26,
+    "lesson": "La historia sin fin",
+    "language": "haskell",
+    "solution": "infinitosUnos = [1] ++ infinitosUnos",
+    "extra": null,
+    "test": "it \"infinitosUnos == [1, 1, 1, 1, 1, ...\" $ do \n   take 20 infinitosUnos  `shouldBe` replicate 20 1\n   take 10 infinitosUnos  `shouldBe` replicate 10 1\n   take 100 infinitosUnos  `shouldBe` replicate 100 1",
+    "expectations": [
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": true,
+        "args": [],
+        "binding": "infinitosUnos"
+      }
+    ]
+  },
+  {
+    "id": 272,
+    "guideId": 26,
+    "lesson": "¡Terminala! Parte 1",
+    "language": "haskell",
+    "solution": null,
+    "extra": "sumatoria lista = sumatoria (tail lista) + head lista\n",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 273,
+    "guideId": 26,
+    "lesson": "¡Terminala! Parte 2",
+    "language": "haskell",
+    "solution": "sumatoria :: Num a => [a] -> a\nsumatoria [] = 0\nsumatoria (x:xs) = x + sumatoria xs",
+    "extra": null,
+    "test": "it \"sumatoria [] == 0\" $ do\n   sumatoria [] `shouldBe` 0\n\nit \"sumatoria [1, 2, 3] == 6\" $ do\n   sumatoria [1, 2, 3] `shouldBe` 6\n   \nit \"sumatoria [5, 5] == 10\" $ do\n   sumatoria [5, 5] `shouldBe` 10",
+    "expectations": [
+      {
+        "inspection": "HasUsage",
+        "expected": false,
+        "args": [
+          "sum"
+        ],
+        "binding": "sumatoria"
+      }
+    ]
+  },
+  {
+    "id": 274,
+    "guideId": 26,
+    "lesson": "El caso base",
+    "language": "haskell",
+    "solution": "longitud [] = 0\nlongitud (x:xs) = 1 + longitud xs",
+    "extra": null,
+    "test": "it \"longitud [1, 2, 3, 4] == 4\" $ do \n   longitud [1, 2, 3, 4] `shouldBe` 4\n   \nit \"longitud [1, 2, 3] == 3\" $ do \n   longitud [1, 2, 3] `shouldBe` 3\n   \nit \"longitud [True, False] == 2\" $ do \n   longitud [True, False] `shouldBe` 2\n\nit \"longitud [] == 0\" $ do \n   longitud [] `shouldBe` 0",
+    "expectations": [
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": true,
+        "args": [],
+        "binding": "longitud"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": false,
+        "args": [
+          "length"
+        ],
+        "binding": "longitud"
+      }
+    ]
+  }
+]

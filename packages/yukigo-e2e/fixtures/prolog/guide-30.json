@@ -1,0 +1,331 @@
+[
+  {
+    "id": 315,
+    "guideId": 30,
+    "lesson": "trabajaCon",
+    "language": "prolog",
+    "solution": "trabajaCon(P1, P2):-trabajaEn(D, P1), trabajaEn(D, P2), P1 \\= P2.",
+    "extra": "trabajaEn(compras, hernan).\ntrabajaEn(compras, maquiavelo).\ntrabajaEn(ventas, camilo).\ntrabajaEn(ventas, anastasia).\ntrabajaEn(ventas, ingrid).\ntrabajaEn(ilegales, tomas).\n",
+    "test": "test(trabaja_con_si_trabajan_en_mismo_departamento, [nondet]) :-\n  trabajaCon(hernan, maquiavelo).\n\ntest(no_trabaja_con_si_son_de_departamentos_diferentes) :-\n  \\+ trabajaCon(anastasia, maquiavelo).\n\ntest(no_trabaja_con_nadie_si_esta_solo_en_su_departamento) :-\n  \\+ trabajaCon(tomas, _).\n\ntest(no_trabaja_con_si_mismo) :-\n  \\+ trabajaCon(camilo, camilo).\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "trabajaCon"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "trabajaEn"
+        ],
+        "binding": "trabajaCon"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": false,
+        "args": [
+          "Not"
+        ],
+        "binding": "trabajaCon"
+      }
+    ]
+  },
+  {
+    "id": 316,
+    "guideId": 30,
+    "lesson": "daOrdenes",
+    "language": "prolog",
+    "solution": "daOrdenes(A, B):-empleado(D, A, gerente), empleado(D, B, cadete).",
+    "extra": "empleado(compras, hernan, cadete).\nempleado(compras, maquiavelo, gerente).\nempleado(ventas, camilo, cadete).\nempleado(ventas, anastasia, cadete).\nempleado(ventas, ingrid, gerente).\nempleado(ilegales, tomas, cadete).\n",
+    "test": "test(no_se_puede_dar_ordenes_a_alguien_de_diferente_departamento) :-\n  \\+ daOrdenes(ingrid, hernan).\n\ntest(no_se_puede_dar_ordenes_a_alguien_de_mismo_puesto) :-\n  \\+ daOrdenes(anastasia, camilo).\n\ntest(no_se_puede_dar_ordenes_a_alguien_de_mismo_puesto_en_otro_departamento) :-\n  \\+ daOrdenes(ingrid, maquiavelo).\n\ntest(nadie_puede_darle_ordenes_si_no_tiene_gerente) :-\n  \\+ daOrdenes(_, tomas).\n\ntest(un_gerente_puede_darle_ordenes_a_un_cadete_de_su_departamento) :-\n  daOrdenes(ingrid, anastasia),\n  daOrdenes(ingrid, camilo).",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "daOrdenes"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "empleado"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "empleado"
+        ],
+        "binding": "daOrdenes"
+      }
+    ]
+  },
+  {
+    "id": 317,
+    "guideId": 30,
+    "lesson": "rival",
+    "language": "prolog",
+    "solution": "grupo(colombia, a).\ngrupo(camerun, a).\ngrupo(jamaica, a).\ngrupo(italia, a).\ngrupo(argentina, b).\ngrupo(nigeria, b).\ngrupo(japon, b).\ngrupo(escocia, b).\nrival(P1, P2):-grupo(P1, G), grupo(P2, G), P1 \\= P2.",
+    "extra": null,
+    "test": "test(nigeria_es_rival_de_argentina, [nondet]):-\n  rival(argentina,nigeria).\n\ntest(japon_es_rival_de_argentina, [nondet]):-\n  rival(argentina,japon).\n\ntest(escocia_es_rival_de_argentina, [nondet]):-\n  rival(argentina,escocia).\n\ntest(argentina_es_rival_de_escocia, [nondet]):-\n  rival(escocia, argentina).\n\ntest(argentina_no_es_rival_de_argentina, [nondet]):-\n  \\+ rival(argentina,argentina).\n\ntest(jamaica_es_rival_de_italia):-\n  rival(jamaica, italia).\n\ntest(jamaica_es_rival_de_colombia):-\n  rival(jamaica, colombia).\n\ntest(camerun_no_es_rival_de_argentina):-\n  \\+ rival(camerun, argentina).\n\ntest(japon_no_es_rival_de_japon):-\n  \\+ rival(japon,japon).\n\ntest(colombia_no_es_rival_de_japon):-\n  \\+ rival(colombia,japon).\n\n\n\n\n\n\n\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "rival"
+      }
+    ]
+  },
+  {
+    "id": 318,
+    "guideId": 30,
+    "lesson": "compiten",
+    "language": "prolog",
+    "solution": "compiten(P1, P2):-gustaDe(P1, X), gustaDe(P2, X), P1 \\= P2.",
+    "extra": null,
+    "test": "gustaDe(ricardo, ana).\ngustaDe(ricardo, maria).\ngustaDe(jacinto, ana).\ngustaDe(hernan, maria).\ngustaDe(jose, ana).\ngustaDe(jose, maria).\n\ntest(compiten_si_gustan_de_varias_personas_en_comun, [nondet]) :-\n  compiten(ricardo, jose).\n\ntest(compiten_si_gustan_de_una_misma_persona, [nondet]) :-\n  compiten(ricardo, jacinto).\n\ntest(compiten_si_gustan_de_una_misma_persona, [nondet]) :-\n  compiten(jacinto, ricardo).\n\ntest(no_compiten_si_no_gustan_de_una_misma_persona) :-\n  \\+ compiten(hernan, jacinto).\n\ntest(no_compiten_si_no_gustan_de_una_misma_persona) :-\n  \\+ compiten(maria, jacinto).\n\ntest(compiten_es_inversible) :-\n  findall((X, Y), compiten(X, Y), Competencias),\n  member((ricardo, jose), Competencias).",
+    "expectations": []
+  },
+  {
+    "id": 319,
+    "guideId": 30,
+    "lesson": "fiestaDeCatedra",
+    "language": "prolog",
+    "solution": "alumno(luisa, daniel).\nalumno(juan, daniel).\nalumno(diana, nico).\nalumno(nahuel, nico).\nalumno(tamara, nahuel).\nalumno(claudio, ruben).\nalumno(jose, ruben).\nalumno(alvaro, luisa).\nalumno(alvaro, jose).\ncarilindo(brad).\ncarilindo(leo).\ncarilindo(johnny).\nsimpatico(luciano).\nsimpatico(lautaro).\npuedeIr(nico).\npuedeIr(daniel).\npuedeIr(A):-alumno(A, daniel), not(alumno(_, A)).\npuedeIr(P):-carilindo(P).",
+    "extra": null,
+    "test": "\ntest(test_brad_carilindo):-\ncarilindo(brad).\n\ntest(test_luciano_simpatico):-\nsimpatico(lautaro).\n\ntest(test_puede_ir_nico):-\npuedeIr(nico).\n\ntest(test_puede_ir_daniel):-\npuedeIr(daniel).\n\ntest(test_no_puede_ir_luisa):-\nnot(puedeIr(luisa)).\n\ntest(test_puede_ir_leo):-\npuedeIr(leo).\n\ntest(test_no_puede_ir_lautaro):-\nnot(puedeIr(lautaro)).\n\ntest(test_no_puede_ir_claudio):-\nnot(puedeIr(claudio)).\n\ntest(test_no_puede_ir_alvaro):-\nnot(puedeIr(alvaro)).\n\ntest(test_no_puede_ir_ana):-\nnot(puedeIr(ana)).\n\ntest(test_claudio_es_alumno_de_ruben):-\nalumno(claudio, ruben).",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "carilindo"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "simpatico"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "puedeIr"
+      }
+    ]
+  },
+  {
+    "id": 320,
+    "guideId": 30,
+    "lesson": "Reunión Colorida",
+    "language": "prolog",
+    "solution": "reunion(mabel, viernes).\nreunion(ana, viernes).\nreunion(adrian, viernes).\nreunion(mara, sabado).\nreunion(mabel, sabado).\nreunion(adrian, sabado).\nreunion(juan, domingo).\nreunion(P, domingo):-esMayor(P).\npuedeIluminarseCon(D, C):-mujer(M), varon(V), reunion(M, D), reunion(V, D), atraeA(M, C), atraeA(V, C).",
+    "extra": "atraeA(mabel, rosa).\natraeA(ana, rosa).\natraeA(mara, celeste).\natraeA(mara, lila).\natraeA(juan, Color):- esPastel(Color).\natraeA(pablo, azul).\natraeA(Persona, azul):- mujer(Persona).\natraeA(mabel, rojo).\natraeA(Persona, rojo):- varon(Persona),esMayor(Persona).\natraeA(adrian, amarillo).\natraeA(Persona, amarillo):- esPortenio(Persona).\natraeA(ana, naranja).\natraeA(juan, naranja).\n\nesPortenio(mabel).\nesPortenio(mara).\nesPortenio(pablo).\nesMayor(ana).\nesMayor(pablo).\nesPastel(rosa).\nesPastel(celeste).\nesPastel(lila).\n\nmujer(mabel).\nmujer(ana).\nmujer(mara).\nvaron(juan).\nvaron(pablo).\nvaron(adrian).\n\nreunion(viernes,[mabel,ana,adrian,pablo]).\nreunion(sabado,[mara,mabel,adrian,juan]).\nreunion(domingo,[juan|Cola]):- findall(Persona,esMayor(Persona),Cola).\n\npuedeIluminarseCon(Dia,Color):- reunion(Dia,ListaAsistentes), member(Varon,ListaAsistentes), varon(Varon), atraeA(Varon,Color), member(Mujer,ListaAsistentes), mujer(Mujer), atraeA(Mujer,Color).\n",
+    "test": "test(viernes_NO_puedeIluminarseCon_naranja):-\n \\+ puedeIluminarseCon(viernes, naranja).\n\ntest(viernes_puedeIluminarseCon_azul):-\n puedeIluminarseCon(viernes, azul).\n\ntest(domingo_NO_puede_iluminarse_con_naranja):-\n  \\+ puedeIluminarseCon(domingo, lila).\n\ntest(domingo_puede_iluminarse_con_naranja):-\n  puedeIluminarseCon(domingo, naranja).\n\ntest(domingo_puede_iluminarse_con_rosa):-\n  puedeIluminarseCon(domingo, rosa).\n\ntest(viernes_no_puedeIluminarseCon_rosa):-\n  not(puedeIluminarseCon(viernes,rosa)).\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "puedeIluminarseCon"
+      }
+    ]
+  },
+  {
+    "id": 321,
+    "guideId": 30,
+    "lesson": "Repaso funcional: composición",
+    "language": "prolog",
+    "solution": "tipo(siguiente, entero, entero).\ntipo(anterior, entero, entero).\ntipo(longitud, lista, entero).\ntipoDeLaComposicion(F1, F2, TE, TS):-tipo(F2, TE, TM), tipo(F1, TM, TS).",
+    "extra": null,
+    "test": "test('tipoDeLaComposicion(anterior, anterior, entero, entero)') :-\n    tipoDeLaComposicion(anterior, anterior, entero, entero).\n\ntest('tipoDeLaComposicion(siguiente, anterior, entero, entero)') :-\n    tipoDeLaComposicion(siguiente, anterior, entero, entero).\n\ntest('tipoDeLaComposicion(siguiente, longitud, lista, entero)') :-\n    tipoDeLaComposicion(siguiente, longitud, lista, entero).\n\ntest('no tipoDeLaComposicion(siguiente, longitud, lista, lista)') :-\n    \\+ tipoDeLaComposicion(siguiente, longitud, lista, lista).\n\ntest('no tipoDeLaComposicion(longitud, longitud, lista, entero)') :-\n    \\+ tipoDeLaComposicion(longitud, longitud, lista, entero).\n\ntest('no tipoDeLaComposicion(longitud, longitud, entero, entero)') :-\n    \\+ tipoDeLaComposicion(longitud, longitud, entero, entero).\n\ntest('no tipoDeLaComposicion(anterior, anterior, lista, entero)') :-\n    \\+ tipoDeLaComposicion(anterior, anterior, lista, entero).\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "tipoDeLaComposicion"
+      },
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "4"
+        ],
+        "binding": "tipoDeLaComposicion"
+      }
+    ]
+  },
+  {
+    "id": 322,
+    "guideId": 30,
+    "lesson": "TEG",
+    "language": "prolog",
+    "solution": "puedenAtacarse(J1, J2):-not(aliados(J1, J2)), ocupa(P1, J1, _), ocupa(P2, J2, _), sonLimitrofes(P1, P2), J1 \\= J2.\nloLiquidaron(J):-not(ocupa(_, J, _)).",
+    "extra": "aliados(X,Y):- alianza(X,Y).\naliados(X,Y):- alianza(Y,X).\nalianza(amarillo,magenta).\n\n%el numero son los ejercitos\nocupa(argentina, magenta, 5).\nocupa(chile, amarillo, 3).\nocupa(brasil, amarillo, 8).\nocupa(uruguay, magenta, 5).\nocupa(alaska, amarillo, 7).\nocupa(yukon, amarillo, 1).\nocupa(canada, amarillo, 10).\nocupa(oregon, amarillo, 5).\nocupa(kamtchatka, negro, 6).\nocupa(china, amarillo, 2).\nocupa(siberia, amarillo, 5).\nocupa(japon, amarillo, 7).\nocupa(australia, negro, 8).\nocupa(sumatra, negro, 3).\nocupa(java, negro, 4).\nocupa(borneo, negro, 1).\n\n% Usar este para saber si son limitrofes ya que es una relacion simetrica\nsonLimitrofes(X, Y) :- limitrofes(X, Y).\nsonLimitrofes(X, Y) :- limitrofes(Y, X).\n\nlimitrofes(argentina,brasil).\nlimitrofes(argentina,chile).\nlimitrofes(argentina,uruguay).\nlimitrofes(uruguay,brasil).\nlimitrofes(alaska,kamtchatka).\nlimitrofes(alaska,yukon).\nlimitrofes(canada,yukon).\nlimitrofes(alaska,oregon).\nlimitrofes(canada,oregon).\nlimitrofes(siberia,kamtchatka).\nlimitrofes(siberia,china).\nlimitrofes(china,kamtchatka).\nlimitrofes(japon,china).\nlimitrofes(japon,kamtchatka).\nlimitrofes(australia,sumatra).\nlimitrofes(australia,java).\nlimitrofes(australia,borneo).\nlimitrofes(australia,chile).",
+    "test": "test(no_pueden_atacarse_el_amarillo_y_el_magenta_por_ser_aliados):-\n  \\+ puedenAtacarse(amarillo, magenta).\n  \ntest(el_magenta_no_puede_atacarse_a_si_mismo):-\n  \\+ puedenAtacarse(magenta, magenta).\n  \ntest(pueden_atacarse_el_negro_y_el_magenta_por_no_tener_limitrofes):-\n  \\+ puedenAtacarse(magenta, magenta).\n  \ntest(pueden_atacarse_el_negro_y_el_amarillo):-\n  puedenAtacarse(negro, amarillo).\n  \ntest(liquidaron_al_blanco):-\n  loLiquidaron(blanco).\n  \ntest(no_liquidaron_al_amarillo):-\n  \\+ loLiquidaron(amarillo).",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "puedenAtacarse"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "loLiquidaron"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "sonLimitrofes"
+        ],
+        "binding": "puedenAtacarse"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "ocupa"
+        ],
+        "binding": "puedenAtacarse"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "aliados"
+        ],
+        "binding": "puedenAtacarse"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "ocupa"
+        ],
+        "binding": "loLiquidaron"
+      }
+    ]
+  },
+  {
+    "id": 323,
+    "guideId": 30,
+    "lesson": "TEG 2",
+    "language": "prolog",
+    "solution": "ocupaContinente(J, C):-forall(estaEn(C, P), ocupa(P, J, _)).\nestaPeleado(C):-forall(ocupa(_, J, _), (ocupa(P, J, _), estaEn(C, P))).\nseAtrinchero(J):-estaEn(C, _), forall(ocupa(P, J, _), estaEn(C, P)).",
+    "extra": "ocupa(argentina, magenta, 5).\nocupa(chile, negro, 3).\nocupa(brasil, amarillo, 8).\nocupa(uruguay, magenta, 5).\nocupa(alaska, amarillo, 7).\nocupa(yukon, amarillo, 1).\nocupa(canada, amarillo, 10).\nocupa(oregon, amarillo, 5).\nocupa(kamtchatka, negro, 6).\nocupa(china, amarillo, 2).\nocupa(siberia, amarillo, 5).\nocupa(japon, amarillo, 7).\nocupa(australia, negro, 8).\nocupa(sumatra, negro, 3).\nocupa(java, negro, 4).\nocupa(borneo, negro, 1).\n\nestaEn(americaDelSur, argentina).\nestaEn(americaDelSur, brasil).\nestaEn(americaDelSur, chile).\nestaEn(americaDelSur, uruguay).\nestaEn(americaDelNorte, alaska).\nestaEn(americaDelNorte, yukon).\nestaEn(americaDelNorte, canada).\nestaEn(americaDelNorte, oregon).\nestaEn(asia, kamtchatka).\nestaEn(asia, china).\nestaEn(asia, siberia).\nestaEn(asia, japon).\nestaEn(oceania,australia).\nestaEn(oceania,sumatra).\nestaEn(oceania,java).\nestaEn(oceania,borneo).",
+    "test": "test(el_amarillo_ocupa_america_del_norte):-\n  ocupaContinente(amarillo, americaDelNorte).\n  \ntest(el_negro_ocupa_oceania):-\n  ocupaContinente(negro, oceania).\n  \ntest(el_amarillo_no_ocupa_america_del_sur):-\n \\+ ocupaContinente(amarillo, americaDelSur).\n\ntest(america_del_sur_esta_peleado):-\n  estaPeleado(americaDelSur).\n\ntest(asia_no_esta_peleado):-\n \\+ estaPeleado(asia).\n \ntest(el_magenta_se_atrinchero):-\n  seAtrinchero(magenta).\n  \ntest(el_negro_no_se_atrinchero):-\n  \\+ seAtrinchero(negro).",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "ocupaContinente"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "estaPeleado"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "seAtrinchero"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "estaEn"
+        ],
+        "binding": "ocupaContinente"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "ocupa"
+        ],
+        "binding": "ocupaContinente"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "estaEn"
+        ],
+        "binding": "estaPeleado"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "ocupa"
+        ],
+        "binding": "estaPeleado"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "estaEn"
+        ],
+        "binding": "seAtrinchero"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "ocupa"
+        ],
+        "binding": "seAtrinchero"
+      }
+    ]
+  },
+  {
+    "id": 324,
+    "guideId": 30,
+    "lesson": "TEG, La Revancha",
+    "language": "prolog",
+    "solution": "elPaisMasFuerte(P):-forall(ocupa(P, _, E1), (ocupa(_, _, E2), E1>E2)).",
+    "extra": "ocupa(alaska, amarillo, 7).\nocupa(yukon, amarillo, 1).\nocupa(canada, amarillo, 10).\nocupa(oregon, amarillo, 5).\nocupa(kamtchatka, negro, 6).\nocupa(china, amarillo, 2).\nocupa(siberia, amarillo, 5).\nocupa(japon, amarillo, 7).\nocupa(australia, negro, 8).\nocupa(sumatra, negro, 3).\nocupa(java, negro, 4).\nocupa(borneo, negro, 1).\nocupa(argentina, magenta, 5).\nocupa(chile, negro, 3).\nocupa(brasil, amarillo, 8).\nocupa(uruguay, magenta, 5).",
+    "test": "test(el_mas_fuerte_es_canada, nondet):-\n  elPaisMasFuerte(canada).\n  \ntest(el_mas_fuerte_no_debe_ser_yukon, fail):-\n  elPaisMasFuerte(yukon).\n\ntest(el_mas_fuerte_es_inversible_y_solo_es_uno, set(Pais == [canada])):-\n  elPaisMasFuerte(Pais). ",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "elPaisMasFuerte"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "ocupa"
+        ],
+        "binding": "elPaisMasFuerte"
+      }
+    ]
+  },
+  {
+    "id": 325,
+    "guideId": 30,
+    "lesson": "Gran compañero de viaje",
+    "language": "prolog",
+    "solution": "mismoDestino(P1, P2):-destino(P1, D), destino(P2, D).\ndestinosQueNoHabla(P, D):-destino(P, D), idioma(D, I), not(habla(P, I)).\nhablaIdiomas(P1, P2):-forall(destinosQueNoHabla(P1, D), (idioma(D, I), habla(P2, I))).\ngranCompanieroDeViaje(P1, P2):-mismoDestino(P1, P2), hablaIdiomas(P1, P2).",
+    "extra": "destino(pepe, alejandria).\ndestino(pepe, jartum).\ndestino(pepe, roma).\ndestino(juancho, roma).\ndestino(juancho, belgrado).\ndestino(lucy, roma).\ndestino(lucy, belgrado).\n \nidioma(alejandria,arabe).\nidioma(jartum,arabe).\nidioma(belgrado,serbio).\nidioma(roma, italiano).\n\nhabla(pepe, bulgaro).\nhabla(pepe,italiano).\nhabla(juancho,arabe).\nhabla(juancho, italiano).\nhabla(juancho, espaniol).\nhabla(lucy,griego).\n ",
+    "test": "test(juancho_es_gran_companiero_para_pepe, nondet):-\n\tgranCompanieroDeViaje(pepe, juancho).\n\t\ntest(pepe_no_es_gran_companiero_para_juancho, fail):-\n\tgranCompanieroDeViaje(juancho, pepe).\n \ntest(lucy_no_es_gran_companiera_para_pepe, fail):-\n\tgranCompanieroDeViaje(pepe, lucy).\n\t\ntest(juancho_no_es_gran_companiero_para_lucy, fail):-\n\tgranCompanieroDeViaje(lucy, juancho).",
+    "expectations": []
+  }
+]

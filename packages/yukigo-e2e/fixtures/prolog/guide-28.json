@@ -1,0 +1,256 @@
+[
+  {
+    "id": 292,
+    "guideId": 28,
+    "lesson": "losEmpleados",
+    "language": "prolog",
+    "solution": "contador(roque).\nhonesto(roque).\nhonesto(ana).\njoven(roque).\ningeniero(ana).\nabogado(cecilia).",
+    "extra": null,
+    "test": "test(ana_es_ingeniera, [nondet]) :-\n  ingeniero(ana).\n  \ntest(cecilia_es_abogada, [nondet]) :-\n  abogado(cecilia).\n\ntest(roque_es_contador, [nondet]) :-\n  contador(roque).\n\ntest(roque_es_honesto, [nondet]) :-\n  honesto(roque).\n  \ntest(ana_es_honesta, [nondet]) :-\n  honesto(ana).\n\ntest(roque_es_joven, [nondet]) :-\n  joven(roque).\n  \ntest(cecilia_no_es_joven, [nondet]) :-\n  \\+ joven(cecilia).\n  \ntest(ana_no_es_joven, [nondet]) :-\n  \\+ joven(ana).\n\ntest(cecilia_no_es_ingeniera, [nondet]) :-\n  \\+ ingeniero(cecilia).\n\n\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "contador"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "abogado"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "ingeniero"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "joven"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "honesto"
+      }
+    ]
+  },
+  {
+    "id": 293,
+    "guideId": 28,
+    "lesson": "puedeAndar",
+    "language": "prolog",
+    "solution": "puedeAndar(contaduria, E):-honesto(E), contador(E).\npuedeAndar(ventas, E):-ambicioso(E), tieneExperiencia(E).\ntieneExperiencia(E):-trabajoEn(E, _).\npuedeAndar(ventas, lucia).",
+    "extra": "contador(jose).\ncontador(hector).\n\nhonesto(jose).\nhonesto(raul).\n\nambicioso(maria).\nambicioso(raul).\n\ntrabajoEn(maria, utn).\ntrabajoEn(jose, utn).\n\n",
+    "test": "test(puedeAndar_en_contaduria_si_es_contandor_y_honesto) :-\n  puedeAndar(contaduria, jose).\n\ntest(no_puedeAndar_en_contaduria_si_es_contandor_no_honesto) :-\n  \\+ puedeAndar(contaduria, hector).\ntest(no_puedeAndar_en_contaduria_si_no_es_contandor_y_es_honesto) :-\n  \\+ puedeAndar(contaduria, raul).  \n\ntest(no_puedeAndar_en_contaduria_si_no_es_contandor) :-\n  \\+ puedeAndar(contaduria, maria).\n\ntest(lucia_puedeAndar_en_ventas, nondet) :-\n  puedeAndar(ventas, lucia).\n\ntest(puedeAndar_en_ventas_si_es_ambicioso_con_experiencia) :-\n  puedeAndar(ventas, maria).\n\ntest(no_puedeAndar_en_ventas_si_no_es_ambicioso) :-\n  \\+ puedeAndar(ventas, jose).\n\ntest(no_puedeAndar_en_ventas_si_no_tiene_experiencia) :-\n  \\+ puedeAndar(ventas, raul).\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "contador"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "honesto"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "ambicioso"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "trabajoEn"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "tieneExperiencia"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "tieneExperiencia"
+        ],
+        "binding": "puedeAndar"
+      }
+    ]
+  },
+  {
+    "id": 294,
+    "guideId": 28,
+    "lesson": "puedeAndarNuevosSectores",
+    "language": "prolog",
+    "solution": "puedeAndar(proyectos, E):-ingeniero(E), conExperiencia(E).\npuedeAndar(proyectos, E):-abogado(E), joven(E).\npuedeAndar(proyectos, fulgencio).\npuedeAndar(logistica, E):-profesional(E), joven(E).\npuedeAndar(logistica, E):-profesional(E), conExperiencia(E).\npuedeAndar(ventas, clotilde).\nprofesional(E):-ingeniero(E).\nprofesional(E):-abogado(E).",
+    "extra": "ingeniero(teseo).\ningeniero(roberto).\ningeniero(beatriz).\n\nabogado(mariaAzul).\nabogado(petrocelli).\nabogado(saulGoodman).\n\njoven(roberto).\njoven(anabela).\njoven(petrocelli).\n\nconExperiencia(teseo).\nconExperiencia(mariaAzul).",
+    "test": "test(un_ingeniero_con_experiencia_puedeAndar_proyectos, [nondet]) :-\n  puedeAndar(proyectos, teseo).\n\ntest(un_desconocido_no_puede_andar_proyectos) :-\n  \\+ puedeAndar(proyectos, toto).\n\ntest(un_ingeniero_sin_experiencia_no_puedeAndar_proyectos) :-\n  \\+ puedeAndar(proyectos, roberto).\n\ntest(un_abogado_no_joven_no_puedeAndar_proyectos) :-\n  \\+ puedeAndar(proyectos, mariaAzul).\n\ntest(un_abogado_joven_puedeAndar_proyectos) :-\n  puedeAndar(proyectos, petrocelli).\n\ntest(clotilde_no_puede_andar_contaduria, [nondet]) :-\n  \\+ puedeAndar(contaduria, clotilde).\n\ntest(clotilde_puede_andar_ventas, [nondet]) :-\n  puedeAndar(ventas, clotilde).\n\ntest(fulgencio_no_puedeAndar_logistica) :-\n  \\+ puedeAndar(logistica, fulgencio).\n\ntest(un_ingeniero_sin_experiencia_o_juventud_no_puedeAndar_logistica) :-\n  \\+ puedeAndar(logistica, beatriz).\n\ntest(un_ingeniero_joven_puedeAndar_logistica, [nondet]) :-\n  puedeAndar(logistica, roberto).\n\ntest(un_abogado_conExperiencia_puedeAndar_logistica, [nondet]) :-\n  puedeAndar(logistica, mariaAzul).\n\ntest(no_puedeAndar_logistica_si_no_es_profesional) :-\n  \\+ puedeAndar(logistica, anabela).\n\ntest(un_abogado_sin_experiencia_o_juventud_no_puedeAndar_logistica) :-\n  \\+ puedeAndar(logistica, saulGoodman).\n",
+    "expectations": [
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "profesional"
+        ],
+        "binding": "puedeAndar"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "profesional"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "conExperiencia"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "joven"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "ingeniero"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "abogado"
+      }
+    ]
+  },
+  {
+    "id": 295,
+    "guideId": 28,
+    "lesson": "trabajaEn",
+    "language": "prolog",
+    "solution": "empleado(ventas, maria, gerente).\nempleado(ventas, juan, cadete).\nempleado(ventas, roque, cadete).\nempleado(compras, nora, gerente).\nempleado(compras, pedro, cadete).\nempleado(administracion, felipe, gerente).\nempleado(administracion, ana, cadete).\nempleado(administracion, hugo, cadete).\ntrabajaEn(D, E):-empleado(D, E, _).",
+    "extra": null,
+    "test": "test(maria_trabaja_en_ventas, [nondet]) :-\n  trabajaEn(ventas, maria).\n\ntest(juan_trabaja_en_ventas, [nondet]) :-\n  trabajaEn(ventas, juan).\n\ntest(nora_trabaja_en_compras, [nondet]) :-\n  trabajaEn(compras, nora).\n\ntest(ana_trabaja_en_administracion, [nondet]) :-\n  trabajaEn(administracion, ana).\n\ntest(hugo_trabaja_en_administracion, [nondet]) :-\n  trabajaEn(administracion, hugo).\n\ntest(un_desconocido_no_trabaja_en_ningun_departamento) :-\n  \\+ trabajaEn(_, sherlock).\n\ntest(nora_no_trabaja_en_ventas) :-\n  \\+ trabajaEn(ventas, nora).\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "empleado"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "trabajaEn"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "empleado"
+        ],
+        "binding": "trabajaEn"
+      }
+    ]
+  },
+  {
+    "id": 296,
+    "guideId": 28,
+    "lesson": "esCompatible",
+    "language": "prolog",
+    "solution": "esCompatible(M, H):-melancolico(M), sereno(H), H \\= M.\nesCompatible(M, H):-decidido(M), reflexivo(H), H \\= M.\nesCompatible(M, H):-soniador(M), decidido(H), H \\= M.",
+    "extra": "deLibra(luis).\ndeLibra(mario).\n\ndeAcuario(maria).\ndeAcuario(elena).\n\ndeCapricornio(veronica).\ndeCapricornio(jose).\n\ndeLeo(isabel).\ndeLeo(sara).\n\nascendenteEnPiscis(luis).\n\nascendenteEnAries(veronica).\nascendenteEnAries(isabel).\nascendenteEnAries(jose).\n\nascendenteEnSagitario(maria).\nascendenteEnSagitario(elena).\nascendenteEnSagitario(mario).\n\nascendenteEnGeminis(sara).",
+    "test": "test(personas_librianas_con_ascendente_en_piscis_son_compatibles_con_capricornianas_con_ascendiente_en_aries, [nondet]) :-\n    esCompatible(luis, jose).\n  \n  test(personas_acuarianas_con_ascendente_en_sagitario_son_compatibles_con_leoninas_con_ascendente_en_geminis, [nondet]) :-\n    esCompatible(maria, sara).\n  \n  test(personas_leoninas_con_ascendente_en_geminis_son_compatibles_con_acuarianas_con_ascendente_en_sagitario, [nondet]) :-\n    esCompatible(sara,maria).\n    \n  test(personas_leoninas_con_ascendente_en_aries_no_son_compatibles_con_personas_de_libra_sin_ascendente_en_sagitario, [nondet]) :-\n    esCompatible(isabel, mario).\n  \n  test(personas_librianas_con_ascendente_en_piscis_no_son_compatibles_con_leoninas_con_ascendente_en_geminis) :-\n    \\+ esCompatible(luis, sara).\n  \n  test(una_persona_no_es_compatible_con_si_misma) :-\n    \\+ esCompatible(luis, luis).\n  \n  test(personas_acuarianas_con_ascendente_en_sagitario_no_son_compatibles_con_leoninas_sin_ascendente_en_geminis) :-\n    \\+ esCompatible(maria, mario).\n  \n  test(personas_leoninas_con_ascendente_en_aries_no_son_compatibles_con_librianas_sin_ascendente_en_sagitario) :-\n    \\+ esCompatible(isabel, sara).\n  \n  test(esCompatible_es_inversible_para_su_primer_parametro, [nondet]) :-\n    findall(P, esCompatible(P, sara), Personas),\n    member(maria, Personas),\n    member(elena, Personas).\n  \n  test(esCompatible_es_inversible_para_su_segundo_parametro, [nondet]) :-\n    findall(P, esCompatible(luis, P), Personas),\n    member(veronica, Personas),\n    member(jose, Personas).",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "esCompatible"
+      }
+    ]
+  },
+  {
+    "id": 297,
+    "guideId": 28,
+    "lesson": "gustaDe",
+    "language": "prolog",
+    "solution": "gustaDe(luis, nora).\ngustaDe(roque, ana).\ngustaDe(roque, nora).\ngustaDe(marcos, zulema).\ngustaDe(H, zulema):-gustaDe(H, ana).\ngustaDe(juan, M):-gustaDe(roque, M).\ngustaDe(juan, nuria).\ngustaDe(zulema, ana).",
+    "extra": null,
+    "test": "test(a_luis_le_gusta_nora, [nondet]) :-\n  gustaDe(luis, nora).\n\ntest(a_juan_no_le_gusta_roque) :-\n  \\+ gustaDe(juan, roque).\n\ntest(a_marcos_le_gusta_zulema, [nondet]) :-\n  gustaDe(marcos, zulema).\n\ntest(a_juan_le_gusta_nuria, [nondet]) :-\n  gustaDe(juan, nuria).\n\ntest(roque_gusta_de_zulema, [nondet]) :-\n  gustaDe(roque, zulema).\n\ntest(juan_gusta_de_zulema, [nondet]) :-\n  gustaDe(juan, zulema).\n\ntest(juan_gusta_de_ana, [nondet]) :-\n  gustaDe(juan, ana).\n\ntest(marcos_no_gusta_de_ana) :-\n  \\+ gustaDe(marcos, ana).\n\ntest(juan_no_gusta_de_juan) :-\n  \\+ gustaDe(juan, juan).\n\ntest(ana_no_gusta_de_juan) :-\n  \\+ gustaDe(ana, juan).\n\ntest(a_nora_no_le_gusta_nadie) :-\n  \\+ gustaDe(nora, _).\n\ntest(a_ana_no_le_gusta_nadie) :-\n  \\+ gustaDe(ana, _).\n\ntest(a_zulema_le_gusta_ana, [nondet]) :-\n  gustaDe(zulema, ana).\n/*\ntest(a_zulema_no_le_gusta_zulema) :-\n  \\+ gustaDe(zulema, zulema).\n\ntest(gustaDe_es_inversible, [nondet]) :-\n  findall((X, Y), gustaDe(X, Y), Atracciones),\n  member((roque, zulema), Atracciones).*/\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "gustaDe"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "gustaDe"
+        ],
+        "binding": "gustaDe"
+      }
+    ]
+  },
+  {
+    "id": 298,
+    "guideId": 28,
+    "lesson": "colores",
+    "language": "prolog",
+    "solution": "atraeA(mabel, rosa).\natraeA(ana, rosa).\natraeA(mara, celeste).\natraeA(mara, lila).\natraeA(juan, C):-colorPastel(C).\natraeA(M, azul):-mujer(M).\natraeA(pablo, azul).\natraeA(H, rojo):-varonMayor(H).\natraeA(mabel, rojo).\natraeA(P, amarillo):-portenio(P).\natraeA(adrian, amarillo).\natraeA(ana, naranja).\natraeA(juan, naranja).\ncolorPastel(rosa).\ncolorPastel(celeste).\ncolorPastel(lila).\nmujer(mabel).\nmujer(ana).\nmujer(mara).\nvaronMayor(pablo).\nportenio(mabel).\nportenio(mara).\nportenio(pablo).",
+    "extra": null,
+    "test": "test(a_juan_le_atrae_el_rosa):-\n  atraeA(juan, rosa).\n\ntest(a_juan_le_atrae_el_celeste):-\n  atraeA(juan, celeste).\n\ntest(a_juan_le_atrae_el_naranja):-\n  atraeA(juan, naranja).\n\ntest(a_pablo_le_atrae_el_azul):-\n  atraeA(pablo, azul).\n\n\ntest(a_pablo_le_atrae_el_rojo):-\n  atraeA(pablo, rojo).\n\ntest(a_pablo_NO_le_atrae_el_lila):-\n  \\+ atraeA(pablo, lila).\n\n\ntest(a_mabel_le_atrae_el_azul):-\n  atraeA(mabel, azul).\n\n\ntest(a_mabel_le_atrae_el_rosa):-\n  atraeA(mabel, rosa).\n\ntest(a_mabel_le_atrae_el_amarillo):-\n  atraeA(mabel, amarillo).\n\ntest(a_adrian_le_atrae_el_amarillo):-\n  atraeA(adrian, amarillo).\n\ntest(a_ana_le_atrae_el_naranja):-\n  atraeA(ana, naranja).\n\ntest(a_ana_NO_le_atrae_el_amarilo):-\n  \\+ atraeA(ana, amarillo).\n\ntest(a_ana_le_atrae_el_rosa):-\n  atraeA(ana, rosa).\n\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "atraeA"
+      }
+    ]
+  },
+  {
+    "id": 299,
+    "guideId": 28,
+    "lesson": "Repaso funcional: typeclasses",
+    "language": "prolog",
+    "solution": "num(int). \nfractional(float). \nfractional(double). \nnum(Tipo):-fractional(Tipo). \nshow(int). \nshow(float). \nshow(double). \nshow(bool). \npuedoUsar(sumar,Tipo):-num(Tipo). \npuedoUsar(restar,Tipo):-num(Tipo).\npuedoUsar(multiplicar,Tipo):-num(Tipo).\npuedoUsar(dividir,Tipo):-fractional(Tipo).\npuedoUsar(mostrar,Tipo):-show(Tipo).",
+    "extra": null,
+    "test": "test('puedoUsar(sumar, int)') :-\n    puedoUsar(sumar, int).\n\ntest('puedoUsar(sumar, double)') :-\n    puedoUsar(sumar, double).\n\ntest('puedoUsar(sumar, float)') :-\n    puedoUsar(sumar, float).\n\ntest('puedoUsar(mostrar, float)') :-\n    puedoUsar(mostrar, float).\n\ntest('puedoUsar(mostrar, float)') :-\n    puedoUsar(mostrar, float).\n\ntest('puedoUsar(mostrar, double)') :-\n    puedoUsar(mostrar, double).\n\ntest('puedoUsar(mostrar, bool)') :-\n    puedoUsar(mostrar, bool).\n\ntest('puedoUsar(mostrar, double)') :-\n    puedoUsar(mostrar, double).\n\ntest('puedoUsar(mostrar, int)') :-\n    puedoUsar(mostrar, int).\n\ntest('no puedoUsar(dividir, int)') :-\n    \\+ puedoUsar(dividir, int).\n\ntest('no puedoUsar(dividir, bool)') :-\n    \\+ puedoUsar(dividir, bool).\n\ntest('no puedoUsar(sumar, bool)') :-\n    \\+ puedoUsar(sumar, bool).\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "puedoUsar"
+      },
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "2"
+        ],
+        "binding": "puedoUsar"
+      }
+    ]
+  }
+]

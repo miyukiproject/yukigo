@@ -1,0 +1,193 @@
+[
+  {
+    "id": 335,
+    "guideId": 32,
+    "lesson": "Padres e Hijos",
+    "language": "prolog",
+    "solution": "padre(homero, bart).\npadre(homero, lisa).\npadre(homero, maggie).\npadre(abraham, homero).\npadre(abraham, herbert).",
+    "extra": null,
+    "test": "test('Homero es el padre de Bart'):\n  padre(homero, bart).\n\ntest('Homero es el padre de Lisa'):\n  padre(homero, lisa).\n  \ntest('Abraham es el padre de Homero'):\n  padre(abraham, homero).\n  \ntest('Abraham es el padre de Herbert'):\n  padre(abraham, herbert).\n   ",
+    "expectations": []
+  },
+  {
+    "id": 336,
+    "guideId": 32,
+    "lesson": "Tías y hermanas",
+    "language": "prolog",
+    "solution": "hermano(H1, H2):-padre(P, H1), padre(P, H2), H1\\=H2.\ntio(T, S):-padre(P, S), hermano(T, P).",
+    "extra": "padre(homero, bart).\npadre(homero, lisa).\npadre(homero, maggie).\npadre(abraham, homero).\npadre(abraham, herbert).",
+    "test": "test('tio(herbert, lisa)') :-\n  tio(herbert, lisa).\n\ntest('hermano(bart, lisa)') :-\n  hermano(bart, lisa).\n\ntest('hermano(lisa, bart)') :-\n  hermano(lisa, bart).\n\ntest('no hermano(bart, bart)') :-\n  \\+ hermano(bart, bart).\n\ntest('no hermano(lisa, lisa)') :-\n  \\+ hermano(lisa, lisa).\n\n\ntest('no hermano(herert, lisa)') :-\n  \\+ hermano(herbert, lisa).\n",
+    "expectations": [
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "padre"
+        ],
+        "binding": "tio"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "padre"
+        ],
+        "binding": "hermano"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "hermano"
+        ],
+        "binding": "tio"
+      }
+    ]
+  },
+  {
+    "id": 337,
+    "guideId": 32,
+    "lesson": "Declaratividad",
+    "language": "prolog",
+    "solution": null,
+    "extra": "hermanoVersion1(Uno, Otro) :-\n   Uno \\= Otro,\n   padre(Padre, Uno),\n   padre(Padre, Otro).\n\nhermanoVersion2(Uno, Otro) :-\n   padre(Padre, Uno),\n   padre(Padre, Otro),\n   Uno \\= Otro.\n\npadre(homero, bart).\npadre(homero, lisa).\npadre(homero, maggie).\npadre(abraham, homero).\npadre(abraham, herbert).",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 338,
+    "guideId": 32,
+    "lesson": "Abuelos",
+    "language": "prolog",
+    "solution": "abuelo(A, N):-padre(A, P), padre(P, N).\nbaboso(A, N):-abuelo(A, N), edad(N, E), E < 2.",
+    "extra": "padre(homero, bart).\npadre(homero, lisa).\npadre(homero, maggie).\npadre(abraham, homero).\npadre(abraham, herbert).\n\nedad(homero, 30).\nedad(herbert, 33).\nedad(abraham, 70).\nedad(lisa, 8).\nedad(bart, 10).\nedad(maggie, 1).\n",
+    "test": "test('abuelo(abraham, bart)') :-\n    abuelo(abraham, bart).\n\ntest('abuelo(abraham, lisa)') :-\n    abuelo(abraham, lisa).\n\ntest('abuelo(abraham, maggie)') :-\n    abuelo(abraham, maggie).\n    \ntest('baboso(abraham, maggie)') :-\n    baboso(abraham, maggie).\n    \ntest('no baboso(abraham, bart)') :-\n    \\+ baboso(abraham, bart).\n    \ntest('no baboso(abraham, lisa)') :-\n    \\+ baboso(abraham, lisa).",
+    "expectations": [
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "abuelo"
+        ],
+        "binding": "baboso"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "padre"
+        ],
+        "binding": "abuelo"
+      }
+    ]
+  },
+  {
+    "id": 339,
+    "guideId": 32,
+    "lesson": "Algunas cuentas",
+    "language": "prolog",
+    "solution": "cuantaNaftaConsume(Kms, Ltrs):-Ltrs is Kms/15.",
+    "extra": null,
+    "test": "test('cuantaNaftaConsume(600, 40)') :-\n   cuantaNaftaConsume(600, X),\n   X =:= 40.\n\ntest('cuantaNaftaConsume(1200, 80)') :-\n   cuantaNaftaConsume(1200, X),\n   X =:= 80.\n\ntest('cuantaNaftaConsume(60, 4)') :-\n   cuantaNaftaConsume(60, X),\n   X =:= 4.\n\ntest('no cuantaNaftaConsume(60, 8)') :-\n   cuantaNaftaConsume(60, X),\n   X =\\= 8.\n\n",
+    "expectations": [
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "2"
+        ],
+        "binding": "cuantaNaftaConsume"
+      }
+    ]
+  },
+  {
+    "id": 340,
+    "guideId": 32,
+    "lesson": "¡Quiero saber más!",
+    "language": "prolog",
+    "solution": null,
+    "extra": "padre(homero, bart).\npadre(homero, lisa).\npadre(homero, maggie).\npadre(abraham, homero).\npadre(abraham, herbert).",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 341,
+    "guideId": 32,
+    "lesson": "Inversibilidad",
+    "language": "prolog",
+    "solution": null,
+    "extra": "padre(homero, bart).\npadre(homero, lisa).\npadre(homero, maggie).\npadre(abraham, homero).\npadre(abraham, herbert).",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 342,
+    "guideId": 32,
+    "lesson": "No determinismo, parte 1",
+    "language": "prolog",
+    "solution": null,
+    "extra": "padre(homero, bart).\npadre(homero, lisa).\npadre(homero, maggie).\npadre(abraham, homero).\npadre(abraham, herbert).",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 343,
+    "guideId": 32,
+    "lesson": "No determinismo, parte 2",
+    "language": "prolog",
+    "solution": null,
+    "extra": "padre(homero, bart).\npadre(homero, lisa).\npadre(homero, maggie).\npadre(abraham, homero).\npadre(abraham, herbert).",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 344,
+    "guideId": 32,
+    "lesson": "Consultas existenciales",
+    "language": "prolog",
+    "solution": null,
+    "extra": "padre(homero, bart).\npadre(homero, lisa).\npadre(homero, maggie).\npadre(abraham, homero).\npadre(abraham, herbert).\n\nedad(maggie, 1).\nedad(bart, 10).\nedad(lisa, 8).\n\nabuelo(Abuelo, Nieto):-\n    padre(Abuelo, Padre),\n    padre(Padre, Nieto).\n    \nbaboso(Abuelo, Nieto):-\n    abuelo(Abuelo, Nieto),\n    edad(Nieto, Edad),\n    Edad < 2.\n    \ntio(Tio, Sobrino):-\n    padre(Padre, Sobrino),\n    hermano(Padre, Tio).\n    \nhermano(Uno, Otro):-\n    padre(Padre, Uno),\n    padre(Padre, Otro),\n    Uno \\= Otro.\n    \ncaloriasHamburguesa(PesoEnGramos, Calorias) :-\n    Calorias is PesoEnGramos * 2.2 .",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 345,
+    "guideId": 32,
+    "lesson": "Problemas de inversibilidad, parte 1",
+    "language": "prolog",
+    "solution": null,
+    "extra": "hermanoVersion1(Uno, Otro) :-\n    padre(Padre, Uno),\n    padre(Padre, Otro),\n    Uno \\= Otro.\n    \nhermanoVersion2(Uno, Otro) :-\n   Uno \\= Otro,\n   padre(Padre, Uno),\n   padre(Padre, Otro).\n\npadre(homero, bart).\npadre(homero, lisa).\npadre(homero, maggie).\npadre(abraham, homero).\npadre(abraham, herbert).",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 346,
+    "guideId": 32,
+    "lesson": "Problemas de inversibilidad, parte 2",
+    "language": "prolog",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 347,
+    "guideId": 32,
+    "lesson": "Generadores",
+    "language": "prolog",
+    "solution": null,
+    "extra": "despejarX(X, Y) :-\n   X is Y - 1.",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 348,
+    "guideId": 32,
+    "lesson": "Mas generadores",
+    "language": "prolog",
+    "solution": "buenaNota(N):-between(4, 10, N), N >= 4.",
+    "extra": null,
+    "test": "test('buenaNota(4)') :-\n  buenaNota(4).\n  \ntest('buenaNota(5)') :-\n  buenaNota(5).\n  \ntest('buenaNota(9)') :-\n  buenaNota(9).\n  \ntest('buenaNota(Nota) genera notas') :-\n  findall(N, buenaNota(N), [4,5,6,7,8,9,10]).\n  \n",
+    "expectations": []
+  }
+]

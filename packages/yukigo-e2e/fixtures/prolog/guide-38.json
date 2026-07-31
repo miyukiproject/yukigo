@@ -1,0 +1,175 @@
+[
+  {
+    "id": 399,
+    "guideId": 38,
+    "lesson": "Tipos peligrosos",
+    "language": "prolog",
+    "solution": "actividadPeligrosa(ladron(_)).\nactividadPeligrosa(mafioso(maton)).\nesPeligroso(P):-personaje(P, A), actividadPeligrosa(A).\nesPeligroso(P):-personaje(P, _), trabajaPara(P, E), esPeligroso(E).",
+    "extra": "personaje(pumkin,     ladron([licorerias, estacionesDeServicio])).\npersonaje(honeyBunny, ladron([licorerias, estacionesDeServicio])).\npersonaje(vincent,    mafioso(maton)).\npersonaje(jules,      mafioso(maton)).\npersonaje(marsellus,  mafioso(capo)).\npersonaje(winston,    mafioso(resuelveProblemas)).\npersonaje(mia,        actriz([foxForceFive])).\npersonaje(butch,      boxeador).\n\n%trabajaPara(Empleador, Empleado)\ntrabajaPara(marsellus, vincent).\ntrabajaPara(marsellus, jules).\ntrabajaPara(marsellus, winston).\n",
+    "test": "test(es_peligroso_si_es_maton, nondet) :-\n\tesPeligroso(vincent).\n\ntest(es_peligroso_si_es_ladron_de_licoreria, nondet) :-\n  esPeligroso(pumkin).\n\ntest(es_peligroso_si_tiene_empleado_peligroso, nondet) :-\n\tesPeligroso(marsellus).\n\ntest(es_peligroso_es_inversible,\n\tset(Peligrosos == [vincent, pumkin, marsellus, honeyBunny, jules])) :-\n        esPeligroso(Peligrosos).\n",
+    "expectations": [
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "trabajaPara"
+        ],
+        "binding": "esPeligroso"
+      },
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": true,
+        "args": [],
+        "binding": "esPeligroso"
+      }
+    ]
+  },
+  {
+    "id": 400,
+    "guideId": 38,
+    "lesson": "Duo temible",
+    "language": "prolog",
+    "solution": "sonPeligrosos(P1, P2):-esPeligroso(P1), esPeligroso(P2).\nduoTemible(P1, P2):-sonPeligrosos(P1, P2), amigo(P1, P2).\nduoTemible(P1, P2):-sonPeligrosos(P1, P2), pareja(P1, P2).",
+    "extra": "esPeligroso(pumkin).\nesPeligroso(honeyBunny).\nesPeligroso(vincent).\nesPeligroso(jules).\nesPeligroso(marsellus).\n\namigo(vincent, jules).\namigo(jules, vincent).\namigo(jules, jimmie).\namigo(jimmie, jules).\namigo(vincent, elVendedor).\namigo(elVendedor, vincent).\n\npareja(marsellus, mia).\npareja(mia, marsellus).\npareja(pumkin, honeyBunny).\npareja(honeyBunny,pumkin).\n\n",
+    "test": "test(es_duoTemible_si_son_amigos_peligrosos, nondet) :-\n\tduoTemible(vincent, jules).\n\ntest(es_duoTemible_si_son_pareja_peligrosa, nondet) :-\n  duoTemible(pumkin, honeyBunny).\n\ntest(es_duoTemible_es_inversible_por_2da_posicion, set(Peligroso2==[jules])) :-\n\tduoTemible(vincent, Peligroso2).\n\ntest(es_duoTemible_es_inversible_por_1ra_posicion, set(Peligroso1==[vincent])) :-\n\tduoTemible(Peligroso1, jules).\n\ntest(es_duoTemible_es_totalmente_inversible,\n\t\t[set(Duo==[[pumkin, honeyBunny], [vincent, jules], [honeyBunny, pumkin], [jules, vincent]])]) :-\n\tduoTemible(P1,P2), Duo = [P1,P2].\n",
+    "expectations": [
+      {
+        "inspection": "Uses",
+        "expected": true,
+        "args": [
+          "esPeligroso"
+        ],
+        "binding": "duoTemible"
+      },
+      {
+        "inspection": "Uses",
+        "expected": false,
+        "args": [
+          "amigo"
+        ],
+        "binding": "Intransitive:duoTemible"
+      },
+      {
+        "inspection": "Uses",
+        "expected": false,
+        "args": [
+          "pareja"
+        ],
+        "binding": "Intransitive:duoTemible"
+      }
+    ]
+  },
+  {
+    "id": 401,
+    "guideId": 38,
+    "lesson": "En problemas",
+    "language": "prolog",
+    "solution": "estaEnProblemas(P):-trabajaPara(J, P), esPeligroso(J), encargo(J, P, cuidar(NJ)), pareja(J, NJ).\nestaEnProblemas(butch).\nestaEnProblemas(P):-encargo(_, P, buscar(B, _)), personaje(B, boxeador).",
+    "extra": "personaje(butch,      boxeador).\npersonaje(rocky,      boxeador).\n% Agregado para que no rechace soluciones que generan al personaje innecesariamente\npersonaje(honeyBunny, ladron([licorerias, estacionesDeServicio])).\npersonaje(vincent,    mafioso(maton)).\npersonaje(jules,      mafioso(maton)).\npersonaje(marsellus,  mafioso(capo)).\npersonaje(micky, ladron([licorerias, estacionesDeServicio])).\npersonaje(antwone, ladron([licorerias])).\npersonaje(pumkin,      mafioso(maton)).\npersonaje(winston,      mafioso(maton)).\npersonaje(elVendedor,   ventas).\npersonaje(sarlompBoss,   ventas).\npersonaje(sarlompEmployee,   ventas).\n\nesPeligroso(pumkin).\nesPeligroso(honeyBunny).\nesPeligroso(vincent).\nesPeligroso(jules).\nesPeligroso(marsellus).\n\ntrabajaPara(marsellus, vincent).\ntrabajaPara(marsellus, jules).\ntrabajaPara(marsellus, winston).\ntrabajaPara(marsellus, antwone).\ntrabajaPara(vincent, elVendedor).\ntrabajaPara(sarlompBoss, sarlompEmployee).\n\npareja(marsellus, mia).\npareja(sarlompBoss, sarlompWife).\npareja(mia,marsellus).\npareja(sarlompWife,sarlompBoss).\n\nencargo(sarlompBoss, sarlompEmployee, cuidar(sarlompWife)).\nencargo(marsellus, vincent,   cuidar(mia)).\nencargo(vincent,  elVendedor, cuidar(mia)).\nencargo(marsellus, winston, ayudar(jules)).\nencargo(marsellus, winston, ayudar(vincent)).\nencargo(marsellus, vincent, buscar(butch, losAngeles)).\nencargo(desconocido, micky, buscar(rocky, hollywood)).\nencargo(desconocido, sarlompEmployee, buscar(vincent, hollywood)).\n\nencargo(marsellus, antwone,   cuidar(mia)).\n",
+    "test": "test(butch_estaEnProblemas, nondet) :-\n\testaEnProblemas(butch).\n\ntest(estaEnProblemas_si_busca_a_un_boxeador, nondet) :-\n  estaEnProblemas(micky).\n\ntest(estaEnProblemas_si_su_jefe_peligroso_le_indica_cuidar_a_la_pareja, nondet) :-\n  estaEnProblemas(antwone).\n\ntest(estaEnProblemas_es_inversible, set(Personaje==[vincent, butch, micky, antwone])) :-\n  estaEnProblemas(Personaje).\n\ntest(no_estaEnProblemas_si_su_jefe_no_peligroso_le_indica_cuidar_a_la_pareja, nondet) :-\n  not(estaEnProblemas(sarlompEmployee)).",
+    "expectations": [
+      {
+        "inspection": "HasUsage",
+        "expected": false,
+        "args": [
+          "="
+        ],
+        "binding": "estaEnProblemas"
+      }
+    ]
+  },
+  {
+    "id": 402,
+    "guideId": 38,
+    "lesson": "Pan y trabajo",
+    "language": "prolog",
+    "solution": "tieneCerca(P, C):-trabajaPara(P, C).\ntieneCerca(P, C):-amigo(P, C).\ndaTrabajo(P, C):-encargo(P, C, _).\nsanCayetano(P):-encargo(P, _, _), forall(tieneCerca(P, C), daTrabajo(P, C)).",
+    "extra": "personaje(donCorleone, mafioso(capo)).\r\npersonaje(franco, programador).\r\n\r\npersonaje(pumkin,     ladron([licorerias, estacionesDeServicio])).\r\npersonaje(honeyBunny, ladron([licorerias, estacionesDeServicio])).\r\npersonaje(vincent,    mafioso(maton)).\r\npersonaje(jules,      mafioso(maton)).\r\npersonaje(marsellus,  mafioso(capo)).\r\npersonaje(winston,    mafioso(resuelveProblemas)).\r\npersonaje(mia,        actriz([foxForceFive])).\r\npersonaje(butch,      boxeador).\r\n\r\n\r\ntrabajaPara(donCorleone, mafioso1).\r\ntrabajaPara(donCorleone, mafioso2).\r\n\r\ntrabajaPara(marsellus, vincent).\r\ntrabajaPara(marsellus, jules).\r\ntrabajaPara(marsellus, winston).\r\ntrabajaPara(franco, programador1).\r\n\r\namigo(vincent, jules).\r\namigo(jules, jimmie).\r\namigo(vincent, elVendedor).\r\namigo(jules,vincent).\r\namigo(jimmie,jules).\r\namigo(elVendedor,vincent).\r\n\r\namigo(franco, vero).\r\namigo(franco, gaston).\r\namigo(vero, franco).\r\namigo(gaston, franco).\r\n\r\nencargo(marsellus, vincent,   cuidar(mia)).\r\nencargo(vincent,  elVendedor, cuidar(mia)).\r\nencargo(marsellus, winston, ayudar(jules)).\r\nencargo(marsellus, winston, ayudar(vincent)).\r\nencargo(marsellus, vincent, buscar(butch, losAngeles)).\r\n\r\nencargo(donCorleone, mafioso1, buscar(mafioso2, italia)).\r\nencargo(donCorleone, mafioso2, buscar(mafioso1, italia)).\r\n\r\nencargo(franco, vero, ayudar(gaston)).\r\nencargo(franco, gaston, ayudar(gaston)).\r\nencargo(franco, programador1, ayudar(gaston)).\r\n",
+    "test": "test(es_sanCayetano_si_todos_sus_empleados_reciben_sus_encargos, nondet) :-\r\n\tsanCayetano(donCorleone).\r\n\r\ntest(es_sanCayetano_si_todos_sus_amigos_y_empleados_reciben_sus_encargos, nondet) :-\r\n\tsanCayetano(franco).\r\n\r\ntest(no_es_sanCayetano_si_alguno_de_sus_empleados_no_recibe_sus_encargos, fail) :-\r\n\tsanCayetano(marsellus).\r\n\r\ntest(estaEnProblemas_es_inversible,\r\n\t\t[set(Cayetano==[donCorleone,franco]), nondet]) :-\r\n\tsanCayetano(Cayetano).\r\n",
+    "expectations": [
+      {
+        "inspection": "HasForall",
+        "expected": true,
+        "args": [],
+        "binding": "sanCayetano"
+      },
+      {
+        "inspection": "Uses",
+        "expected": false,
+        "args": [
+          "trabajaPara"
+        ],
+        "binding": "Intransitive:sanCayetano"
+      },
+      {
+        "inspection": "Uses",
+        "expected": false,
+        "args": [
+          "amigo"
+        ],
+        "binding": "Intransitive:sanCayetano"
+      }
+    ]
+  },
+  {
+    "id": 403,
+    "guideId": 38,
+    "lesson": "Trabajo muy duro, como un esclavo",
+    "language": "prolog",
+    "solution": "encargos(P, E):-personaje(P, _), findall(X, encargo(X, P, _), Encargos), length(Encargos, E).\nmaxCant(E):-findall(T, encargos(_, T), Encargos), max_list(Encargos, E).\nelMasAtareado(P):-personaje(P, _), encargos(P, Enc), maxCant(Enc).",
+    "extra": "personaje(pumkin,     ladron([licorerias, estacionesDeServicio])).\npersonaje(honeyBunny, ladron([licorerias, estacionesDeServicio])).\npersonaje(vincent,    mafioso(maton)).\npersonaje(jules,      mafioso(maton)).\npersonaje(marsellus,  mafioso(capo)).\npersonaje(winston,    mafioso(resuelveProblemas)).\npersonaje(mia,        actriz([foxForceFive])).\npersonaje(butch,      boxeador).\n\nencargo(marsellus, vincent,   cuidar(mia)).\nencargo(marsellus, vincent, buscar(butch, losAngeles)).\nencargo(marsellus, vincent, ayudar(honeyBunny)).\nencargo(vincent,  elVendedor, cuidar(mia)).\nencargo(marsellus, elVendedor, ayudar(vincent)).\nencargo(marsellus, winston, ayudar(jules)).\nencargo(marsellus, winston, ayudar(vincent)).\nencargo(marsellus, winston, buscar(vincent, losAngeles)).\nencargo(jules, pumkin, ayudar(vincent)).",
+    "test": "test(elMasAtareado_es_inversible,\n\t\tset(Esclavo==[winston, vincent])) :-\n\telMasAtareado(Esclavo).\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "elMasAtareado"
+      }
+    ]
+  },
+  {
+    "id": 404,
+    "guideId": 38,
+    "lesson": "Respect!",
+    "language": "prolog",
+    "solution": "respeto(P, R):-personaje(P, actriz(Pel)), length(Pel, Cant), R is Cant/10.\nrespeto(P, 1):-personaje(P, mafioso(maton)).\nrespeto(P, 10):-personaje(P, mafioso(resuelveProblemas)).\nrespeto(P, 20):-personaje(P, mafioso(capo)).\npersonajesRespetables(PLista):-findall(P, (personaje(P, _), respeto(P, R), R > 9), PLista).",
+    "extra": "personaje(pumkin,     ladron([licorerias, estacionesDeServicio])).\npersonaje(honeyBunny, ladron([licorerias, estacionesDeServicio])).\npersonaje(vincent,    mafioso(maton)).\npersonaje(jules,      mafioso(maton)).\npersonaje(marsellus,  mafioso(capo)).\npersonaje(winston,    mafioso(resuelveProblemas)).\npersonaje(mia,        actriz([foxForceFive])).\npersonaje(butch,      boxeador).\n\npersonaje(angelina, actriz(ListaPeliculas)):-\n\tpeliculasRecursivas(100, [], ListaPeliculas).\n\npeliculasRecursivas(0, Lista, Lista).\npeliculasRecursivas(Numero, ListaAnt, Lista):-\n\tNumero > 0,\n\tNumeroSig is Numero - 1,\n\tappend([Numero], ListaAnt, ListaInt),\n\tpeliculasRecursivas(NumeroSig, ListaInt, Lista).\n",
+    "test": "test(personajeRespetable_es_inversible, nondet) :-\n\tpersonajesRespetables(Respetable),\n\tmember(winston, Respetable),\n\tmember(marsellus, Respetable),\n\tmember(angelina, Respetable),\n\tlength(Respetable, 3).\n",
+    "expectations": [
+      {
+        "inspection": "HasFindall",
+        "expected": true,
+        "args": [],
+        "binding": "personajesRespetables"
+      }
+    ]
+  },
+  {
+    "id": 405,
+    "guideId": 38,
+    "lesson": "Hartazgo",
+    "language": "prolog",
+    "solution": "seRelacionaCon(cuidar(P2), P2).\nseRelacionaCon(cuidar(A), P2):-amigo(A, P2).\nseRelacionaCon(buscar(P2), P2).\nseRelacionaCon(buscar(A), P2):-amigo(A, P2).\nseRelacionaCon(ayudar(P2), P2).\nseRelacionaCon(ayudar(A), P2):-amigo(A, P2).\nhartoDe(P1, P2):-personaje(P1, _), personaje(P2, _), forall(encargo(_, P1, T), seRelacionaCon(T, P2)).",
+    "extra": "personaje(pumkin,     ladron([licorerias, estacionesDeServicio])).\npersonaje(honeyBunny, ladron([licorerias, estacionesDeServicio])).\npersonaje(vincent,    mafioso(maton)).\npersonaje(jules,      mafioso(maton)).\npersonaje(marsellus,  mafioso(capo)).\npersonaje(winston,    mafioso(resuelveProblemas)).\npersonaje(mia,        actriz([foxForceFive])).\npersonaje(butch,      boxeador).\n\namigo(jules, vincent).\namigo(jules, jimmie).\namigo(vincent, elVendedor).\namigo(vincent,jules).\namigo(jimmie,jules).\namigo(elVendedor,vincent).\n\nencargo(marsellus, vincent,   cuidar(mia)).\nencargo(vincent,  elVendedor, cuidar(mia)).\nencargo(marsellus, winston, ayudar(jules)).\nencargo(marsellus, winston, ayudar(vincent)).\nencargo(marsellus, vincent, buscar(butch, losAngeles)).\n\nencargo(nadie, pumkin, nada).\nencargo(nadie, honeyBunny, nada).\nencargo(nadie, jules, nada).\nencargo(nadie, marsellus, nada).\nencargo(nadie, mia, nada).\nencargo(nadie, butch, nada).\n",
+    "test": "test(hartoDe_es_inversible_por_1ra_posicion, [true(Hartado==winston), nondet]) :-\n\thartoDe(Hartado, jules).\n\ntest(hartoDe_es_inversible_por_2da_posicion, [set(Hartante==[jules,vincent]), nondet]) :-\n\thartoDe(winston, Hartante).\n",
+    "expectations": [
+      {
+        "inspection": "HasForall",
+        "expected": true,
+        "args": [],
+        "binding": "hartoDe"
+      }
+    ]
+  },
+  {
+    "id": 406,
+    "guideId": 38,
+    "lesson": "Parecidos, pero no tanto",
+    "language": "prolog",
+    "solution": "ccasDiferentes(P1, P2):-caracteristicas(P1, CcasP1), caracteristicas(P2, CcasP2), member(CcaP1, CcasP1), not(member(CcaP1, CcasP2)).\nduoDiferenciable(P1, P2):-amigo(P1, P2), ccasDiferentes(P1, P2).\nduoDiferenciable(P1, P2):-pareja(P1, P2), ccasDiferentes(P1, P2).",
+    "extra": "personaje(pumkin,     ladron([licorerias, estacionesDeServicio])).\npersonaje(honeyBunny, ladron([licorerias, estacionesDeServicio])).\npersonaje(vincent,    mafioso(maton)).\npersonaje(jules,      mafioso(maton)).\npersonaje(marsellus,  mafioso(capo)).\npersonaje(winston,    mafioso(resuelveProblemas)).\npersonaje(mia,        actriz([foxForceFive])).\npersonaje(butch,      boxeador).\n\namigo(vincent, jules).\namigo(jules, jimmie).\namigo(vincent, elVendedor).\namigo(jules,vincent).\namigo(jimmie,jules).\namigo(elVendedor,vincent).\n\npareja(marsellus, mia).\npareja(pumkin,    honeyBunny).\n\ncaracteristicas(vincent,  [negro, muchoPelo, tieneCabeza]).\ncaracteristicas(jules,    [tieneCabeza, muchoPelo]).\ncaracteristicas(marvin,   [negro]).\n\ncaracteristicas(mia, [femmeFatale]).\ncaracteristicas(marsellus, [negro]).\n\ncaracteristicas(pumkin, [locura, armado]).\ncaracteristicas(honeyBunny, [armado, locura]).\n",
+    "test": "test(es_duoDiferenciable_si_son_amigos_y_tienen_caracteristicas_que_lo_diferencien, nondet) :-\n\tduoDiferenciable(vincent, jules).\n\ntest(es_duoDiferenciable_si_son_pareja_y_tienen_caracteristicas_que_lo_diferencien, nondet) :-\n\tduoDiferenciable(marsellus, mia).\n\ntest(no_es_duoDiferenciable_si_no_tienen_caracteristicas_que_lo_diferencien, fail) :-\n\tduoDiferenciable(pumkin, honeyBunny).\n\ntest(es_duoDiferenciable_es_inversible_por_2da_posicion, [true(Pje2==mia), nondet]) :-\n\tduoDiferenciable(marsellus, Pje2).\n\ntest(es_duoDiferenciable_es_inversible_por_1ra_posicion, [true(Pje1==vincent), nondet]) :-\n\tduoDiferenciable(Pje1, jules).\n",
+    "expectations": []
+  }
+]

@@ -1,0 +1,162 @@
+[
+  {
+    "id": 457,
+    "guideId": 43,
+    "lesson": "¡Hola Pepita!",
+    "language": "wollok",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 458,
+    "guideId": 43,
+    "lesson": "Un mundo de objetos",
+    "language": "wollok",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 459,
+    "guideId": 43,
+    "lesson": "Identidad",
+    "language": "wollok",
+    "solution": null,
+    "extra": "object pepita {\n  \n}\n\nobject anastasia {\n  \n}",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 460,
+    "guideId": 43,
+    "lesson": "Mensajes, primera parte",
+    "language": "wollok",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 461,
+    "guideId": 43,
+    "lesson": "Mensajes, segunda parte",
+    "language": "wollok",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 462,
+    "guideId": 43,
+    "lesson": "¡No entiendo!",
+    "language": "wollok",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 463,
+    "guideId": 43,
+    "lesson": "Un poco de sintaxis",
+    "language": "wollok",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 464,
+    "guideId": 43,
+    "lesson": "Interfaz",
+    "language": "wollok",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 465,
+    "guideId": 43,
+    "lesson": "Hacer vs devolver",
+    "language": "wollok",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 466,
+    "guideId": 43,
+    "lesson": "Un primer programa",
+    "language": "wollok",
+    "solution": "//enviale mensajes a pepita acá, uno por línea.\npepita.comerLombriz()\npepita.comerLombriz()\npepita.comerLombriz()\npepita.volarEnCirculos()",
+    "extra": "/*[IgnoreContentOnQuery]*/",
+    "test": "/*...extra...*/\n\ntest \"pepita queda en 150\" {\n  /*...content...*/\n  assert.equals(150, pepita.energia())\n}",
+    "expectations": []
+  },
+  {
+    "id": 467,
+    "guideId": 43,
+    "lesson": "¿Quién te entiende?",
+    "language": "wollok",
+    "solution": null,
+    "extra": "/*[IgnoreContentOnQuery]*/",
+    "test": "/*...extra...*/\n\ntest \"interfaz de mercedes\" {\n  var interfazPepita = null\n  var interfazMercedes = null\n  var interfazAnastasia = null\n\n  /*...content...*/\n\n  assert.equals(interfazMercedes, #{\"cantar\"})\n}\n\ntest \"interfaz de pepita\" {\n  var interfazPepita = null\n  var interfazMercedes = null\n  var interfazAnastasia = null\n\n\n  /*...content...*/\n  \n  assert.equals(interfazPepita, #{ \"cantar\",\"comerLombriz\"})\n}\n\ntest \"interfaz de anastasia\" {\n  var interfazPepita = null\n  var interfazMercedes = null\n  var interfazAnastasia = null\n\n  /*...content...*/\n\n  assert.equals(interfazAnastasia, #{\"cantar\", \"volarEnCirculos\", \"comerLombriz\"})\n}\n\n",
+    "expectations": []
+  },
+  {
+    "id": 468,
+    "guideId": 43,
+    "lesson": "Interfaces compartidas",
+    "language": "wollok",
+    "solution": null,
+    "extra": null,
+    "test": "/*...extra...*/\n\ntest \"interfazCompartidaEntreMercedesYAnastasia\" {\n  var interfazCompartidaEntreMercedesYAnastasia = null\n  var interfazCompartidaEntreTodas = null\n  var interfazCompartidaEntrePepitaYAnastasia = null\n  \n  /*...content...*/ \n  assert.equals(interfazCompartidaEntreMercedesYAnastasia, #{\"cantar\"})\n}\n\ntest \"interfazCompartidaEntreTodas\" {\n  var interfazCompartidaEntreMercedesYAnastasia = null\n  var interfazCompartidaEntreTodas = null\n  var interfazCompartidaEntrePepitaYAnastasia = null\n  \n  /*...content...*/ \n  assert.equals(interfazCompartidaEntreTodas, #{\"cantar\"})\n}\n\ntest \"interfazCompartidaEntrePepitaYAnastasia\" {\n  var interfazCompartidaEntreMercedesYAnastasia = null\n  var interfazCompartidaEntreTodas = null\n  var interfazCompartidaEntrePepitaYAnastasia = null\n  \n  /*...content...*/ \n  assert.equals(interfazCompartidaEntrePepitaYAnastasia, #{\"cantar\",  \"comerLombriz\", \"volarEnCirculos\"})\n}",
+    "expectations": []
+  },
+  {
+    "id": 469,
+    "guideId": 43,
+    "lesson": "Argumentos",
+    "language": "wollok",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 470,
+    "guideId": 43,
+    "lesson": "Más argumentos",
+    "language": "wollok",
+    "solution": "pepita.comerAlpiste(500)\npepita.volarHacia(buenosAires)\npepita.volarHacia(rosario)",
+    "extra": "/*[IgnoreContentOnQuery]*/",
+    "test": "/*...extra...*/\n\ntest \"pepita debe haber perdido energia\" {\n  /*...content...*/\n  assert.equals(pepita.energia(), 4516)\n}\n\n\ntest \"pepita debe estar en rosario\" {\n  /*...content...*/\n  assert.equals(pepita.ciudad(), rosario)\n}",
+    "expectations": []
+  },
+  {
+    "id": 471,
+    "guideId": 43,
+    "lesson": "Sólo objetos y mensajes",
+    "language": "wollok",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 472,
+    "guideId": 43,
+    "lesson": "Recapitulando",
+    "language": "wollok",
+    "solution": "pepita.comerAlpiste(500)\npepita.volarHacia(buenosAires)\npepita.comerAlpiste(pepita.energia()/10)",
+    "extra": "/*[IgnoreContentOnQuery]*/",
+    "test": "/*...extra...*/\n\ntest \"pepita con energia inicial 10000\" {\n  pepita.energia(10000)\n  /*...content...*/\n  assert.equals(39895.0, pepita.energia())\n}\n\ntest \"pepita con energia inicial 1000\" {\n  pepita.energia(1000)\n  /*...content...*/\n  assert.equals(17395.0, pepita.energia())\n}\n\ntest \"pepita con energia inicial 560\" {\n  pepita.energia(560)\n  /*...content...*/\n  assert.equals(16295.0, pepita.energia())\n}",
+    "expectations": []
+  }
+]

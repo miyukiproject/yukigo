@@ -1,0 +1,466 @@
+[
+  {
+    "id": 483,
+    "guideId": 45,
+    "lesson": "siguiente",
+    "language": "haskell",
+    "solution": "siguiente = (+1)",
+    "extra": null,
+    "test": "describe \"siguiente\" $ do\n  it \"siguiente 1 == 2\" $ do\n    siguiente 1 `shouldBe` 2\n\n  it \"siguiente 4 == 5\" $ do\n    siguiente 4 `shouldBe` 5\n\n  it \"siguiente 100 == 101\" $ do\n    siguiente 100 `shouldBe` 101",
+    "expectations": []
+  },
+  {
+    "id": 484,
+    "guideId": 45,
+    "lesson": "mitad",
+    "language": "haskell",
+    "solution": "mitad = (/2)",
+    "extra": null,
+    "test": "describe \"mitad\" $ do\n  it \"mitad 4 == 2\" $ do\n    mitad 4 `shouldBe` 2\n\n  it \"mitad 9 == 4.5\" $ do\n    mitad 9 `shouldBe` 4.5\n\n  it \"mitad 10 == 5\" $ do\n    mitad 10 `shouldBe` 5\n",
+    "expectations": []
+  },
+  {
+    "id": 485,
+    "guideId": 45,
+    "lesson": "inversa",
+    "language": "haskell",
+    "solution": "inversa = (1/)",
+    "extra": null,
+    "test": "describe \"inversa\" $ do\n  it \"inversa 1 == 1\" $ do\n    inversa 1 `shouldBe` 1\n\n  it \"inversa 4 == 0.25\" $ do\n    inversa 4 `shouldBe` 0.25\n\n  it \"inversa 0.5 == 2\" $ do\n    inversa 0.5 `shouldBe` 2\n",
+    "expectations": [
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 486,
+    "guideId": 45,
+    "lesson": "esNumeroPositivo",
+    "language": "haskell",
+    "solution": "esNumeroPositivo = (0<)",
+    "extra": null,
+    "test": "describe \"esNumeroPositivo\" $ do\n  it \"2 es un numero positivo\" $ do\n    esNumeroPositivo 2 `shouldBe` True\n\t\n  it \"5 es un numero positivo\" $ do\n    esNumeroPositivo 5 `shouldBe` True\n\t \n  it \"-8.7 no es un numero positivo\" $ do\n    esNumeroPositivo (-8.7) `shouldBe` False\n\t\n  it \"3.4 es un numero positivo\" $ do\n    esNumeroPositivo 3.4 `shouldBe` True\n    \n  it \"-950 no es un numero positivo\" $ do\n    esNumeroPositivo (-950) `shouldBe` False",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "esNumeroPositivo"
+      },
+      {
+        "inspection": "HasGuards",
+        "expected": false,
+        "args": [],
+        "binding": "esNumeroPositivo"
+      }
+    ]
+  },
+  {
+    "id": 487,
+    "guideId": 45,
+    "lesson": "comienzaConA",
+    "language": "haskell",
+    "solution": "esA = ('a'==)\ncomienzaConA = esA . head",
+    "extra": null,
+    "test": "describe \"comienzaConA\" $ do\n  it \"comienzaConA \\\"aguja\\\" == True\" $ do\n    comienzaConA \"aguja\" `shouldBe` True\n\t\n  it \"comienzaConA \\\"cargador\\\" == False\" $ do\n    comienzaConA \"cargador\" `shouldBe` False\n",
+    "expectations": [
+      {
+        "inspection": "DoesTypeTest",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 488,
+    "guideId": 45,
+    "lesson": "esMultiploDeTres",
+    "language": "haskell",
+    "solution": "esMultiploDeTres n = esMultiploDe n 3",
+    "extra": "esMultiploDe x y = rem x y == 0 ",
+    "test": "describe \"esMultiploDeTres\" $ do\n  it \"devuelve True dado un 3\" $ do\n    esMultiploDeTres 3 `shouldBe` True\n\n  it \"devuelve True dado un 9\" $ do\n    esMultiploDeTres 9 `shouldBe` True\n\n  it \"devuelve True dado un 90\" $ do\n    esMultiploDeTres 90 `shouldBe` True\n\n  it \"devuelve False dado un 91\" $ do\n    esMultiploDeTres 91 `shouldBe` False",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "esMultiploDeTres"
+      },
+      {
+        "inspection": "HasConditional",
+        "expected": false,
+        "args": [],
+        "binding": "esMultiploDeTres"
+      }
+    ]
+  },
+  {
+    "id": 489,
+    "guideId": 45,
+    "lesson": "esMultiploDe",
+    "language": "haskell",
+    "solution": "esMultiploDe x y = (rem x y) == 0",
+    "extra": null,
+    "test": "describe \"esMultiploDe\" $ do\n  it \"devuelve True dado un 3 y un 3\" $ do\n    (3 `esMultiploDe` 3) `shouldBe` True\n\n  it \"devuelve True dado un 3 y un 1\" $ do\n    (3 `esMultiploDe` 1) `shouldBe` True\n\n  it \"devuelve True dado un 10 y un 1\" $ do\n    (10 `esMultiploDe` 1) `shouldBe` True\n\n  it \"devuelve True dado un 10 y un 2\" $ do\n    (10 `esMultiploDe` 2) `shouldBe` True\n\n  it \"devuelve True dado un 20 y un 5\" $ do\n    (20 `esMultiploDe` 5) `shouldBe` True\n\n  it \"devuelve False dado un 3 y un 2\" $ do\n    (3 `esMultiploDe` 2) `shouldBe` False\n\n  it \"devuelve False dado un 30 y un 40\" $ do\n    (30 `esMultiploDe` 40) `shouldBe` False\n\n  it \"devuelve False dado un 8 y un 7\" $ do\n    (8 `esMultiploDe` 7) `shouldBe` False\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "esMultiploDe"
+      }
+    ]
+  },
+  {
+    "id": 490,
+    "guideId": 45,
+    "lesson": "esMasLargoQue",
+    "language": "haskell",
+    "solution": "esMasLargoQue x = (x<) . length",
+    "extra": null,
+    "test": "describe \"esMasLargoQue\" $ do\n  it \"devuelve True dado 5 y \\\"computadora\\\"\" $ do\n    esMasLargoQue 5 \"computadora\" `shouldBe` True\n\n  it \"devuelve False dado 5 y \\\"gato\\\"\" $ do\n    esMasLargoQue 5 \"gato\" `shouldBe` False\n    \n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "esMasLargoQue"
+      },
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 491,
+    "guideId": 45,
+    "lesson": "Hagamos un paréntesis",
+    "language": "haskell",
+    "solution": "esParElMayor numero otroNumero = esPar (max numero otroNumero)\nesSaludo palabra = palabra == \"hola\" || palabra == \"chau\"\nlaInicialEstaIncluida unaPalabra otraPalabra = elem (head unaPalabra) otraPalabra",
+    "extra": "esPar = even",
+    "test": "describe \"esParElMayor\" $ do\n  it \"da True entre 8 y 5\" $ do \n    esParElMayor 8 5 `shouldBe` True\n  it \"da False entre 8 y 11\" $ do \n    esParElMayor 8 11 `shouldBe` False\n    \ndescribe \"esSaludo\" $ do\n  it \"da True con \\\"hola\\\"\" $ do \n    esSaludo \"hola\" `shouldBe` True\n  it \"da False con \\\"batman\\\"\" $ do \n    esSaludo \"batman\" `shouldBe` False\n    \ndescribe \"laInicialEstaIncluida\" $ do\n  it \"da True con \\\"gustavo\\\" y \\\"agua\\\"\" $ do \n    laInicialEstaIncluida \"gustavo\" \"agua\" `shouldBe` True\n  it \"da False con \\\"batman\\\" y \\\"argentina\\\" \" $ do \n    laInicialEstaIncluida \"batman\" \"argentina\" `shouldBe` False",
+    "expectations": [
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      },
+      {
+        "inspection": "DoesTypeTest",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 492,
+    "guideId": 45,
+    "lesson": "esBisiesto",
+    "language": "haskell",
+    "solution": "esBisiesto anio = esMultiploDe anio 400 || (esMultiploDe anio 4 && not (esMultiploDe anio 100))",
+    "extra": "esMultiploDe x y = rem x y == 0\n",
+    "test": "describe \"esBisiesto\" $ do\n  it \"1004 es bisiesto\" $ do\n    esBisiesto 1004 `shouldBe` True\n\n  it \"8 es bisiesto\" $ do\n    esBisiesto 8 `shouldBe` True\n\n  it \"1996 es bisiesto\" $ do\n    esBisiesto 1996 `shouldBe` True\n    \n  it \"2000 es bisiesto\" $ do\n    esBisiesto 2000 `shouldBe` True\n    \n  it \"800 es bisiesto\" $ do\n    esBisiesto 800 `shouldBe` True\n\n  it \"100 no es bisiesto\" $ do\n    esBisiesto 100 `shouldBe` False\n\n  it \"2022 no es bisiesto\" $ do\n    esBisiesto 2022 `shouldBe` False\n\n  it \"2021 no es bisiesto\" $ do\n    esBisiesto 2021 `shouldBe` False\n\n  it \"2014 no es bisiesto\" $ do\n    esBisiesto 2014 `shouldBe` False\n\n  it \"200 no es bisiesto\" $ do\n    esBisiesto 200 `shouldBe` False\n\n\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "esBisiesto"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "esMultiploDe"
+        ],
+        "binding": "esBisiesto"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "esMultiploDe"
+      },
+      {
+        "inspection": "HasConditional",
+        "expected": false,
+        "args": [],
+        "binding": "esBisiesto"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": false,
+        "args": [
+          "mod"
+        ],
+        "binding": "esBisiesto"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": false,
+        "args": [
+          "rem"
+        ],
+        "binding": "esBisiesto"
+      }
+    ]
+  },
+  {
+    "id": 493,
+    "guideId": 45,
+    "lesson": "deCelsiusAFarenheit",
+    "language": "haskell",
+    "solution": "deCelsiusAFarenheit = (+32) . (*1.8)",
+    "extra": null,
+    "test": "describe \"deCelsiusAFarenheit\" $ do\n  it \"100 °C -> 212 °F\" $ do\n    deCelsiusAFarenheit 100 `shouldBe` 212\n\n  it \"40 °C -> 104 °F\" $ do\n    deCelsiusAFarenheit 40 `shouldBe` 104\n\n  it \"10 °C -> 50 °F\" $ do\n    deCelsiusAFarenheit 10 `shouldBe` 50\n\n  it \"30 °C -> 86 °F\" $ do\n    deCelsiusAFarenheit 30 `shouldBe` 86\n",
+    "expectations": []
+  },
+  {
+    "id": 494,
+    "guideId": 45,
+    "lesson": "deFarenheitACelsius",
+    "language": "haskell",
+    "solution": "deFarenheitACelsius f = (f - 32) / 1.8",
+    "extra": null,
+    "test": "describe \"deFarenheitACelsius\" $ do\n  it \"212 °F -> 100 °C\" $ do\n    deFarenheitACelsius 212 `shouldBe` 100\n\n  it \"104 °F -> 40 °C\" $ do\n    deFarenheitACelsius 104 `shouldBe` 40\n\n  it \"50 °F -> 10 °C\" $ do\n    deFarenheitACelsius 50 `shouldBe` 10\n\n  it \"86 °F -> 30 °C\" $ do\n    deFarenheitACelsius 86 `shouldBe` 30\n",
+    "expectations": []
+  },
+  {
+    "id": 495,
+    "guideId": 45,
+    "lesson": "¿Hace frio?",
+    "language": "haskell",
+    "solution": "haceFrioCelsius = (8>)\nhaceFrioFarenheit = haceFrioCelsius . deFarenheitACelsius",
+    "extra": "deFarenheitACelsius temperatura = (temperatura - 32)  * 5 / 9\n",
+    "test": "describe \"haceFrioFarenheit\" $ do\n  it \"212 °F no es frio\" $ do\n    haceFrioFarenheit 212 `shouldBe` False\n\n  it \"104 °F no es frio\" $ do\n    haceFrioFarenheit 104 `shouldBe` False\n\n  it \"50 °F no es frio\" $ do\n    haceFrioFarenheit 50 `shouldBe` False\n\n  it \"5 °F es frio\" $ do\n    haceFrioFarenheit 5 `shouldBe` True\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "haceFrioFarenheit"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "deFarenheitACelsius"
+        ],
+        "binding": "haceFrioFarenheit"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "deFarenheitACelsius"
+      },
+      {
+        "inspection": "HasComposition",
+        "expected": true,
+        "args": [],
+        "binding": "haceFrioFarenheit"
+      },
+      {
+        "inspection": "Declares",
+        "expected": true,
+        "args": [
+          "haceFrioCelsius"
+        ],
+        "binding": "*"
+      },
+      {
+        "inspection": "Uses",
+        "expected": true,
+        "args": [
+          "haceFrioCelsius"
+        ],
+        "binding": "haceFrioFarenheit"
+      }
+    ]
+  },
+  {
+    "id": 496,
+    "guideId": 45,
+    "lesson": "Dispersión",
+    "language": "haskell",
+    "solution": "maximoEntreTres x y = max (max x y)\nminimoEntreTres x y = min (min x y)\ndispersion x y z = (maximoEntreTres x y z) - minimoEntreTres x y z",
+    "extra": null,
+    "test": "describe \"dispersion\" $ do\n  it \"dispersion 1 1 1 == 0\" $ do\n    dispersion 1 1 1 `shouldBe` 0\n\n  it \"dispersion 1 1 10 == 9\" $ do\n    dispersion 1 1 10 `shouldBe` 9\n\n  it \"dispersion 11 15 4 == 11\" $ do\n    dispersion 11 15 4 `shouldBe` 11\n\n  it \"dispersion 101 1 203 == 202\" $ do\n    dispersion 101 1 203 `shouldBe` 202\n\n",
+    "expectations": [
+      {
+        "inspection": "HasGuards",
+        "expected": false,
+        "args": [],
+        "binding": "dispersion"
+      },
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      },
+      {
+        "inspection": "Uses",
+        "expected": true,
+        "args": [
+          "maximoEntreTres"
+        ],
+        "binding": "dispersion"
+      },
+      {
+        "inspection": "Uses",
+        "expected": true,
+        "args": [
+          "minimoEntreTres"
+        ],
+        "binding": "dispersion"
+      },
+      {
+        "inspection": "Declares",
+        "expected": true,
+        "args": [
+          "minimoEntreTres"
+        ],
+        "binding": "*"
+      },
+      {
+        "inspection": "Declares",
+        "expected": true,
+        "args": [
+          "maximoEntreTres"
+        ],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 497,
+    "guideId": 45,
+    "lesson": "Pasan los días",
+    "language": "haskell",
+    "solution": "diasParejos x y = (30>) . dispersion x y\ndiasLocos x y = (100<) . dispersion x y\ndiasNormales x y z = not (diasParejos x y z) && not (diasLocos x y z)",
+    "extra": "dispersion x y z = max3 x y z -  min3 x y z\n  where max3 x y = max x.max y\n        min3 x y = min x.min y\n\n",
+    "test": "describe \"dias\" $ do\n  it \"110, 1 y 203 son dias locos\" $ do\n    diasLocos 110 1 203  `shouldBe` True\n\n  it \"110, 98 y 100 son dias parejos\" $ do\n    diasParejos 110 98 100  `shouldBe` True\n\n  it \"10, 20 y 60 son dias normales\" $ do\n    diasNormales 10 20 60  `shouldBe` True\n\n  it \"1, 200 y 500 NO son dias normales\" $ do\n    diasNormales 1 200 500  `shouldBe` False\n\n  it \"110, 98 y 100 NO son dias locos\" $ do\n    diasLocos 110 98 100  `shouldBe` False\n\n  it \"10, 20 y 60 NO son dias locos\" $ do\n    diasLocos 10 20 60  `shouldBe` False\n\n  it \"10, 41 y 4 NO son dias parejos\" $ do\n    diasParejos 10 41 50  `shouldBe` False\n\n  it \"110, 1 y 203 NO son dias parejos\" $ do\n    diasParejos 110 1 203  `shouldBe` False\n\n  it \"10, 20 y 60 NO son dias parejos\" $ do\n    diasParejos 10 20 60  `shouldBe` False\n\n  it \"10, 10 y 100 son dias normales\" $ do\n    diasNormales 10 10 100  `shouldBe` True\n\n  it \"1, 2 y 1 NO son dias normales\" $ do\n    diasNormales 1 2 1  `shouldBe` False\n\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "dispersion"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "diasParejos"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "diasNormales"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "diasLocos"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "dispersion"
+        ],
+        "binding": "diasLocos"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "dispersion"
+        ],
+        "binding": "diasParejos"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "diasParejos"
+        ],
+        "binding": "diasNormales"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "diasLocos"
+        ],
+        "binding": "diasNormales"
+      }
+    ]
+  },
+  {
+    "id": 498,
+    "guideId": 45,
+    "lesson": "Pinos",
+    "language": "haskell",
+    "solution": "pesoAbajo h = (min h 3) * 300\npesoArriba h = (max (h-3) 0) * 200\npesoPino h = pesoAbajo h + pesoArriba h\nesPesoUtil p = (p <= 1000) && (p >= 400)\nsirvePino = esPesoUtil . pesoPino",
+    "extra": null,
+    "test": "describe \"pinos\" $ do\n  describe \"pesoPino\" $ do\n    it \"un pino de 2 metros pesa 600 kg\" $ do\n      pesoPino 2  `shouldBe` 600\n\n    it \"un pino de 5 metros pesa 1300 kg\" $ do\n      pesoPino 5  `shouldBe` 1300\n\n  describe \"esPesoUtil\" $ do\n    it \"un pino de 500 kg es útil\" $ do\n      esPesoUtil 500 `shouldBe` True\n\n    it \"un pino de 1500 kg NO es útil\" $ do\n      esPesoUtil 1500 `shouldBe` False\n\n    it \"un pino de 150 kg NO es útil\" $ do\n      esPesoUtil 150 `shouldBe` False\n\n  describe \"sirvePino\" $ do\n    it \"un pino de 2 metros es útil\" $ do\n      sirvePino 2 `shouldBe` True\n\n    it \"un pino de 5 metros NO es útil\" $ do\n      sirvePino 5 `shouldBe` False\n\n    it \"un pino de 1 metro NO es útil\" $ do\n      sirvePino 1 `shouldBe` False\n\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "pesoPino"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "esPesoUtil"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "sirvePino"
+      },
+      {
+        "inspection": "HasComposition",
+        "expected": true,
+        "args": [],
+        "binding": "sirvePino"
+      },
+      {
+        "inspection": "HasConditional",
+        "expected": false,
+        "args": [],
+        "binding": "pesoPino"
+      },
+      {
+        "inspection": "HasConditional",
+        "expected": false,
+        "args": [],
+        "binding": "sirvePino"
+      },
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  }
+]

@@ -1,0 +1,322 @@
+[
+  {
+    "id": 168,
+    "guideId": 19,
+    "lesson": "Aplicación",
+    "language": "haskell",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 169,
+    "guideId": 19,
+    "lesson": "Aplicación... ¿incompleta?",
+    "language": "haskell",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 170,
+    "guideId": 19,
+    "lesson": "Aplicación Parcial , Parte 1",
+    "language": "haskell",
+    "solution": null,
+    "extra": "siguiente = (1 +)\nminimo6 = max 6\ntriple = (3 *)",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 171,
+    "guideId": 19,
+    "lesson": "Aplicación Parcial, Parte 2",
+    "language": "haskell",
+    "solution": "dobleDelSiguiente = (2*).(+1)",
+    "extra": null,
+    "test": "it \"dobleDelSiguiente 3 == 8\" $ do \n  dobleDelSiguiente 3 `shouldBe` 8\n \nit \"dobleDelSiguiente 1 == 4\" $ do \n  dobleDelSiguiente 1 `shouldBe` 4\n  \nit \"dobleDelSiguiente 10 == 22\" $ do \n  dobleDelSiguiente 10 `shouldBe` 22",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "doble"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "dobleDelSiguiente"
+      },
+      {
+        "inspection": "HasComposition",
+        "expected": true,
+        "args": [],
+        "binding": "dobleDelSiguiente"
+      }
+    ]
+  },
+  {
+    "id": 172,
+    "guideId": 19,
+    "lesson": "Un saludo superior, Parte 1",
+    "language": "haskell",
+    "solution": "saludar = (++) \"Hola \"",
+    "extra": null,
+    "test": "describe \"saludo superior\" $ do\n  it \"saludar \\\"Barney Gomez\\\"\"$ do \n     saludar \"Barney Gomez\" `shouldBe`  \"Hola Barney Gomez\"\n     \n  it \"saludar \\\"Agus\\\"\"$ do \n     saludar \"Agus\" `shouldBe`  \"Hola Agus\"\n     \n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "saludar"
+      },
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 173,
+    "guideId": 19,
+    "lesson": "Un saludo superior, parte 2",
+    "language": "haskell",
+    "solution": "saludar pre nombre = \"Hola \" ++ pre ++ \" \" ++ nombre",
+    "extra": null,
+    "test": "describe \"saludo superior\" $ do\n  it \"saludar \\\"Sr\\\" \\\"Barney Gomez\\\"\"$ do \n     saludar \"Sr\" \"Barney Gomez\" `shouldBe` \"Hola Sr Barney Gomez\"\n     \n  it \"saludar \\\"Ing\\\" \\\"Agus\\\"\"$ do \n     saludar \"Ing\" \"Agus\" `shouldBe` \"Hola Ing Agus\"\n     \n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "saludar"
+      },
+      {
+        "inspection": "HasTooShortIdentifiers",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      },
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 174,
+    "guideId": 19,
+    "lesson": "Un saludo superior, Parte 3",
+    "language": "haskell",
+    "solution": "sinTitulo = id\nsr = (++) \"Sr. \"\nsra = (++) \"Sra. \"\nreyQuick n = n ++ \" Rey de los Minisupers\"",
+    "extra": null,
+    "test": "describe \"tiposDeSaludos\" $ do \n    it \"reyQuick \\\"Apu\\\"\" $ do \n        reyQuick \"Apu\" `shouldBe` \"Apu Rey de los Minisupers\" \n        \n    it \"sra \\\"Edna\\\"\" $ do \n        sra \"Edna\" `shouldBe` \"Sra. Edna\" \n        \n    it \"sr \\\"Cletus\\\"\" $ do \n        sr \"Cletus\" `shouldBe` \"Sr. Cletus\" \n        \n        \n    it \"sinTitulo \\\"Edna\\\"\" $ do \n        sinTitulo \"Edna\" `shouldBe` \"Edna\" ",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "reyQuick"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "sra"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "sr"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "sinTitulo"
+      },
+      {
+        "inspection": "HasTooShortIdentifiers",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      },
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 175,
+    "guideId": 19,
+    "lesson": "Un Saludo Superior, Parte 4",
+    "language": "haskell",
+    "solution": "saludar titulador nombre = \"Hola \" ++ titulador nombre",
+    "extra": "plana = id\nsr x = \"Sr. \" ++ x\nsra x = \"Sra. \" ++ x\nreyQuick x = x ++ \" Rey de los Minisupers\"",
+    "test": "it \"saludar sr \\\"Barney\\\"\" $ do \n  saludar sr \"Barney\" `shouldBe`  \"Hola Sr. Barney\"\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "saludar"
+      }
+    ]
+  },
+  {
+    "id": 176,
+    "guideId": 19,
+    "lesson": "esMenorSegun",
+    "language": "haskell",
+    "solution": "esMenorSegun a b f = f a < f b",
+    "extra": null,
+    "test": "describe \"esMenorSegun\" $ do \n  it \"esMenorSegun 3 4 id == True\" $ do \n    esMenorSegun 3 4 id `shouldBe` True\n\n  it \"esMenorSegun 10 4 id == False\" $ do \n    esMenorSegun 10 4 id `shouldBe` False\n\n  it \"esMenorSegun \\\"hola\\\" \\\"chau\\\" length == False\" $ do \n    esMenorSegun \"hola\" \"chau\" length `shouldBe` False\n\n  it \"esMenorSegun \\\"hey\\\" \\\"hola\\\" length == True\" $ do \n    esMenorSegun \"hey\" \"hola\" length `shouldBe` True\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "esMenorSegun"
+      }
+    ]
+  },
+  {
+    "id": 177,
+    "guideId": 19,
+    "lesson": "Tipos y Orden Superior",
+    "language": "haskell",
+    "solution": "saludoDoble :: (String -> String) -> String -> String -> String",
+    "extra": "saludoDoble titulador uno otro = \"Hola \" ++ titulador uno ++ \" y \" ++ titulador otro  \n",
+    "test": "it \"saludoDoble\" $ do\n  saludoDoble id \"jose\" \"ana\" `shouldBe` \"Hola jose y ana\"  \n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "saludoDoble"
+      },
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "saludoDoble"
+      }
+    ]
+  },
+  {
+    "id": 178,
+    "guideId": 19,
+    "lesson": "Tipos complicados",
+    "language": "haskell",
+    "solution": "funcionMisteriosa1 :: Num a => (a -> Bool -> b) -> b\nfuncionMisteriosa2 :: (Int -> b) -> String -> b\nfuncionMisteriosa3 :: (a -> Bool -> b) -> (c -> a) -> c -> b",
+    "extra": "funcionMisteriosa1 f = f 2 True\nfuncionMisteriosa2 g = g . length \nfuncionMisteriosa3 h g x = h (g x) True ",
+    "test": "it \"funcionMisteriosa1 tipa con enteros\" $ do \n  funcionMisteriosa1 const `shouldBe` 2\n  \nit \"funcionMisteriosa1 tipa con floantes\" $ do \n  funcionMisteriosa1 const `shouldBe` (2 :: Float)\n \nit \"funcionMisteriosa1 tipa con booleanos\" $ do \n  funcionMisteriosa1 (\\a b -> a < 5 && b) `shouldBe` (True :: Bool)\n \nit \"funcionMisteriosa2 tipa\" $ do \n  funcionMisteriosa2 (+1) [2, 3] `shouldBe` 3\n  \nit \"functionMisteriosa3 tipa si el último argumento es un número\"$ do\n  funcionMisteriosa3 const (+1) 4 `shouldBe` (5 :: Int)\n\nit \"functionMisteriosa3 tipa si el último argumento es una lista\"$ do\n  funcionMisteriosa3 const (length) [3] `shouldBe` (1 :: Int)\n  \n  ",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "funcionMisteriosa2"
+      },
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "funcionMisteriosa2"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "funcionMisteriosa1"
+      },
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "funcionMisteriosa1"
+      },
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "funcionMisteriosa3"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "funcionMisteriosa3"
+      },
+      {
+        "inspection": "UsesWrongCaseBindings",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 179,
+    "guideId": 19,
+    "lesson": "Juntando todo",
+    "language": "haskell",
+    "solution": "esNoVacio :: String -> Bool\nesNoVacio = (/=0).length",
+    "extra": "esVacio :: String -> Bool\nesVacio = (==0).length \n",
+    "test": "it \"\\\"Dr House\\\" no es vacio\" $ do\n   esNoVacio \"Dr House\" `shouldBe` True\n   \nit \"\\\"Tyrion Lannister\\\" no es vacio\" $ do\n   esNoVacio \"Tyrion Lannister\" `shouldBe` True\n   \nit \"\\\"\\\"  es vacio\" $ do\n   esNoVacio \"\" `shouldBe` False",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "esNoVacio"
+      },
+      {
+        "inspection": "HasComposition",
+        "expected": true,
+        "args": [],
+        "binding": "esNoVacio"
+      },
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "esNoVacio"
+      }
+    ]
+  },
+  {
+    "id": 180,
+    "guideId": 19,
+    "lesson": "Para cerrar...",
+    "language": "haskell",
+    "solution": "dobleDe = (2*)\nsumaDeDoblesSegun a b f = (dobleDe . f) a + dobleDe (f b)",
+    "extra": null,
+    "test": "describe \"sumaDeDoblesSegun\" $ do \n  it \"sumaDeDoblesSegun 1 2 id == 6\" $ do \n    sumaDeDoblesSegun 1 2 id `shouldBe` 6\n    \n  it \"sumaDeDoblesSegun 10 20 id == 60\" $ do \n    sumaDeDoblesSegun 10 20 id `shouldBe` 60\n    \n  it \"sumaDeDoblesSegun \\\"hola\\\" \\\"mundo\\\" length== 18\" $ do \n    sumaDeDoblesSegun \"hola\" \"mundo\" length `shouldBe` 18\n    ",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "sumaDeDoblesSegun"
+      },
+      {
+        "inspection": "HasComposition",
+        "expected": true,
+        "args": [],
+        "binding": "sumaDeDoblesSegun"
+      }
+    ]
+  }
+]

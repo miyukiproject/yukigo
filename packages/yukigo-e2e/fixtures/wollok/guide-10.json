@@ -1,0 +1,128 @@
+[
+  {
+    "id": 78,
+    "guideId": 10,
+    "lesson": "Zombi",
+    "language": "wollok",
+    "solution": "object bouba {\n  var salud = 100\n  \n  method sabeCorrer() {\n    return false\n  }\n  \n  method salud() {\n    return salud\n  }\n  \n  method recibirDanio(unaCantidad) {\n    salud = (salud - 2 * unaCantidad).max(0)\n  }\n}",
+    "extra": null,
+    "test": "test \"Bouba no sabe correr\" {\n\tassert.notThat(bouba.sabeCorrer())\n}\n\ntest \"Bouba tiene 100 de salud inicialmente\" {\n  assert.equals(100, bouba.salud())\n}\n\ntest \"Si Bouba recibe 5 puntos de daño disminuye su salud en 10 puntos\" {\n  bouba.recibirDanio(5)\n  assert.equals(90, bouba.salud())\n}\n\ntest \"Si Bouba recibe 10 puntos de daño disminuye su salud en 20 puntos\" {\n  bouba.recibirDanio(10)\n  assert.equals(80, bouba.salud())\n}\n  \ntest \"Si Bouba recibe mucho daño su salud no puede ser menor a 0\" {\n  bouba.recibirDanio(69)\n  assert.equals(0, bouba.salud())\n}",
+    "expectations": []
+  },
+  {
+    "id": 79,
+    "guideId": 10,
+    "lesson": "Atacando un zombi",
+    "language": "wollok",
+    "solution": "object juliana {\n  var property energia = 100\n  \n  method atacar(unZombi) {\n    unZombi.recibirDanio(energia / 10)\n  }\n}",
+    "extra": "/*...solution[-1]...*/",
+    "test": "\ntest \"La energía inicial de Juliana es 1000\" {\n\tassert.equals(100, juliana.energia())\n}\n\ntest \"Si Juliana ataca teniendo 100 de energia, los puntos de danio que recibe Bouba son 10 y su salud disminuye en 20 unidades\" {\n\tjuliana.atacar(bouba)\n\tassert.equals(80, bouba.salud())\n}\n\ntest \"Si Juliana ataca a Bouba teniendo mucha energia, su salud no puede quedar menor a 0\" {\n\tjuliana.energia(1000)\n\tjuliana.atacar(bouba)\n\tassert.equals(0, bouba.salud())\n}\n",
+    "expectations": []
+  },
+  {
+    "id": 80,
+    "guideId": 10,
+    "lesson": "Otro zombi",
+    "language": "wollok",
+    "solution": "object bouba {\n  var salud = 100\n  \n  method sabeCorrer() {\n    return false\n  }\n  \n  method salud() {\n    return salud\n  }\n  \n  method recibirDanio(unaCantidad) {\n    salud = (salud - 2 * unaCantidad).max(0)\n  }\n}\n\n\nobject kiki {\n  var salud = 100\n  \n  method sabeCorrer() {\n    return false\n  }\n  \n  method salud() {\n    return salud\n  }\n  \n  method recibirDanio(unaCantidad) {\n    salud = (salud - 2 * unaCantidad).max(0)\n  }\n}",
+    "extra": null,
+    "test": "test \"Bouba no sabe correr\" {\n\tassert.notThat(bouba.sabeCorrer())\n}\n\ntest \"Bouba tiene 100 de salud inicialmente\" {\n  assert.equals(100, bouba.salud())\n}\n\ntest \"Si Bouba recibe 5 puntos de daño disminuye su salud en 10 puntos\" {\n  bouba.recibirDanio(5)\n  assert.equals(90, bouba.salud())\n}\n\ntest \"Si Bouba recibe 10 puntos de daño disminuye su salud en 20 puntos\" {\n  bouba.recibirDanio(10)\n  assert.equals(80, bouba.salud())\n}\n  \ntest \"Si Bouba recibe mucho daño su salud no puede ser menor a 0\" {\n  bouba.recibirDanio(100)\n  assert.equals(0, bouba.salud())\n}\n\ntest \"Kiki no sabe correr\" {\n\tassert.notThat(kiki.sabeCorrer())\n}\n\n\ntest \"Kiki tiene 100 de salud inicialmente\" {\n  assert.equals(100, kiki.salud())\n}\n\ntest \"Si Kiki recibe 5 puntos de daño disminuye su salud en 10 puntos\" {\n  kiki.recibirDanio(5)\n  assert.equals(90, kiki.salud())\n}\n\ntest \"Si Kiki recibe 10 puntos de daño disminuye su salud en 20 puntos\" {\n  kiki.recibirDanio(10)\n  assert.equals(80, kiki.salud())\n}\n  \ntest \"Si Kiki recibe mucho daño su salud no puede ser menor a 0\" {\n  kiki.recibirDanio(100)\n  assert.equals(0, kiki.salud())\n}",
+    "expectations": []
+  },
+  {
+    "id": 81,
+    "guideId": 10,
+    "lesson": "¡¿Vivos?!",
+    "language": "wollok",
+    "solution": "object bouba {\n  var salud = 100\n  \n  method sabeCorrer() {\n    return false\n  }\n  \n  method salud() {\n    return salud\n  }\n  \n  method recibirDanio(unaCantidad) {\n    salud = (salud - 2 * unaCantidad).max(0)\n  }\n  \n  method vivo() {\n    return salud > 0\n  }\n}\n\n\nobject kiki {\n  var salud = 100\n  \n  method sabeCorrer() {\n    return false\n  }\n  \n  method salud() {\n    return salud\n  }\n  \n  method recibirDanio(unaCantidad) {\n    salud = (salud - 2 * unaCantidad).max(0)\n  }\n  \n  method vivo() {\n    return salud > 0\n  }\n}",
+    "extra": null,
+    "test": "\n\ttest \"Bouba no sabe correr\" {\n\t\tassert.notThat(bouba.sabeCorrer())\n\t}\n\n\ttest \"Bouba tiene 100 de salud inicialmente\" {\n\t\tassert.equals(100, bouba.salud())\n\t}\n\n\ttest \"Si Bouba recibe 5 puntos de daño disminuye su salud en 10 puntos\" {\n\t\tbouba.recibirDanio(5)\n\t\tassert.equals(90, bouba.salud())\n\t}\n\n\ttest \"Si Bouba recibe 10 puntos de daño disminuye su salud en 20 puntos\" {\n\t\tbouba.recibirDanio(10)\n\t\tassert.equals(80, bouba.salud())\n\t}\n\n\ttest \"Si Bouba recibe mucho daño su salud no puede ser menor a 0\" {\n\t\tbouba.recibirDanio(100)\n\t\tassert.equals(0, bouba.salud())\n\t}\n\n\ttest \"Si Bouba recibe 10 puntos de daño, sigue vivo\" {\n\t\tbouba.recibirDanio(10)\n\t\tassert.that(bouba.vivo())\n\t}\n\n\ttest \"Si Bouba recibe mucho daño, queda sin vida\" {\n\t\tbouba.recibirDanio(100)\n\t\tassert.notThat(bouba.vivo())\n\t}\n\n\ttest \"Kiki no sabe correr\" {\n\t\tassert.notThat(kiki.sabeCorrer())\n\t}\n\n\ttest \"Kiki tiene 100 de salud inicialmente\" {\n\t\tassert.equals(100, kiki.salud())\n\t}\n\n\ttest \"Si Kiki recibe 5 puntos de daño disminuye su salud en 10 puntos\" {\n\t\tkiki.recibirDanio(5)\n\t\tassert.equals(90, kiki.salud())\n\t}\n\n\ttest \"Si Kiki recibe 10 puntos de daño disminuye su salud en 20 puntos\" {\n\t\tkiki.recibirDanio(10)\n\t\tassert.equals(80, kiki.salud())\n\t}\n\n\ttest \"Si Kiki recibe mucho daño su salud no puede ser menor a 0\" {\n\t\tkiki.recibirDanio(100)\n\t\tassert.equals(0, kiki.salud())\n\t}\n\n\ttest \"Si Kiki recibe 10 puntos de daño, sigue vivo\" {\n\t\tkiki.recibirDanio(10)\n\t\tassert.that(kiki.vivo())\n\t}\n\n\ttest \"Si Kiki recibe mucho daño, queda sin vida\" {\n\t\tkiki.recibirDanio(100)\n\t\tassert.notThat(kiki.vivo())\n\t}\n\n",
+    "expectations": []
+  },
+  {
+    "id": 82,
+    "guideId": 10,
+    "lesson": "Clases",
+    "language": "wollok",
+    "solution": "class Zombi {\n  var salud = 100\n\n\n  method sabeCorrer() {\n    return false\n  }\n\n\n  method salud() {\n    return salud\n  }\n\n\n  method recibirDanio(unaCantidad) {\n    salud = (salud - 2 * unaCantidad).max(0)\n  }\n\n\n  method vivo() {\n    return salud > 0\n  }\n}",
+    "extra": "/*...previousSolution...*/",
+    "test": "describe \"Ejercicio 5\" {\n\n\tconst zombi = new Zombi()\n\n\ttest \"Un Zombi no sabe correr\" {\n\t\tassert.notThat(zombi.sabeCorrer())\n\t}\n\n\ttest \"Un Zombi tiene 100 de salud inicialmente\" {\n\t\tassert.equals(100, zombi.salud())\n\t}\n\n\ttest \"Si un Zombi recibe 5 puntos de daño disminuye su salud en 10 puntos\" {\n\t\tzombi.recibirDanio(5)\n\t\tassert.equals(90, zombi.salud())\n\t}\n\n\ttest \"Si un Zombi recibe 10 puntos de daño disminuye su salud en 20 puntos\" {\n\t\tzombi.recibirDanio(10)\n\t\tassert.equals(80, zombi.salud())\n\t}\n\n\ttest \"Si un Zombi recibe mucho daño su salud no puede ser menor a 0\" {\n\t\tzombi.recibirDanio(100)\n\t\tassert.equals(0, zombi.salud())\n\t}\n\n\ttest \"Si un Zombi recibe 10 puntos de daño, sigue vivo\" {\n\t\tzombi.recibirDanio(10)\n\t\tassert.that(zombi.vivo())\n\t}\n\n\ttest \"Si un Zombi recibe mucho daño, queda sin vida\" {\n\t\tzombi.recibirDanio(100)\n\t\tassert.notThat(zombi.vivo())\n\t}\n\n}\n",
+    "expectations": []
+  },
+  {
+    "id": 83,
+    "guideId": 10,
+    "lesson": "Instancias",
+    "language": "wollok",
+    "solution": "const bouba = new Zombi()\nconst kiki  = new Zombi()",
+    "extra": "/*...previousSolution...*/\n",
+    "test": "\n\ttest \"Bouba no sabe correr\" {\n\t\tassert.notThat(bouba.sabeCorrer())\n\t}\n\n\t\ttest \"Bouba tiene 100 de salud inicialmente\" {\n\t\tassert.equals(100, bouba.salud())\n\t}\n\n\ttest \"Si Bouba recibe 5 puntos de daño disminuye su salud en 10 puntos\" {\n\t\tbouba.recibirDanio(5)\n\t\tassert.equals(90, bouba.salud())\n\t}\n\n\ttest \"Si Bouba recibe 10 puntos de daño, sigue vivo\" {\n\t\tbouba.recibirDanio(10)\n\t\tassert.that(bouba.vivo())\n\t}\n\n\ttest \"Si Bouba recibe mucho daño, queda sin vida\" {\n\t\tbouba.recibirDanio(100)\n\t\tassert.notThat(bouba.vivo())\n\t}\n\n\ttest \"Kiki no sabe correr\" {\n\t\tassert.notThat(kiki.sabeCorrer())\n\t}\n\n\n\ttest \"Kiki tiene 100 de salud inicialmente\" {\n\t\tassert.equals(100, kiki.salud())\n\t}\n\n\ttest \"Si Kiki recibe 10 puntos de daño disminuye su salud en 20 puntos\" {\n\t\tkiki.recibirDanio(10)\n\t\tassert.equals(80, kiki.salud())\n\t}\n\n\ttest \"Si Kiki recibe 10 puntos de daño, sigue vivo\" {\n\t\tkiki.recibirDanio(10)\n\t\tassert.that(kiki.vivo())\n\t}\n\n\ttest \"Si Kiki recibe mucho daño, queda sin vida\" {\n\t\tkiki.recibirDanio(100)\n\t\tassert.notThat(kiki.vivo())\n\t}\n\n",
+    "expectations": [
+      {
+        "inspection": "Uses",
+        "expected": true,
+        "args": [
+          "Zombi"
+        ],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 84,
+    "guideId": 10,
+    "lesson": "Al menos tenemos salud",
+    "language": "wollok",
+    "solution": null,
+    "extra": "/*...solution[2]...*/\n\n/*...solution[5]...*/\n\n/*...solution[6]...*/",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 85,
+    "guideId": 10,
+    "lesson": "Inicializando atributos",
+    "language": "wollok",
+    "solution": "class Sobreviviente {\n  var property energia\n  \n  method atacar(unZombi) {\n    unZombi.recibirDanio(energia / 10)\n  }\n}\n\n\nconst juliana   = new Sobreviviente(energia = 100)\nconst anastasia = new Sobreviviente(energia = 150)",
+    "extra": "/*...solution[5]...*/\n\n/*...solution[6]...*/",
+    "test": "\ttest \"La energía inicial de Juliana es 100\" {\n\t\tassert.equals(100, juliana.energia())\n\t}\n\n\ttest \"La energía inicial de Anastasia es 150\" {\n\t\tassert.equals(150, anastasia.energia())\n\t}\n\n\ttest \"Si Juliana, con 100 de energía, ataca a Bouba su salud disminuye en 20 unidades\" {\n\t\tjuliana.atacar(bouba)\n\t\tassert.equals(80, bouba.salud())\n\t}\n\n\ttest \"Si Anastasia, con 150 de energia ataca a Kiki, su salud disminuye en 30 unidades\" {\n\t\tanastasia.atacar(kiki)\n\t\tassert.equals(70, kiki.salud())\n\t}",
+    "expectations": [
+      {
+        "inspection": "Uses",
+        "expected": true,
+        "args": [
+          "Sobreviviente"
+        ],
+        "binding": "*"
+      },
+      {
+        "inspection": "DeclaresClass",
+        "expected": true,
+        "args": [
+          "Sobreviviente"
+        ],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 86,
+    "guideId": 10,
+    "lesson": "Ahora sí: invasión",
+    "language": "wollok",
+    "solution": "object invasion {\n        const property zombis = [new Zombi()]\n        \n        method tamanio() {\n                return zombis.count({zombi => zombi.vivo()})\n        }\n        \n        method incrementar(){\n                self.tamanio().times({_ => zombis.add(new Zombi())})\n        }\n}",
+    "extra": "/*...solution[5]...*/",
+    "test": "\n\ttest \"Inicialmente la invasion tiene tamaño 1\" {\n\t\tassert.equals(1, invasion.tamanio())\n\t}\n\t\n\ttest \"Luego de incrementar dos veces la invasión tiene tamaño 4\" {\n\t\tinvasion.incrementar()\n\t\tinvasion.incrementar()\n\t\tassert.equals(4, invasion.tamanio())\n\t}\n\n\ttest \"Luego de crecer, todos los zombis tienen 100 de salud\" {\n\t\tinvasion.incrementar()\n\t\tassert.that(invasion.zombis().all({ zombi => zombi.salud() == 100}))\n\t}\n\n\ttest \"Si la invasión tiene zombis sin vida, estos no se consideran para incrementar\" {\n\t\tinvasion.zombis().add(new Zombi(salud = 0))\n\t\tinvasion.incrementar()\n\t\tassert.equals(2, invasion.tamanio())\n\t}",
+    "expectations": []
+  },
+  {
+    "id": 87,
+    "guideId": 10,
+    "lesson": "Ataque masivo",
+    "language": "wollok",
+    "solution": "class Sobreviviente {\n  var property energia\n  \n  method atacar(unZombi) {\n    unZombi.recibirDanio(energia / 10)\n  }\n  \n  method ataqueMasivo(unosZombis) {\n    unosZombis.forEach({unZombi => self.atacar(unZombi)})\n    energia -= 50\n  }\n}\n\n\nconst juliana   = new Sobreviviente(energia = 100)\nconst anastasia = new Sobreviviente(energia = 150)",
+    "extra": "/*...solution[5]...*/\n\n/*...solution[-1]...*/",
+    "test": "const otrosZombis = [ new Zombi(salud = 10), new Zombi(salud = 50) ]\n\n\ttest \"Cuando juliana ataca masivamente a los zombis, les reduce la salud en 20\" {\n\t\tjuliana.ataqueMasivo(invasion.zombis())\n\t\tassert.that(invasion.zombis().all({ zombi => zombi.salud() == 80}))\n\t}\n\n\ttest \"Cuando anastasia ataca masivamente a los caminantes, les reduce la salud en 30\" {\n\t\tanastasia.ataqueMasivo(invasion.zombis())\n\t\tassert.that(invasion.zombis().all({ zombi => zombi.salud() == 70}))\n\t}\n\n\ttest \"Juliana puede atacar masivamente a otros zombis también\" {\n\t\tjuliana.ataqueMasivo(otrosZombis)\n\t\tassert.that(otrosZombis.any{ zombi => not zombi.vivo()})\n\t}\n\t\n\ttest \"Cuando un sobreviviente con 500 de energía ataca masivamente, su energía pasa a ser 450\" {\n\t  const sobreviviente = new Sobreviviente(energia = 500)\n\t  sobreviviente.ataqueMasivo(otrosZombis)\n\t  assert.equals(450, sobreviviente.energia())\n\t}\n",
+    "expectations": []
+  }
+]

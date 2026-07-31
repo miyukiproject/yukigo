@@ -1,0 +1,249 @@
+[
+  {
+    "id": 300,
+    "guideId": 29,
+    "lesson": "Conociendo el territorio",
+    "language": "prolog",
+    "solution": "viveEn(mariano, avellaneda).\nviveEn(fede, avellaneda).\nviveEn(victoria, versalles).\nviveEn(rodrigo, villaBallester).\nviveEn(tomas, nuniez).\nquedaEn(utn, almagro).\nquedaEn(utn, villaLugano).\nquedaEn(exactas, nuniez).\nquedaEn(river, nuniez).\nquedaEn(racing, avellaneda).",
+    "extra": null,
+    "test": "test('viveEn(mariano, avellaneda)') :-\n   viveEn(mariano, avellaneda).\n\ntest('viveEn(fede, avellaneda)') :-\n   viveEn(fede, avellaneda).\n   \ntest('viveEn(victoria, versalles)') :-\n   viveEn(victoria, versalles).\n   \ntest('viveEn(tomas, nuniez)') :-\n   viveEn(tomas, nuniez).\n\ntest('no viveEn(tomas, versalles)') :-\n   \\+ viveEn(tomas, versalles).\n\ntest('quedaEn(utn, almagro)') :-\n   quedaEn(utn, almagro).\n\ntest('quedaEn(utn, villaLugano)') :-\n   quedaEn(utn, villaLugano).\n\ntest('quedaEn(exactas, nuniez)') :-\n   quedaEn(exactas, nuniez).\n\ntest('quedaEn(racing, avellaneda)') :-\n   quedaEn(racing, avellaneda).\n\ntest('not quedaEn(racing, palomar)') :-\n   \\+ quedaEn(racing, palomar).\n\n",
+    "expectations": []
+  },
+  {
+    "id": 301,
+    "guideId": 29,
+    "lesson": "Existencia, parte 1",
+    "language": "prolog",
+    "solution": "tieneAuto(tomas).\ntieneAuto(fede).\nllegaFacil(X, _):-tieneAuto(X).\nllegaFacil(batman, _).",
+    "extra": "viveEn(mariano, avellaneda).\nviveEn(fede, avellaneda).\nviveEn(victoria, versalles).\nviveEn(rodrigo, villaBallester).\nviveEn(tomas, nuniez).\n\nquedaEn(utn, almagro).\nquedaEn(utn, villaLugano).\nquedaEn(exactas, nuniez).\nquedaEn(river, nuniez).\nquedaEn(racing, avellaneda). \n",
+    "test": "test('llegaFacil(tomas, utn)') :-\n  llegaFacil(tomas, utn).\n\ntest('llegaFacil(fede, utn)') :-\n  llegaFacil(fede, utn).\n  \ntest('batman siempre llega fácil') :-\n  llegaFacil(batman, mordor).\n  ",
+    "expectations": [
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "tieneAuto"
+        ],
+        "binding": "llegaFacil"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "tieneAuto"
+      }
+    ]
+  },
+  {
+    "id": 302,
+    "guideId": 29,
+    "lesson": "Existencia, parte 2",
+    "language": "prolog",
+    "solution": null,
+    "extra": "viveEn(mariano, avellaneda).\nviveEn(fede, avellaneda).\nviveEn(victoria, versalles).\nviveEn(rodrigo, villaBallester).\nviveEn(tomas, nuniez).\n\nquedaEn(utn, almagro).\nquedaEn(utn, villaLugano).\nquedaEn(exactas, nuniez).\nquedaEn(river, nuniez).\nquedaEn(racing, avellaneda). \n\ntieneAuto(tomas).\ntieneAuto(fede). \n\nllegaFacil(batman, _).\nllegaFacil(Persona, _) :-\n tieneAuto(Persona).\nllegaFacil(Persona, Destino) :-\n  viveEn(Persona, Zona),\n  quedaEn(Destino, Zona).",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 303,
+    "guideId": 29,
+    "lesson": "Existencia, parte 3",
+    "language": "prolog",
+    "solution": "destinosProximos(D1, D2):-quedaEn(D1, L), quedaEn(D2, L), D1 \\= D2.",
+    "extra": "viveEn(mariano, avellaneda).\nviveEn(fede, avellaneda).\nviveEn(victoria, versalles).\nviveEn(rodrigo, villaBallester).\nviveEn(tomas, nuniez).\n\nquedaEn(utn, almagro).\nquedaEn(utn, villaLugano).\nquedaEn(exactas, nuniez).\nquedaEn(river, nuniez).\nquedaEn(racing, avellaneda). \n\ntieneAuto(tomas).\ntieneAuto(fede). \n\nllegaFacil(batman, _).\nllegaFacil(Persona, _) :-\n tieneAuto(Persona).\nllegaFacil(Persona, Destino) :-\n  viveEn(Persona, Zona),\n  quedaEn(Destino, Zona).\n  \n  ",
+    "test": "test('destinosProximos(exactas, river)') :-\n  destinosProximos(exactas, river).\n  \ntest('destinosProximos(river, exactas)') :-\n  destinosProximos(river, exactas).\n  \ntest('no son destinosProximos(utn, racing)') :-\n  \\+ destinosProximos(utn, racing).",
+    "expectations": []
+  },
+  {
+    "id": 304,
+    "guideId": 29,
+    "lesson": "¡Más pruebas!",
+    "language": "prolog",
+    "solution": null,
+    "extra": "viveEn(mariano, avellaneda).\nviveEn(fede, avellaneda).\nviveEn(victoria, versalles).\nviveEn(rodrigo, villaBallester).\nviveEn(tomas, nuniez).\n\nquedaEn(utn, almagro).\nquedaEn(utn, villaLugano).\nquedaEn(exactas, nuniez).\nquedaEn(river, nuniez).\nquedaEn(racing, avellaneda). \nquedaEn(montoto, palermo).\nquedaEn(montoto, nuniez).\nquedaEn(montoto, avellaneda).\n\ntieneAuto(tomas).\ntieneAuto(fede). \n\nllegaFacil(batman, _).\nllegaFacil(Persona, _) :-\n tieneAuto(Persona).\nllegaFacil(Persona, Destino) :-\n  viveEn(Persona, Zona),\n  quedaEn(Destino, Zona).\n  \ndestinosProximos(X, Y) :-\n   quedaEn(X, Z),\n   quedaEn(Y, Z),\n   X \\= Y.\n   \n\n  ",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 305,
+    "guideId": 29,
+    "lesson": "¡Qué bonita vecindad!",
+    "language": "prolog",
+    "solution": "sonVecinos(P1, P2):-viveEn(P1, Z), viveEn(P2, Z), P1 \\= P2.",
+    "extra": "viveEn(mariano, avellaneda).\nviveEn(fede, avellaneda).\nviveEn(victoria, versalles).\nviveEn(rodrigo, villaBallester).\nviveEn(tomas, nuniez).\n\nquedaEn(utn, almagro).\nquedaEn(utn, villaLugano).\nquedaEn(exactas, nuniez).\nquedaEn(river, nuniez).\nquedaEn(racing, avellaneda). \nquedaEn(montoto, palermo).\nquedaEn(montoto, nuniez).\nquedaEn(montoto, avellaneda).\n\ntieneAuto(tomas).\ntieneAuto(fede). \n\nllegaFacil(batman, _).\nllegaFacil(Persona, _) :-\n tieneAuto(Persona).\nllegaFacil(Persona, Destino) :-\n  viveEn(Persona, Zona),\n  quedaEn(Destino, Zona).\n  \ndestinosProximos(X, Y) :-\n   quedaEn(X, Z),\n   quedaEn(Y, Z).\n  ",
+    "test": "test('sonVecinos(mariano, fede)') :-\n  sonVecinos(mariano, fede).\n  \ntest('sonVecinos(fede, mariano)') :-\n  sonVecinos(fede, mariano).\n  \ntest('no son sonVecinos(rodrigo, victoria)') :-\n  \\+ sonVecinos(rodrigo, victoria).\n\ntest('no son sonVecinos(victoria, victoria)') :-\n  \\+ sonVecinos(victoria, victoria).\n\ntest('no son sonVecinos(rodrigo, rodrigo)') :-\n  \\+ sonVecinos(rodrigo, rodrigo).",
+    "expectations": []
+  },
+  {
+    "id": 306,
+    "guideId": 29,
+    "lesson": "¡No, no y no!",
+    "language": "prolog",
+    "solution": null,
+    "extra": "viveEn(mariano, avellaneda).\nviveEn(fede, avellaneda).\nviveEn(victoria, versalles).\nviveEn(rodrigo, villaBallester).\nviveEn(tomas, nuniez).\n\nquedaEn(utn, almagro).\nquedaEn(utn, villaLugano).\nquedaEn(exactas, nuniez).\nquedaEn(river, nuniez).\nquedaEn(racing, avellaneda). \nquedaEn(montoto, palermo).\nquedaEn(montoto, nuniez).\nquedaEn(montoto, avellaneda).\n\ntieneAuto(tomas).\ntieneAuto(fede). \n\nllegaFacil(batman, _).\nllegaFacil(Persona, _) :-\n tieneAuto(Persona).\nllegaFacil(Persona, Destino) :-\n  viveEn(Persona, Zona),\n  quedaEn(Destino, Zona).\n  \ndestinosProximos(Destino, OtroDestino) :-\n   quedaEn(Destino, Zona),\n   quedaEn(OtroDestino, Zona).\n   \nsonVecinos(UnaPersona, OtraPersona) :-\n    UnaPersona \\= OtraPersona,\n    viveEn(UnaPersona, Zona), \n    viveEn(OtraPersona, Zona).",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 307,
+    "guideId": 29,
+    "lesson": "Haciendo dedo",
+    "language": "prolog",
+    "solution": "loLleva(P1, P2):-sonVecinos(P1, P2), tieneAuto(P1), not(tieneAuto(P2)).",
+    "extra": "viveEn(mariano, avellaneda).\nviveEn(fede, avellaneda).\nviveEn(victoria, versalles).\nviveEn(rodrigo, villaBallester).\nviveEn(tomas, nuniez).\n\nquedaEn(utn, almagro).\nquedaEn(utn, villaLugano).\nquedaEn(exactas, nuniez).\nquedaEn(river, nuniez).\nquedaEn(racing, avellaneda). \nquedaEn(montoto, palermo).\nquedaEn(montoto, nuniez).\nquedaEn(montoto, avellaneda).\n\ntieneAuto(tomas).\ntieneAuto(fede). \n\nllegaFacil(batman, _).\nllegaFacil(Persona, _) :-\n tieneAuto(Persona).\nllegaFacil(Persona, Destino) :-\n  viveEn(Persona, Zona),\n  quedaEn(Destino, Zona).\n  \ndestinosProximos(Destino, OtroDestino) :-\n   quedaEn(Destino, Zona),\n   quedaEn(OtroDestino, Zona).\n   \nsonVecinos(UnaPersona, OtraPersona) :-\n    UnaPersona \\= OtraPersona,\n    viveEn(UnaPersona, Zona), \n    viveEn(OtraPersona, Zona).",
+    "test": "test('no loLleva(mariano, fede)'):-\n  \\+ loLleva(mariano, fede).\n  \ntest('no loLleva(fede, fede)'):-\n  \\+ loLleva(fede, fede).\n  \ntest('loLleva(fede, mariano)'):-\n  loLleva(fede, mariano).\n  \ntest('no loLleva(fede, victoria)'):-\n  \\+ loLleva(fede, victoria).",
+    "expectations": [
+      {
+        "inspection": "UsesNot",
+        "expected": true,
+        "args": [],
+        "binding": "loLleva"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "tieneAuto"
+        ],
+        "binding": "loLleva"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "sonVecinos"
+        ],
+        "binding": "loLleva"
+      }
+    ]
+  },
+  {
+    "id": 308,
+    "guideId": 29,
+    "lesson": "Universalidad, parte 1",
+    "language": "prolog",
+    "solution": "bienUbicado(P):-not(lugar(P)).\nlugar(P):-viveEn(P, Z), quiereIr(P, D), not(quedaEn(D, Z)).",
+    "extra": "viveEn(mariano, avellaneda).\nviveEn(fede, avellaneda).\nviveEn(victoria, versalles).\nviveEn(rodrigo, villaBallester).\nviveEn(tomas, nuniez).\n\nquedaEn(utn, almagro).\nquedaEn(utn, villaLugano).\nquedaEn(exactas, nuniez).\nquedaEn(river, nuniez).\nquedaEn(racing, avellaneda). \nquedaEn(montoto, palermo).\nquedaEn(montoto, nuniez).\nquedaEn(montoto, avellaneda).\n\ntieneAuto(tomas).\ntieneAuto(fede). \n\nllegaFacil(batman, _).\nllegaFacil(Persona, _) :-\n tieneAuto(Persona).\nllegaFacil(Persona, Destino) :-\n  viveEn(Persona, Zona),\n  quedaEn(Destino, Zona).\n  \ndestinosProximos(Destino, OtroDestino) :-\n   quedaEn(Destino, Zona),\n   quedaEn(OtroDestino, Zona).\n   \nsonVecinos(UnaPersona, OtraPersona) :-\n    UnaPersona \\= OtraPersona,\n    viveEn(UnaPersona, Zona), \n    viveEn(OtraPersona, Zona).\n    \nloLleva(UnaPersona, OtraPersona) :-\n    tieneAuto(UnaPersona),\n    not(tieneAuto(OtraPersona)), \n    sonVecinos(UnaPersona, OtraPersona).\n    \nquiereIr(fede, racing).\nquiereIr(fede, montoto).\nquiereIr(victoria, montoto).\nquiereIr(tomas, montoto).\nquiereIr(tomas, utn).",
+    "test": "test('bienUbicado(fede)') :-\n  bienUbicado(fede).\n  \ntest('no bienUbicado(victoria)') :-\n  \\+ bienUbicado(victoria).\n  \ntest('bienUbicado(rodrigo)') :-\n  bienUbicado(rodrigo).\n  \ntest('no bienUbicado(tomas)') :-\n  \\+ bienUbicado(tomas).",
+    "expectations": [
+      {
+        "inspection": "UsesNot",
+        "expected": true,
+        "args": [],
+        "binding": "bienUbicado"
+      }
+    ]
+  },
+  {
+    "id": 309,
+    "guideId": 29,
+    "lesson": "Universalidad, parte 2",
+    "language": "prolog",
+    "solution": "bienUbicado(Persona) :-viveEn(Persona, Zona), forall(quiereIr(Persona, Destino), quedaEn(Destino, Zona)).",
+    "extra": "viveEn(mariano, avellaneda).\nviveEn(fede, avellaneda).\nviveEn(victoria, versalles).\nviveEn(rodrigo, villaBallester).\nviveEn(tomas, nuniez).\n\nquedaEn(utn, almagro).\nquedaEn(utn, villaLugano).\nquedaEn(exactas, nuniez).\nquedaEn(river, nuniez).\nquedaEn(racing, avellaneda). \nquedaEn(montoto, palermo).\nquedaEn(montoto, nuniez).\nquedaEn(montoto, avellaneda).\n\ntieneAuto(tomas).\ntieneAuto(fede). \n\nllegaFacil(batman, _).\nllegaFacil(Persona, _) :-\n tieneAuto(Persona).\nllegaFacil(Persona, Destino) :-\n  viveEn(Persona, Zona),\n  quedaEn(Destino, Zona).\n  \ndestinosProximos(Destino, OtroDestino) :-\n   quedaEn(Destino, Zona),\n   quedaEn(OtroDestino, Zona).\n   \nsonVecinos(UnaPersona, OtraPersona) :-\n    UnaPersona \\= OtraPersona,\n    viveEn(UnaPersona, Zona), \n    viveEn(OtraPersona, Zona).\n    \nloLleva(UnaPersona, OtraPersona) :-\n    tieneAuto(UnaPersona),\n    not(tieneAuto(OtraPersona)), \n    sonVecinos(UnaPersona, OtraPersona).\n    \n\nquiereIr(fede, racing).\nquiereIr(fede, montoto).\nquiereIr(victoria, montoto).\nquiereIr(tomas, montoto).\nquiereIr(tomas, utn).",
+    "test": "test('bienUbicado(fede)') :-\n  bienUbicado(fede).\n  \ntest('no bienUbicado(victoria)') :-\n  not(bienUbicado(victoria)).\n  \ntest('bienUbicado(rodrigo)') :-\n  bienUbicado(rodrigo).",
+    "expectations": [
+      {
+        "inspection": "UsesForall",
+        "expected": true,
+        "args": [],
+        "binding": "bienUbicado"
+      }
+    ]
+  },
+  {
+    "id": 310,
+    "guideId": 29,
+    "lesson": "Variables libres",
+    "language": "prolog",
+    "solution": "destinoAccesible(D):-forall(quiereIr(P, D), llegaFacil(P, D)).",
+    "extra": "viveEn(mariano, avellaneda).\r\nviveEn(fede, avellaneda).\r\nviveEn(victoria, versalles).\r\nviveEn(rodrigo, villaBallester).\r\nviveEn(tomas, nuniez).\r\n\r\nquedaEn(utn, almagro).\r\nquedaEn(utn, villaLugano).\r\nquedaEn(exactas, nuniez).\r\nquedaEn(river, nuniez).\r\nquedaEn(racing, avellaneda). \r\nquedaEn(montoto, palermo).\r\nquedaEn(montoto, nuniez).\r\nquedaEn(montoto, avellaneda).\r\n\r\ntieneAuto(tomas).\r\ntieneAuto(fede). \r\n\r\nllegaFacil(batman, _).\r\nllegaFacil(Persona, _) :-\r\n tieneAuto(Persona).\r\nllegaFacil(Persona, Destino) :-\r\n  viveEn(Persona, Zona),\r\n  quedaEn(Destino, Zona).\r\n\r\ndestinosProximos(Destino, OtroDestino) :-\r\n   quedaEn(Destino, Zona),\r\n   quedaEn(OtroDestino, Zona).\r\n\r\nsonVecinos(UnaPersona, OtraPersona) :-\r\n    UnaPersona \\= OtraPersona,\r\n    viveEn(UnaPersona, Zona), \r\n    viveEn(OtraPersona, Zona).\r\n\r\nloLleva(UnaPersona, OtraPersona) :-\r\n    tieneAuto(UnaPersona),\r\n    not(tieneAuto(OtraPersona)), \r\n    sonVecinos(UnaPersona, OtraPersona).\r\n\r\nquiereIr(tomas, racing).\r\nquiereIr(fede, racing).\r\nquiereIr(fede, montoto).\r\nquiereIr(victoria, montoto).\r\nquiereIr(tomas, utn).\r\nquiereIr(mariano, utn).",
+    "test": "test('no destinoAccesible(montoto)'):-\n  not(destinoAccesible(montoto)).\n  \ntest('no destinoAccesible(utn)'):-\n  not(destinoAccesible(utn)).\n  \ntest('destinoAccesible(exactas)'):-\n  destinoAccesible(exactas).\n  \ntest('destinoAccesible(racing)'):-\n  destinoAccesible(racing).",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "destinoAccesible"
+      },
+      {
+        "inspection": "HasForall",
+        "expected": true,
+        "args": [],
+        "binding": "destinoAccesible"
+      }
+    ]
+  },
+  {
+    "id": 311,
+    "guideId": 29,
+    "lesson": "Difícil de estacionar",
+    "language": "prolog",
+    "solution": "dificilDeEstacionar(Z):-viveEn(_,Z), forall(viveEn(P,Z), tieneAuto(P)).",
+    "extra": "viveEn(mariano, avellaneda).\nviveEn(fede, avellaneda).\nviveEn(victoria, versalles).\nviveEn(rodrigo, villaBallester).\nviveEn(tomas, nuniez).\n\nquedaEn(utn, almagro).\nquedaEn(utn, villaLugano).\nquedaEn(exactas, nuniez).\nquedaEn(river, nuniez).\nquedaEn(racing, avellaneda). \nquedaEn(montoto, palermo).\nquedaEn(montoto, nuniez).\nquedaEn(montoto, avellaneda).\n\ntieneAuto(tomas).\ntieneAuto(fede). \n\nllegaFacil(batman, _).\nllegaFacil(Persona, _) :-\n tieneAuto(Persona).\nllegaFacil(Persona, Destino) :-\n  viveEn(Persona, Zona),\n  quedaEn(Destino, Zona).\n  \ndestinosProximos(Destino, OtroDestino) :-\n   quedaEn(Destino, Zona),\n   quedaEn(OtroDestino, Zona).\n   \nsonVecinos(UnaPersona, OtraPersona) :-\n    UnaPersona \\= OtraPersona,\n    viveEn(UnaPersona, Zona), \n    viveEn(OtraPersona, Zona).",
+    "test": "test('dificilDeEstacionar(nuniez)') :-\n  dificilDeEstacionar(nuniez).\n  \ntest('no dificilDeEstacionar(avellaneda)') :-\n  \\+ dificilDeEstacionar(avellaneda).\n  \ntest('no dificilDeEstacionar(versalles)') :-\n  \\+ dificilDeEstacionar(versalles).\n  \ntest('no dificilDeEstacionar(almagro)') :-\n  \\+ dificilDeEstacionar(almagro).",
+    "expectations": [
+      {
+        "inspection": "HasForall",
+        "expected": true,
+        "args": [],
+        "binding": "dificilDeEstacionar"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "dificilDeEstacionar"
+      }
+    ]
+  },
+  {
+    "id": 312,
+    "guideId": 29,
+    "lesson": "¡Demasiado fácil!, Parte 1",
+    "language": "prolog",
+    "solution": null,
+    "extra": "viveEn(mariano, avellaneda).\nviveEn(fede, avellaneda).\nviveEn(victoria, versalles).\nviveEn(rodrigo, villaBallester).\nviveEn(tomas, nuniez).\n\nquedaEn(utn, almagro).\nquedaEn(utn, villaLugano).\nquedaEn(exactas, nuniez).\nquedaEn(river, nuniez).\nquedaEn(racing, avellaneda). \nquedaEn(montoto, palermo).\nquedaEn(montoto, nuniez).\nquedaEn(montoto, avellaneda).\n\ntieneAuto(tomas).\ntieneAuto(fede). \n\nllegaFacil(batman, _).\nllegaFacil(Persona, _) :-\n tieneAuto(Persona).\nllegaFacil(Persona, Destino) :-\n  viveEn(Persona, Zona),\n  quedaEn(Destino, Zona).\n  \ndestinosProximos(Destino, OtroDestino) :-\n   quedaEn(Destino, Zona),\n   quedaEn(OtroDestino, Zona).\n   \nsonVecinos(UnaPersona, OtraPersona) :-\n    UnaPersona \\= OtraPersona,\n    viveEn(UnaPersona, Zona), \n    viveEn(OtraPersona, Zona).\n    \ndificilDeEstacionarV1(Zona) :-\n    viveEn(_, Zona),\n    forall(viveEn(Habitante, Zona), tieneAuto(Habitante)).\n    \ndificilDeEstacionarV2(Zona) :-\n    viveEn(Habitante, Zona),\n    forall(viveEn(Habitante, Zona), tieneAuto(Habitante)).",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 313,
+    "guideId": 29,
+    "lesson": "¡Demasiado fácil!, parte 2",
+    "language": "prolog",
+    "solution": null,
+    "extra": "viveEn(mariano, avellaneda).\nviveEn(fede, avellaneda).\nviveEn(victoria, versalles).\nviveEn(rodrigo, villaBallester).\nviveEn(tomas, nuniez).\n\nquedaEn(utn, almagro).\nquedaEn(utn, villaLugano).\nquedaEn(exactas, nuniez).\nquedaEn(river, nuniez).\nquedaEn(racing, avellaneda). \nquedaEn(montoto, palermo).\nquedaEn(montoto, nuniez).\nquedaEn(montoto, avellaneda).\n\ntieneAuto(tomas).\ntieneAuto(fede). \n\nllegaFacil(batman, _).\nllegaFacil(Persona, _) :-\n tieneAuto(Persona).\nllegaFacil(Persona, Destino) :-\n  viveEn(Persona, Zona),\n  quedaEn(Destino, Zona).\n  \ndestinosProximos(Destino, OtroDestino) :-\n   quedaEn(Destino, Zona),\n   quedaEn(OtroDestino, Zona).\n   \nsonVecinos(UnaPersona, OtraPersona) :-\n    UnaPersona \\= OtraPersona,\n    viveEn(UnaPersona, Zona), \n    viveEn(OtraPersona, Zona).\n    \nzonaHabitada(Zona) :-\n  viveEn(_, Zona).\n\ndificilDeEstacionarV3(Zona) :-\n    zonaHabitada(Zona),\n    forall(viveEn(Habitante, Zona), tieneAuto(Habitante)).",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 314,
+    "guideId": 29,
+    "lesson": "Juntando todo",
+    "language": "prolog",
+    "solution": "zonaDesierta(Z):-desierta(Z), forall(quedaEn(D, Z), not(quiereIr(P, D))).\ndesierta(Z):-not(zonaHabitada(Z)).",
+    "extra": "viveEn(mariano, avellaneda).\r\nviveEn(fede, avellaneda).\r\nviveEn(victoria, versalles).\r\nviveEn(rodrigo, villaBallester).\r\nviveEn(tomas, nuniez).\r\n\r\nquedaEn(utn, almagro).\r\nquedaEn(utn, villaLugano).\r\nquedaEn(exactas, nuniez).\r\nquedaEn(river, nuniez).\r\nquedaEn(racing, avellaneda). \r\nquedaEn(montoto, palermo).\r\nquedaEn(montoto, nuniez).\r\nquedaEn(montoto, avellaneda).\r\n\r\nquiereIr(tomas, racing).\r\nquiereIr(fede, racing).\r\nquiereIr(fede, montoto).\r\nquiereIr(victoria, montoto).\r\n\r\nzonaHabitada(Zona) :-\r\n  viveEn(_, Zona).",
+    "test": "test('zonaDesierta(villaLugano)'):-\n  zonaDesierta(villaLugano).\n  \n  \ntest('no zonaDesierta(avellaneda)'):-\n  not(zonaDesierta(avellaneda)).\n  \ntest('no zonaDesierta(versalles)'):-\n  not(zonaDesierta(versalles)).\n  \ntest('no zonaDesierta(palermo)'):-\n  not(zonaDesierta(palermo)).",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "zonaDesierta"
+      },
+      {
+        "inspection": "HasForall",
+        "expected": true,
+        "args": [],
+        "binding": "zonaDesierta"
+      },
+      {
+        "inspection": "HasNot",
+        "expected": true,
+        "args": [],
+        "binding": "zonaDesierta"
+      }
+    ]
+  }
+]

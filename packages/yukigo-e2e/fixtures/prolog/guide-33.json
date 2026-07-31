@@ -1,0 +1,336 @@
+[
+  {
+    "id": 349,
+    "guideId": 33,
+    "lesson": "area",
+    "language": "prolog",
+    "solution": "area(B, H, A):- A is B*H.",
+    "extra": null,
+    "test": "test(area_de_2_3_es_6) :-\n  area(2, 3, 6).\n\ntest(area_de_1_100_es_100) :-\n  area(1, 100, 100).\n\ntest(area_de_2_15_es_30) :-\n  area(2, 15, 30).",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "area"
+      }
+    ]
+  },
+  {
+    "id": 350,
+    "guideId": 33,
+    "lesson": "mitad",
+    "language": "prolog",
+    "solution": "mitad(N, M):-M is N/2.",
+    "extra": null,
+    "test": "test(mitad_de_2_es_1) :-\n  mitad(2, 1).\n\ntest(mitad_de_100_es_50) :-\n  mitad(100, 50).\n\ntest(mitad_de_30_es_15) :-\n  mitad(30, 15).",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "mitad"
+      }
+    ]
+  },
+  {
+    "id": 351,
+    "guideId": 33,
+    "lesson": "esAlcoholica",
+    "language": "prolog",
+    "solution": "esAlcoholica(B):-esWhisky(B).\nesAlcoholica(B):-esVino(B).",
+    "extra": "esVino(trapiche).\nesWhisky(criadores).\n",
+    "test": "test(el_agua_no_es_bebida_alcoholica, fail) :-\n  esAlcoholica(villavicencio).\n\ntest(el_vino_es_bebida_alcoholica) :-\n  esAlcoholica(trapiche).\n\ntest(el_whisky_es_bebida_alcoholica) :-\n  esAlcoholica(criadores).\n\ntest(el_jugo_de_naranja_no_es_bebida_alcoholica, fail) :-\n  esAlcoholica(tangNaranja).",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "esAlcoholica"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "esVino"
+        ],
+        "binding": "esAlcoholica"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "esWhisky"
+        ],
+        "binding": "esAlcoholica"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "esWhisky"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "esVino"
+      }
+    ]
+  },
+  {
+    "id": 352,
+    "guideId": 33,
+    "lesson": "calcularPrecio",
+    "language": "prolog",
+    "solution": "calcularPrecio(Cl, B, P):-costo(B, Co), recargo(Cl, B, R), P is (Co*R)/100.\n    \nrecargo(Cl, B, 125):-esComerciante(Cl), esAgua(B).\nrecargo(Cl, B, 100):-esComerciante(Cl), esGaseosa(B).\nrecargo(Cl, B, 130):-esComerciante(Cl), esAlcoholica(B).\nrecargo(Cl, B, 130):-esParticular(Cl), esAgua(B).\nrecargo(Cl, B, 140):-esParticular(Cl), esGaseosa(B).\nrecargo(Cl, B, 160):-esParticular(Cl), esAlcoholica(B), esNacional(B).\nrecargo(Cl, B, 170):-esParticular(Cl), esAlcoholica(B), esImportada(B).",
+    "extra": "esImportada(richelieu).\nesImportada(grants).\nesImportada(cucagna).\n\nesNacional(bianchi).\nesNacional(trapiche).\nesNacional(criadores).\n\nesAgua(villavicencio).\nesAgua(glaciar).\n\nesGaseosa(cocacola).\nesGaseosa(goliat).\n\nesAlcoholica(bianchi).\nesAlcoholica(trapiche).\nesAlcoholica(richelieu).\nesAlcoholica(cucagna).\nesAlcoholica(criadores).\nesAlcoholica(grants).\n\nesParticular(luisa).\nesComerciante(zoraida).\n\ncosto(villavicencio, 2).\ncosto(glaciar, 3).\ncosto(cocacola, 4).\ncosto(goliat, 1).\ncosto(bianchi, 7).\ncosto(trapiche, 12).\ncosto(richelieu, 13).\ncosto(cucagna, 18).\ncosto(criadores, 20).\ncosto(grants, 30).\n",
+    "test": "test('si un agua tiene costo 2, el precio particular es 2.6',nondet):-\n  calcularPrecio(luisa, villavicencio,X),\n  Y is 2*1.3, \n  assertion(X =:= Y).\n\ntest('si una gaseosa tiene costo 4, el precio particular es 5.6',nondet):-\n  calcularPrecio(luisa, cocacola, X), \n  Y is 4*1.4,\n  assertion(X =:= Y).\n\ntest('si una alcoholica tiene costo 20, el precio particular es 32',nondet):-\n  calcularPrecio(luisa, criadores,X),\n  Y is 20*1.6,\n  assertion(X =:= Y).\n  \ntest('si una alcoholica importada tiene costo 30, el precio particular es 51',nondet):-\n  calcularPrecio(luisa, grants,X),\n  Y is 30*1.7,\n  assertion(X =:= Y).\n\ntest('si el costo de un agua es 2, el costo comerciante es 2.5',nondet):-\n  calcularPrecio(zoraida, villavicencio,X),\n  Y is 2*1.25, \n  assertion(X =:= Y).\n\ntest('si el costo de una gaseosa es 4, el precio comerciante es 4',nondet):-\n  calcularPrecio(zoraida, cocacola,X),\n  assertion(X is 4).\n\ntest('si el costo de una alcoholica nacional es 20, el precio comerciante es 26',nondet):-\n  calcularPrecio(zoraida, criadores, X),\n  Y is 20 * 1.3,\n  assertion(X =:= Y).\n\ntest('si el costo de una alcoholica importada es 30, el precio comerciante es 39',nondet):-\n  calcularPrecio(zoraida, grants,X),\n  Y is 30 * 1.3,\n  assertion(X =:= Y).\n\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "calcularPrecio"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "recargo"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "esAlcoholica"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "recargo"
+        ],
+        "binding": "calcularPrecio"
+      }
+    ]
+  },
+  {
+    "id": 353,
+    "guideId": 33,
+    "lesson": "triple",
+    "language": "prolog",
+    "solution": "triple(N, T):-T is N*3.",
+    "extra": null,
+    "test": "test(triple_de_3_es_9) :-\n  triple(3, 9).\n\ntest(triple_de_30_es_90) :-\n  triple(30, 90).\n\ntest(triple_de_2_es_6) :-\n  triple(2, 6).",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "triple"
+      }
+    ]
+  },
+  {
+    "id": 354,
+    "guideId": 33,
+    "lesson": "Repaso funcional: Aplicación Parcial",
+    "language": "prolog",
+    "solution": "tipoDeAplicacion(AF, CAP, total):-AF == CAP.\ntipoDeAplicacion(AF, CAP, parcial):-between(0, AF, CAP), AF > CAP, CAP > 0.\ntipoDeAplicacion(_, CAP, sinAplicar):-0 == CAP.",
+    "extra": null,
+    "test": "test('tipoDeAplicacion(8, 7, parcial)') :-\n  tipoDeAplicacion(8, 7, parcial).\n\ntest('tipoDeAplicacion(4, 4, total)') :-\n  tipoDeAplicacion(4, 4, total).\n\ntest('tipoDeAplicacion(4, 3, parcial)') :-\n  tipoDeAplicacion(4, 3, parcial).\n\ntest('no tipoDeAplicacion(4, 4, parcial)') :-\n not(tipoDeAplicacion(4, 4, parcial)).\n\ntest('tipoDeAplicacion(4, 2, parcial)') :-\n  tipoDeAplicacion(4, 2, parcial).\n\ntest('no tipoDeAplicacion(4, 0, parcial)') :-\n  not(tipoDeAplicacion(4, 0, parcial)).\n\ntest('tipoDeAplicacion(2, 0, Tipo)') :-\n  tipoDeAplicacion(4, 0, Tipo),\n  assertion(Tipo == sinAplicar).\n\ntest('tipoDeAplicacion(4, CantidadDeArgumentos, parcial)') :-\n    tipoDeAplicacion(4, 1, parcial),\n    tipoDeAplicacion(4, 2, parcial),\n    tipoDeAplicacion(4, 3, parcial),\n    not(tipoDeAplicacion(4, 0, parcial)),\n    not(tipoDeAplicacion(4, 4, parcial)).\n\n    \n    \n    ",
+    "expectations": []
+  },
+  {
+    "id": 355,
+    "guideId": 33,
+    "lesson": "puntajeLanzamientoPrecision",
+    "language": "prolog",
+    "solution": "puntajeLanzamientoPrecision(C, 10):-metrosLanzamiento(C, D), between(9, 11, D).\npuntajeLanzamientoPrecision(C, 6):-metrosLanzamiento(C, D), between(7, 8, D).\npuntajeLanzamientoPrecision(C, 6):-metrosLanzamiento(C, D), between(12, 15, D).\npuntajeLanzamientoPrecision(C, 0):-metrosLanzamiento(C, D), D<7.\npuntajeLanzamientoPrecision(C, 0):-metrosLanzamiento(C, D), D>15.",
+    "extra": "metrosLanzamiento(ricky,10).\nmetrosLanzamiento(lowy,8).\nmetrosLanzamiento(gonza,13).\nmetrosLanzamiento(jess,6).\nmetrosLanzamiento(roli,17).\n",
+    "test": "test(ricky_saco_10_en_lanzamiento,nondet):-\n\tpuntajeLanzamientoPrecision(ricky,10).\n\ntest(lowy_saco_6_en_lanzamiento,nondet):-\n\tpuntajeLanzamientoPrecision(lowy,6).\n\ntest(gonza_saco_6_en_lanzamiento,nondet):-\n\tpuntajeLanzamientoPrecision(gonza,6).\n\ntest(jess_saco_0_en_lanzamiento,nondet):-\n\tpuntajeLanzamientoPrecision(jess,0).\n\ntest(roli_saco_0_en_lanzamiento,nondet):-\n\tpuntajeLanzamientoPrecision(roli,0).\n",
+    "expectations": []
+  },
+  {
+    "id": 356,
+    "guideId": 33,
+    "lesson": "puntajeFuerzaMartillo",
+    "language": "prolog",
+    "solution": "puntajeFuerzaMartillo(C, 3):-metrosMartillo(C, D), D<5.\npuntajeFuerzaMartillo(C, 6):-metrosMartillo(C, D), between(5, 10, D).\npuntajeFuerzaMartillo(C, P):-metrosMartillo(C, D), D>10, P is 9 + (D-10) * 2.",
+    "extra": "metrosMartillo(ricky,12).\nmetrosMartillo(lowy,6).\nmetrosMartillo(gonza,9).\nmetrosMartillo(jess,4).\nmetrosMartillo(roli,1).\n",
+    "test": "\ntest(ricky_saco_13_en_martillo,nondet):-\n\tpuntajeFuerzaMartillo(ricky,13).\n\ntest(gonza_saco_6_en_martillo,nondet):-\n\tpuntajeFuerzaMartillo(gonza,6).\n\ntest(lowy_saco_6_en_martillo,nondet):-\n\tpuntajeFuerzaMartillo(lowy,6).\n\ntest(jess_saco_3_en_martillo,nondet):-\n\tpuntajeFuerzaMartillo(jess,3).\n\ntest(roli_saco_3_en_martillo,nondet):-\n\tpuntajeFuerzaMartillo(roli,3).\n\n",
+    "expectations": []
+  },
+  {
+    "id": 357,
+    "guideId": 33,
+    "lesson": "puntajeEquilibrioEscoba",
+    "language": "prolog",
+    "solution": "puntajeEquilibrioEscoba(C, P):-metrosEscoba(C, D), P is round(D/3).",
+    "extra": "metrosEscoba(ricky,13).\nmetrosEscoba(lowy,7).\nmetrosEscoba(gonza,10).\nmetrosEscoba(jess,4).\nmetrosEscoba(roli,4).\n",
+    "test": "test(gonza_saco_3_en_escoba,nondet):-\n\tpuntajeEquilibrioEscoba(gonza,X),\n  assertion(X == 3).\n\ntest(lowy_saco_2_en_escoba,nondet):-\n\tpuntajeEquilibrioEscoba(lowy, X),\n  assertion(X == 2).\n\ntest(jess_saco_1_en_escoba,nondet):-\n\tpuntajeEquilibrioEscoba(jess,X),\n  assertion(X == 1).\n\ntest(roli_saco_1_en_escoba,nondet):-\n\tpuntajeEquilibrioEscoba(roli,X),\n  assertion(X == 1).\n\n\n",
+    "expectations": []
+  },
+  {
+    "id": 358,
+    "guideId": 33,
+    "lesson": "puntajeTotal",
+    "language": "prolog",
+    "solution": "puntajeTotal(C, 0):-puntajeLanzamientoPrecision(C, P), P < 5.\npuntajeTotal(C, 0):-puntajeFuerzaMartillo(C, P), P < 5.\npuntajeTotal(C, 0):-puntajeEquilibrioEscoba(C, P), P < 5.\npuntajeTotal(C, P):-puntajeLanzamientoPrecision(C, P1), puntajeFuerzaMartillo(C, P2), puntajeEquilibrioEscoba(C, P3), P is P1+P2+P3.",
+    "extra": "puntajeLanzamientoPrecision(toto, 40).\npuntajeLanzamientoPrecision(jose, 3).\npuntajeLanzamientoPrecision(hector, 12).\npuntajeLanzamientoPrecision(brienne, 10).\n\npuntajeFuerzaMartillo(toto, 4).\npuntajeFuerzaMartillo(jose, 20).\npuntajeFuerzaMartillo(hector, 10).\npuntajeFuerzaMartillo(brienne, 20).\n\npuntajeEquilibrioEscoba(toto, 12).\npuntajeEquilibrioEscoba(jose, 10).\npuntajeEquilibrioEscoba(hector, 4).\npuntajeEquilibrioEscoba(brienne, 30).",
+    "test": "test(si_martillo_no_llega_a_5_es_cero, nondet) :-\n  puntajeTotal(toto, 0).\n\ntest(si_lanzamiento_no_llega_a_5_es_cero, nondet) :-\n  puntajeTotal(jose, 0).\n\ntest(si_escoba_no_llega_a_5_es_cero, nondet) :-\n  puntajeTotal(hector, 0).\n\ntest(si_todos_superan_5_es_su_sumatoria) :-\n  puntajeTotal(brienne, X),\n  assertion(X == 60).",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "puntajeTotal"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "puntajeLanzamientoPrecision"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "puntajeFuerzaMartillo"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "puntajeEquilibrioEscoba"
+      }
+    ]
+  },
+  {
+    "id": 359,
+    "guideId": 33,
+    "lesson": "asesinato",
+    "language": "prolog",
+    "solution": "viveEnMansion(agatha).\nviveEnMansion(carnicero).\nviveEnMansion(charles).\n\nodiaA(agatha, P):-viveEnMansion(P), P\\=carnicero.\nodiaA(charles, P):-viveEnMansion(P), not(odiaA(agatha, P)).\nodiaA(carnicero, P):-odiaA(agatha, P).\n\nmasRicoQueAgatha(P):-viveEnMansion(P), not(odiaA(carnicero, P)).\n\nasesino(V, P):-odiaA(P, V), viveEnMansion(P), not(masRicoQueAgatha(P)).",
+    "extra": null,
+    "test": "test(agatha_se_suicido):-\n\tasesino(agatha, agatha).\n\ntest(carnicero_no_mato_a_agatha):-\n\tnot(asesino(agatha, carnicero)).\n\ntest(charles_no_mato_a_agatha):-\n\tnot(asesino(agatha, charles)),imprimir(\"\\nMensaje: Por si te quedo la duda, Agatha se suicido\\n\").\n\nimprimir(Mensaje):-atom_string(Mensaje,X),write(X).\n",
+    "expectations": []
+  },
+  {
+    "id": 360,
+    "guideId": 33,
+    "lesson": "Equipo al horno",
+    "language": "prolog",
+    "solution": "alHorno(E):-perteneceA(_, E), forall(perteneceA(P, E), mal(P)).\nmal(P):-fueraDeJuego(P).\nmal(P):-nivelDeEnergia(P, E), E<10.",
+    "extra": "perteneceA(jose, a).\nperteneceA(pedro, b).\nperteneceA(analia, c).\nperteneceA(maria, c).\nperteneceA(maria, d).\nperteneceA(analia, d).\nperteneceA(hector, d).\nperteneceA(jose, e).\nperteneceA(pedro, e).\n\nfueraDeJuego(jose).\n\nnivelDeEnergia(pedro, 5).\nnivelDeEnergia(analia, 5).\nnivelDeEnergia(maria, 1).\nnivelDeEnergia(hector, 12).\nnivelDeEnergia(jose, 15).",
+    "test": "test('esta al horno si tiene un solo integrante y esta fuera de juego') :-\n  alHorno(a).\n  \ntest('esta al horno si tiene un solo integrante y esta debil') :-\n  alHorno(b).\n  \ntest('esta al horno si tiene dos integrantes y todos estan debiles') :-\n  alHorno(c).\n  \ntest('esta al horno si tiene dos integrantes y uno esta debil y el otro fuera de juego') :-\n  alHorno(e).\n  \ntest('no esta al horno si uno de sus integrantes esta en el juego no debil') :-\n  \\+ alHorno(d).\n  \ntest('no esta al horno si uno de sus integrantes esta en el juego no debil') :-\n  \\+ alHorno(d).\n  \ntest('esta al horno es inversible y se relaciona con los equipos al horno', set(Equipos == [a, b, c, e])) :-\n  alHorno(Equipos).\n",
+    "expectations": []
+  },
+  {
+    "id": 361,
+    "guideId": 33,
+    "lesson": "Equipo cipayo",
+    "language": "prolog",
+    "solution": "equipoCipayo(E1):- perteneceA(P1, E1), perteneceA(P2, E1), perteneceA(P1, E2), perteneceA(P2, E3), E1\\=E2, E1\\=E3, P1\\=P2.",
+    "extra": "perteneceA(jose, a).\nperteneceA(pedro, b).\nperteneceA(hector, b).\nperteneceA(analia, c).\nperteneceA(maria, c).\nperteneceA(maria, d).\nperteneceA(analia, d).\nperteneceA(hector, d).\n\nperteneceA(juan, pecesGordos).\nperteneceA(gaston, pecesGordos).\nperteneceA(lean, pecesGordos).\nperteneceA(juan, maiusArmy).\nperteneceA(gaston, maiusArmy).\n\nperteneceA(gus, niuflo).\nperteneceA(ramiro, niuflo).\nperteneceA(lean, niuflo).\nperteneceA(gus, theBTrees).\n\nfueraDeJuego(jose).\n\nenergia(pedro, 5).\nenergia(analia, 5).\nenergia(maria, 1).\nenergia(hector, 12).",
+    "test": "test('si dos miembros pertencen a otro equipo, es cipayo', nondet):-\n  equipoCipayo(d).\n  \ntest('si ningun miembro pertence a otro equipo, no es cipayo', fail):-\n  equipoCipayo(a).\n  \ntest('si un sólo miebro pertence a otro equipo, no es cipayo', fail):-\n  equipoCipayo(b).\n  \ntest('si dos miembros pertencen a otro equipo, pero uno no, sigue siendo cipayo', nondet):-\n  equipoCipayo(pecesGordos).\n\ntest('si dos miembros pertencen a otro equipo (distintos para cada uno), es cipayo', nondet):-\n  equipoCipayo(niuflo).\n  \ntest('equipoCipayo es inversible y relaciona con todos los equipos cipayos', set(Equipos == [d, c, pecesGordos, maiusArmy, niuflo])):-\n  equipoCipayo(Equipos).\n",
+    "expectations": []
+  },
+  {
+    "id": 362,
+    "guideId": 33,
+    "lesson": "Equipo Abandonó",
+    "language": "prolog",
+    "solution": "abandono(E):-equipo(E), not(perteneceA(_, E)).",
+    "extra": "perteneceA(pedro, b).\nperteneceA(hector, b).\nperteneceA(analia, c).\nperteneceA(maria, c).\nperteneceA(maria, d).\nperteneceA(analia, d).\nperteneceA(hector, d).\n\nequipo(a).\nequipo(b).\nequipo(c).",
+    "test": "test('no abandono un equipo si tiene integrantes') :-\n \\+ abandono(b).\n \ntest('no abandono un equipo si tiene integrantes, 2') :-\n \\+ abandono(c).\n \ntest('abandono un equipo si no tiene integrantes') :-\n abandono(a).\n \ntest('no abandono si no es un equipo') :-\n \\+ abandono(d).\n \ntest('abandono es inversible y se relaciona con todos los equipos que abandonaron', set(Equipo == [a])) :-\n abandono(Equipo).",
+    "expectations": []
+  },
+  {
+    "id": 363,
+    "guideId": 33,
+    "lesson": "tareas",
+    "language": "prolog",
+    "solution": "t(T):-tarea(T, _, _).\nv(T1, T2):-t(T1), t(T2).\nanterior(T1, T2):-v(T1, T2), precede(T1, T2).\nanterior(T1, T2):-v(T1, T2), precede(T1, TI), precede(TI, T2).\n\nmeFaltaPara(T, F):-v(T, F), anterior(F, T), not(realizada(F)).\n\npuedoHacer(T):-t(T), not(realizada(T)), not(meFaltaPara(T, _)).",
+    "extra": "tarea(login, 80, programador).\ntarea(cacheDistribuida, 120, arquitecto).\ntarea(pruebasPerformance, 100, tester).\ntarea(tuning, 30, arquitecto).\ntarea(siesta, 2, programador).\n\nprecede(login, siesta).\nprecede(cacheDistribuida, pruebasPerformance).\nprecede(pruebasPerformance, tuning).\n\nrealizada(login).",
+    "test": "test(cacheDistribuida_y_pruebasPerformance_son_anteriores_a_tuning, set(Anteriores == [cacheDistribuida, pruebasPerformance])):-\n\tanterior(Anteriores, tuning).\n\t\ntest(login_es_anterior_a_siesta, nondet):-\n\tanterior(login, siesta).\n\ntest(para_tuning_me_faltan_pruebasPerformance_y_cacheDistribuida, set(Tarea == [pruebasPerformance, cacheDistribuida])):-\n\tmeFaltaPara(tuning, Tarea).\n\t\ntest(para_la_siesta_no_faltan_mas_tareas):-\n\tnot(meFaltaPara(siesta, _)).\n\ntest(puedo_hacer_siesta_y_cacheDistribuida, set(Tareas == [siesta, cacheDistribuida])):-\n\tpuedoHacer(Tareas).",
+    "expectations": [
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "1"
+        ],
+        "binding": "puedoHacer"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "meFaltaPara"
+        ],
+        "binding": "puedoHacer"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "puedoHacer"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "meFaltaPara"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "anterior"
+      },
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "2"
+        ],
+        "binding": "meFaltaPara"
+      },
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "2"
+        ],
+        "binding": "anterior"
+      }
+    ]
+  },
+  {
+    "id": 364,
+    "guideId": 33,
+    "lesson": "tareaRiesgosa",
+    "language": "prolog",
+    "solution": "tareaRiesgosa(T):-tarea(T, D, _), D >= 40, not(realizada(T)).",
+    "extra": "tarea(login, 80, programador).\ntarea(cacheDistribuida, 120, arquitecto).\ntarea(pruebasPerformance, 100, tester).\ntarea(tuning, 30, arquitecto).\ntarea(siesta, 2, programador).\n\nprecede(login, siesta).\nprecede(cacheDistribuida, pruebasPerformance).\nprecede(pruebasPerformance, tuning).\n\nrealizada(login).",
+    "test": "test(pruebasPerformance_es_tarea_de_riesgo):-\n\ttareaRiesgosa(pruebasPerformance).\n\t\ntest(login_no_es_tarea_de_riesgo, fail):-\n\ttareaRiesgosa(login).\n\ntest(siesta_no_es_tarea_de_riesgo, fail):-\n\ttareaRiesgosa(siesta).",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "tareaRiesgosa"
+      },
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "1"
+        ],
+        "binding": "tareaRiesgosa"
+      }
+    ]
+  }
+]

@@ -1,0 +1,198 @@
+[
+  {
+    "id": 88,
+    "guideId": 11,
+    "lesson": "Maestros Agua",
+    "language": "wollok",
+    "solution": "class MaestroAgua {\n  var habilidad\n  \n  method esGroso() {\n    return habilidad > 5\n  }\n  \n  method poder() {\n    return habilidad * 100\n  }\n}",
+    "extra": null,
+    "test": "test \"el poder de un maestro agua depende de su habilidad\"{\r\n  var maestro = new MaestroAgua(habilidad = 6)\r\n\tassert.equals(600, maestro.poder())\r\n}\r\ntest \"un maestro agua es groso si su habilidad es mayor a 5\" {\r\n  var maestro = new MaestroAgua(habilidad = 50)\r\n\tassert.that(maestro.esGroso())\r\n}\r\n\r\ntest \"un maestro agua no es groso si su habilidad no es mayor a 5\" {\r\n  var maestro = new MaestroAgua(habilidad = 4)\r\n\tassert.notThat(maestro.esGroso())\r\n}",
+    "expectations": []
+  },
+  {
+    "id": 89,
+    "guideId": 11,
+    "lesson": "Maestros Fuego",
+    "language": "wollok",
+    "solution": "class MaestroFuego {\n  var habilidad\n  var rabia\n  var locura\n  \n  method esGroso() {\n    return habilidad > 5\n  }\n  \n  method poder() {\n    return rabia / locura\n  }\n}",
+    "extra": "/*...previousSolution...*/\n",
+    "test": "test \"el poder de un maestro fuego depende de su rabia y su locura\"{\r\n  const maestro = new MaestroFuego(habilidad = 70, rabia = 200, locura = 0.1)\r\n\tassert.equals(2000, maestro.poder())\r\n}\r\ntest \"un maestro fuego no es groso si su habilidad no es mayor a 5\" {\r\n  const maestro = new MaestroFuego(habilidad = 3, rabia = 20, locura = 0.1)\r\n\tassert.notThat(maestro.esGroso())\r\n}\r\ntest \"un maestro fuego es groso si su habilidad es mayor a 5\" {\r\n  const maestro = new MaestroFuego(habilidad = 70, rabia = 200, locura = 0.1)\r\n\tassert.that(maestro.esGroso())\r\n}",
+    "expectations": []
+  },
+  {
+    "id": 90,
+    "guideId": 11,
+    "lesson": "Intro Herencia",
+    "language": "wollok",
+    "solution": "class Bisonte {\n  var peso\n  \n  method peso() {\n    return peso\n  }\n  \n  method comer() {\n    peso += 2\n  }\n}\n\n\nclass BisonteVolador inherits Bisonte {\n  method yipYip() {\n    peso -= 1\n  }\n}",
+    "extra": null,
+    "test": "test \"Un bisonte sube de peso cuando come\" {\n  var bisonte = new Bisonte(peso = 10)\n  bisonte.comer()\n\tassert.equals(12, bisonte.peso())\n}\n\ntest \"Un bisonte volador sube de peso cuando come\" {\n  var bisonte = new BisonteVolador(peso = 15)\n  bisonte.comer()\n\tassert.equals(17, bisonte.peso())\n}\n\ntest \"Un bisonte volador pierde peso cuando vuela\" {\n  var bisonte = new BisonteVolador(peso = 15)\n  bisonte.yipYip()\n\tassert.equals(14, bisonte.peso())\n}\n\ntest \"Un bisonte normal no puede volar\" {\n  var bisonte = new Bisonte(peso = 10)\n  assert.throwsException({bisonte.yipYip()})\n}",
+    "expectations": [
+      {
+        "inspection": "Inherits",
+        "expected": true,
+        "args": [
+          "Bisonte"
+        ],
+        "binding": "BisonteVolador"
+      },
+      {
+        "inspection": "DeclaresMethod",
+        "expected": false,
+        "args": [
+          "comer"
+        ],
+        "binding": "BisonteVolador"
+      },
+      {
+        "inspection": "DeclaresMethod",
+        "expected": true,
+        "args": [
+          "comer"
+        ],
+        "binding": "Bisonte"
+      },
+      {
+        "inspection": "DeclaresMethod",
+        "expected": false,
+        "args": [
+          "yipYip"
+        ],
+        "binding": "Bisonte"
+      },
+      {
+        "inspection": "DeclaresMethod",
+        "expected": true,
+        "args": [
+          "yipYip"
+        ],
+        "binding": "BisonteVolador"
+      },
+      {
+        "inspection": "DeclaresAttribute",
+        "expected": true,
+        "args": [
+          "peso"
+        ],
+        "binding": "Bisonte"
+      }
+    ]
+  },
+  {
+    "id": 91,
+    "guideId": 11,
+    "lesson": "Mejorando lo que hicimos",
+    "language": "wollok",
+    "solution": "class Maestro {\n  var habilidad\n  \n  method esGroso() {\n    return habilidad > 5\n  }\n  \n}\n\n\nclass MaestroAgua inherits Maestro {\n\n\n  method poder() {\n    return habilidad * 100\n  }\n}\n\n\nclass MaestroFuego inherits Maestro {\n  var rabia\n  var locura\n  \n  method poder() {\n    return rabia / locura\n  }\n}",
+    "extra": "class MaestroTierra inherits Maestro {\n  \n}",
+    "test": "test \"el poder de un maestro agua depende de su habilidad\"{\r\n  var katara = new MaestroAgua(habilidad = 50)\r\n\tassert.equals(5000, katara.poder())\r\n}\r\ntest \"un maestro agua es groso si su habilidad es mayor a 5\" {\r\n  var katara = new MaestroAgua(habilidad = 50)\r\n\tassert.that(katara.esGroso())\r\n}\r\ntest \"el poder de un maestro fuego depende de su rabia y su locura\"{\r\n  var irho = new MaestroFuego(habilidad = 70, rabia = 200, locura = 0.1)\r\n\tassert.equals(2000, irho.poder())\r\n}\r\ntest \"un maestro fuego es groso si su habilidad es mayor a 5\" {\r\n  var irho = new MaestroFuego(habilidad = 70, rabia = 200, locura = 0.1)\r\n\tassert.that(irho.esGroso())\r\n}\r\ntest \"un maestro fuego no es groso si su habilidad es menor o igual a 5\" {\r\n  var maestro = new MaestroFuego(habilidad = 5, rabia = 200, locura = 0.1)\r\n\tassert.notThat(maestro.esGroso())\r\n}\r\ntest \"un maestro agua no es groso si su habilidad es menor o igual a 5\" {\r\n  var maestro = new MaestroAgua(habilidad = 3)\r\n\tassert.notThat(maestro.esGroso())\r\n}\r\n\r\ntest \"otros maestros también son grosos si la habilidad es mayor a 5\" {\r\n  var otroMaestro = new MaestroTierra(habilidad = 10)\r\n  assert.that(otroMaestro.esGroso())\r\n}",
+    "expectations": [
+      {
+        "inspection": "Inherits",
+        "expected": true,
+        "args": [
+          "Maestro"
+        ],
+        "binding": "MaestroAgua"
+      },
+      {
+        "inspection": "Inherits",
+        "expected": true,
+        "args": [
+          "Maestro"
+        ],
+        "binding": "MaestroFuego"
+      },
+      {
+        "inspection": "DeclaresMethod",
+        "expected": true,
+        "args": [
+          "esGroso"
+        ],
+        "binding": "Maestro"
+      },
+      {
+        "inspection": "DeclaresMethod",
+        "expected": false,
+        "args": [
+          "esGroso"
+        ],
+        "binding": "MaestroAgua"
+      },
+      {
+        "inspection": "DeclaresMethod",
+        "expected": false,
+        "args": [
+          "esGroso"
+        ],
+        "binding": "MaestroFuego"
+      },
+      {
+        "inspection": "DeclaresMethod",
+        "expected": true,
+        "args": [
+          "poder"
+        ],
+        "binding": "MaestroAgua"
+      },
+      {
+        "inspection": "DeclaresMethod",
+        "expected": true,
+        "args": [
+          "poder"
+        ],
+        "binding": "MaestroFuego"
+      }
+    ]
+  },
+  {
+    "id": 92,
+    "guideId": 11,
+    "lesson": "Cambios de lógica",
+    "language": "wollok",
+    "solution": "class Maestro {\n  var habilidad\n  \n  method esGroso() {\n    return habilidad > 5 and self.poder() > 1000\n  }\n  \n}\n\n\nclass MaestroAgua inherits Maestro {\n\n\n  method poder() {\n    return habilidad * 100\n  }\n}\n\n\nclass MaestroFuego inherits Maestro {\n  var rabia\n  var locura\n  \n  method poder() {\n    return rabia / locura\n  }\n}",
+    "extra": "class MaestroTierra inherits Maestro {\n  override method poder() = 2000\n}",
+    "test": "test \"un maestro es groso si su habilidad es mayor a 5 y su poder es mayor a 1000\" {\r\n  var katara = new MaestroAgua(habilidad = 50)\r\n\tassert.that(katara.esGroso())\r\n}\r\n\r\ntest \"un maestro no es groso si su habilidad no es mayor a 5 \" {\r\n  var otroMaestro = new MaestroTierra(habilidad = 3)\r\n\tassert.notThat(otroMaestro.esGroso())\r\n}\r\n\r\ntest \"un maestro no es groso si su poder no es mayor a 1000\" {\r\n  var zuko = new MaestroFuego(habilidad = 7, rabia = 500, locura = 1)\r\n\tassert.notThat(zuko.esGroso())\r\n}\r\n",
+    "expectations": []
+  },
+  {
+    "id": 93,
+    "guideId": 11,
+    "lesson": "Extendiendo el dominio",
+    "language": "wollok",
+    "solution": "class Maestro {\n  var habilidad\n  \n  method esGroso() {\n    return habilidad > 5 and self.poder() > 1000\n  }\n  \n}\n\n\nclass MaestroAgua inherits Maestro {\n\n\n  method poder() {\n    return habilidad * 100\n  }\n  \n  method esPeligroso() {\n    return self.poder() > 3000\n  }\n}\n\n\nclass MaestroFuego inherits Maestro {\n  var rabia\n  var locura\n  \n  method poder() {\n    return rabia / locura\n  }\n}",
+    "extra": null,
+    "test": "test \"un maestro es peligroso si su poder es alto\" {\r\n\tvar maestroAgua = new MaestroAgua(habilidad = 50)\r\n\tassert.that(maestroAgua.esPeligroso())\r\n}\r\n\r\ntest \"un maestro no es peligroso si su poder es bajo\" {\r\n\tvar maestroAgua = new MaestroAgua(habilidad = 10)\r\n\tassert.notThat(maestroAgua.esPeligroso())\r\n}",
+    "expectations": []
+  },
+  {
+    "id": 94,
+    "guideId": 11,
+    "lesson": "Redefinicion",
+    "language": "wollok",
+    "solution": "class MaestroSangre inherits MaestroAgua {\n  override method esPeligroso() {\n    return true\n  }\n}",
+    "extra": "/*...previousSolution...*/\n",
+    "test": "test \"un maestro sangre es peligroso siempre\" {\r\n\tvar maestroSangre = new MaestroSangre(habilidad = 1)\r\n\tassert.that(maestroSangre.esPeligroso())\r\n}\r\n\r\ntest \"un maestro es peligroso si su poder es alto\" {\r\n\tvar maestroAgua = new MaestroAgua(habilidad = 50)\r\n\tassert.that(maestroAgua.esPeligroso())\r\n}\r\n\r\ntest \"un maestro no es peligroso si su poder es bajo\" {\r\n\tvar maestroAgua = new MaestroAgua(habilidad = 10)\r\n\tassert.notThat(maestroAgua.esPeligroso())\r\n}",
+    "expectations": []
+  },
+  {
+    "id": 95,
+    "guideId": 11,
+    "lesson": "Super!",
+    "language": "wollok",
+    "solution": "class MaestroSangre inherits MaestroAgua {\n  override method esPeligroso() {\n    return true\n  }\n  \n  override method poder() {\n    return super() * 2\n  }\n}\n\n\nclass Maestro {\n  var property habilidad\n  \n  method esGroso() {\n    return habilidad > 5 and self.poder() > 1000\n  }\n  \n}\n\n\nclass MaestroAgua inherits Maestro {\n\n\n  method poder() {\n    return habilidad * 100\n  }\n  \n  method esPeligroso() {\n    return self.poder() > 3000\n  }\n}\n\n\nclass MaestroFuego inherits Maestro {\n  var rabia\n  var locura\n  \n  method poder() {\n    return rabia / locura\n  }\n}",
+    "extra": "class Padre {\n  method m1() {\n    return 42\n  }\n  method m2(valor){\n    return self.m1() + valor\n  }\n}\n\nclass Hijo1 inherits Padre {\n  override method m1() {\n    return super() - 1\n  }\n}\n\nclass Nieto inherits Hijo1 {\n  method m3(){\n    return self.m2(8)\n  }\n}\n\nclass Hijo2 inherits Padre {\n  override method m2(valor) {\n    return super(valor) * 2\n  }\n}\n\n\n",
+    "test": "test \"un maestro sangre es el doble de poderoso que un maestro agua con la misma habilidad\"{\r\n  var katara = new MaestroAgua(habilidad = 50)\r\n\tvar maestroSangre = new MaestroSangre(habilidad = katara.habilidad())\r\n\tassert.equals(katara.poder()*2, maestroSangre.poder())\r\n}",
+    "expectations": []
+  },
+  {
+    "id": 96,
+    "guideId": 11,
+    "lesson": "El último maestro aire",
+    "language": "wollok",
+    "solution": "object aang inherits Maestro (habilidad = 100) {\n  var property mascota\n  \n  method poder() {\n    return mascota.poder() * habilidad\n  }\n}\n\n\nobject appa {\n  method poder() {\n    return 150\n  }\n}\n\n\nobject momo {\n  method poder() {\n    return 15\n  }\n}",
+    "extra": "/*...previousSolution...*/\n",
+    "test": "test \"el poder de aang es 15000 cuando appa es su mascota\" {\r\n\taang.mascota(appa)\r\n\tassert.equals(15000, aang.poder())\r\n}\r\n\r\ntest \"el poder de aang es 1500 cuando momo es su mascota\" {\r\n\taang.mascota(momo)\r\n\tassert.equals(1500, aang.poder())\r\n}\r\n\r\ntest \"aang es groso en base a su poder y habilidad\" {\r\n\taang.mascota(appa)\r\n\tassert.that(aang.esGroso())\r\n}\r\n\r\ntest \"aang no es groso si tiene una mascota mediocre\" {\r\n  const raton = object {\r\n    method poder() = 1\r\n  }\r\n  aang.mascota(raton)\r\n  assert.notThat(aang.esGroso())\r\n}",
+    "expectations": []
+  }
+]

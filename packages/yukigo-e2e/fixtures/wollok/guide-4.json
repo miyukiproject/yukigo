@@ -1,0 +1,102 @@
+[
+  {
+    "id": 33,
+    "guideId": 4,
+    "lesson": "Personajes de una historia",
+    "language": "wollok",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 34,
+    "guideId": 4,
+    "lesson": "Haciendo preguntas",
+    "language": "wollok",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 35,
+    "guideId": 4,
+    "lesson": "No lo sabe todo",
+    "language": "wollok",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 36,
+    "guideId": 4,
+    "lesson": "Primeras respuestas",
+    "language": "wollok",
+    "solution": "object espejoMagico {\n  method quienEsLaMasBellaDelReino() {\n    return \"reina malvada\"\n  }\n}",
+    "extra": null,
+    "test": "test \"La mas bella del reino es la reina malvada\" {\n  assert.equals(\"reina malvada\", espejoMagico.quienEsLaMasBellaDelReino())\n}",
+    "expectations": []
+  },
+  {
+    "id": 37,
+    "guideId": 4,
+    "lesson": "Sin respuestas",
+    "language": "wollok",
+    "solution": null,
+    "extra": "object lobo {\n   var ubicacion = \"bosque\"\n   \n   method dondeEstas() {\n      return ubicacion\n   }\n   \n   method andaALaCasaDeLaAbuela() {\n      ubicacion = \"casa de la abuela\"\n   }\n  }",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 38,
+    "guideId": 4,
+    "lesson": "Por favor",
+    "language": "wollok",
+    "solution": null,
+    "extra": "object lobo {\n   var ubicacion = \"bosque\"\n   \n   method dondeEstas() {\n      return ubicacion\n   }\n   \n   method andaALaCasaDeLaAbuela() {\n      ubicacion = \"casa de la abuela\"\n   }\n  }",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 39,
+    "guideId": 4,
+    "lesson": "Recuerdos",
+    "language": "wollok",
+    "solution": "object espejoMagico {\n  var laReinaMasBella = \"reina malvada\"\n  \n  method quienEsLaMasBellaDelReino() {\n    return laReinaMasBella\n  }\n  \n  method pasoElTiempo() {\n    laReinaMasBella = \"Blancanieves\"\n  }\n}",
+    "extra": "object lobo {\n   var ubicacion = \"bosque\"\n   \n   method dondeEstas() {\n      return ubicacion\n   }\n   \n   method andaALaCasaDeLaAbuela() {\n      ubicacion = \"casa de la abuela\"\n   }\n  }",
+    "test": "test \"Cuando blancanieves crece, el espejo magico dice que ella es la mas bella del reino\" {\n  espejoMagico.pasoElTiempo()\n  assert.equals(espejoMagico.quienEsLaMasBellaDelReino(),\"Blancanieves\")\n}\n",
+    "expectations": []
+  },
+  {
+    "id": 40,
+    "guideId": 4,
+    "lesson": "Curiosidad",
+    "language": "wollok",
+    "solution": null,
+    "extra": "object abuela {\n    var edad = 99\n}\n",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 41,
+    "guideId": 4,
+    "lesson": "Respeto a la intimidad",
+    "language": "wollok",
+    "solution": "object abuela {\n    var edad = 99\n    \n    method edad() {\n      return edad\n    }\n}",
+    "extra": null,
+    "test": "test \"La abuela tiene 99 años\" {\n  assert.equals(99, abuela.edad())\n}\n\n",
+    "expectations": []
+  },
+  {
+    "id": 42,
+    "guideId": 4,
+    "lesson": "Pasando valores",
+    "language": "wollok",
+    "solution": "object abuela {\n  var edad = 99\n  method cumplirAnios(){\n    edad = edad + 1\n  }\n\n\n  method edad() {\n    return edad\n  }\n  \n  method edad(anios) {\n    edad = anios\n  }\n}",
+    "extra": null,
+    "test": "/*...content...*/\n\ntest \"la abuela modifica su edad a 15\"{\n  abuela.edad(15)\n  assert.equals(15, abuela.edad())\n}\n",
+    "expectations": []
+  }
+]

@@ -1,0 +1,317 @@
+[
+  {
+    "id": 181,
+    "guideId": 20,
+    "lesson": "esMultiploDe",
+    "language": "haskell",
+    "solution": "esMultiploDe a = ((== 0) . rem a)",
+    "extra": null,
+    "test": "describe \"esMultiploDe\" $ do\n  it \"devuelve True dado un 3 y un 3\" $ do\n    (3 `esMultiploDe` 3) `shouldBe` True\n\n  it \"devuelve True dado un 3 y un 1\" $ do\n    (3 `esMultiploDe` 1) `shouldBe` True\n\n  it \"devuelve True dado un 10 y un 1\" $ do\n    (10 `esMultiploDe` 1) `shouldBe` True\n\n  it \"devuelve True dado un 10 y un 2\" $ do\n    (10 `esMultiploDe` 2) `shouldBe` True\n\n  it \"devuelve True dado un 20 y un 5\" $ do\n    (20 `esMultiploDe` 5) `shouldBe` True\n\n  it \"devuelve False dado un 3 y un 2\" $ do\n    (3 `esMultiploDe` 2) `shouldBe` False\n\n  it \"devuelve False dado un 30 y un 40\" $ do\n    (30 `esMultiploDe` 40) `shouldBe` False\n\n  it \"devuelve False dado un 8 y un 7\" $ do\n    (8 `esMultiploDe` 7) `shouldBe` False\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "esMultiploDe"
+      },
+      {
+        "inspection": "HasComposition",
+        "expected": true,
+        "args": [],
+        "binding": "esMultiploDe"
+      }
+    ]
+  },
+  {
+    "id": 182,
+    "guideId": 20,
+    "lesson": "esBisiesto",
+    "language": "haskell",
+    "solution": "esBisiesto a = esMultiploDe a 400 || ((esMultiploDe a 4) && (not . esMultiploDe a) 100 )",
+    "extra": "esMultiploDe x y = mod x y == 0\n",
+    "test": "let esMultiploDe x y = mod x y == 0\n\ndescribe \"esBisiesto\" $ do\n  it \"1004 es bisiesto\" $ do\n    esBisiesto 1004 `shouldBe` True\n\n  it \"8 es bisiesto\" $ do\n    esBisiesto 8 `shouldBe` True\n\n  it \"1996 es bisiesto\" $ do\n    esBisiesto 1996 `shouldBe` True\n    \n  it \"800 es bisiesto\" $ do\n    esBisiesto 800 `shouldBe` True\n\n  it \"100 no es bisiesto\" $ do\n    esBisiesto 100 `shouldBe` False\n\n  it \"2022 no es bisiesto\" $ do\n    esBisiesto 2022 `shouldBe` False\n\n  it \"2021 no es bisiesto\" $ do\n    esBisiesto 2021 `shouldBe` False\n\n  it \"2014 no es bisiesto\" $ do\n    esBisiesto 2014 `shouldBe` False\n\n  it \"200 no es bisiesto\" $ do\n    esBisiesto 200 `shouldBe` False\n\n\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "esBisiesto"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "esMultiploDe"
+        ],
+        "binding": "esBisiesto"
+      },
+      {
+        "inspection": "HasComposition",
+        "expected": true,
+        "args": [],
+        "binding": "esBisiesto"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "esMultiploDe"
+      }
+    ]
+  },
+  {
+    "id": 183,
+    "guideId": 20,
+    "lesson": "dobleDelLargo",
+    "language": "haskell",
+    "solution": "dobleDelLargo = (2*) . length",
+    "extra": null,
+    "test": "describe \"dobleDelLargo\" $ do\n  it \"dobleDelLargo \\\"aloha\\\" == 10\" $ do\n    dobleDelLargo \"aloha\" `shouldBe` 10\n\t\n  it \"dobleDelLargo \\\"\\\" == 0\" $ do\n    dobleDelLargo \"\" `shouldBe` 0\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "dobleDelLargo"
+      },
+      {
+        "inspection": "HasComposition",
+        "expected": true,
+        "args": [],
+        "binding": "dobleDelLargo"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "length"
+        ],
+        "binding": "dobleDelLargo"
+      }
+    ]
+  },
+  {
+    "id": 184,
+    "guideId": 20,
+    "lesson": "sumarNumeroAlTriple",
+    "language": "haskell",
+    "solution": "triple = (3*)\nsumarNumeroAlTriple a b = ((b +) . triple) a",
+    "extra": null,
+    "test": "describe \"sumarNumeroAlTriple\" $ do\n  it \"sumarNumeroAlTriple 5 2 == 17\" $ do\n    sumarNumeroAlTriple 5 2 `shouldBe` 17\n  \n  it \"sumarNumeroAlTriple 6 25 == 43\" $ do\n    sumarNumeroAlTriple 6 25 `shouldBe` 43\n\t\n  it \"sumarNumeroAlTriple -5 4 == -11\" $ do\n    sumarNumeroAlTriple (-5) 4 `shouldBe` -11\n \n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "sumarNumeroAlTriple"
+      },
+      {
+        "inspection": "HasLambda",
+        "expected": false,
+        "args": [],
+        "binding": "sumarNumeroAlTriple"
+      },
+      {
+        "inspection": "HasComposition",
+        "expected": true,
+        "args": [],
+        "binding": "sumarNumeroAlTriple"
+      }
+    ]
+  },
+  {
+    "id": 185,
+    "guideId": 20,
+    "lesson": "sumaEsPar",
+    "language": "haskell",
+    "solution": "sumaEsPar :: Int -> Int -> Bool\nsumaEsPar x = even . (x +)",
+    "extra": null,
+    "test": "it \"sumaEsPar 4 8 da True\" $ do\n  (sumaEsPar 4 8) `shouldBe` True\n\nit \"sumaEsPar 3 5 da True\" $ do\n  (sumaEsPar 3 5) `shouldBe` True\n\nit \"sumaEsPar 2 5 da True\" $ do\n  (sumaEsPar 2 5) `shouldBe` False\n\n\n\n",
+    "expectations": [
+      {
+        "inspection": "Declares",
+        "expected": true,
+        "args": [
+          "sumaEsPar"
+        ],
+        "binding": "*"
+      },
+      {
+        "inspection": "UsesComposition",
+        "expected": true,
+        "args": [],
+        "binding": "sumaEsPar"
+      }
+    ]
+  },
+  {
+    "id": 186,
+    "guideId": 20,
+    "lesson": "Cuánto paga cada uno",
+    "language": "haskell",
+    "solution": "cantPizzas = techo . (/8) . (3*) \ncuantoPagaCadaUno p c = (p * cantPizzas c)/c",
+    "extra": "techo = fromIntegral.ceiling",
+    "test": "describe \"cuantoPagaCadaUno\" $ do\n  it \"Con pizza de $120, 3 personas deben pagar $80 cada uno\" $ do\n    cuantoPagaCadaUno 120 3 `shouldBe` 80\n\t\n  it \"Con pizza de $100, 4 personas deben pagar $50 cada uno\" $ do\n    cuantoPagaCadaUno 100 4 `shouldBe` 50\n\t\n  it \"Con pizza de $100, 2 personas deben pagar $50 cada uno\" $ do\n  cuantoPagaCadaUno 100 2 `shouldBe` 50",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "cuantoPagaCadaUno"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "techo"
+        ],
+        "binding": "cuantoPagaCadaUno"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "techo"
+      },
+      {
+        "inspection": "HasComposition",
+        "expected": true,
+        "args": [],
+        "binding": "cuantoPagaCadaUno"
+      },
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 187,
+    "guideId": 20,
+    "lesson": "algunoCumple",
+    "language": "haskell",
+    "solution": "algunoCumple f a b c = f a || f b || f c",
+    "extra": null,
+    "test": "describe \"algunoCumple\" $ do\n  it \"hay al menos un número par en 1 3 4\" $ do\n  \talgunoCumple even 1 3 4 `shouldBe` True\n  it \"no hay números pares en 1 5 27\" $ do\n  \talgunoCumple even 1 5 27 `shouldBe` False",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "algunoCumple"
+      }
+    ]
+  },
+  {
+    "id": 188,
+    "guideId": 20,
+    "lesson": "mejor",
+    "language": "haskell",
+    "solution": "mejor f1 f2 a = max (f1 a) (f2 a)",
+    "extra": null,
+    "test": "describe \"mejor\" $ do\n  it \"devuelve 3 dados (**2) (*3) 1\" $ do\n    mejor (**2) (*3) 1`shouldBe` 3\n\n  it \"devuelve 25 dados (**2) (*3) 5\" $ do\n    mejor (**2) (*3) 5`shouldBe` 25",
+    "expectations": []
+  },
+  {
+    "id": 189,
+    "guideId": 20,
+    "lesson": "Conozcamos a las tuplas",
+    "language": "haskell",
+    "solution": "esUnClasico (_, anio) = anio < 1959",
+    "extra": null,
+    "test": "describe \"esUnClasico\" $ do\n  it \"da True si el libro es de antes de 1959\" $ do \n    esUnClasico (\"yo, robot\", 1950) `shouldBe` True\n  it \"da False si el libro es de después de 1959\" $ do \n    esUnClasico (\"it\", 1986) `shouldBe` False",
+    "expectations": []
+  },
+  {
+    "id": 190,
+    "guideId": 20,
+    "lesson": "aplicarPar",
+    "language": "haskell",
+    "solution": "aplicarPar f a b = (f a, f b)",
+    "extra": null,
+    "test": "describe \"aplicarPar\" $ do\n  it \"devuelve (6,24) dados (*2) 3 12\" $ do\n    aplicarPar (*2) 3 12 `shouldBe` (6,24)\n\n  it \"devuelve (False,True) dados  even 3 12\" $ do\n    aplicarPar even 3 12 `shouldBe` (False,True)",
+    "expectations": []
+  },
+  {
+    "id": 191,
+    "guideId": 20,
+    "lesson": "tuplaDeFunciones",
+    "language": "haskell",
+    "solution": "tuplaDeFunciones f1 f2 a = (f1 a, f2 a)",
+    "extra": null,
+    "test": "describe \"tuplaDeFunciones\" $ do\n  it \"devuelve (True, 24) dados even (*2) y 12\" $ do\n    tuplaDeFunciones even  (*2) 12 `shouldBe` (True, 24)\n\n  it \"devuelve (1, 2) dados (+1) (+2) 0\" $ do\n    tuplaDeFunciones (+1) (+2) 0 `shouldBe` (1, 2)",
+    "expectations": []
+  },
+  {
+    "id": 192,
+    "guideId": 20,
+    "lesson": "darVuelta",
+    "language": "haskell",
+    "solution": "darVuelta :: (b -> a -> c) -> a -> b -> c\ndarVuelta f a b = f b a",
+    "extra": null,
+    "test": "describe \"darVuelta\" $ do \n  it \"darVuelta (/) 1 2 == 2\" $ do \n     darVuelta (/) 1 2 `shouldBe` 2.0\n     \n  it \"darVuelta (/) 2 1 == 0.5\" $ do \n     darVuelta (/) 2 1 `shouldBe` 0.5\n     \n  it \"darVuelta mod 3 4 == 1\" $ do \n     darVuelta mod 3 4 `shouldBe` 1\n     \n  it \"darVuelta (&&) True False == False\" $ do \n     darVuelta (&&) True False `shouldBe` False\n     \n  it \"darVuelta take [1..10] 3 == [1..3]\" $ do \n     darVuelta take [1..10] 3 `shouldBe` [1..3]\n     \n  it \"darVuelta (\\\\ n lista-> even (length lista + n)) [1..10] 1 == False\" $ do\n    darVuelta (\\ n lista-> even (length lista + n)) [1..10] 1 `shouldBe` False",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "darVuelta"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": false,
+        "args": [
+          "flip"
+        ],
+        "binding": "darVuelta"
+      },
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "darVuelta"
+      }
+    ]
+  },
+  {
+    "id": 193,
+    "guideId": 20,
+    "lesson": "Composición",
+    "language": "haskell",
+    "solution": "componer :: (b -> c) -> (a -> b) -> a -> c\ncomponer f1 f2 a = f1 (f2 a)",
+    "extra": null,
+    "test": "describe \"componer\" $ do \n  it \"(componer (+1) (*2)) 4 es 9\" $ do \n     componer (+1) (*2) 4 `shouldBe` 9\n     \n  it \"(componer (>0) length) [] es False\" $ do \n     componer (>0) length [] `shouldBe` False\n     \n  it \"(componer (||True) (>0)) 5 es True\" $ do \n     componer  (||True) (>0) 5 `shouldBe` True",
+    "expectations": [
+      {
+        "inspection": "HasComposition",
+        "expected": false,
+        "args": [],
+        "binding": "componer"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "componer"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": false,
+        "args": [
+          "."
+        ],
+        "binding": "componer"
+      },
+      {
+        "inspection": "DeclaresTypeSignature",
+        "expected": true,
+        "args": [
+          "componer"
+        ],
+        "binding": "*"
+      }
+    ]
+  }
+]

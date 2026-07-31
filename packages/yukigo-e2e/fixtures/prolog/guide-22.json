@@ -1,0 +1,292 @@
+[
+  {
+    "id": 209,
+    "guideId": 22,
+    "lesson": "Describiendo al mundo",
+    "language": "prolog",
+    "solution": "personajeDeFiccion(frodo).\npersonajeDeFiccion(harryPotter).",
+    "extra": null,
+    "test": "\ntest(frodo_es_personaje_de_ficcion):-\n    personajeDeFiccion(frodo).\n    \n\ntest('harryPotter es personaje de ficcion'):-\n    personajeDeFiccion(harryPotter).\n    ",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "personajeDeFiccion"
+      }
+    ]
+  },
+  {
+    "id": 210,
+    "guideId": 22,
+    "lesson": "Hechos",
+    "language": "prolog",
+    "solution": "pais(argentina).\npais(uruguay).\nprovincia(santaCruz).\ndepartamento(canelones).",
+    "extra": null,
+    "test": "test('argentina es un pais') :-\n   pais(argentina).\n\ntest('uruguay es un pais') :-\n   pais(uruguay).\n\ntest('santaCruz es una provincia') :-\n   provincia(santaCruz).\n   \ntest('canelones es un departamento') :-\n   departamento(canelones).\n   \n  ",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "departamento"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "pais"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "provincia"
+      }
+    ]
+  },
+  {
+    "id": 211,
+    "guideId": 22,
+    "lesson": "Consultas",
+    "language": "prolog",
+    "solution": null,
+    "extra": "pais(marruecos).\npais(estonia).\n\nrio(ganges).\n\nciudad(buenosAires).\nlago(nahuelHuapi).",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 212,
+    "guideId": 22,
+    "lesson": "Universo cerrado",
+    "language": "prolog",
+    "solution": "comeVerduras(ana).\ncomeCarne(ramiro).",
+    "extra": null,
+    "test": "test('Ramiro come carne') :-\n  comeCarne(ramiro).\n\ntest('Ana come verduras') :-\n  comeVerduras(ana).\n  \ntest('Nina no come pastas') :-\n  \\+ comePastas(nina).\n\ntest('Ana no come carne') :-\n  \\+ comeCarne(ana).\n  \ncomeCarne(fede).\ncomeVerduras(fede).\ncomePastas(fede).",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "comeVerduras"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "comeCarne"
+      }
+    ]
+  },
+  {
+    "id": 213,
+    "guideId": 22,
+    "lesson": "Predicados",
+    "language": "prolog",
+    "solution": "electrico(pikachu).\nelectrico(raichu).\nhierba(bulbasaur).\nfuego(charmander).\nfuego(charizard).",
+    "extra": null,
+    "test": "test('pikacu es electrico'):-\n  electrico(pikachu).\n  \ntest('raichu es electrico'):-\n  electrico(raichu).\n  \ntest('bulbasaur es de hierba'):-\n  hierba(bulbasaur).\n  \ntest('charmander es de fuego') :-\n  fuego(charmander).",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "fuego"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "electrico"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "hierba"
+      }
+    ]
+  },
+  {
+    "id": 214,
+    "guideId": 22,
+    "lesson": "Aridades",
+    "language": "prolog",
+    "solution": null,
+    "extra": "duenio(garfield, john).\nduenio(oddie, john).\nduenio(nermal, tioDeJohn).",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 215,
+    "guideId": 22,
+    "lesson": "Acontecimiento",
+    "language": "prolog",
+    "solution": "acontecimiento(caidaConstantinopla, 1453).\nacontecimiento(nacimientoAdaLovelace, 1815).\nacontecimiento(inicioSegundaGuerraMundial, 1939).\nacontecimiento(fundacionDePixar, 1986).",
+    "extra": null,
+    "test": "test('caidaConstantinopla') :-\n  acontecimiento(caidaConstantinopla, 1453).\n  \ntest('nacimientoAdaLovelace') :-\n  acontecimiento(nacimientoAdaLovelace, 1815).\n \ntest('inicioSegundaGuerraMundial') :-\n  acontecimiento(inicioSegundaGuerraMundial, 1939).\n\ntest('fundacionDePixar') :-\n  acontecimiento(fundacionDePixar, 1986).\n",
+    "expectations": []
+  },
+  {
+    "id": 216,
+    "guideId": 22,
+    "lesson": "El barrio de flores",
+    "language": "prolog",
+    "solution": "viveEn(jorge, flores).\nviveEn(manuel, flores).\nviveEn(bernardo, flores).\nviveEn(elDiablo, villaCrespo).\npoeta(jorge).\npoligrafo(manuel).\ntahur(bernardo).",
+    "extra": null,
+    "test": "test('jorge vive en flores') :-\n    viveEn(jorge, flores).\n    \ntest('manuel vive en flores') :-\n    viveEn(manuel, flores).\n    \ntest('bernardo vive en flores') :-\n    viveEn(bernardo, flores).\n    \ntest('jorge es poeta') :-\n    poeta(jorge).\n\ntest('manuel es poligrafo') :-\n    poligrafo(manuel).\n\ntest('elDiablo vive en villaCrespo') :-\n    viveEn(elDiablo, villaCrespo).\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "viveEn"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "poligrafo"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "poeta"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "tahur"
+      },
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "2"
+        ],
+        "binding": "viveEn"
+      },
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "1"
+        ],
+        "binding": "poeta"
+      },
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "1"
+        ],
+        "binding": "poligrafo"
+      }
+    ]
+  },
+  {
+    "id": 217,
+    "guideId": 22,
+    "lesson": "Reglas",
+    "language": "prolog",
+    "solution": null,
+    "extra": "personajeDeNovela(martinFierro).\npersonajeDeNovela(frodo).\npersonajeDeSerie(drHouse).\npersonajeDePelicula(lukeSkywalker).\n\npersonajeDeFiccion(Alguien) :- \n    personajeDeNovela(Alguien).\npersonajeDeFiccion(Alguien) :-\n    personajeDeSerie(Alguien).\npersonajeDeFiccion(Alguien) :-\n    personajeDePelicula(Alguien).",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 218,
+    "guideId": 22,
+    "lesson": "Cláusulas",
+    "language": "prolog",
+    "solution": "personajeSurrealista(dali).\npersonajeSurrealista(X):-apareceEnPinturaSurrealista(X).\npersonajeSurrealista(Y):-personajeDeCuentoSurrealista(Y).",
+    "extra": "apareceEnPinturaSurrealista(rodolfoSegundo).\npersonajeDeCuentoSurrealista(mancuspia).\n",
+    "test": "test('personajeSurrealista(dali)'):-\n   personajeSurrealista(dali).\n\ntest('personajeSurrealista(mancuspia)'):-\n   personajeSurrealista(mancuspia).\n\ntest('personajeSurrealista(rodolfoSegundo)'):-\n   personajeSurrealista(rodolfoSegundo).\n\ntest('no es personajeSurrealista(tuProfesor)'):-\n   \\+ personajeSurrealista(tuProfesor).\n\n",
+    "expectations": [
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "1"
+        ],
+        "binding": "personajeSurrealista"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "personajeSurrealista"
+      }
+    ]
+  },
+  {
+    "id": 219,
+    "guideId": 22,
+    "lesson": "Reglas más interesantes",
+    "language": "prolog",
+    "solution": null,
+    "extra": "personajeDeNovela(martinFierro).\npersonajeDeNovela(frodo).\npersonajeDeSerie(drHouse).\npersonajeDePelicula(lukeSkywalker).\n\npersonajeDeFiccion(Alguien) :- \n    personajeDeNovela(Alguien).\npersonajeDeFiccion(Alguien) :-\n    personajeDeSerie(Alguien).\npersonajeDeFiccion(Alguien) :-\n    personajeDePelicula(Alguien).",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 220,
+    "guideId": 22,
+    "lesson": "Aristóteles y sus mortales",
+    "language": "prolog",
+    "solution": "mortal(X):-persona(X).\npersona(socrates).\npersona(aristoteles).\npersona(hipatia).\npersona(platon).",
+    "extra": null,
+    "test": "test('socrates es persona'):-\n  persona(socrates).\n  \ntest('aristoteles es persona'):-\n  persona(aristoteles).\n\ntest('hipatia es persona'):-\n  persona(hipatia).\n  \ntest('hipatia es persona') :-\n  persona(hipatia).\n\ntest('hipatia es persona') :-\n  persona(socrates).\n  \ntest('aristoteles es persona') :-\n  persona(aristoteles).\n\n\n  \n ",
+    "expectations": [
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "persona"
+        ],
+        "binding": "mortal"
+      },
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "1"
+        ],
+        "binding": "mortal"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "persona"
+      }
+    ]
+  },
+  {
+    "id": 221,
+    "guideId": 22,
+    "lesson": "Los nombres en Flores",
+    "language": "prolog",
+    "solution": "leDicen(elDiablo, belcebu).\nleDicen(elDiablo, asmodeo).\nleDicen(elDiablo, elDiablo).\nleDicen(tahur, _).\nleDicen(bernardo, ruso).\nleDicen(X, X).",
+    "extra": "poeta(jorge).\npoligrafo(manuel).\n\n% relaciona el nombre de un tahur y su apodo\ntahur(bernardo, ruso).",
+    "test": "test('leDicen(bernardo, ruso)') :-\n leDicen(bernardo, ruso).\n \ntest('leDicen(jorge, jorge)') :-\n  leDicen(jorge, jorge).\n\ntest('leDicen(elDiablo, belcebu)') :-\n  leDicen(elDiablo, belcebu).\n  \ntest('leDicen(elDiablo, elDiablo)') :-\n  leDicen(elDiablo, elDiablo).\n\ntest('leDicen(elDiablo, asmodeo)') :-\n  leDicen(elDiablo, asmodeo).\n  \ntest('leDicen(bernardo, bernardo)') :-\n  leDicen(bernardo, bernardo).\n\ntest('no leDicen(bernardo, elDiablo)') :-\n  \\+ leDicen(bernardo, elDiablo).\n\ntest('no leDicen(jorge, ruso)') :-\n  \\+ leDicen(jorge, ruso).\n",
+    "expectations": [
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "2"
+        ],
+        "binding": "leDicen"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "leDicen"
+      }
+    ]
+  }
+]

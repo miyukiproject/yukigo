@@ -1,0 +1,102 @@
+[
+  {
+    "id": 68,
+    "guideId": 9,
+    "lesson": "¡Sin energía!",
+    "language": "wollok",
+    "solution": null,
+    "extra": "object pepita {\n  var energia = 50\n  \n  method volarEnCirculos() {\n    energia -= 20\n  }\n  \n  method energia() {\n    return energia\n  }\n}",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 69,
+    "guideId": 9,
+    "lesson": "Sólo Volar Si...",
+    "language": "wollok",
+    "solution": "object pepita {\n  var energia = 50\n  \n  method volarEnCirculos() {\n    if(energia >= 20)\n      energia -= 20\n  }\n  \n  method energia() {\n    return energia\n  }\n}",
+    "extra": null,
+    "test": "test \"si pepita vuela una vez, consume 20\" {\n  pepita.volarEnCirculos()\n  assert.equals(30, pepita.energia())\n}\n\n\ntest \"si pepita vuela dos veces, consume 40\" {\n  pepita.volarEnCirculos()\n  pepita.volarEnCirculos()\n\n  assert.equals(10, pepita.energia())\n}\n\ntest \"si le pedimos a pepita que vuele 10 veces, consume solo 40\" {\n  10.times { n => pepita.volarEnCirculos() }\n  assert.equals(10, pepita.energia())\n}",
+    "expectations": []
+  },
+  {
+    "id": 70,
+    "guideId": 9,
+    "lesson": "Una falla silenciosa",
+    "language": "wollok",
+    "solution": null,
+    "extra": "object transferencia {\n   var monto = 40\n   method realizar() {\n      cuentaOrigen.debitar(monto)\n      cuentaDestino.depositar(monto)\n   }\n}\n\nobject cuentaOrigen {\n  var saldo = 20\n  method debitar(monto) {\n    if (monto <= saldo) {\n      saldo -= monto\n    }\n  }\n  method saldo() {\n    return saldo\n  }\n}\n\nobject cuentaDestino {\n  var saldo = 100\n  method depositar(monto) {\n    saldo += monto    \n  }\n  method saldo() {\n    return saldo\n  }\n}",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 71,
+    "guideId": 9,
+    "lesson": "¡Fallar!",
+    "language": "wollok",
+    "solution": null,
+    "extra": "object transferencia {\n   var monto = 40\n   method realizar() {\n      cuentaOrigen.debitar(monto)\n      cuentaDestino.depositar(monto)\n   }\n}\n\nobject cuentaOrigen {\n  var saldo = 20\n  method debitar(monto) {\n    if (monto > saldo) {\n      self.error(\"No se puede debitar, porque el monto $\"+monto+\" es mayor al saldo $\" +saldo)\n      \n    }\n    saldo -= monto\n  }\n  method saldo() {\n    return saldo\n  }\n}\n\nobject cuentaDestino {\n  var saldo = 100\n  method depositar(monto) {\n    saldo += monto    \n  }\n  method saldo() {\n    return saldo\n  }\n}",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 72,
+    "guideId": 9,
+    "lesson": "Lazando excepciones",
+    "language": "wollok",
+    "solution": null,
+    "extra": "object objetoRaro {\n    method mensajeRaro() {\n       self.error(\"foo\")\n       return 4\n    } \n}",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 73,
+    "guideId": 9,
+    "lesson": "Abortando la evaluación",
+    "language": "wollok",
+    "solution": "object pepita {\n  var energia = 50\n  \n  method volarEnCirculos() {\n    if (energia <= 20) {\n       self.error(\"No tengo suficiente energía\")\n    }\n    energia -= 20\n  }\n  \n  method energia() {\n    return energia\n  }\n}",
+    "extra": null,
+    "test": "test \"si pepita vuela una vez, consume 20\" {\n  pepita.volarEnCirculos()\n  assert.equals(30, pepita.energia())\n}\n\n\ntest \"si pepita vuela dos veces, consume 40\" {\n  pepita.volarEnCirculos()\n  pepita.volarEnCirculos()\n\n  assert.equals(10, pepita.energia())\n}\n\ntest \"si le pedimos a pepita que vuele 3 veces, lanza una excepción y consume sólo 40\" {\n  2.times { n => pepita.volarEnCirculos() }\n  assert.throwsException({ pepita.volarEnCirculos() })\n  assert.equals(10, pepita.energia())\n}\n\ntest \"La excepción que se lanza tiene la descripción correcta\" {\n  2.times { n => pepita.volarEnCirculos() }\n  assert.throwsExceptionWithMessage(\"No tengo suficiente energía\", { pepita.volarEnCirculos() })\n}\n",
+    "expectations": []
+  },
+  {
+    "id": 74,
+    "guideId": 9,
+    "lesson": "Propagación",
+    "language": "wollok",
+    "solution": "object transferencia {\n   var property monto\n   \n   method realizar() {\n      cuentaOrigen.debitar(monto)\n      cuentaDestino.depositar(monto)\n   }\n   \n   method deshacer() {\n      cuentaOrigen.depositar(monto)\n      cuentaDestino.debitar(monto)    \n   }\n}",
+    "extra": "object cuentaOrigen {\n  var saldo = 20\n  method debitar(monto) {\n    if (monto > saldo) {\n      self.error(\"No se puede debitar, porque el monto $\"+monto+\" es mayor al saldo $\" +saldo)\n      \n    }\n    saldo -= monto\n  }\n  method depositar(monto) {\n    saldo += monto    \n  }\n  method saldo() {\n    return saldo\n  }\n}\n\nobject cuentaDestino {\n  var saldo = 100\n  method debitar(monto) {\n    if (monto > saldo) {\n      self.error(\"No se puede debitar, porque el monto $\"+monto+\" es mayor al saldo $\" +saldo)\n      \n    }\n    saldo -= monto\n  }\n  method depositar(monto) {\n    saldo += monto    \n  }\n  method saldo() {\n    return saldo\n  }\n}",
+    "test": "object assertSeMantienenLosSaldosIniciales {\n  method alEjecutar(bloque){\n    const saldoOrigenInicial = cuentaOrigen.saldo()\n    const saldoDestinoInicial = cuentaDestino.saldo()\n    \n    bloque.apply()\n    \n    assert.equals(saldoOrigenInicial, cuentaOrigen.saldo())\n    assert.equals(saldoDestinoInicial, cuentaDestino.saldo())\n  }\n  \n  method alFallarPor(bloque){\n    self.alEjecutar({\n      assert.throwsException(bloque)\n    })\n  }\n}\ntest \"deshacer una transferencia realizada deja con el mismo saldo inicial a ambas cuentas\" {\n  transferencia.monto(cuentaOrigen.saldo())\n  \n  assertSeMantienenLosSaldosIniciales.alEjecutar({\n    transferencia.realizar()\n    transferencia.deshacer()\n  })\n}\n\ntest \"si al realizar la transferencia no se puede debitar, ambas cuentas quedan con su saldo inicial\"{\n  transferencia.monto(cuentaOrigen.saldo() + 10)\n  assertSeMantienenLosSaldosIniciales.alFallarPor({ transferencia.realizar() })\n}\n\ntest \"si al realizar la transferencia se puede debitar, se descuenta saldo de una y se suma saldo a la otra\"{\n  const saldoOrigenInicial = cuentaOrigen.saldo()\n  const saldoDestinoInicial = cuentaDestino.saldo()\n  \n  transferencia.monto(cuentaOrigen.saldo())\n  transferencia.realizar()\n  \n  assert.equals(0, cuentaOrigen.saldo())\n  assert.equals(saldoDestinoInicial + saldoOrigenInicial, cuentaDestino.saldo())\n}",
+    "expectations": []
+  },
+  {
+    "id": 75,
+    "guideId": 9,
+    "lesson": "El orden importa",
+    "language": "wollok",
+    "solution": "object saqueo {\n  method realizarContra(ciudad) {\n    if (ciudad.puedeHacerleFrenteA(barcoPirata)) {\n      self.error(\"No se puede invadir la ciudad\")\n    }\n    barcoPirata.prepararTripulacion()\n    barcoPirata.desembarcarBarco(ciudad)\n  }\n}",
+    "extra": "object eventos {\n  var es =[]\n  method ocurrir(evento) {\n    es.add(evento)\n  }\n  method es() = es\n}\n\nobject barcoPirata {\n  method prepararTripulacion() {\n    eventos.ocurrir(\"preparar\")\n  }\n    method desembarcarBarco(ciudad) {\n    eventos.ocurrir(\"desembarcar\")\n  }\n}\n\nobject ciudad {\n  method puedeHacerleFrenteA(barco) {\n    eventos.ocurrir(\"puedeHacerFrente\")\n    return false\n  }\n}",
+    "test": "test \"el saqueo se realiza en el orden correcto\" {\n  saqueo.realizarContra(ciudad)\n  assert.equals([\"puedeHacerFrente\", \"preparar\", \"desembarcar\"], eventos.es())\n}",
+    "expectations": []
+  },
+  {
+    "id": 76,
+    "guideId": 9,
+    "lesson": "Estudiando a pepita",
+    "language": "wollok",
+    "solution": "object carlos {\n  method estudiarPepita() {\n    pepita.comerAlpiste(10)\n    pepita.volarEnCirculos()\n    pepita.volarEnCirculos()\n    pepita.comerAlpiste(10)\n  }\n}",
+    "extra": "object pepita {\n  var property energia = 50\n  \n  method comerAlpiste(cantidad) {\n    energia += cantidad * 3\n  }\n  \n  method volarEnCirculos() {\n    if (energia < 20) {\n      self.error(\"pepita no tiene suficiente energía para volar\")      \n    }\n    energia -= 20\n  }\n\n}",
+    "test": "const energiaQueGanaConCadaComida = 30\nconst energiaQueGastaConCadaVuelo = 20\n\ntest \"existe carlos\"  {\n  carlos\n}\n\ntest \"carlos estudia a pepita\" {\n  const energiaInicial = pepita.energia()\n  \n  carlos.estudiarPepita() \n  \n  assert.equals(\n    energiaInicial \n      + energiaQueGanaConCadaComida * 2\n      - energiaQueGastaConCadaVuelo * 2,\n    pepita.energia())\n}\n\ntest \"si pepita tiene poca energía, estudiar a pepita falla\" {\n  pepita.energia(1)\n  assert.throwsException({carlos.estudiarPepita()})\n}",
+    "expectations": []
+  },
+  {
+    "id": 77,
+    "guideId": 9,
+    "lesson": "Un buen mensaje",
+    "language": "wollok",
+    "solution": "object pepita {\n  var property energia = 50\n  \n  method comerAlpiste(cantidad) {\n    if (cantidad <= 0) {\n      self.error(\"No se puede comer una cantidad negativa\")\n    }\n    energia += cantidad * 2\n  }\n\n\n}",
+    "extra": null,
+    "test": "test \"pepita.comerAlpiste(0) debería fallar\" {\n  assert.throwsException({ pepita.comerAlpiste(0) })\n}\n\ntest \"pepita.comerAlpiste(-10) debería fallar\" {\n  assert.throwsException({ pepita.comerAlpiste(-10) })\n}\n\ntest \"pepita.comerAlpiste(-10) debería lanzar un mensaje de error expresivo\" {\n try {\n   pepita.comerAlpiste(-10)\n } catch e : Exception {\n   assert.that([\"positiv\", \"negativ\", \"cantidad\", \"menor\", \"cero\", \"0\", \"-10\"].any { \n        it =>  e.message().toLowerCase()\n                   .contains(it) })\n }\n}\n\n\ntest \"pepita.comerAlpiste(10) NO debería fallar\" {\n  const energiaInicial = pepita.energia()\n  pepita.comerAlpiste(10)\n  assert.that(pepita.energia() > energiaInicial)\n}\n",
+    "expectations": []
+  }
+]

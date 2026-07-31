@@ -1,0 +1,229 @@
+[
+  {
+    "id": 389,
+    "guideId": 37,
+    "lesson": "puntajeCompetidor",
+    "language": "prolog",
+    "solution": "lista(N, L):-puntajes(N, L).\npuntajeCompetidor(N, Pos, Pun):-lista(N, L), nth1(Pos, L, Pun).",
+    "extra": "puntajes(hernan,[3,5,8,6,9]).\npuntajes(julio,[9,7,3,9,10,2]).\npuntajes(ruben,[3,5,3,8,3]).\npuntajes(roque,[7,10,10]).\n",
+    "test": "test(hernan_hizo_6_puntos_en_4) :-\n  puntajeCompetidor(hernan, 4, 6).\n\ntest(julio_hizo_9_puntos_en_1) :-\n  puntajeCompetidor(julio, 1, 9).\n\ntest(ruben_hizo_5_puntos_en_2) :-\n  puntajeCompetidor(ruben, 2, 5).\n\ntest(ruben_hizo_3_puntos_en_5) :-\n  puntajeCompetidor(ruben, 5, 3).\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "puntajeCompetidor"
+      },
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "3"
+        ],
+        "binding": "puntajeCompetidor"
+      }
+    ]
+  },
+  {
+    "id": 390,
+    "guideId": 37,
+    "lesson": "competidorDescalificado",
+    "language": "prolog",
+    "solution": "lista(N, L):-puntajes(N, L).\ncompetidorDescalificado(N):-lista(N, L), length(L, Long), Long > 5.",
+    "extra": "puntajes(hernan,[3,5,8,6,9]).\npuntajes(julio,[9,7,3,9,10,2]).\npuntajes(ruben,[3,5,3,8,3]).\npuntajes(roque,[7,10,10]).\n",
+    "test": "test(julio_esta_descalificado) :-\n  competidorDescalificado(julio).\n\ntest(hernan_no_esta_descalificado, fail) :-\n  competidorDescalificado(hernan).\n\ntest(roque_no_esta_descalificado, fail) :-\n  competidorDescalificado(roque).\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "competidorDescalificado"
+      },
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "1"
+        ],
+        "binding": "competidorDescalificado"
+      }
+    ]
+  },
+  {
+    "id": 391,
+    "guideId": 37,
+    "lesson": "competidorClasifica",
+    "language": "prolog",
+    "solution": "lista(N, L):-puntajes(N, L).\ncompetidorClasifica(N):-lista(N, L), sumlist(L, T), T>=28.\ncompetidorClasifica(N):-lista(N, L), nth0(P1, L, E1), nth0(P2, L, E2), P1\\=P2, E1 > 8, E2>8.",
+    "extra": "puntajes(hernan,[3,5,8,6,9]).\npuntajes(julio,[9,7,3,9,10,2]).\npuntajes(ruben,[3,5,3,8,3]).\npuntajes(roque,[7,10,10]).\n",
+    "test": "test(roque_clasifica, nondet) :-\n  competidorClasifica(roque).\n\ntest(ruben_no_clasifica, fail) :-\n  competidorClasifica(ruben).\n",
+    "expectations": []
+  },
+  {
+    "id": 392,
+    "guideId": 37,
+    "lesson": "buenPasar",
+    "language": "prolog",
+    "solution": "buenPasar(N):-ingreso(N, enero, S), S>2200.\nbuenPasar(N):-ingreso(N, _, S), S>3000.\nlistaSueldos(N, Ss):-findall(S, ingreso(N, _, S), Ss).\nbuenPasar(N):-listaSueldos(N, L), nth0(P1, L, S1), nth0(P2, L, S2), P1\\=P2, S1 > 2500, S2 > 2500.",
+    "extra": "ingreso(roque,enero,2300).\ningreso(roque,febrero,3500).\ningreso(roque,marzo,1200).\ningreso(luisa,enero,2500).\ningreso(luisa,febrero,850).\npadre(roque,luisa).",
+    "test": "test(roque_tiene_buen_pasar) :-\n  buenPasar(roque).\ntest(luisa_tiene_buen_pasar) :-\n  buenPasar(luisa).  \n",
+    "expectations": []
+  },
+  {
+    "id": 393,
+    "guideId": 37,
+    "lesson": "mesFilial",
+    "language": "prolog",
+    "solution": "mesFilial(P, M):-padre(H, P), ingreso(H, M, SH), ingreso(P, M, SP), SH>SP.",
+    "extra": "ingreso(roque,enero,2300).\ningreso(roque,febrero,3500).\ningreso(roque,marzo,1200).\ningreso(luisa,enero,2500).\ningreso(luisa,febrero,850).\npadre(roque,luisa).",
+    "test": "test(febrero_es_mes_filial_para_luisa) :-\n  mesFilial(luisa, febrero).",
+    "expectations": []
+  },
+  {
+    "id": 394,
+    "guideId": 37,
+    "lesson": "ingresoTotal",
+    "language": "prolog",
+    "solution": "persona(P):-ingreso(P, _, _).\ningresoTotal(P, IT):-persona(P), findall(S, ingreso(P, _, S), Ss), sumlist(Ss, IT).",
+    "extra": "ingreso(roque,enero,2300).\ningreso(roque,febrero,3500).\ningreso(roque,marzo,1200).\ningreso(luisa,enero,2500).\ningreso(luisa,febrero,850).\npadre(roque,luisa).",
+    "test": "test(el_ingreso_total_de_roque_es_7000) :-\n  ingresoTotal(roque, 7000).\ntest(el_ingreso_total_de_luisa_es_3350) :-\n  ingresoTotal(luisa, 3350).\n\ntest('El ingreso total es inversible por el primer parámetro',Alguien == roque) :-\n  ingresoTotal(Alguien,7000).",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "ingresoTotal"
+      }
+    ]
+  },
+  {
+    "id": 395,
+    "guideId": 37,
+    "lesson": "ingresoFamiliar",
+    "language": "prolog",
+    "solution": "hijos(P, Hs):-findall(H, padre(H, P), Hs).\ningresoFamiliar(P, IF):-ingresoTotal(P, IP), findall(SH, (padre(P, H), ingresoTotal(H, SH)), SHs), sumlist(SHs, IHs), IF is IP+IHs.",
+    "extra": "ingresoTotal(roque,1000).\ningresoTotal(luisa,2000).\n\ningresoTotal(homero,500).\ningresoTotal(bart,250).\ningresoTotal(lisa,250).\ningresoTotal(maggie,1000).\n\n\npadre(roque,luisa).\n\npadre(homero,bart).\npadre(homero,lisa).\npadre(homero,maggie).",
+    "test": "test('si no tiene hijos, el ingreso familiar es el ingreso total de la persona') :-\n  ingresoFamiliar(luisa, 2000).\n\ntest('si tiene hijos, el ingreso familiar es el ingreso total de la persona mas el de sus hijos') :-\n  ingresoFamiliar(roque, 3000).\n  \ntest('si tiene hijos, el ingreso familiar es el ingreso total de la persona mas el de sus hijos') :-\n  ingresoFamiliar(homero, 2000).\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "ingresoFamiliar"
+      }
+    ]
+  },
+  {
+    "id": 396,
+    "guideId": 37,
+    "lesson": "Tareas múltiples",
+    "language": "prolog",
+    "solution": "trabajos(T, Ts):-tarea(T, Ts).\nmuchoTesting(T):-trabajos(T, Ts), member(trabajo(L, tester), Ts), L>40.",
+    "extra": "tarea(login, [trabajo(80, programador)]).\ntarea(cacheDistribuida, [trabajo(40, arquitecto), trabajo(80, diseniador)]).\ntarea(pruebasPerformance, [trabajo(100, tester), trabajo(20, analista)]).\ntarea(tuning, [trabajo(40, arquitecto), trabajo(20, tester)]).",
+    "test": "test(pruebasPerformance_tiene_mucho_testing):-\n\tmuchoTesting(pruebasPerformance).\n\ntest(login_no_tiene_horas_de_testing, fail):-\n\tmuchoTesting(login).\n\ntest(tuning_tiene_horas_de_testing_insuficientes, fail):-\n\tmuchoTesting(tuning).",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "muchoTesting"
+      },
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "1"
+        ],
+        "binding": "muchoTesting"
+      }
+    ]
+  },
+  {
+    "id": 397,
+    "guideId": 37,
+    "lesson": "subtes",
+    "language": "prolog",
+    "solution": "estaEn(E, L):-linea(L, Es), member(E, Es).\ndistancia(E1, E2, CT):-estaEn(E1, L), linea(L, Es), nth1(P1, Es, E1), nth1(P2, Es, E2), C is -1*(P2-P1), abs(C, CT).\naltura(E, A):-estaEn(E, L), linea(L, Es), nth1(A, Es, E).\nmismaAltura(E1, E2):-altura(E1, A1), altura(E2, A2), A1==A2.\n\nseConectan(L1, L2):-estaEn(E1, L1), estaEn(E2, L2), L1\\=L2, combinacion(Es), member(E1, Es), member(E2, Es).\nviajeFacil(E1, E2):-estaEn(E1, L), estaEn(E2, L).\nviajeFacil(E1, E2):-estaEn(E1, L1), estaEn(E2, L2), seConectan(L1, L2).",
+    "extra": "linea(a,[plazaMayo,peru,lima,congreso,miserere,rioJaneiro,primeraJunta,nazca]).\nlinea(b,[alem,pellegrini,callao,gardel,medrano,malabia,lacroze,losIncas,urquiza]).\nlinea(c,[retiro,diagNorte,avMayo,independenciaC,plazaC]).\nlinea(d,[catedral,nueveJulio,medicina,plazaItalia,carranza,congresoTucuman]).\nlinea(e,[bolivar,independenciaE,pichincha,jujuy,boedo,varela,virreyes]).\nlinea(h,[once,venezuela,humberto1ro,inclan,caseros]).\ncombinacion([lima,avMayo]).\ncombinacion([once,miserere]).\ncombinacion([pellegrini,diagNorte,nueveJulio]).\ncombinacion([independenciaC,independenciaE]).",
+    "test": "test(peru_esta_en_la_a, [nondet]) :-\n  estaEn(peru, a).\ntest(lacroze_esta_en_la_b, [nondet]) :-\n  estaEn(lacroze, b).\ntest(retiro_esta_en_la_c, [nondet]) :-\n  estaEn(retiro, c).\ntest(retiro_no_esta_en_la_b, fail):-\n  estaEn(retiro, b).\n\ntest(distancia_entre_peru_y_primeraJunta_es_5, [nondet]) :-\n  distancia(peru, primeraJunta, Distancia),\n  assertion(Distancia == 5).\ntest(distancia_entre_pellegrini_y_alem_es_1, [nondet]) :-\n  distancia(pellegrini, alem, Distancia),\n  assertion(Distancia == 1).\n\n\ntest(pellegrini_diagNorte_misma_altura, [nondet]) :-\n  mismaAltura(pellegrini, diagNorte).\ntest(alem_catedral_misma_altura, [nondet]) :-\n  mismaAltura(alem, catedral).\ntest(peru_medrano_no_misma_altura, fail):-\n  mismaAltura(peru, medrano).\n\n\ntest(bolivar_pichincha_viaje_facil,[nondet]) :-\n  viajeFacil(bolivar, pichincha).\ntest(lima_independenciaC_viaje_facil, [nondet]) :-\n  viajeFacil(lima, independenciaC).\ntest(humberto1ro_lacroze_no_viaje_facil, fail) :-\n  viajeFacil(humberto1ro, lacroze).\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "estaEn"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "distancia"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "mismaAltura"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "viajeFacil"
+      }
+    ]
+  },
+  {
+    "id": 398,
+    "guideId": 37,
+    "lesson": "viajes",
+    "language": "prolog",
+    "solution": "tiempo(escala(_, T), T).\ntiempo(tramo(T), T).\nsepararTiempo(T, L):-member(X, L), tiempo(X, T).\ntiempoTotalVuelo(V, TT):-vuelo(V, _, L), findall(T, separarTiempo(T, L), Ts), sumlist(Ts, TT).\nesAburrida(escala(_, T)):-T>3.\nescalaAburrida(V, E):-vuelo(V, _, L), member(E, L), esAburrida(E).\naire(tramo(T), T).\nsepararVuelos(L, A):-member(X, L), aire(X, A).\nvueloLargo(V):-vuelo(V, _, L), findall(A, separarVuelos(L, A), As), sumlist(As, TT), TT>10.\nciudad(escala(C, _), C).\nciudadesIguales(E1, E2):-ciudad(E1, C), ciudad(E2, C).\nconectados(V1, V2):-vuelo(V1, _, L1), vuelo(V2, _, L2), member(E1, L1), member(E2, L2), ciudadesIguales(E1, E2).\nbandaDeTres(V1, V2, V3):-conectados(V1, V2), conectados(V2, V3).\npertenecen(C1, C2, L):-member(escala(C1, _), L), member(escala(C2, _), L).\nesEscala(escala(_, _)).\nfilterEscalas(L, LF):-findall(E, (member(E, L), esEscala(E)), LF).\narreglarDistancia(DO, DA):-DO==0, DA is DO+1.\narreglarDistancia(DO, DO):-DO>0.\ndistancia(C1, C2, L, D):-filterEscalas(L, LF), nth0(IC1, LF, escala(C1, _)), nth0(IC2, LF, escala(C2, _)), DP is IC1-IC2, abs(DP, DC), arreglarDistancia(DC, D).\ndistanciaEnEscalas(C1, C2, D):-vuelo(_, _, L), pertenecen(C1, C2, L), distancia(C1, C2, L, D).\nvueloLento(V):-vuelo(V, _, L), not(vueloLargo(V)), forall((member(E, L), esEscala(E)), escalaAburrida(V, E)).",
+    "extra": "vuelo(arg845, 30, [escala(rosario,0), tramo(2), escala(buenosAires,0)]).\nvuelo(mh101, 95, [escala(kualaLumpur,0), tramo(9), escala(capeTown,2),\ntramo(15), escala(buenosAires,0)]).\nvuelo(dlh470, 60, [escala(berlin,0), tramo(9), escala(washington,2), tramo(2),\nescala(nuevaYork,0)]).\nvuelo(aal1803, 250, [escala(nuevaYork,0), tramo(1), escala(washington,2),\ntramo(3), escala(ottawa,3), tramo(15), escala(londres,4), tramo(1),\nescala(paris,0)]).\nvuelo(ble849, 175, [escala(paris,0), tramo(2), escala(berlin,1), tramo(3),\nescala(kiev,2), tramo(2), escala(moscu,4), tramo(5), escala(seul,2), tramo(3),\nescala(tokyo,0)]).\nvuelo(npo556, 150, [escala(kiev,0), tramo(1), escala(moscu,3), tramo(5),\nescala(nuevaDelhi,6), tramo(2), escala(hongKong,4), tramo(2),\nescala(shanghai,5), tramo(3), escala(tokyo,0)]).\nvuelo(dsm3450, 75, [escala(santiagoDeChile,0), tramo(1), escala(buenosAires,2),\ntramo(7), escala(washington,4), tramo(15), escala(berlin,3), tramo(15),\nescala(tokyo,0)]).\n",
+    "test": "test('la consulta tiempoTotalVuelo(arg845, 2) es verdadera') :-\n  tiempoTotalVuelo(arg845, 2).\n\ntest('la consulta escalaAburrida(ble849, escala(moscu, 4)) es verdadera', [nondet]) :-\n  escalaAburrida(ble849, escala(moscu, 4)).\n\ntest('la consulta escalaAburrida(npo556, escala(nuevaDelhi, 6)) es verdadera', [nondet]) :-\n  escalaAburrida(npo556, escala(nuevaDelhi, 6)).\n\n\ntest('la consulta escalaAburrida(npo556, escala(kiev,0)) es falsa', [fail]) :-\n  escalaAburrida(npo556, escala(kiev,0)).\n\ntest('la consulta vueloLargo(dsm3450) es verdadera') :-\n  vueloLargo(dsm3450).\n\ntest('la consulta conectados(ble849, npo556) es verdadera (porque tienen a moscu en común)', [nondet]) :-\n  conectados(ble849, npo556).\n\ntest('la consulta conectados(arg845, dsm3450) es verdadera (porque tienen a buenosAires en común)', [nondet]) :-\n  conectados(arg845, dsm3450).\n\ntest('la consulta conectados(dlh470, ble849) es verdadera (porque tienen a berlin en común)', [nondet]) :-\n  conectados(dlh470, ble849).\n  \ntest('la consulta bandaDeTres(arg845, dsm3450, ble849) es verdadera', [nondet]) :-\n  bandaDeTres(arg845, dsm3450, ble849).\n\ntest('la distancia en escalas paris-berlin es 1'):-\n  distanciaEnEscalas(paris, berlin, X),\n  assertion( X =:= 1).\n\ntest('la distancia en escalas rosario-buenosAires es 1'):-\n  distanciaEnEscalas(rosario, buenosAires, X),\n  assertion( X =:= 1 ).\n\ntest('la consulta vueloLento(arg845) es falsa', fail):-\n  vueloLento(arg845).\ntest('la consulta vueloLento(npo556) es falsa', fail):-\n  vueloLento(npo556).\ntest('la consulta vueloLento(aal1803) es falsa', fail):-\n  vueloLento(aal1803).\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "tiempoTotalVuelo"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "escalaAburrida"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "vueloLargo"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "conectados"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "bandaDeTres"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "distanciaEnEscalas"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "vueloLento"
+      }
+    ]
+  }
+]

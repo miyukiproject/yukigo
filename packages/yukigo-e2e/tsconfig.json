@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    "target": "ES2025",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2025"],
+    "types": ["node"],
+    "outDir": "./dist",
+    "rootDir": "src",
+    "declaration": true,
+    "composite": true,
+    "declarationMap": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
+  },
+  "typedocOptions": {
+    "entryPoints": ["src/*.ts"],
+    "out": "docs/typedoc"
+  },
+  "include": ["src"],
+  "exclude": [
+    "dist/**/*"
+  ],
+  "references": [
+    {
+      "path": "../yukigo-prolog-parser"
+    },
+    {
+      "path": "../yukigo-haskell-parser"
+    },
+    {
+      "path": "../yukigo-ast"
+    }
+  ]
+}

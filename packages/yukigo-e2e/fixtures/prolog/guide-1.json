@@ -1,0 +1,155 @@
+[
+  {
+    "id": 1,
+    "guideId": 1,
+    "lesson": "Comidas",
+    "language": "prolog",
+    "solution": "leGusta(juan, asado).\nleGusta(gabriel, asado).\nleGusta(soledad, papasFritas).\nleGusta(soledad, C):-precio(C, P), P<200.\nleGusta(tomas, C):-tieneCarne(C), precio(C, P), P<400.\nleGusta(celeste, C):-precio(C, _).",
+    "extra": "precio(asado,450).\nprecio(hamburguesa,350).\nprecio(papasFritas,220).\nprecio(ensalada,190).\ntieneCarne(asado).\ntieneCarne(hamburguesa).",
+    "test": "test('leGusta(juan, asado)', nondet) :-\n  leGusta(juan, asado).\n\ntest('no leGusta(juan, papasFritas)', fail) :-\n  leGusta(juan, papasFritas).\n  \ntest('no leGusta(juan, hamburguesa)', fail) :-\n  leGusta(juan, hamburguesa).\n  \ntest('no leGusta(juan, ensalada)', fail) :-\n  leGusta(juan, ensalada).\n  \ntest('leGusta(gabriel, asado)', nondet) :-\n  leGusta(gabriel, asado).\n  \ntest('no leGusta(gabriel, papasFritas)', fail) :-\n  leGusta(gabriel, papasFritas).\n  \ntest('no leGusta(gabriel, hamburguesa)', fail) :-\n  leGusta(gabriel, hamburguesa).\n  \ntest('no leGusta(gabriel, ensalada)', fail) :-\n  leGusta(gabriel, ensalada).\n  \ntest('leGusta(soledad, papasFritas)', nondet) :-\n  leGusta(soledad, papasFritas).\n  \ntest('no leGusta(soledad, hamburguesa)', fail) :-\n  leGusta(soledad, hamburguesa).\n  \ntest('leGusta(soledad, ensalada)', nondet) :-\n  leGusta(soledad, ensalada).\n  \ntest('no leGusta(soledad, asado)', fail) :-\n  leGusta(soledad, asado).\n  \ntest('no leGusta(tomas, asado)', fail) :-\n  leGusta(tomas, asado).\n  \ntest('leGusta(tomas, hamburguesa)', nondet) :-\n  leGusta(tomas, hamburguesa).\n  \ntest('no leGusta(tomas, papasFritas)', fail) :-\n  leGusta(tomas, papasFritas).\n  \ntest('no leGusta(tomas, ensalada)', fail) :-\n  leGusta(tomas, ensalada).\n  \ntest('leGusta(celeste, asado)', nondet) :-\n  leGusta(celeste, asado).\n  \ntest('no leGusta(celeste, chinchulines)', fail) :-\n  leGusta(celeste, chinchulines).\n  \ntest('leGusta(celeste, ensalada)', nondet) :-\n  leGusta(celeste, ensalada).\n  \ntest('leGusta(celeste, hamburguesa)', nondet) :-\n  leGusta(celeste, hamburguesa).\n  \ntest('leGusta(celeste, papasFritas)', nondet) :-\n  leGusta(celeste, papasFritas).\n  \ntest('no leGusta(carolina, hamburguesa)', fail) :-\n  leGusta(carolina, hamburguesa).\n  \ntest('no leGusta(carolina, ensalada)', fail) :-\n  leGusta(carolina, ensalada).\n  \ntest('no leGusta(carolina, papasFritas)', fail) :-\n  leGusta(carolina, papasFritas).\n  \ntest('no leGusta(carolina, asado)', fail) :-\n  leGusta(carolina, asado).\n",
+    "expectations": [
+      {
+        "inspection": "Uses",
+        "expected": true,
+        "args": [
+          "tieneCarne"
+        ],
+        "binding": "leGusta"
+      },
+      {
+        "inspection": "Uses",
+        "expected": true,
+        "args": [
+          "precio"
+        ],
+        "binding": "leGusta"
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "guideId": 1,
+    "lesson": "Los gustos de Andrea",
+    "language": "prolog",
+    "solution": "leGusta(andrea, C):-leGusta(luis, C), not(leGusta(jose, C)).\nleGusta(andrea, achuras).",
+    "extra": "leGusta(luis, asado).\nleGusta(luis, pizza).\nleGusta(luis, lomoAlChampignion).\nleGusta(luis, revueltoGramajo).\nleGusta(jose, pizza).\nleGusta(jose, ensalada).\nleGusta(jose, revueltoGramajo).",
+    "test": "test(a_andrea_le_gustan_las_achuras, nondet):-\n\tleGusta(andrea, achuras).\n\t\ntest(a_andrea_le_gusta_lo_que_le_gusta_a_luis_y_no_a_jose, nondet):-\n\tleGusta(andrea, lomoAlChampignion).\n\t\ntest(a_andrea_no_le_gusta_lo_que_les_gusta_a_luis_y_a_jose, fail):-\n\tleGusta(andrea, pizza).\n\ntest(a_andrea_no_le_gusta_lo_que_no_le_gusta_a_luis, fail):-\n  leGusta(andrea, milanesa).\n  \ntest(a_andrea_no_le_gusta_lo_que_no_le_gusta_a_jose, fail):-\n  leGusta(andrea, ensalada).\n  \ntest(le_gusta_es_inversible_para_la_comida, set(Comida = [asado, lomoAlChampignion, achuras])):-\n  leGusta(andrea, Comida).\n  \ntest(le_gusta_es_inversible_para_la_persona, set(Persona = [luis, andrea])):-\n  leGusta(Persona, lomoAlChampignion).",
+    "expectations": [
+      {
+        "inspection": "Uses",
+        "expected": true,
+        "args": [
+          "leGusta"
+        ],
+        "binding": "leGusta"
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "guideId": 1,
+    "lesson": "Comida Popular",
+    "language": "prolog",
+    "solution": "masBarata(C1, C2):-precio(C1, PC1), precio(C2, PC2), PC1<PC2.\ncomidaPopular(C):-precio(C, _), forall(leGusta(P, _), leGusta(P, C)).\ncomidaPopular(C):-precio(C, _), forall((precio(C, _), precio(C2, _), C\\=C2), masBarata(C, C2)).",
+    "extra": "precio(asado,450).\nprecio(hamburguesa,350).\nprecio(papasFritas,220).\nprecio(ensalada,190).\nprecio(revueltoGramajo, 220).\nprecio(tresEmpanadas, 120).\nprecio(pizza, 250).\n\nleGusta(pepe, pizza).\nleGusta(pipo, pizza).\nleGusta(tito, pizza).\nleGusta(toto, pizza).\nleGusta(tato, pizza).\nleGusta(pepe, revueltoGramajo).\nleGusta(pepe, hamburguesa).\nleGusta(pipo, ensalada).\nleGusta(tito, hamburguesa).\nleGusta(tito, tresEmpanadas).\nleGusta(toto, papasFritas).\nleGusta(tato, papasFritas).\nleGusta(tito, papasFritas).\nleGusta(pepe, papasFritas).\nleGusta(pipo, papasFritas).",
+    "test": "test(una_comida_es_mas_barata_que_otra_cuando_el_precio_es_menor):-\n\tmasBarata(papasFritas, hamburguesa).\n\t\ntest(una_comida_no_es_mas_barata_que_otra_cuando_el_precio_es_mayor, fail):-\n\tmasBarata(asado, hamburguesa).\n\t\ntest(una_comida_no_es_mas_barata_que_otra_con_igual_precio, fail):-\n  masBarata(papasFritas, revueltoGramajo).\n  \ntest(una_comida_es_popular_si_le_gusta_a_todos, nondet):-\n  comidaPopular(pizza).\n  \ntest(una_comida_no_es_popular_si_a_alguien_no_le_gusta_no_siendo_la_mas_barata, fail):-\n  comidaPopular(hamburguesa).\n  \ntest(una_comida_es_popular_si_es_la_mas_barata, nondet):-\n  comidaPopular(tresEmpanadas).\n  \ntest(mas_barata_es_inversible_para_su_primer_aridad, set(ComidaBarata = [ensalada, tresEmpanadas])):-\n  masBarata(ComidaBarata, papasFritas).\n\ntest(mas_barata_es_inversible_para_su_segunda_aridad, set(ComidaCara = [asado, hamburguesa, pizza])):-\n  masBarata(papasFritas, ComidaCara).\n  \ntest(comida_popular_es_inversible, set(Popular = [tresEmpanadas, papasFritas, pizza])):-\n  comidaPopular(Popular).",
+    "expectations": [
+      {
+        "inspection": "Uses",
+        "expected": true,
+        "args": [
+          "precio"
+        ],
+        "binding": "masBarata"
+      },
+      {
+        "inspection": "Uses",
+        "expected": true,
+        "args": [
+          "leGusta"
+        ],
+        "binding": "comidaPopular"
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "guideId": 1,
+    "lesson": "Lecturas densas",
+    "language": "prolog",
+    "solution": "lecturaDensa(libro(_, _, Cp)):-Cp>=200.\nlecturaDensa(libro(_, paidos, _)).\nlecturaDensa(paper(_, CH, CV)):-Dif is CH-CV, abs(Dif, DifC), DifC >100.\nlecturaDensa(saga(_, CL)):-CL>4.",
+    "extra": null,
+    "test": "test('un libro con al menos 200 paginas es denso', nondet):-\n\tlecturaDensa(libro(rayuela,alfaguara,600)).\n\t\ntest('un libro de editorial paidos es denso', nondet):-\n  lecturaDensa(libro(elAleph,paidos,146)).\n  \ntest('un libro corto de otra editorial no es denso', fail):-\n  lecturaDensa(libro(rebelionEnLaGranja,deBolsillo,144)).\n  \ntest('un paper es denso si la diferencia entre la cantidad de hojas y la cantidad de visitas es mayor que 100', nondet):-\n  lecturaDensa(paper(\"Evidence for a Distant Giant Planet in the Solar System\", 170, 30)).\n  \ntest('un paper no es denso si la diferencia entre cantidad de hojas y visitas no llega a 11', fail):-\n  lecturaDensa(paper(\"The relationship between design and verification\", 250, 300)).\n  \ntest('una saga es densa si tiene más de cuatro libros', nondet):-\n  lecturaDensa(saga(dune,14)).\n  \ntest('una saga corta no es densa', fail):-\n  lecturaDensa(saga(elSeñorDeLosAnillos,3)).",
+    "expectations": []
+  },
+  {
+    "id": 5,
+    "guideId": 1,
+    "lesson": "Lectores intensos",
+    "language": "prolog",
+    "solution": "librosIntensosLeidos(P, CL):-findall(L, (leyo(P, L), lecturaDensa(L)), Libros), length(Libros, CL).\ntodosIntensos(P):-forall(leyo(P, L), lecturaDensa(L)).\nlectorIntenso(P):-leyo(P, _), librosIntensosLeidos(P, CL), CL > 1, todosIntensos(P).",
+    "extra": "leyo(nico, saga(dune,14)).\nleyo(nico, libro(rebelionEnLaGranja,deBolsillo,144)).\nleyo(nico, paper(\"No Silver Bullet: Essence and Accidents of Software Engineering\", 230, 100)).\nleyo(nico, paper(\"The relationship between design and verification\", 250, 300)).\n\nleyo(daiu, saga(fundacion,7)).\nleyo(daiu, libro(elAleph,paidos,146)).\n\nleyo(clara, paper(\"Evidence for a Distant Giant Planet in the Solar System\", 170, 30)).\nleyo(clara, paper(\"No Silver Bullet: Essence and Accidents of Software Engineering\", 230, 100)).\nleyo(clara, libro(rayuela,alfaguara,600)).\nleyo(clara, saga(harryPotter,7)).\n\nleyo(juan, libro(cosmos,planeta,362)).\nleyo(juan, saga(elSeñorDeLosAnillos,3)).\n\nleyo(flor, saga(harryPotter,7)).\n\n/*...solution[-1]...*/",
+    "test": "test('alguien que solo leyo un material de lectura no es lector intenso, incluso si ese material es denso', fail):-\n\tlectorIntenso(flor).\n\t\ntest('alguien que leyo algun material de lectura que no es denso no es lector intenso', fail):-\n\tlectorIntenso(nico).\n\t\ntest('alguien que leyo una saga densa y un libro denso es un lector inteso', nondet):-\n  lectorIntenso(daiu).\n  \ntest('alguien que leyo lecturas de todo tipo, y todas son densas, es lector intenso', nondet):-\n  lectorIntenso(clara).\n  \ntest('lectorIntenso/1 es inversible', set(Lector = [daiu, clara])):-\n  lectorIntenso(Lector).",
+    "expectations": [
+      {
+        "inspection": "Uses",
+        "expected": true,
+        "args": [
+          "lecturaDensa"
+        ],
+        "binding": "lectorIntenso"
+      },
+      {
+        "inspection": "Uses",
+        "expected": true,
+        "args": [
+          "leyo"
+        ],
+        "binding": "lectorIntenso"
+      }
+    ]
+  },
+  {
+    "id": 6,
+    "guideId": 1,
+    "lesson": "Votaciones nacionales",
+    "language": "prolog",
+    "solution": "votosTotales(P, V):-votos(P, _, _), findall(CV, votos(P, _, CV), LV), sumlist(LV, V).",
+    "extra": "votos(pps, caba, 750450).\nvotos(pps, bsas, 900302).\nvotos(pps, jujuy, 43725).\nvotos(pps, salta, 35879).\nvotos(pps, cordoba, 580493).\nvotos(pps, entreRios, 47980).\nvotos(pps, corrientes, 158394).\nvotos(pps, misiones, 120865).\nvotos(pps, laRioja, 236583).\nvotos(pps, chaco, 89402).\nvotos(pps, neuquen, 130385).\nvotos(pps, rioNegro, 106097).\n\nvotos(lcd, caba, 730750).\nvotos(lcd, bsas, 1000243).\nvotos(lcd, jujuy, 44525).\nvotos(lcd, salta, 30073).\nvotos(lcd, cordoba, 481457).\nvotos(lcd, entreRios, 43910).\nvotos(lcd, corrientes, 198594).\nvotos(lcd, misiones, 187843).\nvotos(lcd, laRioja, 223509).\nvotos(lcd, formosa, 79542).\nvotos(lcd, neuquen, 150975).\nvotos(lcd, sanJuan, 122397).\n\nvotos(plis, caba, 930180).\nvotos(plis, bsas, 990398).\nvotos(plis, formosa, 41024).\nvotos(plis, salta, 17872).\nvotos(plis, laPampa, 10483).\nvotos(plis, sanJuan, 97960).\n\nvotos(dlg, caba, 250470).\nvotos(dlg, bsas, 30372).\nvotos(dlg, jujuy, 173794).\nvotos(dlg, salta, 66879).\nvotos(dlg, cordoba, 51493).\nvotos(dlg, entreRios, 40450).\nvotos(dlg, corrientes, 238604).\nvotos(dlg, misiones, 240811).\nvotos(dlg, laRioja, 296560).\nvotos(dlg, sanJuan, 81478).\nvotos(dlg, neuquen, 180320).\nvotos(dlg, laPampa, 158327).",
+    "test": "test(el_total_para_un_partido_que_fue_votado_es_unico, set(Total = [3200555])):-\n\tvotosTotales(pps, Total).\n\t\ntest(no_hay_total_para_un_partido_que_no_fue_votado, fail):-\n\tvotosTotales(ads, _).\n\t\ntest(votos_totales_es_inversible_respecto_al_partido, set(Partido = [pps, lcd, plis, dlg])):-\n  votosTotales(Partido, _).",
+    "expectations": []
+  },
+  {
+    "id": 7,
+    "guideId": 1,
+    "lesson": "Provincia decidida",
+    "language": "prolog",
+    "solution": "decidida(Provincia) :-\n    sacoMuchosVotos(Partido, Provincia),\n    not((sacoMuchosVotos(OtroPartido, Provincia), Partido \\= OtroPartido)).\n\nsacoMuchosVotos(Partido, Provincia) :-\n    votos(Partido, Provincia, VotosConseguidos),\n    padron(Provincia, TotalEmpadronados),\n    VotosConseguidos > TotalEmpadronados * 0.3.",
+    "extra": "votos(pps, caba, 750450).\nvotos(pps, bsas, 900302).\nvotos(pps, jujuy, 43725).\nvotos(pps, salta, 35879).\nvotos(pps, cordoba, 580493).\nvotos(pps, entreRios, 47980).\nvotos(pps, corrientes, 158394).\nvotos(pps, misiones, 120865).\nvotos(pps, laRioja, 236583).\nvotos(pps, chaco, 89402).\nvotos(pps, neuquen, 130385).\nvotos(pps, rioNegro, 106097).\n\nvotos(lcd, caba, 730750).\nvotos(lcd, bsas, 1000243).\nvotos(lcd, jujuy, 44525).\nvotos(lcd, salta, 30073).\nvotos(lcd, cordoba, 481457).\nvotos(lcd, entreRios, 43910).\nvotos(lcd, corrientes, 198594).\nvotos(lcd, misiones, 187843).\nvotos(lcd, laRioja, 223509).\nvotos(lcd, formosa, 79542).\nvotos(lcd, neuquen, 150975).\nvotos(lcd, sanJuan, 122397).\n\nvotos(plis, caba, 930180).\nvotos(plis, bsas, 990398).\nvotos(plis, formosa, 41024).\nvotos(plis, salta, 17872).\nvotos(plis, laPampa, 10483).\nvotos(plis, sanJuan, 97960).\n\nvotos(dlg, caba, 250470).\nvotos(dlg, bsas, 30372).\nvotos(dlg, jujuy, 173794).\nvotos(dlg, salta, 66879).\nvotos(dlg, cordoba, 51493).\nvotos(dlg, entreRios, 40450).\nvotos(dlg, corrientes, 238604).\nvotos(dlg, misiones, 240811).\nvotos(dlg, laRioja, 296560).\nvotos(dlg, sanJuan, 81478).\nvotos(dlg, neuquen, 180320).\nvotos(dlg, laPampa, 158327).\n\npadron(caba, 2891970). \npadron(bsas, 3221085).\npadron(jujuy, 282034).\npadron(salta, 150703).\npadron(cordoba, 1513487).\npadron(entreRios, 132340).\npadron(corrientes, 795592).\npadron(misiones, 549519).\npadron(laRioja, 756652).\npadron(chaco, 98402).\npadron(neuquen, 471680).\npadron(rioNegro, 106097).\npadron(formosa, 120566).\npadron(sanJuan, 301835).\npadron(laPampa, 168810).",
+    "test": "test(caba_esta_decidida_por_plis, nondet):-\n\tdecidida(caba).\n\t\ntest(bsas_no_esta_decidida_porque_hay_mas_de_un_partido_muy_votado, fail):-\n\tdecidida(bsas).\n\t\ntest(corrientes_no_esta_decidida_porque_no_hay_partidos_muy_votados, fail):-\n\tdecidida(corrientes).\n\t\ntest(decidida_es_inversible, set(Provincia = [chaco, rioNegro, caba, jujuy, salta, laPampa])):-\n  decidida(Provincia).\n",
+    "expectations": [
+      {
+        "inspection": "UsesFindall",
+        "expected": false,
+        "args": [],
+        "binding": "decidida"
+      },
+      {
+        "inspection": "Uses",
+        "expected": true,
+        "args": [
+          "votos"
+        ],
+        "binding": "decidida"
+      },
+      {
+        "inspection": "Uses",
+        "expected": true,
+        "args": [
+          "padron"
+        ],
+        "binding": "decidida"
+      }
+    ]
+  }
+]

@@ -1,0 +1,209 @@
+[
+  {
+    "id": 375,
+    "guideId": 35,
+    "lesson": "servidores",
+    "language": "prolog",
+    "solution": "server(S):-servidor(S, _, _).\nrequiereAtencion(S, P, A):-server(S), atencionNecesaria(S, P, A).\natencionNecesaria(S, rebooteo(OS), normal):-server(OS), afectados(OS, S).\natencionNecesaria(S, corteDeLuz(F), inmediata):-servidor(S, F, _).\natencionNecesaria(S, cuelgue(S), inmediata):-servidor(S, _, C), between(1, 2, C).\natencionNecesaria(S, cuelgue(S), normal):-servidor(S, _, C), between(3, 4, C).\n\nafectados(SI, SF):-esCliente(SF, SI).\nafectados(SI, SI ).",
+    "extra": "servidor(ps1, fila1, 1).\nservidor(ps2, fila1, 2).\nservidor(was1, fila2, 1).\nservidor(was1_2, fila2, 4).\nservidor(fs_x48, fila2, 1).\nesCliente(ps1,fs_x48).\nesCliente(was1,fs_x48).",
+    "test": "test(ps1_y_ps2_requieren_atencion_inmediata_por_corte_de_luz_fila1, set(Server == [ps1, ps2])):-\n\trequiereAtencion(Server, corteDeLuz(fila1), inmediata).\n\ntest(was1_no_requiere_atencion_inmediata_por_corte_de_luz_fila1, nondet):-\n\trequiereAtencion(Server, corteDeLuz(fila1), inmediata),\n\tassertion(Server \\= was1).\n\ntest(ps2_requiere_atencion_inmediata_por_cuelgue):-\n\trequiereAtencion(ps2, cuelgue(ps2), inmediata).\n\ntest(ps1_no_requiere_atencion_inmediata_por_cuelgue_de_ps2, fail):-\n\trequiereAtencion(ps1, cuelgue(ps2), inmediata).\n\t\ntest(ps2_no_requiere_atencion_normal_por_cuelgue, fail):-\n\trequiereAtencion(ps2, cuelgue(ps2), normal).\n\t\ntest(was1_2_requiere_atencion_normal_por_cuelgue):-\n\trequiereAtencion(was1_2, cuelgue(was1_2), normal).\n\ntest(was1_2_no_requiere_atencion_inmediata_por_cuelgue, fail):-\n\trequiereAtencion(was1_2, cuelgue(was1_2), inmediata).\n\ntest(ps2_requiere_atencion_normal_por_rebooteo, nondet):-\n\trequiereAtencion(ps2, rebooteo(ps2), normal).\n\ntest(was1_y_ps1_requieren_atencion_normal_por_rebooteo_de_fs_x48, set(Server == [was1, ps1, fs_x48])):-\n\trequiereAtencion(Server, rebooteo(fs_x48), normal).",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "requiereAtencion"
+      },
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "3"
+        ],
+        "binding": "requiereAtencion"
+      }
+    ]
+  },
+  {
+    "id": 376,
+    "guideId": 35,
+    "lesson": "Mes complicado",
+    "language": "prolog",
+    "solution": "mes(M):-ocurrio(_, M).\nserver(S):-servidor(S, _, _).\ncomplicado(M):-mes(M), forall(server(S), (ocurrio(E, M), requiereAtencion(S, E, _))).",
+    "extra": "ocurrio(cuelgue(ps1), enero).\nocurrio(cuelgue(ps2), enero).\nocurrio(cuelgue(ps2), febrero).\nocurrio(corteDeLuz(fila1), febrero).\nocurrio(corteDeLuz(fila2), marzo).\nocurrio(rebooteo(fs_x48), marzo).\nocurrio(cuelgue(ps2), marzo).\nocurrio(corteDeLuz(fila1), abril).\nocurrio(corteDeLuz(fila2), abril).\nocurrio(rebooteo(fs_x48), mayo).\nocurrio(rebooteo(ps2), mayo).\nocurrio(cuelgue(was1_2), mayo).\n\nservidor(ps1, fila1, 1).\nservidor(ps2, fila1, 2).\nservidor(was1, fila2, 1).\nservidor(was1_2, fila2, 4).\nservidor(fs_x48, fila2, 1).\nesCliente(ps1,fs_x48).\nesCliente(was1,fs_x48).\n\nrequiereAtencion(Server, rebooteo(Server), normal):- servidor(Server, _,_).\nrequiereAtencion(Cliente, rebooteo(Server), normal):- esCliente(Cliente, Server).\nrequiereAtencion(Server, cuelgue(Server), normal):-\n    servidor(Server,_,_),\n    not(esCritico(Server)).\n\nrequiereAtencion(Server, cuelgue(Server), inmediata):- esCritico(Server).\nrequiereAtencion(Server, corteDeLuz(Fila), inmediata):-\n    servidor(Server, Fila, _).\n    \nesCritico(Server):- servidor(Server, _, Criticidad), Criticidad < 3.",
+    "test": "test('no es cierto que complicado(enero)'):-\n  \\+ complicado(enero).\n  \ntest('no es cierto que complicado(febrero)'):-\n  \\+ complicado(febrero).\n  \ntest('es cierto que complicado(marzo)'):-\n  complicado(marzo).\n\ntest('es cierto que complicado(abril)'):-\n  complicado(abril).\n  \ntest('es cierto que complicado(mayo)'):-\n  complicado(mayo).\n  \ntest('complicado es inversible', set(Mes == [marzo, abril, mayo])):-\n  complicado(Mes).",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "complicado"
+      },
+      {
+        "inspection": "HasForall",
+        "expected": true,
+        "args": [],
+        "binding": "complicado"
+      }
+    ]
+  },
+  {
+    "id": 377,
+    "guideId": 35,
+    "lesson": "busquedaDelTesoro",
+    "language": "prolog",
+    "solution": "destinoPosible(P, C):-nivelActual(P, N), tarea(N, buscar(_, C)).\n\nestaVivo(arbol).\nestaVivo(perro).\nestaVivo(flor).\nseHablaItalianoEnDestino(N):-tarea(N, buscar(_, C)), idioma(italiano, C).\ninteresante(N):-nivelActual(_, N), forall(tarea(N, buscar(C, _)), estaVivo(C)).\ninteresante(N):-seHablaItalianoEnDestino(N).\n\ncosa(N, C):-tarea(N, buscar(C, _)).\nhomogeneo(N):-nivelActual(_, N), forall((cosa(N, C1), cosa(N, C2)), C1==C2).",
+    "extra": "tarea(basico,buscar(libro,jartum)).\n tarea(basico,buscar(arbol,patras)).\n tarea(basico,buscar(roca,telaviv)).\n tarea(intermedio,buscar(arbol,sofia)).\n tarea(intermedio,buscar(arbol,bucarest)).\n tarea(avanzado,buscar(perro,bari)).\n tarea(avanzado,buscar(flor,belgrado)).\n tarea(modoDios,buscar(amor,utn)).\n \n nivelActual(pepe,basico).\n nivelActual(lucy,intermedio).\n nivelActual(juancho,avanzado).\n nivelActual(gasti, modoDios).\n\n idioma(alejandria,arabe).\n idioma(jartum,arabe).\n idioma(patras,griego).\n idioma(telaviv,hebreo).\n idioma(sofia,bulgaro).\n idioma(bari,italiano).\n idioma(bucarest,rumano).\n idioma(belgrado,serbio).\n idioma(utn,nerd).\n",
+    "test": " test(destinos_posibles_de_lucy_son_sofia_y_bucarest, set(Destinos==[sofia, bucarest])):-\n\tdestinoPosible(lucy, Destinos).\n \n test(son_interesantes_intermedio_avanzado_y_modoDios, set(Niveles==[intermedio, avanzado])):-\n\tinteresante(Niveles).\n\n test(son_homogeneos_intermedio_y_modoDios, set(Niveles==[intermedio, modoDios])):-\n\thomogeneo(Niveles).\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "destinoPosible"
+      },
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "2"
+        ],
+        "binding": "destinoPosible"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "interesante"
+      },
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "1"
+        ],
+        "binding": "interesante"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "homogeneo"
+      },
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "1"
+        ],
+        "binding": "homogeneo"
+      }
+    ]
+  },
+  {
+    "id": 378,
+    "guideId": 35,
+    "lesson": "domino",
+    "language": "prolog",
+    "solution": "yaHaSidoJugada(F):-jugadas(F, _).\nyaHaSidoJugada(F):-jugadas(_, F).\njugadaALaIzquierda(F):-jugadas(F, _), not(jugadas(_, F)).\nextremoIzquierdo(F):-yaHaSidoJugada(F), jugadaALaIzquierda(F).\n\njugadaALaDerecha(F):-jugadas(_, F), not(jugadas(F, _)).\nextremoDerecho(F):-yaHaSidoJugada(F), jugadaALaDerecha(F).\n\njugador(N):-tieneFicha(N, _).\nnoCalsaIzquierda(ficha(_, D)):-extremoIzquierdo(ficha(I, _)), D\\=I.\nnoCalsaDerecha(ficha(I, _)):-extremoDerecho(ficha(_, D)), I\\=D.\nnoCalsa(F):-noCalsaIzquierda(F), noCalsaDerecha(F).\ncedeTurno(N):-jugador(N), forall(tieneFicha(N, F), noCalsa(F)).",
+    "extra": "tieneFicha(carlos,ficha(0,4)).\ntieneFicha(carlos,ficha(0,6)).\ntieneFicha(carlos,ficha(5,1)).\ntieneFicha(german,ficha(5,0)).\ntieneFicha(miguel,ficha(3,2)).\ntieneFicha(miguel,ficha(3,3)).\ntieneFicha(juan,ficha(1,6)).\n\n\njugadas(ficha(0,1),ficha(1,4)).\njugadas(ficha(1,4),ficha(4,2)).\njugadas(ficha(4,2),ficha(2,2)).\njugadas(ficha(2,2),ficha(2,5)).",
+    "test": "test(extremo_izquierdo, set(Ficha == [ficha(0,1)])):-\n  extremoIzquierdo(Ficha).\ntest(extremo_derecho, set(Ficha == [ficha(2,5)])):-\n  extremoDerecho(Ficha).\n\ntest(miguel_y_juan_ceden_turno, set(Jugadores==[miguel, juan])):-\n\tcedeTurno(Jugadores).",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "cedeTurno"
+      },
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "1"
+        ],
+        "binding": "cedeTurno"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "extremoIzquierdo"
+      },
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "1"
+        ],
+        "binding": "extremoIzquierdo"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "extremoDerecho"
+      },
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "1"
+        ],
+        "binding": "extremoDerecho"
+      }
+    ]
+  },
+  {
+    "id": 379,
+    "guideId": 35,
+    "lesson": "Se ha formado una pareja",
+    "language": "prolog",
+    "solution": "parejaPosible(N, pareja(N, P, CT)):-preferencia(N, C1, P), preferencia(P, C2, N), CT is 6-C1-C2.\n\nmaxGCompat(P, G):-preferencia(P, _, _), findall(GC, parejaPosible(P, pareja(P, _, GC)), GsC), max_list(GsC, G).\ncumpleCompat(pareja(_, _, C), C).\nmejorPareja(Per, Par):-preferencia(Per, _, _), maxGCompat(Per, G), findall(Par, (parejaPosible(Per, Par), cumpleCompat(Par, G)), Ps), member(Par, Ps).\n\nsonDistintas(pareja(P1, P2, _), pareja(P3, P4, _)):-P1\\=P3, P1\\=P4, P2\\=P3, P2\\=P4.\ncompatibilidad(P1, P2, C):-parejaPosible(P1, pareja(P1, P2, C)).\nhayProblemas(pareja(P1, P2, _), pareja(P3, P4, _)):-compatibilidad(P1, P2, C1), compatibilidad(P1, P3, C2), C2>C1, compatibilidad(P3, P4, C3), C2>C3.\nhayProblemas(pareja(P1, P2, _), pareja(P3, P4, _)):-compatibilidad(P1, P2, C1), compatibilidad(P1, P4, C2), C2>C1, compatibilidad(P3, P4, C3), C2>C3.\nhayProblemas(pareja(P1, P2, _), pareja(P3, P4, _)):-compatibilidad(P1, P2, C1), compatibilidad(P2, P3, C2), C2>C1, compatibilidad(P3, P4, C3), C2>C3.\nhayProblemas(pareja(P1, P2, _), pareja(P3, P4, _)):-compatibilidad(P1, P2, C1), compatibilidad(P2, P4, C2), C2>C1, compatibilidad(P3, P4, C3), C2>C3.\nhayEngaño(pareja(P1, P2, _), pareja(P1, P3, _)):-P2\\=P3.\nhayEngaño(pareja(P1, P2, _), pareja(P3, P1, _)):-P2\\=P3.\nseVanAPelear(P1, P2):-sonDistintas(P1, P2), parejaPosible(_, P1), parejaPosible(_, P2), hayProblemas(P1, P2).\nseVanAPelear(P1, P2):-parejaPosible(_, P1), parejaPosible(_, P2), hayEngaño(P1, P2).",
+    "extra": "% Ana prefiere a Luis antes que a Juan y a Juan antes que a Pedro.\npreferencia(ana, 1,luis).\npreferencia(ana, 2, juan).\npreferencia(ana, 3, pedro).\npreferencia(nora, 3,luis).\npreferencia(nora, 1, juan).\npreferencia(nora, 2, pedro).\npreferencia(marta, 2,luis).\npreferencia(marta, 3, juan).\npreferencia(marta, 1, pedro).\npreferencia(luis, 1, ana).\npreferencia(luis, 2, nora).\npreferencia(luis, 3, marta).\npreferencia(juan, 1, marta).\npreferencia(juan, 2, ana).\npreferencia(juan, 3, nora).\npreferencia(pedro, 3, nora).\npreferencia(pedro, 2, marta).\npreferencia(pedro, 1, ana).\npreferencia(milhouse, 1, ana).\npreferencia(milhouse, 2, marta).\npreferencia(milhouse, 3, nora).",
+    "test": "test(ana_y_luis_forman_pareja):-\n\tparejaPosible(ana, pareja(ana,luis, _)).\n\t\ntest(nadie_quiere_a_milhouse, fail):-\n  parejaPosible(milhouse, _).\n  \ntest(compatibilidad_ana_juan, true(Compatibilidad == 2)):-\n  parejaPosible(ana, pareja(ana, juan, Compatibilidad)).\n  \ntest(parejas_posibles_de_ana, set(Pareja==[pareja(ana, luis, 4), pareja(ana, juan, 2), pareja(ana, pedro, 2)])):-\n  parejaPosible(ana,Pareja).\n  \ntest(pueden_ser_aparejados, set(Persona==[ana, luis, juan, pedro, nora, marta])):-\n  parejaPosible(Persona, _).\n  \ntest(mejor_pareja_de_ana, set(Pareja == [pareja(ana, luis, 4) ])):-\n  mejorPareja(ana, Pareja).\n  \ntest(mejor_pareja_de_ana, set(Pareja == [pareja(ana, luis, 4) ])):-\n  mejorPareja(ana, Pareja).\n  \ntest(juan_tiene_muchas_mejores_parejas, set(Pareja == [pareja(juan, marta, 2), pareja(juan, ana, 2), pareja(juan, nora, 2) ])):-\n  mejorPareja(juan, Pareja).\n  \ntest(se_pelean_por_enganio):-\n  seVanAPelear(pareja(juan, marta, _), pareja(ana, juan, _)).\n  \ntest(se_pelean_por_dejarse):-\n  seVanAPelear(pareja(pedro, ana, _), pareja(nora, luis, _)).",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "parejaPosible"
+      },
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "2"
+        ],
+        "binding": "parejaPosible"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "mejorPareja"
+      },
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "2"
+        ],
+        "binding": "mejorPareja"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "seVanAPelear"
+      },
+      {
+        "inspection": "HasArity",
+        "expected": true,
+        "args": [
+          "2"
+        ],
+        "binding": "seVanAPelear"
+      }
+    ]
+  }
+]

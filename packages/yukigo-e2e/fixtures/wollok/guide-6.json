@@ -1,0 +1,102 @@
+[
+  {
+    "id": 46,
+    "guideId": 6,
+    "lesson": "Entrando en Calor",
+    "language": "wollok",
+    "solution": "object carlosDuty {\n  var cantidadDeLogros = 0\n  \n  method esViolento() {\n    return true\n  }\n  \n  method tiempoRestante() {\n    return 30 - cantidadDeLogros * 0.5\n  }\n  \n  method jugar(tiempo) {\n    if (tiempo > 2) {\n      cantidadDeLogros += 1\n    }\n  }\n}\n\n\nobject timbaElLeon {  \n  var tiempoRestante = 50\n  \n  method esViolento() {\n    return false\n  }\n  \n  method tiempoRestante() {\n    return tiempoRestante\n  }\n  \n  method jugar(tiempo) {\n    tiempoRestante -= tiempo\n  }\n}\n\n\nobject devilMayLaughVI {\n  var nivelDeSangre = 3\n  \n  method esViolento() {\n    return nivelDeSangre > 5\n  }\n  \n  method tiempoRestante() {\n    return 100\n  }\n  \n  method jugar(tiempo) {\n    nivelDeSangre += 1\n  }\n}",
+    "extra": null,
+    "test": "test \"carlosDuty es violento\" {\n\tassert.that(carlosDuty.esViolento())\n}\n\ntest \"timbaElLeon no es violento\" {\n\tassert.that(!timbaElLeon.esViolento())\n}\n\ntest \"devilMayLaughVI por defecto NO es violento\" {\n\tassert.that(!devilMayLaughVI.esViolento())\n}\n\ntest \"devilMayLaughVI se vuelve violento si se juega muchas veces\" {\n \t5.times { x=> devilMayLaughVI.jugar(10) }\n\tassert.that(devilMayLaughVI.esViolento())\n}\n\ntest \"inicialmente el tiempo del carlosDuty es 30\" {\n  assert.equals(30, carlosDuty.tiempoRestante())\n}\n\ntest \"si se juega al carlosDuty por 7 horas en dos tramos distintos, su tiempo restante es 29\" {\n\tcarlosDuty.jugar(7)\n\tcarlosDuty.jugar(7)\n\tassert.equals(29, carlosDuty.tiempoRestante())\n}\n\ntest \"si se juega al carlosDuty por dos periodos de una hora su tiempo restante sigue siendo 30\" {\n  carlosDuty.jugar(1)\n\tcarlosDuty.jugar(1)\n\tassert.equals(30, carlosDuty.tiempoRestante())\n}\n\ntest \"tiempo restante al jugar timbaElLeon\" {\n\tassert.equals(50, timbaElLeon.tiempoRestante())\n\ttimbaElLeon.jugar(20)\n\tassert.equals(30, timbaElLeon.tiempoRestante())\n}\n\ntest \"inicialmente el tiempo restante del devilMayLaughVI es 100\"{\n\tassert.equals(100, devilMayLaughVI.tiempoRestante())\n\t\n}\n\ntest \"si se juega dos veces al devilMayLaughVI, su tiempo restante sigue siendo 100\" {\n\ttimbaElLeon.jugar(20)\n\ttimbaElLeon.jugar(10)\n\tassert.equals(100, devilMayLaughVI.tiempoRestante())\n}",
+    "expectations": []
+  },
+  {
+    "id": 47,
+    "guideId": 6,
+    "lesson": "Creando una lista",
+    "language": "wollok",
+    "solution": "object biblioteca {\n  const juegos = [timbaElLeon, carlosDuty]\n  \n  method juegos() {\n    return juegos\n  }\n}",
+    "extra": "object carlosDuty {\n    var cantidadDeLogros = 0\n    \n    method esViolento(){\n        return true\n    }\n    method tiempoRestante(){\n        return 30 - cantidadDeLogros * 0.5\n    }\n    method jugar(tiempo){\n        if(tiempo > 2){\n            cantidadDeLogros += 1\n        }\n    }\n}\n\nobject timbaElLeon {\n    var tiempoRestante = 50\n    \n    method esViolento(){\n        return false\n    }\n    method tiempoRestante(){\n        return tiempoRestante\n    }\n    method jugar(tiempo){\n        tiempoRestante -= tiempo\n    }\n}\n\nobject devilMayLaughVI {\n    var nivelDeSangre = 3\n\n    method esViolento(){\n        return nivelDeSangre > 5\n    }\n    method tiempoRestante(){\n        return 100\n    }\n    method jugar(tiempo){\n        //no pasa naranja\n    }\n    method nivelDeSangre(nivel){\n    \tnivelDeSangre = nivel\n    }\n}\n",
+    "test": "test \"La Biblioteca debe contener al CarlosDuty\" {\n\tassert.that(biblioteca.juegos().contains(carlosDuty))\n}\n\ntest \"la biblioteca debe contener al timbaElLeon\" {\n  assert.that(biblioteca.juegos().contains(timbaElLeon))\n}\n\ntest \"la biblioteca NO debe contener al devilMayLaughVI\" {\n\tassert.notThat(biblioteca.juegos().contains(devilMayLaughVI))\n}",
+    "expectations": []
+  },
+  {
+    "id": 48,
+    "guideId": 6,
+    "lesson": "Algunos mensajes básicos",
+    "language": "wollok",
+    "solution": "object biblioteca {\n  const juegos = [timbaElLeon, carlosDuty]\n  var puntos = 0\n  \n  method juegos() {\n    return juegos\n  }\n  \n  method adquirirJuego(unJuego) {\n    juegos.add(unJuego)\n    puntos += 150\n  }\n  \n  method borrarJuego(unJuego) {\n    juegos.remove(unJuego)\n  }\n  \n  method esDeGamer() {\n    return self.puntos() > 1000 and juegos.size() > 5\n  }\n  \n  method esJuegoRecomendable(unJuego) {\n    return not juegos.contains(unJuego) and unJuego.esViolento()\n  }\n  \n  method puntos() {\n    return puntos\n  }\n}",
+    "extra": "object carlosDuty {\n    var cantidadDeLogros\n    \n    method esViolento(){\n        return true\n    }\n    method tiempoRestante(){\n        return 30 - cantidadDeLogros * 0.5\n    }\n    method jugar(tiempo){\n        if(tiempo > 2){\n            cantidadDeLogros += 1\n        }\n    }\n}\n\nobject timbaElLeon {\n    var tiempoRestante = 50\n    \n    method esViolento(){\n        return false\n    }\n    method tiempoRestante(){\n        return tiempoRestante\n    }\n    method jugar(tiempo){\n        tiempoRestante -= tiempo\n    }\n}\n\nobject devilMayLaughVI {\n    var nivelDeSangre = 3\n\n    method esViolento(){\n        return nivelDeSangre > 5\n    }\n    method tiempoRestante(){\n        return 100\n    }\n    method jugar(tiempo){\n        //no pasa naranja\n    }\n    method nivelDeSangre(nivel){\n    \tnivelDeSangre = nivel\n    }\n}\n\nclass JuegoGenerico {\n\tmethod esViolento() = true\n\tmethod tiempoRestante() = 100\n\tmethod jugar(){}\n}",
+    "test": "test \"si se adquiere devilMayLaughVI se agrega a los juegos y suma puntos\" {\n\tbiblioteca.adquirirJuego(devilMayLaughVI)\n\tassert.that(biblioteca.juegos().contains(devilMayLaughVI))\n\tassert.equals(150,biblioteca.puntos())\n}\n\ntest \"si se borra timbaElLeon la biblioteca queda con un solo juego\"{\n\tbiblioteca.borrarJuego(timbaElLeon)\n\tassert.notThat(biblioteca.juegos().contains(timbaElLeon))\n\tassert.equals(1, biblioteca.juegos().size())\n\tassert.equals(0, biblioteca.puntos())\n}\n\ntest \"inicialmente la biblioteca no es de gamer\"{\n\tassert.notThat(biblioteca.esDeGamer())\n}\n\ntest \"si se adquieren suficientes juegos la biblioteca es de gamer\"{\n\tbiblioteca.adquirirJuego(devilMayLaughVI)\n\tbiblioteca.adquirirJuego(new JuegoGenerico())\n\tbiblioteca.adquirirJuego(new JuegoGenerico())\n\tbiblioteca.adquirirJuego(new JuegoGenerico())\n\tbiblioteca.adquirirJuego(new JuegoGenerico())\n\tassert.notThat(biblioteca.esDeGamer())\n\tbiblioteca.adquirirJuego(new JuegoGenerico())\n\tbiblioteca.adquirirJuego(new JuegoGenerico())\n\tassert.that(biblioteca.esDeGamer())\n}\n\ntest \"carlosDuty es recomendable si no esta en la biblioteca\"{\n  assert.notThat(biblioteca.esJuegoRecomendable(carlosDuty))\n  biblioteca.borrarJuego(carlosDuty)\n  assert.that(biblioteca.esJuegoRecomendable(carlosDuty))\n}\n\ntest \"devilMayLaughVI no es recomendable porque no es violento\"{\n  assert.notThat(biblioteca.esJuegoRecomendable(devilMayLaughVI))\n}",
+    "expectations": []
+  },
+  {
+    "id": 49,
+    "guideId": 6,
+    "lesson": "¿Bloques? ¿Eso se come?",
+    "language": "wollok",
+    "solution": "var jugarATimba = {tiempo => timbaElLeon.jugar(tiempo)} /*bloque de un parámetro tiempo que le envie jugar(tiempo) a timbaElLeon*/",
+    "extra": "object timbaElLeon {\n    var tiempoRestante = 50\n    \n    method esViolento(){\n        return false\n    }\n    method tiempoRestante(){\n        return tiempoRestante\n    }\n    method jugar(tiempo){\n        tiempoRestante -= tiempo\n    }\n}",
+    "test": "test \"si se evalua jugarATimba primero con 10 y después con 20, a timbaElLeon le quedan 20 minutos restantes\" {\n  /*...content...*/\n  jugarATimba.apply(10)\n  jugarATimba.apply(20)\n  assert.equals(20, timbaElLeon.tiempoRestante())\n}",
+    "expectations": []
+  },
+  {
+    "id": 50,
+    "guideId": 6,
+    "lesson": "¿Te acordás del filter?",
+    "language": "wollok",
+    "solution": "object biblioteca {\n    var juegos = [timbaElLeon, carlosDuty]\n    \n    method juegos(){\n      return juegos\n    } \n    \n    method juegosViolentos() {\n      return juegos.filter({unJuego => unJuego.esViolento()})\n    }\n    \n    // ... más cosas que no hacen falta ahora\n    \n}",
+    "extra": "object carlosDuty {\n    var cantidadDeLogros = 0\n    \n    method esViolento(){\n        return true\n    }\n    method tiempoRestante(){\n        return 30 - cantidadDeLogros * 0.5\n    }\n    method jugar(tiempo){\n        if(tiempo > 2){\n            cantidadDeLogros += 1\n        }\n    }\n}\n\nobject timbaElLeon {\n    var tiempoRestante = 50\n    \n    method esViolento(){\n        return false\n    }\n    method tiempoRestante(){\n        return tiempoRestante\n    }\n    method jugar(tiempo){\n        tiempoRestante -= tiempo\n    }\n}\n\nobject devilMayLaughVI {\n    var nivelDeSangre = 3\n\n    method esViolento(){\n        return nivelDeSangre > 5\n    }\n    method tiempoRestante(){\n        return 100\n    }\n    method jugar(tiempo){\n        //no pasa naranja\n    }\n    method nivelDeSangre(nivel){\n    \tnivelDeSangre = nivel\n    }\n}\n",
+    "test": "test \"juegos violentos\" {\n\tassert.equals([carlosDuty], biblioteca.juegosViolentos())\n}\n\n",
+    "expectations": []
+  },
+  {
+    "id": 51,
+    "guideId": 6,
+    "lesson": "Encontrar",
+    "language": "wollok",
+    "solution": "object biblioteca {\n    var juegos = [timbaElLeon, carlosDuty]\n    \n    method juegos(){\n      return juegos\n    } \n    \n    method unoConMasHorasRestantesQue(unasHoras) {\n      return juegos.find({unJuego => unJuego.tiempoRestante() > unasHoras})\n    }\n    \n    // ... más cosas que no hacen falta ahora\n    \n}",
+    "extra": "object carlosDuty {\n    var cantidadDeLogros = 0\n    \n    method esViolento(){\n        return true\n    }\n    method tiempoRestante(){\n        return 30 - cantidadDeLogros * 0.5\n    }\n    method jugar(tiempo){\n        if(tiempo > 2){\n            cantidadDeLogros += 1\n        }\n    }\n}\n\nobject timbaElLeon {\n    var tiempoRestante = 50\n    \n    method esViolento(){\n        return false\n    }\n    method tiempoRestante(){\n        return tiempoRestante\n    }\n    method jugar(tiempo){\n        tiempoRestante -= tiempo\n    }\n}\n\nobject devilMayLaughVI {\n    var nivelDeSangre = 3\n\n    method esViolento(){\n        return nivelDeSangre > 5\n    }\n    method tiempoRestante(){\n        return 100\n    }\n    method jugar(tiempo){\n        //no pasa naranja\n    }\n    method nivelDeSangre(nivel){\n    \tnivelDeSangre = nivel\n    }\n}\n",
+    "test": "test \"uno al que le falten mas de 20 horas\"{\n\ttimbaElLeon.jugar(40)\n\tassert.equals(carlosDuty, biblioteca.unoConMasHorasRestantesQue(20))\n}",
+    "expectations": []
+  },
+  {
+    "id": 52,
+    "guideId": 6,
+    "lesson": "¿Alguno cumple?, ¿Todos  cumplen?",
+    "language": "wollok",
+    "solution": "object biblioteca {\n    var juegos = [timbaElLeon, carlosDuty]\n    \n    method juegos() {\n        return juegos\n    }\n    \n    method muchaViolencia() {\n      return juegos.all({unJuego => unJuego.esViolento()})\n    }\n    \n    method todaviaHayParaRato() {\n      return juegos.any({unJuego => unJuego.tiempoRestante() > 20})\n    }\n    \n    //...\n}",
+    "extra": "object carlosDuty {\n    var cantidadDeLogros = 0\n    \n    method esViolento(){\n        return true\n    }\n    method tiempoRestante(){\n        return 30 - cantidadDeLogros * 0.5\n    }\n    method jugar(tiempo){\n        if(tiempo > 2){\n            cantidadDeLogros += 1\n        }\n    }\n}\n\nobject timbaElLeon {\n    var tiempoRestante = 50\n    \n    method esViolento(){\n        return false\n    }\n    method tiempoRestante(){\n        return tiempoRestante\n    }\n    method jugar(tiempo){\n        tiempoRestante -= tiempo\n    }\n}\n\nobject devilMayLaughVI {\n    var nivelDeSangre = 3\n\n    method esViolento(){\n        return nivelDeSangre > 5\n    }\n    method tiempoRestante(){\n        return 100\n    }\n    method jugar(tiempo){\n        //no pasa naranja\n    }\n    method nivelDeSangre(nivel){\n    \tnivelDeSangre = nivel\n    }\n}\n",
+    "test": "test \"la biblioteca no es tan violenta porque tiene timbaElLeon\" {\n\tassert.notThat(biblioteca.muchaViolencia())\n\tbiblioteca.juegos().remove(timbaElLeon)\n\tassert.that(biblioteca.muchaViolencia())\n}\n\ntest \"todavia hay para rato luego de jugar mucho a timbaElLeon\" {\n\ttimbaElLeon.jugar(40)\n\tassert.that(biblioteca.todaviaHayParaRato())\n\tbiblioteca.juegos().remove(carlosDuty)\n\tassert.notThat(biblioteca.todaviaHayParaRato())\n}",
+    "expectations": []
+  },
+  {
+    "id": 53,
+    "guideId": 6,
+    "lesson": "El viejo y querido map",
+    "language": "wollok",
+    "solution": "object biblioteca {\n    var juegos = [timbaElLeon, carlosDuty]\n    \n    method juegos(){\n      return juegos\n    }\n    \n    method juegosViolentos() {\n      return juegos.filter({unJuego => unJuego.esViolento()})\n    }\n    \n    method tiemposViolentos() {\n      return self.juegosViolentos().map({unJuego => unJuego.tiempoRestante()})\n    }\n    \n    //...\n}",
+    "extra": "object carlosDuty {\n    var cantidadDeLogros = 0\n    \n    method esViolento(){\n        return true\n    }\n    method tiempoRestante(){\n        return 30 - cantidadDeLogros * 0.5\n    }\n    method jugar(tiempo){\n        if(tiempo > 2){\n            cantidadDeLogros += 1\n        }\n    }\n}\n\nobject timbaElLeon {\n    var tiempoRestante = 50\n    \n    method esViolento(){\n        return false\n    }\n    method tiempoRestante(){\n        return tiempoRestante\n    }\n    method jugar(tiempo){\n        tiempoRestante -= tiempo\n    }\n}\n\nobject devilMayLaughVI {\n    var nivelDeSangre = 3\n\n    method esViolento(){\n        return nivelDeSangre > 5\n    }\n    method tiempoRestante(){\n        return 100\n    }\n    method jugar(tiempo){\n        //no pasa naranja\n    }\n    method nivelDeSangre(nivel){\n    \tnivelDeSangre = nivel\n    }\n}\n\nclass JuegoGenerico {\n\tmethod esViolento() = true\n\tmethod tiempoRestante() = 100\n\tmethod jugar(){}\n}",
+    "test": "test \"tiempos violentos agregando un juego violento al que le faltan 100 horas\" {\n\tbiblioteca.juegos().add(new JuegoGenerico())\n\tassert.equals([30,100], biblioteca.tiemposViolentos())\n}",
+    "expectations": []
+  },
+  {
+    "id": 54,
+    "guideId": 6,
+    "lesson": "¿Cuantos cumplen?,  Sumatoria",
+    "language": "wollok",
+    "solution": "object biblioteca {\n    var juegos = [timbaElLeon, carlosDuty]\n    \n    method juegos(){\n      return juegos\n    }\n    \n    method promedioDeViolencia() {\n      return juegos.sum({unJuego => unJuego.tiempoRestante()}) / juegos.count({unJuego => unJuego.esViolento()})\n    }\n    \n    //...\n}",
+    "extra": "object carlosDuty {\n    var cantidadDeLogros = 0\n    \n    method esViolento(){\n        return true\n    }\n    method tiempoRestante(){\n        return 30 - cantidadDeLogros * 0.5\n    }\n    method jugar(tiempo){\n        if(tiempo > 2){\n            cantidadDeLogros += 1\n        }\n    }\n}\n\nobject timbaElLeon {\n    var tiempoRestante = 50\n    \n    method esViolento(){\n        return false\n    }\n    method tiempoRestante(){\n        return tiempoRestante\n    }\n    method jugar(tiempo){\n        tiempoRestante -= tiempo\n    }\n}\n\nobject devilMayLaughVI {\n    var nivelDeSangre = 3\n\n    method esViolento(){\n        return nivelDeSangre > 5\n    }\n    method tiempoRestante(){\n        return 100\n    }\n    method jugar(tiempo){\n        //no pasa naranja\n    }\n    method nivelDeSangre(nivel){\n    \tnivelDeSangre = nivel\n    }\n}\n\nclass JuegoGenerico {\n\tmethod esViolento() = true\n\tmethod tiempoRestante() = 100\n\tmethod jugar(){}\n}\n",
+    "test": "test \"promedio de violencia agregando un juego violento al que le faltan 100 horas\" {\n\tbiblioteca.juegos().add(new JuegoGenerico())\n\tassert.equals(90, biblioteca.promedioDeViolencia())\n\ttimbaElLeon.jugar(40)\n\tassert.equals(70, biblioteca.promedioDeViolencia())\n}",
+    "expectations": []
+  },
+  {
+    "id": 55,
+    "guideId": 6,
+    "lesson": "Jugando a todo",
+    "language": "wollok",
+    "solution": "object biblioteca {\n    const juegos = [timbaElLeon, carlosDuty]\n    \n    method juegos(){\n      return juegos\n    }\n    \n    method jugarATodo() {\n      juegos.forEach({unJuego => unJuego.jugar(5)})\n    }\n    \n    //...\n    \n}",
+    "extra": "object carlosDuty {\n    var cantidadDeLogros = 0\n    \n    method esViolento(){\n        return true\n    }\n    method tiempoRestante(){\n        return 30 - cantidadDeLogros * 0.5\n    }\n    method jugar(tiempo){\n        if(tiempo > 2){\n            cantidadDeLogros += 1\n        }\n    }\n\n    method cantidadDeLogros() = cantidadDeLogros\n}\n\nobject timbaElLeon {\n    var tiempoRestante = 50\n    \n    method esViolento(){\n        return false\n    }\n    method tiempoRestante(){\n        return tiempoRestante\n    }\n    method jugar(tiempo){\n        tiempoRestante -= tiempo\n    }\n}\n\nobject devilMayLaughVI {\n    var nivelDeSangre = 3\n\n    method esViolento(){\n        return nivelDeSangre > 5\n    }\n    method tiempoRestante(){\n        return 100\n    }\n    method jugar(tiempo){\n        //no pasa naranja\n    }\n    method nivelDeSangre(nivel){\n    \tnivelDeSangre = nivel\n    }\n}\n",
+    "test": "test \"jugar a todos los juegos\" {\n\tbiblioteca.jugarATodo()\n\tassert.equals(45, timbaElLeon.tiempoRestante())\n\tassert.equals(1, carlosDuty.cantidadDeLogros())\n}",
+    "expectations": []
+  }
+]

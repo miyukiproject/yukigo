@@ -1,0 +1,92 @@
+[
+  {
+    "id": 326,
+    "guideId": 31,
+    "lesson": "Expresiones, en funcional",
+    "language": "prolog",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 327,
+    "guideId": 31,
+    "lesson": "Expresiones, ¿en lógico?",
+    "language": "prolog",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 328,
+    "guideId": 31,
+    "lesson": "Consultas vs expresiones",
+    "language": "prolog",
+    "solution": null,
+    "extra": "esAgente(86).\nesAgente(99).\nesAgente(13).\nesAgente(44).\nesAgente(control).",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 329,
+    "guideId": 31,
+    "lesson": "Individuos vs valores",
+    "language": "prolog",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 330,
+    "guideId": 31,
+    "lesson": "¿1 + 1 = 2?",
+    "language": "prolog",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 331,
+    "guideId": 31,
+    "lesson": "Inferencia vs reducción",
+    "language": "prolog",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 332,
+    "guideId": 31,
+    "lesson": "Hora de hacer cuentas",
+    "language": "prolog",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 333,
+    "guideId": 31,
+    "lesson": "Cuadrado",
+    "language": "prolog",
+    "solution": "cuadrado(N1, N2):- N2 is N1 * N1.",
+    "extra": null,
+    "test": "test('cuadrado(4, 16)') :-\n  cuadrado(4, X), \n  X =:= 16.\n  \ntest('cuadrado(2, 4)') :-\n  cuadrado(2, X), \n  X =:= 4.\n  \ntest('cuadrado(10, 100)') :-\n  cuadrado(10, X), \n  X =:= 100.\n  \n",
+    "expectations": []
+  },
+  {
+    "id": 334,
+    "guideId": 31,
+    "lesson": "Máximo",
+    "language": "prolog",
+    "solution": "maximo(N1, N2, N1):-N1>N2.\nmaximo(N1, N2, N2):-N1<N2.\nmaximo(N1, N1, N1):-N1=N2.",
+    "extra": null,
+    "test": "test('maximo(3, 4, 4)', nondet) :-\n  maximo(3, 4, X),\n  assertion(X =:= 4).\n  \ntest('maximo(3, 23, 23)', nondet) :-\n  maximo(3, 23, X),\n  assertion(X =:= 23).\n\ntest('maximo(100, 100, 100)', nondet) :-\n  maximo(100, 100, X),\n  assertion(X =:= 100).\n  \ntest('maximo(2, 4, 4)', nondet) :-\n  maximo(2, 4, X),\n  assertion(X =:= 4).\n  ",
+    "expectations": []
+  }
+]

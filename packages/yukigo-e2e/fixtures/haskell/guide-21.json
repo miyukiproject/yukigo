@@ -1,0 +1,375 @@
+[
+  {
+    "id": 194,
+    "guideId": 21,
+    "lesson": "Juguemos un rato",
+    "language": "haskell",
+    "solution": null,
+    "extra": "siguiente :: Num a => a -> a\nsiguiente x = x + 1\n",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 195,
+    "guideId": 21,
+    "lesson": "Operaciones sobre valores",
+    "language": "haskell",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 196,
+    "guideId": 21,
+    "lesson": "Un poquito de inferencia",
+    "language": "haskell",
+    "solution": null,
+    "extra": "doble x = 2 * x",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 197,
+    "guideId": 21,
+    "lesson": "Un poco más de inferencia",
+    "language": "haskell",
+    "solution": "tipoDeXEnEsAdulta = \"numero\"\ntipoDeRetornoEnEsAdulta = \"booleano\"\ntipoDeXEnEsVacio  = \"string\"\ntipoDeRetornoEnEsVacio = \"booleano\"",
+    "extra": null,
+    "test": "describe \"un poco más de inferencia\" $ do \n  it \"inferiste bien el tipo de x en esAdulta\" $ do \n    tipoDeXEnEsAdulta == \"numero\" `shouldBe` True\n    \n  it \"inferiste bien el tipo de x en esVacio\" $ do \n    tipoDeXEnEsVacio == \"string\" `shouldBe` True\n    \n  it \"inferiste bien el tipo de retorno en esAdulta\" $ do \n    tipoDeRetornoEnEsAdulta  == \"booleano\" `shouldBe` True\n    \n  it \"inferiste bien el tipo de retorno en esVacio\" $ do \n    tipoDeRetornoEnEsVacio == \"booleano\" `shouldBe` True\n    \n\n",
+    "expectations": []
+  },
+  {
+    "id": 198,
+    "guideId": 21,
+    "lesson": "Inferencia y composición",
+    "language": "haskell",
+    "solution": null,
+    "extra": "elDobleEsMultiploDeTres = (==0) . (`mod` 3) . (2*) \n",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 199,
+    "guideId": 21,
+    "lesson": "Inferencia y composición, revisada",
+    "language": "haskell",
+    "solution": "largoEsPar = even . length",
+    "extra": null,
+    "test": "describe \"inferencia y composición\" $ do \n  describe \"largoEsPar\" $ do \n    it \"largoEsPar \\\"hola\\\" es True\" $ do \n      largoEsPar \"hola\" `shouldBe` True\n\n    it \"largoEsPar \\\"adios\\\" es False\" $ do \n      largoEsPar \"adios\" `shouldBe` False",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "largoEsPar"
+      },
+      {
+        "inspection": "HasComposition",
+        "expected": true,
+        "args": [],
+        "binding": "largoEsPar"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "even"
+        ],
+        "binding": "largoEsPar"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "length"
+        ],
+        "binding": "largoEsPar"
+      }
+    ]
+  },
+  {
+    "id": 200,
+    "guideId": 21,
+    "lesson": "Tipando alias",
+    "language": "haskell",
+    "solution": "edadDeAgus :: Int\nedadDeAgus = 15\n\nnombreDeAgus :: String\nnombreDeAgus = \"Agustín\"\n\nestaHartoAgus :: Bool\nestaHartoAgus = False\n\ninicialDeAgus :: Char\ninicialDeAgus = 'a'",
+    "extra": null,
+    "test": "it \"edadDeAgus tipa\" $ do \n  edadDeAgus `shouldBe` 15\n\nit \"nombreDeAgus tipa\" $ do \n  nombreDeAgus `shouldBe` \"Agustín\"\n\nit \"estaHartoAgus tipa\" $ do \n  estaHartoAgus `shouldBe` False\n\nit \"inicialDeAgus tipa\" $ do \n  inicialDeAgus `shouldBe` 'a'\n",
+    "expectations": [
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "edadDeAgus"
+      },
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "nombreDeAgus"
+      },
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "estaHartoAgus"
+      },
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "inicialDeAgus"
+      }
+    ]
+  },
+  {
+    "id": 201,
+    "guideId": 21,
+    "lesson": "Tipando funciones",
+    "language": "haskell",
+    "solution": "esPar :: Int -> Bool\nesPar unNumero = (rem unNumero 2) == 0\n\ncantidadDeLetras :: String -> Int\ncantidadDeLetras unaPalabra = length unaPalabra",
+    "extra": null,
+    "test": "it \"tipaste bienEsPar\" $ do \n  esPar 2 `shouldBe` True\n\nit \"tipaste cantidadDeLetras\" $ do \n  cantidadDeLetras \"hola\" `shouldBe` 4",
+    "expectations": [
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "esPar"
+      },
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "cantidadDeLetras"
+      },
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 202,
+    "guideId": 21,
+    "lesson": "Tipando más funciones",
+    "language": "haskell",
+    "solution": "nombreCompleto :: String -> String -> String -> String\nnombreCompleto x y z = x ++ \" \" ++ y ++ \" \" ++ z",
+    "extra": null,
+    "test": "describe \"nombreCompleto\" $ do \n  it \"nombreCompleto \\\"Eva\\\" \\\"Clara\\\" \\\"Mendoza\\\" == \\\"Eva Clara Mendoza\\\"\" $ do\n     nombreCompleto \"Eva\" \"Clara\" \"Mendoza\" `shouldBe` \"Eva Clara Mendoza\" \n\n  it \"nombreCompleto \\\"Esteban\\\" \\\"Carlos\\\" \\\"Burzaco\\\" == \\\"Esteban Carlos Burzaco\\\"\" $ do\n     nombreCompleto \"Esteban\" \"Carlos\" \"Burzaco\" `shouldBe` \"Esteban Carlos Burzaco\" ",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "nombreCompleto"
+      },
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "nombreCompleto"
+      },
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 203,
+    "guideId": 21,
+    "lesson": "¡Clases de tipos!",
+    "language": "haskell",
+    "solution": "doble :: Num a => a -> a\ndoble = (*2)",
+    "extra": null,
+    "test": "it \"doble debería funcionar con enteros\" $ do \n  doble (4 :: Int)  `shouldBe` (8 :: Int)\n  \nit \"doble también debería funcionar con floantes\" $ do \n  doble (4.5 :: Float)  `shouldBe` (9 :: Float)",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "doble"
+      },
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "doble"
+      }
+    ]
+  },
+  {
+    "id": 204,
+    "guideId": 21,
+    "lesson": "Tipos enteros y no tanto",
+    "language": "haskell",
+    "solution": "esPar :: Int -> Bool\nesPar numero = rem numero 2 == 0 \n\nporcentaje :: Float -> Float -> Float\nporcentaje cantidad total = cantidad * 100 / total",
+    "extra": null,
+    "test": "it \"porcentaje 4 10 es 40\" $ do \n  porcentaje 4 10 `shouldBe` (40.0 :: Float)\n  \nit \"porcentaje 125 1000 es 12.5\" $ do \n  porcentaje 125 1000 `shouldBe` (12.5 :: Float)\n\nit \"esPar 4 debería ser True\" $ do \n  esPar (4 :: Int) `shouldBe` True\n\nit \"esPar 35 debería ser False\" $ do \n  esPar (35 :: Int) `shouldBe` False\n",
+    "expectations": [
+      {
+        "inspection": "DeclaresTypeSignature",
+        "expected": true,
+        "args": [
+          "esPar"
+        ],
+        "binding": "*"
+      },
+      {
+        "inspection": "Declares",
+        "expected": true,
+        "args": [
+          "esPar"
+        ],
+        "binding": "*"
+      },
+      {
+        "inspection": "DeclaresTypeSignature",
+        "expected": true,
+        "args": [
+          "porcentaje"
+        ],
+        "binding": "*"
+      },
+      {
+        "inspection": "Declares",
+        "expected": true,
+        "args": [
+          "porcentaje"
+        ],
+        "binding": "*"
+      },
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 205,
+    "guideId": 21,
+    "lesson": "Más clases de tipos",
+    "language": "haskell",
+    "solution": "funcionMisteriosa1 :: Num a => a -> a\nfuncionMisteriosa1 x = x * x + x\n\nfuncionMisteriosa2 :: Show a => a -> Int\nfuncionMisteriosa2 = length.show",
+    "extra": null,
+    "test": "it \"funcionMisteriosa1 funciona con enteros\" $ do \n    funcionMisteriosa1 1 `shouldBe` (2 :: Int)\n    \nit \"funcionMisteriosa1 funciona con floantes\" $ do \n    funcionMisteriosa1 1 `shouldBe` (2 :: Float)\n    \nit \"funcionMisteriosa2 funciona con numeros\" $ do \n    funcionMisteriosa2 1 `shouldBe` 1\n\nit \"funcionMisteriosa2 funciona con booleanos\" $ do \n    funcionMisteriosa2 True `shouldBe` 4\n",
+    "expectations": [
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "funcionMisteriosa1"
+      },
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "funcionMisteriosa2"
+      },
+      {
+        "inspection": "UsesWrongCaseBindings",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 206,
+    "guideId": 21,
+    "lesson": "Restricciones múltiples",
+    "language": "haskell",
+    "solution": "estaEntre :: Ord a => a -> a -> a -> Bool\nestaEntre valor menor mayor = valor >= menor && valor <= mayor\n\nsonIgualesOEstaEntre :: (Eq a, Ord b) => a -> a -> b -> b -> b -> Bool\nsonIgualesOEstaEntre unValor otroValor valorEntre menor mayor = unValor == otroValor || estaEntre valorEntre menor mayor",
+    "extra": null,
+    "test": "it \"estaEntre funciona con enteros\" $ do \n  estaEntre (4::Int) 5 6 `shouldBe` False\n\nit \"estaEntre funciona con flotantes\" $ do \n  estaEntre (4::Float) 1 6 `shouldBe` True\n\nit \"estaEntre funciona con caracteres\" $ do \n  estaEntre 'g' 'a' 'z' `shouldBe` True \n  \nit \"sonIgualesOEstaEntre funciona con números y caracteres\" $ do \n  sonIgualesOEstaEntre 'd' 'e' 5 1 9 `shouldBe` True \n  \nit \"sonIgualesOEstaEntre funciona con caracteres y números\" $ do \n  sonIgualesOEstaEntre 4 4 'd' 'a' 'c' `shouldBe` True ",
+    "expectations": [
+      {
+        "inspection": "DeclaresTypeSignature",
+        "expected": true,
+        "args": [
+          "estaEntre"
+        ],
+        "binding": "*"
+      },
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      },
+      {
+        "inspection": "DeclaresTypeSignature",
+        "expected": true,
+        "args": [
+          "sonIgualesOEstaEntre"
+        ],
+        "binding": "*"
+      },
+      {
+        "inspection": "HasLongParameterList",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 207,
+    "guideId": 21,
+    "lesson": "Funciones muy, muy genéricas",
+    "language": "haskell",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 208,
+    "guideId": 21,
+    "lesson": "Juntando todo",
+    "language": "haskell",
+    "solution": "ignoraElPrimero :: a -> b -> b\nignoraElPrimero primero segundo = segundo\n\nsumarTres :: Num a => a -> a -> a -> a\nsumarTres uno otro otroMas = uno + otro + otroMas\n\ncompararSi :: Eq a => Bool -> a -> a -> Bool\ncompararSi condicion uno otro = not condicion || uno == otro",
+    "extra": null,
+    "test": "it \"ignoraElPrimero 'a' 4 es 4\" $ do \n  ignoraElPrimero 'a' 4 `shouldBe` 4\n\nit \"ignoraElPrimero 5 \\\"HOLA\\\" es \\\"HOLA\\\"\" $ do \n  ignoraElPrimero 5 \"HOLA\" `shouldBe` \"HOLA\"\n  \nit \"sumarTres 1 2 3 es 6\" $ do \n  sumarTres 1 2 3 `shouldBe` (6 :: Int)\n  \nit \"sumarTres 0.1 0.2 0.2 es 0.5\" $ do \n  sumarTres 0.1 0.2 0.2 `shouldBe` 0.5\n  \nit \"compararSi True 5 5 es True\" $ do \n  compararSi True 5 5 `shouldBe` True\n  \nit \"compararSi True 'a' 'b' es False\" $ do \n  compararSi True 'a' 'b' `shouldBe` False\n\nit \"compararSi False 'a' 'b' es True\" $ do \n  compararSi False 'a' 'b' `shouldBe` True",
+    "expectations": [
+      {
+        "inspection": "DeclaresTypeSignature",
+        "expected": true,
+        "args": [
+          "compararSi"
+        ],
+        "binding": "*"
+      },
+      {
+        "inspection": "DeclaresTypeSignature",
+        "expected": true,
+        "args": [
+          "sumarTres"
+        ],
+        "binding": "*"
+      },
+      {
+        "inspection": "DeclaresTypeSignature",
+        "expected": true,
+        "args": [
+          "ignoraElPrimero"
+        ],
+        "binding": "*"
+      },
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  }
+]

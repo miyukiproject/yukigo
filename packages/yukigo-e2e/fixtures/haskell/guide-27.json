@@ -1,0 +1,308 @@
+[
+  {
+    "id": 275,
+    "guideId": 27,
+    "lesson": "fibonacci",
+    "language": "haskell",
+    "solution": "fibonacci 1 = 1\nfibonacci 2 = 1\nfibonacci n = fibonacci (n - 1) + fibonacci (n - 2)",
+    "extra": null,
+    "test": "describe \"fibonacci\" $ do\n  it \"fibonacci 15 == 610\" $ do\n    fibonacci 15 `shouldBe` 610\n\t\n  it \"fibonacci 5 == 5\" $ do\n    fibonacci 5 `shouldBe` 5\n",
+    "expectations": [
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": true,
+        "args": [],
+        "binding": "fibonacci"
+      }
+    ]
+  },
+  {
+    "id": 276,
+    "guideId": 27,
+    "lesson": "pertenece",
+    "language": "haskell",
+    "solution": "pertenece [a] b = a == b\npertenece (x:xs) b = pertenece [x] b || pertenece (xs) b",
+    "extra": null,
+    "test": "describe \"pertenece\" $ do\n  it \"pertenece [1,2,6] 2 == True porque esta en la lista\" $ do\n    pertenece [1,2,6] 2 `shouldBe` True\n\t\n  it \"pertenece [2,8,9] (-25) == False porque no esta en la lista\" $ do\n    pertenece [2,8,9] (-25) `shouldBe` False\n",
+    "expectations": [
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": true,
+        "args": [],
+        "binding": "pertenece"
+      }
+    ]
+  },
+  {
+    "id": 277,
+    "guideId": 27,
+    "lesson": "interseccion",
+    "language": "haskell",
+    "solution": "interseccion [a] l | elem a l = [a]\n                  |otherwise = []\ninterseccion (x:xs) l2 = interseccion [x] l2 ++ interseccion xs l2",
+    "extra": null,
+    "test": "describe \"interseccion\" $ do\n  it \"interseccion [1,2,6] [2] == [2]\" $ do\n    interseccion [1,2,6] [2] `shouldBe` [2]\n\t\n  it \"interseccion [2,8,9] [9,2,42] == [2,9]\" $ do\n    interseccion [2,8,9] [9,2,42] `shouldBe` [2,9]\n",
+    "expectations": [
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": true,
+        "args": [],
+        "binding": "interseccion"
+      }
+    ]
+  },
+  {
+    "id": 278,
+    "guideId": 27,
+    "lesson": "transformadaLoca",
+    "language": "haskell",
+    "solution": "--el resultado de mod tiene el mismo signo que su divisor, el resultado de rem tiene el mismo signo que el dividendo--https://stackoverflow.com/questions/8111120/integral-operators-quot-vs-div/8111203#8111203\ntransformadaLoca [n] | n < 19 && ((rem n 2) == 0) = [n+2]\n                     | n < 19 && ((mod n 2) == 1) = [n+1]\n                     | n == 19 = [n]\n                     | otherwise = []\ntransformadaLoca (x:xs) = transformadaLoca [x] ++ transformadaLoca xs",
+    "extra": null,
+    "test": "describe \"transformadaLoca\" $ do\n  it \"transformadaLoca [3,5,9,12] == [4,6,10,14]\" $ do\n    transformadaLoca [3,5,9,12] `shouldBe` [4,6,10,14]\n\t\n  it \"transformadaLoca [125,14,12,-5] == [16,14,-4]\" $ do\n    transformadaLoca [125,14,12,-5] `shouldBe` [16,14,-4]\n\n  it \"transformadaLoca [125,140,120,56] == []\" $ do\n    transformadaLoca [125,140,120,56] `shouldBe` []",
+    "expectations": [
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": true,
+        "args": [],
+        "binding": "transformadaLoca"
+      }
+    ]
+  },
+  {
+    "id": 279,
+    "guideId": 27,
+    "lesson": "productoria",
+    "language": "haskell",
+    "solution": "productoria [x] = x\nproductoria (x:xs) = x * productoria xs",
+    "extra": null,
+    "test": "describe \"productoria\" $ do\n  it \"productoria [3,5,2] == 30\" $ do\n    productoria [3,5,2] `shouldBe` 30\n\t\n  it \"productoria [-2,6,-5] == 60\" $ do\n    productoria [-2,6,-5] `shouldBe` 60\n\n  it \"productoria [125,140,120,56,286,0] == 0\" $ do\n    productoria [125,140,120,56,286,0] `shouldBe` 0",
+    "expectations": [
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": true,
+        "args": [],
+        "binding": "productoria"
+      }
+    ]
+  },
+  {
+    "id": 280,
+    "guideId": 27,
+    "lesson": "maximo",
+    "language": "haskell",
+    "solution": "maximo [x] = x\nmaximo (x:xs) = max x (maximo xs)",
+    "extra": null,
+    "test": "describe \"maximo\" $ do\n  it \"maximo [3,5,2] == 5\" $ do\n    maximo [3,5,2] `shouldBe` 5\n\t\n  it \"maximo [-2,6,-5] == 6\" $ do\n    maximo [-2,6,-5] `shouldBe` 6\n    \n  it \"maximo [-2,-6,-5] == -2\" $ do\n    maximo [-2,-6,-5] `shouldBe` (-2)\n\n  it \"maximo [125,140,120,56,286,0] == 286\" $ do\n    maximo [125,140,120,56,286,0] `shouldBe` 286",
+    "expectations": [
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": true,
+        "args": [],
+        "binding": "maximo"
+      }
+    ]
+  },
+  {
+    "id": 281,
+    "guideId": 27,
+    "lesson": "menoresA",
+    "language": "haskell",
+    "solution": "menoresA n [x] | x < n = [x]\n               | otherwise = []\nmenoresA n (x:xs) = menoresA n [x] ++ menoresA n xs",
+    "extra": null,
+    "test": "describe \"menoresA\" $ do\n  it \"menoresA 6 [3,5,2] == [3,5,2]\" $ do\n    menoresA 6 [3,5,2] `shouldBe` [3,5,2]\n\t\n  it \"menoresA 5 [-2,6,-5] == [-2,-5]\" $ do\n    menoresA 5 [-2,6,-5] `shouldBe` [-2,-5]\n\n  it \"menoresA 0 [125,140,120,56,286,0] == []\" $ do\n    menoresA 0 [125,140,120,56,286,0] `shouldBe` []",
+    "expectations": [
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": true,
+        "args": [],
+        "binding": "menoresA"
+      }
+    ]
+  },
+  {
+    "id": 282,
+    "guideId": 27,
+    "lesson": "diferencias",
+    "language": "haskell",
+    "solution": "diferencias [x, y] = [abs (x-y)]\ndiferencias (x:xs) = diferencias [x, (head xs)] ++ diferencias xs",
+    "extra": null,
+    "test": "describe \"diferencias\" $ do\n  it \"diferencias [2,5,6,8] == [3,1,2]\" $ do\n    diferencias [2,5,6,8] `shouldBe` [3,1,2]\n\t\n  it \"diferencias [3,8,25,0,2] == [5,17,25,2]\" $ do\n    diferencias [3,8,25,0,2] `shouldBe` [5,17,25,2]",
+    "expectations": [
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": true,
+        "args": [],
+        "binding": "diferencias"
+      }
+    ]
+  },
+  {
+    "id": 283,
+    "guideId": 27,
+    "lesson": "sinRepetidos",
+    "language": "haskell",
+    "solution": "sinRepetidos [x] = [x]\nsinRepetidos (x:xs) | elem x xs = sinRepetidos xs\n                    | otherwise = [x] ++ sinRepetidos xs",
+    "extra": "ordenar [] = []\nordenar (x:xs) = ordenar (filter (<=x) xs) ++ [x] ++ ordenar (filter (x<) xs)",
+    "test": "describe \"sinRepetidos\" $ do\n  it \"sinRepetidos [2,5,6,8] == [2,5,6,8]\" $ do\n    (ordenar.sinRepetidos) [2,5,6,8] `shouldBe` ordenar [2,5,6,8]\n\t\n  it \"sinRepetidos [3,8,25,0,2,3,19,-8,25,0,1] == [3,8,25,0,2,19,-8,1]\" $ do\n    (ordenar.sinRepetidos) [3,8,25,0,2,3,19,-8,25,0,1] `shouldBe` ordenar [3,8,25,0,2,19,-8,1]",
+    "expectations": [
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": true,
+        "args": [],
+        "binding": "sinRepetidos"
+      }
+    ]
+  },
+  {
+    "id": 284,
+    "guideId": 27,
+    "lesson": "promedios",
+    "language": "haskell",
+    "solution": "promedios [l] = [div (sum l) (length l)]\npromedios (x:xs) = promedios [x] ++ promedios xs",
+    "extra": null,
+    "test": "describe \"promedios\" $ do\n  it \"promedios [[2,6],[9,9],[10,2]] == [4,9,6]\" $ do\n    promedios [[2,6],[9,9],[10,2]] `shouldBe` [4,9,6]\n\t\n  it \"promedios [[2,6],[9,9,2,4],[10,2,6]] == [4,6,6]\" $ do\n    promedios [[2,6],[9,9,2,4],[10,2,6]] `shouldBe` [4,6,6]\n",
+    "expectations": [
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": true,
+        "args": [],
+        "binding": "promedios"
+      }
+    ]
+  },
+  {
+    "id": 285,
+    "guideId": 27,
+    "lesson": "promediosSinAplazos",
+    "language": "haskell",
+    "solution": "promediosSinAplazos [l] = [div (sum (filtrado l)) (length (filtrado l))]\npromediosSinAplazos (x:xs) = promediosSinAplazos [x] ++ promediosSinAplazos xs\nfiltrado = filter (4<=)",
+    "extra": null,
+    "test": "describe \"promediosSinAplazos\" $ do\n  it \"promediosSinAplazos [[2,6],[9,9],[10,2]] == [4,9,10]\" $ do\n    promediosSinAplazos [[2,6],[9,9],[10,2]] `shouldBe` [6,9,10]\n\t\n  it \"promediosSinAplazos [[2,6],[9,8,2,4],[10,2,6]] == [6,7,8]\" $ do\n    promediosSinAplazos [[2,6],[9,8,2,4],[10,2,6]] `shouldBe` [6,7,8]",
+    "expectations": [
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": true,
+        "args": [],
+        "binding": "promediosSinAplazos"
+      }
+    ]
+  },
+  {
+    "id": 286,
+    "guideId": 27,
+    "lesson": "alVesre",
+    "language": "haskell",
+    "solution": "alVesre [x] = [x]\nalVesre (x:xs) = alVesre xs ++ [x]",
+    "extra": null,
+    "test": "describe \"alVesre\" $ do\n  it \"alVesre [2,5,6,8] == [8,6,5,2]\" $ do\n    alVesre [2,5,6,8] `shouldBe` [8,6,5,2]\n\t\n  it \"alVesre [3,8,25,0,2] == [2,0,25,8,3]\" $ do\n    alVesre [3,8,25,0,2] `shouldBe` [2,0,25,8,3]",
+    "expectations": [
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": true,
+        "args": [],
+        "binding": "alVesre"
+      }
+    ]
+  },
+  {
+    "id": 287,
+    "guideId": 27,
+    "lesson": "filtrar",
+    "language": "haskell",
+    "solution": "filtrar f [x] | f x = [x]\n              | otherwise = []\nfiltrar f (x:xs) = filtrar f [x] ++ filtrar f xs",
+    "extra": null,
+    "test": "describe \"filtrar\" $ do\n  it \"filtrar even [1,2,3,4,5] == [2,4]\" $ do\n    filtrar even [1,2,3,4,5] `shouldBe` [2,4]\n\n  it \"filtrar (>=3) [1,2,3,4,5] == [3,4,5]\" $ do\n    filtrar (>=3) [1,2,3,4,5] `shouldBe` [3,4,5]\n",
+    "expectations": [
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": true,
+        "args": [],
+        "binding": "filtrar"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": false,
+        "args": [
+          "filter"
+        ],
+        "binding": "filtrar"
+      }
+    ]
+  },
+  {
+    "id": 288,
+    "guideId": 27,
+    "lesson": "zipWith",
+    "language": "haskell",
+    "solution": "aparearCon f [x] [y] = [f x y]\naparearCon f (x:xs) (y:ys) = [f x y] ++ aparearCon f xs ys",
+    "extra": null,
+    "test": "describe \"aparearCon\" $ do\n  it \"aparearCon (+) [1,2,3] [4,5,6] = [5,7,9]\" $ do\n    aparearCon (+) [1,2,3] [4,5,6] `shouldBe` [5,7,9]\n\n  it \"aparearCon (++) [\\\"Hola\\\", \\\"Chau\\\"] [\\\"Homero\\\", \\\"Bart\\\"] = [\\\"HolaHomero\\\", \\\"ChauBart\\\"]\" $ do\n    aparearCon (++) [\"Hola\", \"Chau\"] [\"Homero\", \"Bart\"] `shouldBe` [\"HolaHomero\", \"ChauBart\"]",
+    "expectations": [
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": true,
+        "args": [],
+        "binding": "aparearCon"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": false,
+        "args": [
+          "zipWith"
+        ],
+        "binding": "aparearCon"
+      }
+    ]
+  },
+  {
+    "id": 289,
+    "guideId": 27,
+    "lesson": "maximoSegun",
+    "language": "haskell",
+    "solution": "maximoSegun f (x:xs) | aplicar f (x:xs) == f x = x\n                     | otherwise = maximoSegun f xs\n\naplicar f [x] = f x\naplicar f (x:xs) = max (aplicar f [x]) (aplicar f xs)",
+    "extra": null,
+    "test": "describe \"maximoSegun\" $ do\n  it \"maximoSegun id [1,2,3,4,5] == 5\" $ do\n    maximoSegun id [1,2,3,4,5] `shouldBe` 5\n\n  it \"maximoSegun negate [1,2,3,4,5] == 1\" $ do\n    maximoSegun negate [1,2,3,4,5] `shouldBe` 1\n",
+    "expectations": [
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": true,
+        "args": [],
+        "binding": "maximoSegun"
+      }
+    ]
+  },
+  {
+    "id": 290,
+    "guideId": 27,
+    "lesson": "aplanar",
+    "language": "haskell",
+    "solution": "aplanar [x] = x\naplanar [] = []\naplanar (x:xs) = x ++ aplanar xs",
+    "extra": null,
+    "test": "describe \"aplanar\" $ do \n  it \"deberia funcionar como concat\" $ do\n    aplanar [[], [2, 3], [4, 5]]  `shouldBe` concat [[], [2, 3], [4, 5]]\n    aplanar [[]]  `shouldBe` concat [[]]\n    aplanar []  `shouldBe` concat []\n",
+    "expectations": [
+      {
+        "inspection": "HasUsage",
+        "expected": false,
+        "args": [
+          "concat"
+        ],
+        "binding": "aplanar"
+      },
+      {
+        "inspection": "HasDirectRecursion",
+        "expected": true,
+        "args": [],
+        "binding": "aplanar"
+      }
+    ]
+  },
+  {
+    "id": 291,
+    "guideId": 27,
+    "lesson": "intercalar",
+    "language": "haskell",
+    "solution": "intercalar a [x] = [x]\nintercalar a [] = []\nintercalar a (x:xs) = [x] ++ [a] ++ intercalar a xs",
+    "extra": null,
+    "test": "describe \"intercalar\" $ do\n  it \"intercalar '.' \\\"SHIELD\\\" ==  \\\"S.H.I.E.L.D\\\"\" $ do\n      intercalar '.' \"SHIELD\" `shouldBe` \"S.H.I.E.L.D\" \n\n  it \"intercalar 0 [1, 2, 3, 4] ==  [1, 0, 2, 0, 3, 0, 4]\" $ do\n      intercalar 0 [1, 2, 3, 4] `shouldBe` [1, 0, 2, 0, 3, 0, 4] \n\n  it \"intercalar 0 [] ==  []\" $ do\n      intercalar 0 [] `shouldBe` [] \n\n",
+    "expectations": []
+  }
+]

@@ -1,0 +1,273 @@
+[
+  {
+    "id": 407,
+    "guideId": 39,
+    "lesson": "mitad",
+    "language": "haskell",
+    "solution": "mitad :: Fractional a => a -> a\nmitad = (/2)",
+    "extra": null,
+    "test": "describe \"mitad\" $ do\n  it \"la expresion mitad 3 debería tipar\" $ do\n    mitad 3 `shouldBe` 1.5\n\n  it \"la expresion mitad 4.5 debería tipar\" $ do\n    mitad 4.5 `shouldBe` 2.25\n\n",
+    "expectations": [
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "mitad"
+      },
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 408,
+    "guideId": 39,
+    "lesson": "esParO",
+    "language": "haskell",
+    "solution": "esParO :: Int -> Bool -> Bool\nesParO a b = even a || b",
+    "extra": null,
+    "test": "describe \"Inferencia 7\" $ do\n  it \"la expresion esParO 5 True debería tipar\" $ do\n    esParO 5 True `shouldBe` True\n\n  it \"la expresion esParO 6 False  debería tipar\" $ do\n    esParO 6 False `shouldBe` True\n\n  it \"la expresion esParO 7 False debería tipar\" $ do\n    esParO 7 False `shouldBe` False",
+    "expectations": [
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "esParO"
+      },
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 409,
+    "guideId": 39,
+    "lesson": "sumarDos",
+    "language": "haskell",
+    "solution": "sumarDos :: Num a => a -> a\nsumarDos = (+2)",
+    "extra": null,
+    "test": "describe \"sumarDos\" $ do\n  it \"la expresion sumarDos 3 debería tipar\" $ do\n    sumarDos 3 `shouldBe` 5\n\n  it \"la expresion sumarDos 4.5 debería tipar\" $ do\n    sumarDos 4.5 `shouldBe` 6.5\n\n",
+    "expectations": [
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "sumarDos"
+      },
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 410,
+    "guideId": 39,
+    "lesson": "multiplicar",
+    "language": "haskell",
+    "solution": "multiplicar :: Num a => a -> a -> a\nmultiplicar a = (a*)",
+    "extra": null,
+    "test": "describe \"multiplicar\" $ do\n  it \"la expresion multiplicar 3 6 debería tipar\" $ do\n    multiplicar 3 6 `shouldBe` 18\n\n  it \"la expresion multiplicar 4.5 0 debería tipar\" $ do\n    multiplicar 4.5 0 `shouldBe` 0\n\n",
+    "expectations": [
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "multiplicar"
+      },
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 411,
+    "guideId": 39,
+    "lesson": "fueraDeRango",
+    "language": "haskell",
+    "solution": "fueraDeRango :: Ord a => a -> a -> a -> Bool\nfueraDeRango a b c = a < b || a > c",
+    "extra": null,
+    "test": "describe \"Inferencia 6\" $ do\n  it \"fueraDeRango 1 4 10 debería ser verdadero\" $ do\n    fueraDeRango 1 4 10 `shouldBe` True\n\n  it \"fueraDeRango 5 4 10 debería ser falso\" $ do\n    fueraDeRango 5 4 10 `shouldBe` False\n\n  it \"fueraDeRango 'e' 'a' 'f' debería ser falso\" $ do\n    fueraDeRango 'e' 'a' 'f' `shouldBe` False\n\n  it \"fueraDeRango 'h' 'a' 'f' debería ser verdadero\" $ do\n    fueraDeRango 'h' 'a' 'f' `shouldBe` True\n",
+    "expectations": [
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "fueraDeRango"
+      },
+      {
+        "inspection": "Declares",
+        "expected": true,
+        "args": [
+          "fueraDeRango"
+        ],
+        "binding": "*"
+      },
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 412,
+    "guideId": 39,
+    "lesson": "longitudPar",
+    "language": "haskell",
+    "solution": "longitudPar :: [Char] -> Bool\nlongitudPar = even . length",
+    "extra": null,
+    "test": "describe \"Inferencia 5\" $ do\n  it \"la expresion longitudPar \\\"Hola\\\" debería tipar\" $ do\n    longitudPar \"Hola\" `shouldBe` True\n\n",
+    "expectations": [
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "longitudPar"
+      }
+    ]
+  },
+  {
+    "id": 413,
+    "guideId": 39,
+    "lesson": "largoDelShow",
+    "language": "haskell",
+    "solution": "largoDelShow :: Show a => a -> Int\nlargoDelShow = length . show",
+    "extra": null,
+    "test": "describe \"Inferencia 4\" $ do\n  it \"la expresion largoDelShow True debería tipar\" $ do\n    largoDelShow True `shouldBe` 4\n\n  it \"la expresion largoDelShow 5 debería tipar\" $ do\n    largoDelShow 5 `shouldBe` 1\n\n",
+    "expectations": [
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "largoDelShow"
+      }
+    ]
+  },
+  {
+    "id": 414,
+    "guideId": 39,
+    "lesson": "sumaEsPar",
+    "language": "haskell",
+    "solution": "sumaEsPar :: (Integral a, Eq a, Num a)  => a -> a -> Bool\nsumaEsPar a b = even (a + b)",
+    "extra": null,
+    "test": "it \"sumaEsPar 4 8 da True\" $ do\n  (sumaEsPar 4 8) `shouldBe` True\n\nit \"sumaEsPar 3 5 da True\" $ do\n  (sumaEsPar 3 5) `shouldBe` True\n\nit \"sumaEsPar 2 5 da True\" $ do\n  (sumaEsPar 2 5) `shouldBe` False\n\n\n\n",
+    "expectations": [
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "sumaEsPar"
+      },
+      {
+        "inspection": "Declares",
+        "expected": true,
+        "args": [
+          "sumaEsPar"
+        ],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 415,
+    "guideId": 39,
+    "lesson": "Máximos y mínimos",
+    "language": "haskell",
+    "solution": "maximoEntreTres :: Ord a => a -> a -> a -> a\nmaximoEntreTres a b c = maximum [a,b,c]\nminimoEntreTres :: Ord a => a -> a -> a -> a\nminimoEntreTres a b c = minimum [a,b,c]",
+    "extra": null,
+    "test": "describe \"Inferencia 11\" $ do\n  it \"la expresion maximoEntreTres 1 6 4 debería tipar\" $ do\n     (maximoEntreTres 1 6 4) `shouldBe` 6\n  \n  it \"la expresion minimoEntreTres 1 6 4 debería tipar\" $ do\n     (minimoEntreTres 1 6 4) `shouldBe` 1\n\n  it \"la expresion maximoEntreTres 'd' 'g' 'w' debería tipar\" $ do\n    (maximoEntreTres 'd' 'g' 'w') `shouldBe` 'w'\n\n  it \"la expresion minimoEntreTres 'd' 'g' 'w' debería tipar\" $ do\n    (minimoEntreTres 'd' 'g' 'w') `shouldBe` 'd'\n\n\n",
+    "expectations": [
+      {
+        "inspection": "DeclaresTypeSignature",
+        "expected": true,
+        "args": [
+          "maximoEntreTres"
+        ],
+        "binding": "*"
+      },
+      {
+        "inspection": "DeclaresTypeSignature",
+        "expected": true,
+        "args": [
+          "maximoEntreTres"
+        ],
+        "binding": "*"
+      },
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 416,
+    "guideId": 39,
+    "lesson": "Constantemente",
+    "language": "haskell",
+    "solution": "soloElPrimero :: a -> b -> a\nsoloElPrimero a b = a",
+    "extra": null,
+    "test": "describe \"Inferencia 8\" $ do\n  it \"la expresion soloElPrimero 5 4 debería tipar\" $ do\n    (soloElPrimero 5 $! 4) `shouldBe` 5\n\n  it \"la expresion soloElPrimero True 5 debería tipar\" $ do\n    (soloElPrimero True $! 5) `shouldBe` True\n\n  it \"la expresion soloElPrimero 'a' \\\"hola\\\" debería tipar\" $ do\n    (soloElPrimero 'a' $! \"hola\") `shouldBe` 'a'\n",
+    "expectations": [
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "soloElPrimero"
+      },
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 417,
+    "guideId": 39,
+    "lesson": "No tan distintos",
+    "language": "haskell",
+    "solution": "noTanDistintos :: (Eq b, Eq a) => a -> a -> b -> b -> Bool \nnoTanDistintos a b c d = a == b || c == d",
+    "extra": null,
+    "test": "  it \"noTanDistintos 1 1 2 2 es True\" $ do\n    (noTanDistintos 1 1 2 2) `shouldBe` True\n\n  it \"noTanDistintos 'a' 'a' 2 3 es True\" $ do\n    (noTanDistintos 'a' 'a' 2 3) `shouldBe` True\n\n  it \"noTanDistintos 'a' 'b' 2 3 es False\" $ do\n    (noTanDistintos 'a' 'b' 2 3) `shouldBe` False\n\n  it \"noTanDistintos False True 3 4 es False\" $ do\n    (noTanDistintos False True 3 4) `shouldBe` False\n",
+    "expectations": [
+      {
+        "inspection": "DeclaresTypeSignature",
+        "expected": true,
+        "args": [
+          "noTanDistintos"
+        ],
+        "binding": "*"
+      },
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      },
+      {
+        "inspection": "Declares",
+        "expected": true,
+        "args": [
+          "noTanDistintos"
+        ],
+        "binding": "*"
+      }
+    ]
+  }
+]

@@ -1,0 +1,295 @@
+[
+  {
+    "id": 235,
+    "guideId": 24,
+    "lesson": "¿Cuántos hay?",
+    "language": "haskell",
+    "solution": null,
+    "extra": "cuantosHay unTuit = 1\ncuantosHay (unTuit, otro) = 2\ncuantosHay (unTuit, otro, otroMas) = 3",
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 236,
+    "guideId": 24,
+    "lesson": "Muchos elementos",
+    "language": "haskell",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 237,
+    "guideId": 24,
+    "lesson": "Listas de caracteres",
+    "language": "haskell",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 238,
+    "guideId": 24,
+    "lesson": "algunosTuits",
+    "language": "haskell",
+    "solution": "algunosTuits :: [a] -> [a]\nalgunosTuits = (take 3)",
+    "extra": null,
+    "test": "describe \"algunosTuits\"  $ do \n    it \"algunosTuits [(\\\"@homero\\\", \\\"hmm1\\\"),\\\n                   \\ (\\\"@homero\\\", \\\"hmm2\\\"),\\ \n                   \\ (\\\"@homero\\\", \\\"hmm3\\\"),\\ \n                   \\ (\\\"@homero\\\", \\\"hmm4\\\"),\\ \n                   \\ (\\\"@homero\\\", \\\"hmm5\\\")]\\\n                   \\ == \\\n                   \\ [(\\\"@homero\\\", \\\"hmm1\\\"), \\\n                   \\ (\\\"@homero\\\", \\\"hmm2\\\"),\\ \n                   \\ (\\\"@homero\\\", \\\"hmm3\\\")]\" $ do\n        algunosTuits [(\"@homero\", \"hmm1\"), \n                     (\"@homero\", \"hmm2\"), \n                     (\"@homero\", \"hmm3\"), \n                     (\"@homero\", \"hmm4\"), \n                     (\"@homero\", \"hmm5\")] `shouldBe` [(\"@homero\", \"hmm1\"),  (\"@homero\", \"hmm2\"),  (\"@homero\", \"hmm3\")]\n    \n    it \"algunosTuits [] == []\" $ do              \n        algunosTuits [] `shouldBe` []\n  \n  ",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "algunosTuits"
+      }
+    ]
+  },
+  {
+    "id": 239,
+    "guideId": 24,
+    "lesson": "FAQ",
+    "language": "haskell",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 240,
+    "guideId": 24,
+    "lesson": "Mapeando ando",
+    "language": "haskell",
+    "solution": null,
+    "extra": null,
+    "test": null,
+    "expectations": []
+  },
+  {
+    "id": 241,
+    "guideId": 24,
+    "lesson": "El tipo de map",
+    "language": "haskell",
+    "solution": "nuestroMap :: (a -> b) -> [a] -> [b]",
+    "extra": "nuestroMap = map",
+    "test": "describe \"nuestroMap tipa\" $ do \n    it \"nuestroMap (+1) [1, 2,3] == [2, 3, 4]\" $ do\n        nuestroMap (+1) [1, 2,3] `shouldBe` [2, 3, 4]\n    \n    it \"nuestroMap not [True, False] == [False, True]\" $ do\n        nuestroMap not [True, False] `shouldBe` [False, True]",
+    "expectations": [
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "nuestroMap"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "nuestroMap"
+      }
+    ]
+  },
+  {
+    "id": 242,
+    "guideId": 24,
+    "lesson": "Textos",
+    "language": "haskell",
+    "solution": "textos :: [(a, b)] -> [b]\ntextos = (map snd)",
+    "extra": null,
+    "test": "it \"textos [(\\\"@elBarto\\\", \\\"yo no fui\\\"), (\\\"@krusty\\\", \\\"yo tampoco\\\")] == [\\\"yo no fui\\\", \\\"yo tampoco\\\"]\" $ do \n   textos [(\"@elBarto\", \"yo no fui\"), (\"@krusty\", \"yo tampoco\")] `shouldBe` [\"yo no fui\", \"yo tampoco\"]\n\nit \"textos [(\\\"@elBarto\\\", \\\"yo no fui\\\")] == [\\\"yo no fui\\\"]\" $ do \n   textos [(\"@elBarto\", \"yo no fui\")] `shouldBe` [\"yo no fui\"]\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "textos"
+      },
+      {
+        "inspection": "HasGuards",
+        "expected": false,
+        "args": [],
+        "binding": "textos"
+      },
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "textos"
+      }
+    ]
+  },
+  {
+    "id": 243,
+    "guideId": 24,
+    "lesson": "Recortar tuits",
+    "language": "haskell",
+    "solution": "recortar :: [(a, [b])] -> [(a, [b])]\nrecortar = (map bla)\nbla (a, b) = (a, take 15 b)",
+    "extra": null,
+    "test": "describe \"recortar\" $ do \n    it \"recortar [] == []\" $ do \n        recortar [] `shouldBe` []\n    \n    it \"recortar [(\\\"@lorem\\\", \\\"Lorem ipsum dolor sit amet, consectetur adipiscing elit\\\")] == [(\\\"@lorem\\\", \\\"Lorem ipsum dol\\\")]\" $ do \n        recortar [(\"@lorem\", \"Lorem ipsum dolor sit amet, consectetur adipiscing elit\")] `shouldBe` [(\"@lorem\", \"Lorem ipsum dol\")]",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "recortar"
+      },
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "recortar"
+      }
+    ]
+  },
+  {
+    "id": 244,
+    "guideId": 24,
+    "lesson": "Tuit corto",
+    "language": "haskell",
+    "solution": "tuitCorto = (10>).length.snd",
+    "extra": null,
+    "test": "it \"tuitCorto (\\\"@sheldon\\\", \\\"bazzinga\\\") == True\" $ do \n   tuitCorto (\"@sheldon\", \"bazzinga\") `shouldBe` True\n\nit \"tuitCorto (\\\"@penny\\\", \\\"Soft kitty,Warm kitty,Little ball of fur\\\") == False\" $ do \n   tuitCorto (\"@penny\", \"Soft kitty,Warm kitty,Little ball of fur\") `shouldBe` False\n   ",
+    "expectations": [
+      {
+        "inspection": "HasGuards",
+        "expected": false,
+        "args": [],
+        "binding": "tuitCorto"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "tuitCorto"
+      },
+      {
+        "inspection": "HasComposition",
+        "expected": true,
+        "args": [],
+        "binding": "tuitCorto"
+      }
+    ]
+  },
+  {
+    "id": 245,
+    "guideId": 24,
+    "lesson": "cantidadTuitsCortos",
+    "language": "haskell",
+    "solution": "cantidadTuitsCortos :: [(a, [b])] -> Int \ncantidadTuitsCortos = length.(filter tuitCorto)",
+    "extra": "tuitCorto = (<10).length.snd",
+    "test": "it \"cantidadTuitsCortos [] == 0\" $ do \n    cantidadTuitsCortos [] `shouldBe` 0\n    \nit \"cantidadTuitsCortos [(\\\"@homero\\\", \\\"cerveeeza\\\"), (\\\"@homero\\\", \\\"cerveeeeeeeeeeeeeeeeeeeeeeeza\\\")] == 1\" $ do \n   cantidadTuitsCortos [(\"@homero\", \"cerveeeza\"), (\"@homero\", \"cerveeeeeeeeeeeeeeeeeeeeeeeza\")] `shouldBe` 1",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "cantidadTuitsCortos"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "tuitCorto"
+        ],
+        "binding": "cantidadTuitsCortos"
+      },
+      {
+        "inspection": "HasComposition",
+        "expected": true,
+        "args": [],
+        "binding": "cantidadTuitsCortos"
+      },
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "cantidadTuitsCortos"
+      }
+    ]
+  },
+  {
+    "id": 246,
+    "guideId": 24,
+    "lesson": "El tipo de filter",
+    "language": "haskell",
+    "solution": "nuestroFilter :: (a -> Bool) -> [a] -> [a]",
+    "extra": "nuestroFilter = filter",
+    "test": "it \"nuestroFilter tipa\" $ do \n   nuestroFilter not [True, False] `shouldBe` [False]\n   nuestroFilter (<4) [3] `shouldBe` [3]\n   \n--it \"nuestroFilter (+1) [3] NO tipa\" $ do \n--   Exception.evaluate (nuestroFilter (+1) [3]) `shouldReturn` anyErrorCall\n   ",
+    "expectations": [
+      {
+        "inspection": "HasTypeSignature",
+        "expected": true,
+        "args": [],
+        "binding": "nuestroFilter"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": false,
+        "args": [],
+        "binding": "nustroFilter"
+      }
+    ]
+  },
+  {
+    "id": 247,
+    "guideId": 24,
+    "lesson": "Resumir",
+    "language": "haskell",
+    "solution": "resumir = csv . textos . recortar",
+    "extra": "csv = foldl1 (\\e a -> e ++ \",\" ++ a)\n\ntextos :: [(String, String)] -> [String]\ntextos = map snd\n\nrecortar :: [(String, String)] -> [(String, String)]\nrecortar  = map recortarUno\n\nrecortarUno (n, t) = (n, take 15 t)",
+    "test": "it \"resumir [(\\\"@tom\\\", \\\"hola\\\")] == \\\"hola\\\"\" $ do \n    resumir [(\"@tom\", \"hola\")] `shouldBe` \"hola\"\n\nit \"resumir [(\\\"@tom\\\", \\\"hola\\\"), (\\\"@tom\\\", \\\"hola\\\")] == \\\"hola,hola\\\"\" $ do \n    resumir [(\"@tom\", \"hola\"),(\"@tom\", \"hola\")] `shouldBe` \"hola,hola\"\n    ",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "resumir"
+      },
+      {
+        "inspection": "HasComposition",
+        "expected": true,
+        "args": [],
+        "binding": "resumir"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "recortar"
+        ],
+        "binding": "resumir"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "textos"
+        ],
+        "binding": "resumir"
+      }
+    ]
+  },
+  {
+    "id": 248,
+    "guideId": 24,
+    "lesson": "Creá tu propio csv",
+    "language": "haskell",
+    "solution": "csv = intercalate \",\"",
+    "extra": null,
+    "test": "it \"csv [\\\"hola\\\", \\\"mundo\\\"] == \\\"hola,mundo\\\"\" $ do \n    csv [\"hola\", \"mundo\"] `shouldBe` \"hola,mundo\"\n\nit \"csv [\\\"hola\\\", \\\"hola\\\", \\\"mundo\\\"] == \\\"hola,hola,mundo\\\"\" $ do \n    csv [\"hola\", \"hola\", \"mundo\"] `shouldBe` \"hola,hola,mundo\"\n\n\nit \"csv [\\\"hola\\\"] == \\\"hola\\\"\" $ do \n    csv [\"hola\"] `shouldBe` \"hola\"\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "csv"
+      },
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  }
+]

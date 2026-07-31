@@ -1,0 +1,340 @@
+[
+  {
+    "id": 419,
+    "guideId": 40,
+    "lesson": "Los números",
+    "language": "haskell",
+    "solution": "cantidadDiasEnero = 31",
+    "extra": null,
+    "test": "describe \"cantidadDiasEnero\" $ do\n  it \"es igual a 31\" $ do\n    cantidadDiasEnero `shouldBe` 31\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "cantidadDiasEnero"
+      }
+    ]
+  },
+  {
+    "id": 420,
+    "guideId": 40,
+    "lesson": "Valores y alias",
+    "language": "haskell",
+    "solution": "cantidadRuedasBicicleta = 2\ncantidadRuedasMoto = cantidadRuedasBicicleta",
+    "extra": null,
+    "test": "describe \"cantidadRuedasBicicleta\" $ do\n  it \"es igual a 2\" $ do\n    cantidadRuedasBicicleta `shouldBe` 2\n\ndescribe \"cantidadRuedasMoto\" $ do\n  it \"es igual a cantidadRuedasBicicleta\" $ do\n    cantidadRuedasMoto `shouldBe` cantidadRuedasBicicleta\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "cantidadRuedasBicicleta"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "cantidadRuedasMoto"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "cantidadRuedasBicicleta"
+        ],
+        "binding": "cantidadRuedasMoto"
+      }
+    ]
+  },
+  {
+    "id": 421,
+    "guideId": 40,
+    "lesson": "Más valores",
+    "language": "haskell",
+    "solution": "marioTieneGato = False\npeliculaFavoritaAna = \"Gladiador\"",
+    "extra": null,
+    "test": "describe \"peliculaFavoritaAna\" $ do\n  it \"es \\\"Gladiador\\\"\" $ do\n    peliculaFavoritaAna `shouldBe` \"Gladiador\"\n\ndescribe \"marioTieneGato\" $ do\n  it \"es False\" $ do\n    marioTieneGato `shouldBe` False\n\n\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "peliculaFavoritaAna"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "marioTieneGato"
+      }
+    ]
+  },
+  {
+    "id": 422,
+    "guideId": 40,
+    "lesson": "Las Funciones",
+    "language": "haskell",
+    "solution": "anterior x = (-) x 1",
+    "extra": null,
+    "test": "describe \"anterior\" $ do\n  it \"anterior de 4 es 3\" $ do\n    anterior 4 `shouldBe` 3\n\n  it \"anterior de 40 es 39\" $ do\n    anterior 4 `shouldBe` 3\n\n  it \"anterior de 0 es (-1)\" $ do\n    anterior 0 `shouldBe` (-1)\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "anterior"
+      },
+      {
+        "inspection": "Uses",
+        "expected": true,
+        "args": [
+          "-"
+        ],
+        "binding": "anterior"
+      }
+    ]
+  },
+  {
+    "id": 423,
+    "guideId": 40,
+    "lesson": "Más funciones",
+    "language": "haskell",
+    "solution": "doble = (*2)\ncuadrado x = x*x",
+    "extra": null,
+    "test": "describe \"\" $ do\n  it \"doble de 2 es 4\" $ do\n    doble 2 `shouldBe` 4\n\n  it \"doble de 4 es 8\" $ do\n    doble 2 `shouldBe` 4\n\n  it \"doble de 13 es 26\" $ do\n    doble 2 `shouldBe` 4\n\n  it \"cuadrado de 2 es 4\" $ do\n    cuadrado 2 `shouldBe` 4\n\n  it \"cuadrado de 3 es 9\" $ do\n    cuadrado 3 `shouldBe` 9\n\n  it \"cuadrado de 1 es 1\" $ do\n    cuadrado 1 `shouldBe` 1\n\n  it \"cuadrado de 10 es 100\" $ do\n    cuadrado 10 `shouldBe` 100\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "doble"
+      },
+      {
+        "inspection": "Uses",
+        "expected": true,
+        "args": [
+          "*"
+        ],
+        "binding": "doble"
+      },
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "cuadrado"
+      },
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 424,
+    "guideId": 40,
+    "lesson": "Los booleanos",
+    "language": "haskell",
+    "solution": "esNegativo = (0>)",
+    "extra": null,
+    "test": "describe \"es negativo\" $ do\n  it \"esNegativo 4 es False\" $ do\n    esNegativo 4 `shouldBe` False\n\n  it \"esNegativo 0 es False\" $ do\n    esNegativo 0 `shouldBe` False\n\n  it \"esNegativo (-4) es True\" $ do\n    esNegativo (-4) `shouldBe` True\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "esNegativo"
+      }
+    ]
+  },
+  {
+    "id": 425,
+    "guideId": 40,
+    "lesson": "Múltiples parámetros",
+    "language": "haskell",
+    "solution": "areaRectangulo x y = x*y",
+    "extra": null,
+    "test": "describe \"\" $ do\n  it \"areaRectangulo 3 4 es 12\" $ do\n    areaRectangulo 3 4 `shouldBe` 12\n\n  it \"areaRectangulo 10 8 es 80\" $ do\n    areaRectangulo 10 8 `shouldBe` 80\n\n  it \"areaRectangulo 1 4 es 4\" $ do\n    areaRectangulo 1 4 `shouldBe` 4\n\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "areaRectangulo"
+      },
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 426,
+    "guideId": 40,
+    "lesson": "Triángulos",
+    "language": "haskell",
+    "solution": "perimetroTriangulo x y z = x+y+z",
+    "extra": null,
+    "test": "describe \"\" $ do\n  it \"perimetroTriangulo 3 4 2 es 9\" $ do\n    perimetroTriangulo 3 4 2 `shouldBe` 9\n\n  it \"perimetroTriangulo 1 1 1 es 3\" $ do\n    perimetroTriangulo 1 1 1 `shouldBe` 3\n\n  it \"perimetroTriangulo 1 2 1 es 4\" $ do\n    perimetroTriangulo 1 2 1 `shouldBe` 4",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "perimetroTriangulo"
+      },
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 427,
+    "guideId": 40,
+    "lesson": "Combinando funciones",
+    "language": "haskell",
+    "solution": "dobleDelCuadrado = doble . cuadrado",
+    "extra": "doble numero = numero * 2\n\ncuadrado numero = numero * numero",
+    "test": "describe \"\" $ do\n  it \"dobleDelCuadrado de 4 es 32\" $ do\n    dobleDelCuadrado 4 `shouldBe` 32\n\n  it \"dobleDelCuadrado de 2 es 8\" $ do\n    dobleDelCuadrado 2 `shouldBe` 8\n\n  it \"dobleDelCuadrado de 1 es 2\" $ do\n    dobleDelCuadrado 1 `shouldBe` 2\n\n  it \"dobleDelCuadrado de 10 es 200\" $ do\n    dobleDelCuadrado 10 `shouldBe` 200\n",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "dobleDelCuadrado"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "doble"
+        ],
+        "binding": "dobleDelCuadrado"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "cuadrado"
+        ],
+        "binding": "dobleDelCuadrado"
+      },
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 428,
+    "guideId": 40,
+    "lesson": "Composición",
+    "language": "haskell",
+    "solution": "tripleDelAnterior = triple . anterior",
+    "extra": "anterior x = x - 1\n\ntriple = (3*)",
+    "test": "describe \"\" $ do\n  it \"tripleDelAnterior 4 es 9\" $ do\n    tripleDelAnterior 4 `shouldBe` 9\n\n  it \"tripleDelAnterior 1 es 0\" $ do\n    tripleDelAnterior 1 `shouldBe` 0\n\n  it \"tripleDelAnterior 10 es 27\" $ do\n    tripleDelAnterior 10 `shouldBe` 27",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "tripleDelAnterior"
+      },
+      {
+        "inspection": "HasComposition",
+        "expected": true,
+        "args": [],
+        "binding": "tripleDelAnterior"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "triple"
+        ],
+        "binding": "tripleDelAnterior"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "anterior"
+        ],
+        "binding": "tripleDelAnterior"
+      },
+      {
+        "inspection": "HasRedundantParameter",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 429,
+    "guideId": 40,
+    "lesson": "Más composición",
+    "language": "haskell",
+    "solution": "masDos = siguiente . siguiente",
+    "extra": "siguiente numero = numero + 1",
+    "test": "it \"masDos de 1 es 3\" $ do \n   masDos 1 `shouldBe` 3\n   \nit \"masDos de 4 es 6\" $ do \n    masDos 4 `shouldBe` 6",
+    "expectations": [
+      {
+        "inspection": "HasComposition",
+        "expected": true,
+        "args": [],
+        "binding": "masDos"
+      },
+      {
+        "inspection": "HasUsage",
+        "expected": true,
+        "args": [
+          "siguiente"
+        ],
+        "binding": "masDos"
+      },
+      {
+        "inspection": "HasWrongCaseIdentifiers",
+        "expected": false,
+        "args": [],
+        "binding": "*"
+      }
+    ]
+  },
+  {
+    "id": 430,
+    "guideId": 40,
+    "lesson": "Los operadores son funciones",
+    "language": "haskell",
+    "solution": "doble x = (*) x 2",
+    "extra": null,
+    "test": "describe \"\" $ do\n  it \"doble de 2 es 4\" $ do\n    doble 2 `shouldBe` 4\n\n  it \"doble de 4 es 8\" $ do\n    doble 2 `shouldBe` 4\n\n  it \"doble de 13 es 26\" $ do\n    doble 2 `shouldBe` 4",
+    "expectations": [
+      {
+        "inspection": "HasBinding",
+        "expected": true,
+        "args": [],
+        "binding": "doble"
+      }
+    ]
+  },
+  {
+    "id": 431,
+    "guideId": 40,
+    "lesson": "\"Juguemos con strings\"",
+    "language": "haskell",
+    "solution": "cuantoMidenJuntos primer = length . (++ primer)",
+    "extra": null,
+    "test": "describe \"cuantoMidenJuntos\" $ do\n  it \"da 8 con \\\"hola\\\" y \\\"chau\\\"\" $ do\n    cuantoMidenJuntos \"hola\" \"chau\" `shouldBe` 8\n    \n  it \"da 11 con \\\"darth vader\\\" y \\\"\\\"\" $ do\n    cuantoMidenJuntos \"darth vader\" \"\" `shouldBe` 11",
+    "expectations": []
+  }
+]
