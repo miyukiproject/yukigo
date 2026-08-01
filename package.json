@@ -9,8 +9,8 @@
     "build": "nx run-many -t build",
     "test": "nx run-many -t test",
     "typecheck": "nx run-many -t typecheck",
+    "e2e": "npm run e2e -w yukigo-e2e",
     "graph": "nx graph",
-    "start:cli": "npm run start -w yukigo-cli",
     "build:diagrams": "tsx scripts/compileDiagrams.ts",
     "docs:dev": "npm run build:diagrams && npm run docs:dev --workspace=yukigo-docs",
     "docs:gen": "npm run build:diagrams && npm run docs:gen --workspace=yukigo-docs"
