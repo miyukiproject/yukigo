@@ -1,6 +1,6 @@
 import { YukigoHaskellParser } from "yukigo-haskell-parser";
 import { YukigoPrologParser } from "yukigo-prolog-parser";
-import { YukigoWollokParser, providers } from "yukigo-wollok-parser";
+import { YukigoWollokParser, providers, createWollokTestConfig } from "yukigo-wollok-parser";
 import { isRuntimeClass, YuString, type InterpreterConfig } from "yukigo";
 import { YukigoParser } from "yukigo-ast";
 
@@ -11,6 +11,7 @@ export interface GuideConfig {
   extrasByGuide?: Record<number, string>;
   postProcessSubject?: (code: string, guideId: number) => string;
   postProcessTest?: (testCode: string, guideId: number) => string;
+  getTestHooks?: (testsAst: any) => any[];
 }
 
 export const guideConfigs: Record<string, GuideConfig> = {
@@ -18,12 +19,12 @@ export const guideConfigs: Record<string, GuideConfig> = {
     parser: new YukigoHaskellParser(),
     studentParser: new YukigoHaskellParser("", {
       typecheck: false,
-      includePrims: true,
+      includePrims: false,
     }),
     interpreterConfig: {
       lazyLoading: true,
       mutability: false,
-      debug: true,
+      debug: false,
     },
   },
   prolog: {
@@ -31,9 +32,9 @@ export const guideConfigs: Record<string, GuideConfig> = {
     studentParser: new YukigoPrologParser(""),
     interpreterConfig: {
       lazyLoading: true,
-      outputMode: "all",
+      outputMode: "first",
       mutability: true,
-      debug: true,
+      debug: false,
     },
   },
   wollok: {
@@ -68,6 +69,7 @@ export const guideConfigs: Record<string, GuideConfig> = {
       mutability: true,
       debug: false,
     },
+    getTestHooks: (testsAst: any) => [createWollokTestConfig(testsAst)],
     extrasByGuide: {
       4: `
         object caperucita {

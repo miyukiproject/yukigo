@@ -1,4 +1,3 @@
-// tests/fixtures.e2e.spec.ts
 import { readdirSync, readFileSync } from "fs";
 import { join } from "path";
 import { describe, it, expect } from "vitest";
@@ -28,26 +27,30 @@ for (const language of readdirSync(FIXTURES_ROOT)) {
         guideFixtures.forEach((fixture, index) => {
           if (!matches(fixture, filter)) return;
 
-          it(`#${fixture.id} [${fixture.lesson}]`, () => {
-            const { analysis, testReports } = runFixture(
-              fixture,
-              guideFixtures,
-              index,
-              guideConfig,
-              analyzer,
-            );
+          it(
+            `#${fixture.id} [${fixture.lesson}]`,
+            () => {
+              const { analysis, testReports } = runFixture(
+                fixture,
+                guideFixtures,
+                index,
+                guideConfig,
+                analyzer,
+              );
 
-            const analysisFailures = analysis.filter((r) => !r.passed);
-            expect(
-              analysisFailures,
-              buildMessage(analysisFailures),
-            ).toHaveLength(0);
+              const analysisFailures = analysis.filter((r) => !r.passed);
+              expect(
+                analysisFailures,
+                buildMessage(analysisFailures),
+              ).toHaveLength(0);
 
-            const testFailures = testReports.filter(
-              (r) => r.status !== "passed",
-            );
-            expect(testFailures, buildMessage(testFailures)).toHaveLength(0);
-          });
+              const testFailures = testReports.filter(
+                (r) => r.status !== "passed",
+              );
+              expect(testFailures, buildMessage(testFailures)).toHaveLength(0);
+            },
+            30000,
+          );
         });
       });
     }

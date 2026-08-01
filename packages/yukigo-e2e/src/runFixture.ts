@@ -1,5 +1,4 @@
-// src/runFixture.ts
-import { Analyzer, Tester, type AnalysisResult, type TestReport } from "yukigo";
+import { Analyzer, Tester, MulangAdapter, type AnalysisResult, type TestReport } from "yukigo";
 import { ExerciseFixture } from "./types.js";
 import { GuideConfig } from "./guides.js";
 import {
@@ -8,6 +7,8 @@ import {
   prepareTestCode,
 } from "./prepareCode.js";
 import { createWollokTestConfig } from "yukigo-wollok-parser";
+
+const mulangAdapter = new MulangAdapter();
 
 export interface ExecutionResult {
   analysis: AnalysisResult[];
@@ -24,7 +25,13 @@ export function runFixture(
   if (!fixture.solution) return { analysis: [], testReports: [] };
   // Step 1: static analysis — student solution alone, no extras
   const studentAst = guideConfig.studentParser.parse(fixture.solution);
-  const analysis = analyzer.analyze(studentAst as any, fixture.expectations);
+  const expectations = Array.isArray(fixture.expectations)
+    ? (fixture.expectations as any[])
+    : typeof fixture.expectations === "string"
+    ? mulangAdapter.translateMulangExpectations(fixture.expectations)
+    : [];
+
+  const analysis = analyzer.analyze(studentAst as any, expectations);
 
   // Step 2: dynamic tests — full code (guide extras + resolved templates + solution)
   const subjectCode = prepareSubjectCode(
@@ -57,7 +64,7 @@ export function runFixture(
     };
 
     for (const node of testNodes) {
-      const tester = new Tester(subjectAst, config);
+      const tester = new Tester([...subjectAst, ...testsAst], config);
       testReports.push(...tester.test([node] as any));
     }
   }

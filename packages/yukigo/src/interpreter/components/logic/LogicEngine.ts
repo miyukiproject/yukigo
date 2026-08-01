@@ -67,7 +67,7 @@ type NodeSolver = (
 
 export class LogicEngine {
   private translator: LogicTranslator;
-  private readonly dispatch: Map<Function, NodeSolver>;
+  private readonly dispatch: Map<string, NodeSolver>;
 
   constructor(
     evaluator: Evaluator,
@@ -83,7 +83,7 @@ export class LogicEngine {
     this.dispatch = this.buildDispatch();
   }
 
-  private buildDispatch(): Map<Function, NodeSolver> {
+  private buildDispatch(): Map<string, NodeSolver> {
     const goalKernel = (
       node: Goal | Exist,
       substs: Substitution,
@@ -99,14 +99,14 @@ export class LogicEngine {
         },
       );
 
-    return new Map<Function, NodeSolver>([
+    return new Map<string, NodeSolver>([
       [
-        Sequence,
+        "Sequence",
         (node, substs, scope) =>
           this.solveConjunction((node as Sequence).statements, substs, scope),
       ],
       [
-        LogicConstraint,
+        "LogicConstraint",
         (node, substs, scope) =>
           this.solveConjunction(
             [(node as LogicConstraint).expression],
@@ -115,7 +115,7 @@ export class LogicEngine {
           ),
       ],
       [
-        UnifyOperation,
+        "UnifyOperation",
         (node, substs, scope) => {
           const op = node as UnifyOperation;
           return new BindCommand(
@@ -132,29 +132,29 @@ export class LogicEngine {
         },
       ],
       [
-        AssignOperation,
+        "AssignOperation",
         (node, substs, scope) =>
           this.solveAssign(node as AssignOperation, substs, scope),
       ],
       [
-        Findall,
+        "Findall",
         (node, substs, scope) =>
           this.solveFindall(node as Findall, substs, scope),
       ],
       [
-        Forall,
+        "Forall",
         (node, substs, scope) =>
           this.solveForall(node as Forall, substs, scope),
       ],
-      [Not, (node, substs, scope) => this.solveNot(node as Not, substs, scope)],
-      [Goal, (node, substs, scope) => goalKernel(node as Goal, substs, scope)],
+      ["Not", (node, substs, scope) => this.solveNot(node as Not, substs, scope)],
+      ["Goal", (node, substs, scope) => goalKernel(node as Goal, substs, scope)],
       [
-        Exist,
+        "Exist",
         (node, substs, scope) => goalKernel(node as Exist, substs, scope),
       ],
-      [If, (node, substs, scope) => this.solveIf(node as If, substs, scope)],
+      ["If", (node, substs, scope) => this.solveIf(node as If, substs, scope)],
       [
-        Call,
+        "Call",
         (node, substs, scope) => {
           const callNode = node as Call;
           return new BindCommand(
@@ -367,7 +367,7 @@ export class LogicEngine {
 
     const [head, ...tail] = nodes;
     const solver: NodeSolver =
-      this.dispatch.get(head.constructor) ??
+      this.dispatch.get(head.constructor.name) ??
       ((node, s) => this.solveCondition(node as Expression | Statement, s));
 
     const currentSubst = new Map(substs);

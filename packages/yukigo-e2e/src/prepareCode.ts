@@ -28,14 +28,15 @@ export function prepareSubjectCode(
   index: number,
   guideConfig: GuideConfig,
 ): string {
+  const solution = fixture.solution ?? "";
   const resolvedExtra = resolveTemplates(
     fixture.extra ?? "",
     guideFixtures,
     index,
   );
   const base = resolvedExtra
-    ? `${resolvedExtra}\n${fixture.solution}`
-    : fixture.solution;
+    ? `${resolvedExtra}\n${solution}`
+    : solution;
   const guideExtras = guideConfig.extrasByGuide?.[fixture.guideId];
   const withGuideExtras = guideExtras ? `${guideExtras}\n${base}` : base;
   return (
@@ -57,14 +58,10 @@ export function prepareTestCode(
     .replaceAll("/*...extra...*/", rawExtra)
     .replaceAll("//...extra...", rawExtra);
 
-  testCode = fixture.solution
-    ? testCode
-        .replaceAll("/*...content...*/", fixture.solution)
-        .replaceAll("//...content...", fixture.solution)
-    : testCode;
-
-  const guideExtras = guideConfig.extrasByGuide?.[fixture.guideId];
-  testCode = guideExtras ? `${guideExtras}\n${testCode}` : testCode;
+  const solution = fixture.solution ?? "";
+  testCode = testCode
+    .replaceAll("/*...content...*/", solution)
+    .replaceAll("//...content...", solution);
 
   return guideConfig.postProcessTest?.(testCode, fixture.guideId) ?? testCode;
 }

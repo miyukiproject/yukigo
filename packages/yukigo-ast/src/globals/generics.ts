@@ -37,8 +37,18 @@ export abstract class ASTNode {
     return this.metadata.has(key);
   }
 
+  public static [Symbol.hasInstance](instance: any): boolean {
+    if (!instance || typeof instance !== "object") return false;
+    let proto = Object.getPrototypeOf(instance);
+    while (proto) {
+      if (proto.constructor.name === this.name) return true;
+      proto = Object.getPrototypeOf(proto);
+    }
+    return false;
+  }
+
   public is<T extends ASTNode>(nodeType: new (...args: any[]) => T): this is T {
-    return this instanceof nodeType;
+    return this instanceof nodeType || this.constructor.name === nodeType.name;
   }
 
   /** @hidden */
