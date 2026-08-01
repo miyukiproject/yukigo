@@ -42,7 +42,8 @@
   },
   "release": {
     "projects": [
-      "packages/*"
+      "packages/*",
+      "!packages/yukigo-e2e"
     ],
     "projectsRelationship": "independent",
     "changelog": {
