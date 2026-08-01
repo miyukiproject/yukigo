@@ -459,11 +459,17 @@ export function OperationEvaluator<TBase extends Constructor<EvaluatorBase>>(
       });
     }
     visitArithmeticBinaryOperation(node: ArithmeticBinaryOperation) {
+      const isPlus = node.operator === "Plus";
+      const summablePair = (a: YuValue, b: YuValue) =>
+        !!a.asSummable && !!b.asSummable;
+      const numericPair = (a: YuValue, b: YuValue) =>
+        !!a.asNumeric && !!b.asNumeric;
+
       return processBinary(
         this,
         node,
         ArithmeticBinaryTable,
-        (a, b) => !!a.asNumeric && !!b.asNumeric,
+        isPlus ? summablePair : numericPair,
         "ArithmeticBinaryOperation",
       );
     }
