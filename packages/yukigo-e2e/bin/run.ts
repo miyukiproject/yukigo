@@ -16,5 +16,10 @@ if (argv.guide !== undefined) env.YUKIGO_E2E_GUIDE = String(argv.guide);
 if (argv.lesson) env.YUKIGO_E2E_LESSON = argv.lesson;
 if (argv.exercise !== undefined) env.YUKIGO_E2E_EXERCISE = String(argv.exercise);
 
-const result = spawnSync('npx', ['vitest', 'run'], { stdio: 'inherit', env });
+const result = spawnSync('npx', ['vitest', 'run'], { stdio: 'inherit', env, shell: true });
+
+if (result.error) {
+  console.error('Failed to spawn vitest:', result.error);
+}
+
 process.exit(result.status ?? 1);
