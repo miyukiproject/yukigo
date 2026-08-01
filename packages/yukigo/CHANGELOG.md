@@ -1,3 +1,48 @@
+## 0.3.0 (2026-08-01)
+
+### 🚀 Features
+
+- Interpreter NativeBody support & YukigoHooks ([0b854b4](https://github.com/miyukiproject/yukigo/commit/0b854b4))
+- **interpreter:** implement semantic error handling and stack traces ([b61768f](https://github.com/miyukiproject/yukigo/commit/b61768f))
+- **interpreter:** integrate Kernel as the primary execution engine ([503af3d](https://github.com/miyukiproject/yukigo/commit/503af3d))
+- **interpreter:** introduce YukigoKernel and command-based infrastructure ([9380892](https://github.com/miyukiproject/yukigo/commit/9380892))
+- **yukigo:** implement and test YukigoKernel ([3d42ac4](https://github.com/miyukiproject/yukigo/commit/3d42ac4))
+
+### 🩹 Fixes
+
+- **yukigo-e2e:** fixes to pass E2E tests ([02d895f](https://github.com/miyukiproject/yukigo/commit/02d895f))
+- **yukigo:** allow concatenation with Plus operator ([7799416](https://github.com/miyukiproject/yukigo/commit/7799416))
+- **yukigo:** fix circular dependency ([64534a8](https://github.com/miyukiproject/yukigo/commit/64534a8))
+- **yukigo:** failed test didnt throw bc now it handles 1 + "a" ([23ebeb6](https://github.com/miyukiproject/yukigo/commit/23ebeb6))
+- **yukigo:** zero-arity functions and Wollok bugs ([995dad4](https://github.com/miyukiproject/yukigo/commit/995dad4))
+- **yukigo:** ObjectRuntime error should return RaiseCommand not FailCommand ([ccb31fa](https://github.com/miyukiproject/yukigo/commit/ccb31fa))
+- **yukigo:** method registration with arity to allow overload ([8ffcb36](https://github.com/miyukiproject/yukigo/commit/8ffcb36))
+- TypeSignature is not a Binding ([13c2c5a](https://github.com/miyukiproject/yukigo/commit/13c2c5a))
+- **yukigo:** support If and Call nodes in LogicEngine ([a0f4086](https://github.com/miyukiproject/yukigo/commit/a0f4086))
+- **yukigo:** fixed functional tester was evaluating logic tests ([914310e](https://github.com/miyukiproject/yukigo/commit/914310e))
+- **yukigo:** solved scope leak at logical binary operations ([8779899](https://github.com/miyukiproject/yukigo/commit/8779899))
+- ToString operator ([f5284ab](https://github.com/miyukiproject/yukigo/commit/f5284ab))
+- **yukigo:** fix pattern matching in FunctionRuntime ([467cdf7](https://github.com/miyukiproject/yukigo/commit/467cdf7))
+- **yukigo:** fix bitwise negation ([b13ef4d](https://github.com/miyukiproject/yukigo/commit/b13ef4d))
+- **yukigo:** fix asynchronous logic unification and parameter resolution ([e467068](https://github.com/miyukiproject/yukigo/commit/e467068))
+- **yukigo:** arreglo operaciones y sustitucion logica ([c95f33f](https://github.com/miyukiproject/yukigo/commit/c95f33f))
+- fix parsers grammar compilation to export to .cjs ([ef59727](https://github.com/miyukiproject/yukigo/commit/ef59727))
+- **yukigo:** fix tests to reflect correct representations ([76b1512](https://github.com/miyukiproject/yukigo/commit/76b1512))
+- **yukigo:** fix Visitor and LazyRuntime to use new correct methods from context ([0eb9168](https://github.com/miyukiproject/yukigo/commit/0eb9168))
+- **yukigo:** arreglos en logicengine ([0604555](https://github.com/miyukiproject/yukigo/commit/0604555))
+- **yukigo:** fix mini error in oop test ([b9fd07e](https://github.com/miyukiproject/yukigo/commit/b9fd07e))
+- **yukigo:** removed unwanted error handling ([0d1ff15](https://github.com/miyukiproject/yukigo/commit/0d1ff15))
+- **yukigo:** replace instanceof with .is method in analyzer ([d953413](https://github.com/miyukiproject/yukigo/commit/d953413))
+- **yukigo:** add InterpreterConfig as export ([280146c](https://github.com/miyukiproject/yukigo/commit/280146c))
+
+### 🧱 Updated Dependencies
+
+- Updated yukigo-ast to 0.3.0
+
+### ❤️ Thank You
+
+- noiseArch
+
 ## 0.2.3 (2026-05-02)
 
 ### 🩹 Fixes

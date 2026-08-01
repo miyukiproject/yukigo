@@ -1,3 +1,17 @@
+## 0.2.0 (2026-08-01)
+
+### 🩹 Fixes
+
+- fix parsers grammar compilation to export to .cjs ([ef59727](https://github.com/miyukiproject/yukigo/commit/ef59727))
+
+### 🧱 Updated Dependencies
+
+- Updated yukigo-ast to 0.3.0
+
+### ❤️ Thank You
+
+- noiseArch
+
 ## 0.1.3 (2026-05-01)
 
 ### 🧱 Updated Dependencies

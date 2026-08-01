@@ -1,3 +1,23 @@
+## 0.2.0 (2026-08-01)
+
+### 🚀 Features
+
+- Wollok native methods support ([8886fd0](https://github.com/miyukiproject/yukigo/commit/8886fd0))
+
+### 🩹 Fixes
+
+- **yukigo:** zero-arity functions and Wollok bugs ([995dad4](https://github.com/miyukiproject/yukigo/commit/995dad4))
+- **yukigo:** arreglar fallo en throwsException ([a417e7d](https://github.com/miyukiproject/yukigo/commit/a417e7d))
+
+### 🧱 Updated Dependencies
+
+- Updated yukigo-ast to 0.3.0
+- Updated yukigo to 0.3.0
+
+### ❤️ Thank You
+
+- noiseArch
+
 ## 0.1.3 (2026-05-01)
 
 ### 🧱 Updated Dependencies

@@ -1,3 +1,19 @@
+## 0.2.0 (2026-08-01)
+
+### 🩹 Fixes
+
+- **yukigo-prolog-parser:** incorrect assertion negation parsing resulted in null ([d9ef7b0](https://github.com/miyukiproject/yukigo/commit/d9ef7b0))
+- **prolog-parser:** fixed parser only accepted :- ([292459b](https://github.com/miyukiproject/yukigo/commit/292459b))
+- fix parsers grammar compilation to export to .cjs ([ef59727](https://github.com/miyukiproject/yukigo/commit/ef59727))
+
+### 🧱 Updated Dependencies
+
+- Updated yukigo-ast to 0.3.0
+
+### ❤️ Thank You
+
+- noiseArch
+
 ## 0.1.3 (2026-05-01)
 
 ### 🧱 Updated Dependencies

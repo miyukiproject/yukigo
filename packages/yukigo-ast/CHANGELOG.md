@@ -1,3 +1,19 @@
+## 0.3.0 (2026-08-01)
+
+### 🚀 Features
+
+- Wollok native methods support ([8886fd0](https://github.com/miyukiproject/yukigo/commit/8886fd0))
+
+### 🩹 Fixes
+
+- **yukigo-e2e:** fixes to pass E2E tests ([02d895f](https://github.com/miyukiproject/yukigo/commit/02d895f))
+- **yukigo:** replace instanceof with .is method in analyzer ([d953413](https://github.com/miyukiproject/yukigo/commit/d953413))
+- **haskell-parser:** fix bad fallback in DeclarationCollector ([a537aa1](https://github.com/miyukiproject/yukigo/commit/a537aa1))
+
+### ❤️ Thank You
+
+- noiseArch
+
 ## 0.2.1 (2026-05-01)
 
 This was a version bump only for yukigo-ast to align it with other projects, there were no code changes.
