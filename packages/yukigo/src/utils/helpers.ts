@@ -1,9 +1,33 @@
 import { parseDocument } from "yaml";
 import { InspectionRule } from "../analyzer/index.js";
 import { NativeExtension } from "../interpreter/utils.js";
-import { RuntimeContext } from "../interpreter/components/RuntimeContext.js";
-import { YuValue } from "../interpreter/index.js";
 import { YukigoHook } from "../interpreter/components/hooks/YukigoHook.js";
+
+const V0_INSPECTIONS_Has = [
+  "HasComposition",
+  "HasComprehension",
+  "HasForeach",
+  "HasIf",
+  "HasGuards",
+  "HasConditional",
+  "HasLambda",
+  "HasRepeat",
+  "HasWhile",
+  "HasAnonymousVariable",
+  "HasNot",
+  "HasForall",
+  "HasFindall",
+];
+
+const V0_INSPECTIONS_Declares: Map<string, string> = new Map([
+  ["HasBinding", "Declares"],
+  ["HasTypeDeclaration", "DeclaresTypeAlias"],
+  ["HasTypeSignature", "DeclaresTypeSignature"],
+  ["HasVariable", "DeclaresVariable"],
+  ["HasArity", "DeclaresComputationWithArity"],
+  ["HasDirectRecursion", "DeclaresRecursively"],
+  ["HasUsage", "Uses"],
+]);
 
 type MulangInspection = {
   inspection: string;
@@ -34,7 +58,7 @@ export class MulangAdapter {
   public translateMulangInspection(mulangInspection: any): InspectionRule {
     if (!isValidFormat(mulangInspection))
       throw new Error(
-        `Skipping malformed Mulang inspection entry: ${mulangInspection}`
+        `Skipping malformed Mulang inspection entry: ${mulangInspection}`,
       );
 
     const inspection: string[] = mulangInspection.inspection.split(":");
@@ -42,8 +66,10 @@ export class MulangAdapter {
       inspection[0] !== "Not" && inspection[0] !== "Except";
     const args: string[] = inspection.slice(expected ? 1 : 2);
 
+    const inspectionV0 = expected ? inspection[0] : inspection[1];
+    const inspectionV2 = this.translateV0Inspection(inspectionV0);
     return {
-      inspection: expected ? inspection[0] : inspection[1],
+      inspection: inspectionV2,
       expected,
       args,
       binding: mulangInspection.binding,
@@ -51,7 +77,7 @@ export class MulangAdapter {
   }
 
   public translateMulangExpectations(
-    mulangYamlString: string
+    mulangYamlString: string,
   ): InspectionRule[] {
     if (!mulangYamlString) return [];
     const parsedYaml = parseDocument(mulangYamlString).toJS();
@@ -65,17 +91,23 @@ export class MulangAdapter {
       expectations = parsedYaml.expectations;
     } else {
       throw new Error(
-        "Invalid Mulang YAML structure. Expected 'expectations' to be an array."
+        "Invalid Mulang YAML structure. Expected 'expectations' to be an array.",
       );
     }
 
-    const inspectionRules: InspectionRule[] = [];
-
-    for (const mulangInspection of expectations) {
-      const inspection = this.translateMulangInspection(mulangInspection);
-      inspectionRules.push(inspection);
-    }
-
+    const inspectionRules: InspectionRule[] = expectations.map((insp) =>
+      this.translateMulangInspection(insp),
+    );
     return inspectionRules;
+  }
+
+  private translateV0Inspection(inspection: string): string {
+    if (V0_INSPECTIONS_Declares.has(inspection))
+      return V0_INSPECTIONS_Declares.get(inspection)!;
+
+    if (V0_INSPECTIONS_Has.includes(inspection))
+      return inspection.replace("Has", "Uses");
+
+    return inspection;
   }
 }

@@ -32,15 +32,5 @@
     "node_modules",
     "dist"
   ],
-  "references": [
-    {
-      "path": "../../packages/yukigo-ast"
-    },
-    {
-      "path": "../../packages/yukigo-prolog-parser"
-    },
-    {
-      "path": "../../packages/yukigo-haskell-parser"
-    }
-  ]
+  "references": []
 }

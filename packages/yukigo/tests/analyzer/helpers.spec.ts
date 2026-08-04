@@ -33,7 +33,7 @@ expectations:
       mulangAdapter.translateMulangExpectations(mulangExpectations);
     assert.deepEqual(yukigoExpectations, [
       {
-        inspection: "HasBinding",
+        inspection: "Declares",
         binding: "squareList",
         args: [],
         expected: true,
@@ -51,7 +51,7 @@ expectations:
         expected: true,
       },
       {
-        inspection: "HasBinding",
+        inspection: "Declares",
         binding: "doble",
         args: [],
         expected: false,

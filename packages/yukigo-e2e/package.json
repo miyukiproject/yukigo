@@ -10,11 +10,11 @@
   "dependencies": {
     "js-yaml": "^4.1.0",
     "yargs": "^17.7.2",
-    "yukigo": "^0.2.0",
-    "yukigo-ast": "^0.2.0",
-    "yukigo-haskell-parser": "^0.1.2",
-    "yukigo-prolog-parser": "^0.1.2",
-    "yukigo-wollok-parser": "^0.1.2",
+    "yukigo": "^0.3.1",
+    "yukigo-ast": "^0.3.1",
+    "yukigo-haskell-parser": "^0.2.1",
+    "yukigo-prolog-parser": "^0.2.1",
+    "yukigo-wollok-parser": "^0.2.1",
     "zod": "^3.23.8"
   },
   "devDependencies": {
