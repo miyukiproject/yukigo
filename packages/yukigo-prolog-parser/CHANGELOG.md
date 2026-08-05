@@ -1,3 +1,9 @@
+## 0.2.4 (2026-08-05)
+
+### 🧱 Updated Dependencies
+
+- Updated yukigo-ast to 0.3.3
+
 ## 0.2.3 (2026-08-05)
 
 This was a version bump only for yukigo-prolog-parser to align it with other projects, there were no code changes.

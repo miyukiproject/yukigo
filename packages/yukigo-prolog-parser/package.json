@@ -1,6 +1,6 @@
 {
   "name": "yukigo-prolog-parser",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "",
   "type": "module",
   "main": "dist/index.js",
@@ -27,6 +27,6 @@
     }
   },
   "peerDependencies": {
-    "yukigo-ast": "^0.3.2"
+    "yukigo-ast": "^0.3.3"
   }
 }

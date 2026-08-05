@@ -1,3 +1,18 @@
+## 0.3.3 (2026-08-05)
+
+### 🩹 Fixes
+
+- **yukigo:** Fix MulangAdapter target suffix and matcher ([4d0a988](https://github.com/miyukiproject/yukigo/commit/4d0a988))
+- **yukigo:** fix v0 Mulang Inspections translation ([2995ccc](https://github.com/miyukiproject/yukigo/commit/2995ccc))
+
+### 🧱 Updated Dependencies
+
+- Updated yukigo-ast to 0.3.3
+
+### ❤️ Thank You
+
+- noiseArch
+
 ## 0.3.2 (2026-08-05)
 
 ### 🩹 Fixes
