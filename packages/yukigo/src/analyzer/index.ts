@@ -19,11 +19,20 @@ export type AnalysisResult = {
   error?: string;
 };
 
+export type TargetSuffix = "named" | "like" | "except";
+
+export type InspectionMatcher = {
+  type: string;
+  value?: string;
+};
+
 export type InspectionRule = {
   inspection: string;
   binding?: string;
   args?: string[];
   expected: boolean;
+  targetSuffix?: TargetSuffix;
+  matcher?: InspectionMatcher;
 };
 
 export const DefaultInspectionSet: InspectionMap = {

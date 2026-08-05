@@ -34,9 +34,10 @@ expectations:
     assert.deepEqual(yukigoExpectations, [
       {
         inspection: "Declares",
-        binding: "squareList",
-        args: [],
+        binding: "*",
+        args: ["squareList"],
         expected: true,
+        targetSuffix: "named",
       },
       {
         inspection: "HasLambdaExpression",
@@ -52,28 +53,117 @@ expectations:
       },
       {
         inspection: "Declares",
-        binding: "doble",
-        args: [],
+        binding: "*",
+        args: ["doble"],
         expected: false,
+        targetSuffix: "named",
       },
       {
         inspection: "Uses",
         binding: "square",
         args: ["x"],
         expected: true,
+        targetSuffix: "named",
       },
       {
         inspection: "Uses",
         binding: "squareList",
         args: ["map"],
         expected: true,
+        targetSuffix: "named",
       },
       {
         inspection: "Uses",
         binding: "squareList",
         args: ["map"],
         expected: false,
+        targetSuffix: "named",
       },
+    ]);
+  });
+  it("translates mulang's expectations with target suffixes and matchers", () => {
+    const mulangAdapter = new MulangAdapter();
+    const expectations = `
+expectations:
+  - !ruby/hash:ActiveSupport::HashWithIndifferentAccess
+    binding: "*"
+    inspection: Calls:foo:except:WithNumber:4
+  - !ruby/hash:ActiveSupport::HashWithIndifferentAccess
+    binding: "*"
+    inspection: Calls:bar:like:WithAnything
+  - !ruby/hash:ActiveSupport::HashWithIndifferentAccess
+    binding: "*"
+    inspection: Calls:baz:WithTrue
+  - !ruby/hash:ActiveSupport::HashWithIndifferentAccess
+    binding: "*"
+    inspection: Calls:WithAnything
+`;
+    const yukigoExpectations = mulangAdapter.translateMulangExpectations(expectations);
+    assert.deepEqual(yukigoExpectations, [
+      {
+        inspection: "Calls",
+        binding: "*",
+        args: ["foo"],
+        expected: true,
+        targetSuffix: "except",
+        matcher: {
+          type: "with_number",
+          value: "4"
+        }
+      },
+      {
+        inspection: "Calls",
+        binding: "*",
+        args: ["bar"],
+        expected: true,
+        targetSuffix: "like",
+        matcher: {
+          type: "with_anything",
+          value: undefined
+        }
+      },
+      {
+        inspection: "Calls",
+        binding: "*",
+        args: ["baz"],
+        expected: true,
+        targetSuffix: "named",
+        matcher: {
+          type: "with_true",
+          value: undefined
+        }
+      },
+      {
+        inspection: "Calls",
+        binding: "*",
+        args: [],
+        expected: true,
+        matcher: {
+          type: "with_anything",
+          value: undefined
+        }
+      }
+    ]);
+  });
+  it("translates correctly expectations that provide arguments in the args property instead of the inspection string", () => {
+    const mulangAdapter = new MulangAdapter();
+    const rules = [
+      {
+        binding: "cantidadRuedasMoto",
+        inspection: "HasUsage",
+        args: ["cantidadRuedasBicicleta"],
+        expected: true
+      }
+    ];
+    const yukigoExpectations = rules.map((r) => mulangAdapter.translateMulangInspection(r));
+    assert.deepEqual(yukigoExpectations, [
+      {
+        inspection: "Uses",
+        binding: "cantidadRuedasMoto",
+        args: ["cantidadRuedasBicicleta"],
+        expected: true,
+        targetSuffix: "named"
+      }
     ]);
   });
   it("detects correctly YukigoPrimitive", () => {
