@@ -13,7 +13,8 @@
     "graph": "nx graph",
     "build:diagrams": "tsx scripts/compileDiagrams.ts",
     "docs:dev": "npm run build:diagrams && npm run docs:dev --workspace=yukigo-docs",
-    "docs:gen": "npm run build:diagrams && npm run docs:gen --workspace=yukigo-docs"
+    "docs:gen": "npm run build:diagrams && npm run docs:gen --workspace=yukigo-docs",
+    "release": "tsx scripts/release.ts"
   },
   "dependencies": {
     "ts-morph": "^27.0.2"
