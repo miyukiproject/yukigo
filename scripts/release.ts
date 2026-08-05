@@ -1,16 +1,16 @@
 import { releaseVersion, releaseChangelog, releasePublish } from 'nx/release';
 import { readCachedProjectGraph, readJsonFile, writeJsonFile } from '@nx/devkit';
 import { join } from 'path';
+import { execSync } from 'child_process';
 
 async function runRelease() {
   console.log('Starting Nx Release process...');
 
-  // 1. Bump standard versions
   const { workspaceVersion, projectsVersionData } = await releaseVersion({});
 
-  // 2. Intercept and update peerDependencies
   const graph = readCachedProjectGraph();
   const packageVersions: Record<string, string> = {};
+  const updatedPkgPaths: string[] = []; // <-- Keep track of what we edit
 
   for (const [project, data] of Object.entries(projectsVersionData)) {
     const root = graph.nodes[project].data.root;
@@ -40,10 +40,16 @@ async function runRelease() {
 
     if (updated) {
       writeJsonFile(pkgPath, pkgJson);
+      updatedPkgPaths.push(pkgPath);
     }
   }
 
-  // 3. STRICTLY filter both the project list AND the version data
+  // Ensure our manual package.json edits are staged before the changelog commit
+  if (updatedPkgPaths.length > 0) {
+    execSync(`git add ${updatedPkgPaths.map(p => `"${p}"`).join(' ')}`);
+    console.log('📦 Staged peerDependency updates.');
+  }
+
   const changedProjectNames: string[] = [];
   const changedVersionData: typeof projectsVersionData = {};
 
@@ -61,16 +67,12 @@ async function runRelease() {
     return;
   }
 
-  // 4. Generate changelogs and create Git tags
-  // By passing BOTH the filtered array and filtered data object, 
-  // Nx will not complain about missing projects or try to tag unchanged ones.
   await releaseChangelog({ 
     projects: changedProjectNames,
     versionData: changedVersionData, 
     version: workspaceVersion 
   });
 
-  // 5. Publish to npm
   await releasePublish({
     projects: changedProjectNames
   });
