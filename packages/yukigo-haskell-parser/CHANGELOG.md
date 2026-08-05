@@ -1,3 +1,17 @@
+## 0.2.2 (2026-08-05)
+
+### 🩹 Fixes
+
+- **yukigo:** fix v0 Mulang Inspections translation ([2995ccc](https://github.com/miyukiproject/yukigo/commit/2995ccc))
+
+### 🧱 Updated Dependencies
+
+- Updated yukigo-ast to 0.3.2
+
+### ❤️ Thank You
+
+- noiseArch
+
 ## 0.2.1 (2026-08-01)
 
 ### 🧱 Updated Dependencies
