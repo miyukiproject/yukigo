@@ -1,3 +1,7 @@
+## 0.2.3 (2026-08-05)
+
+This was a version bump only for yukigo-prolog-parser to align it with other projects, there were no code changes.
+
 ## 0.2.2 (2026-08-05)
 
 ### 🧱 Updated Dependencies
