@@ -4,9 +4,10 @@
   "description": "",
   "type": "module",
   "main": "dist/index.js",
+  "unpkg": "dist/bundle.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "nearleyc ./src/parser/grammar.ne -o ./src/parser/grammar.cjs && tsc",
+    "build": "nearleyc ./src/parser/grammar.ne -o ./src/parser/grammar.cjs && tsc && esbuild src/index.ts --bundle --format=esm --target=es2022 --outfile=dist/bundle.js && esbuild src/index.ts --bundle --format=iife --global-name=YukigoPrologParser --target=es2022 --outfile=dist/bundle.iife.js",
     "test": "mocha --import=tsx"
   },
   "keywords": [],
@@ -24,7 +25,9 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
-    }
+    },
+    "./bundle": "./dist/bundle.js",
+    "./package.json": "./package.json"
   },
   "peerDependencies": {
     "yukigo-ast": "^0.3.4"

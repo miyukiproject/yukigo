@@ -4,14 +4,16 @@
   "description": "",
   "type": "module",
   "main": "dist/index.js",
+  "unpkg": "dist/bundle.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js",
+    "./bundle": "./dist/bundle.js",
     "./package.json": "./package.json"
   },
   "scripts": {
     "compile:grammar": "nearleyc ./src/parser/grammar.ne -o ./src/parser/grammar.cjs",
-    "build": "npm run compile:grammar && tsc -p tsconfig.build.json",
+    "build": "npm run compile:grammar && tsc -p tsconfig.build.json && esbuild src/index.ts --bundle --format=esm --target=es2022 --outfile=dist/bundle.js && esbuild src/index.ts --bundle --format=iife --global-name=YukigoHaskellParser --target=es2022 --outfile=dist/bundle.iife.js",
     "test": "mocha --import=tsx"
   },
   "keywords": [],
