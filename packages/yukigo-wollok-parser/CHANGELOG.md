@@ -1,3 +1,18 @@
+## 0.2.6 (2026-09-13)
+
+### 🚀 Features
+
+- add standalone bundles for unpkg support ([81d4a82](https://github.com/miyukiproject/yukigo/commit/81d4a82))
+
+### 🧱 Updated Dependencies
+
+- Updated yukigo-ast to 0.3.5
+- Updated yukigo to 0.3.5
+
+### ❤️ Thank You
+
+- noiseArch
+
 ## 0.2.5 (2026-08-05)
 
 ### 🧱 Updated Dependencies

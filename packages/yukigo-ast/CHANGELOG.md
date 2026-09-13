@@ -1,3 +1,7 @@
+## 0.3.5 (2026-09-13)
+
+This was a version bump only for yukigo-ast to align it with other projects, there were no code changes.
+
 ## 0.3.4 (2026-08-05)
 
 This was a version bump only for yukigo-ast to align it with other projects, there were no code changes.

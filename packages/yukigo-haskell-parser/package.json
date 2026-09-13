@@ -1,6 +1,6 @@
 {
   "name": "yukigo-haskell-parser",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "",
   "type": "module",
   "main": "dist/index.js",
@@ -26,7 +26,7 @@
     "@types/nearley": "^2.11.5"
   },
   "peerDependencies": {
-    "yukigo-ast": "^0.3.4"
+    "yukigo-ast": "^0.3.5"
   },
   "dependencies": {
     "moo": "^0.5.2",

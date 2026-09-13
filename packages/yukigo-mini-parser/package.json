@@ -1,6 +1,6 @@
 {
   "name": "yukigo-mini-parser",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "",
   "scripts": {
     "build": "nearleyc src/grammar.ne -o src/grammar.cjs && tsc && esbuild src/index.ts --bundle --format=esm --target=es2022 --outfile=dist/bundle.js && esbuild src/index.ts --bundle --format=iife --global-name=YukigoMiniParser --target=es2022 --outfile=dist/bundle.iife.js",
@@ -28,6 +28,6 @@
     "nearley": "^2.20.1"
   },
   "peerDependencies": {
-    "yukigo-ast": "^0.3.4"
+    "yukigo-ast": "^0.3.5"
   }
 }

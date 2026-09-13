@@ -1,3 +1,9 @@
+## 0.3.5 (2026-09-13)
+
+### 🧱 Updated Dependencies
+
+- Updated yukigo-ast to 0.3.5
+
 ## 0.3.4 (2026-08-05)
 
 ### 🩹 Fixes
