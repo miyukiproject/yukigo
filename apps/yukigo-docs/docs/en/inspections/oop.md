@@ -23,3 +23,12 @@
 | `UsesTemplateMethod`              | is there a class that sends a message whose corresonding method is not declared?
 
 ## Code Smells
+
+| Inspection                        | Meaning
+|-----------------------------------|------------------------------------------------------
+| `DoesNilTest`                     | is there a test agains a null value, like `if x == nil then puts 'is nil'`
+| `DoesTypeTest`                    | are there any tests against literal strings?
+| `HasTooManyMethods`               | does a given class/object/interface have too many methods?
+| `OverridesEqualOrHashButNotBoth` | does a given class override equals but not hash? or hash but not equals?
+| `ReturnsNil`                      |
+| `UsesNamedSelfReference`          | does an object reference itself by its name instead of using `self`?

@@ -34,3 +34,22 @@
 | `UsesType`                        | is the given typed used in a signature?
 
 ## Code Smells
+
+### Code Smells
+
+| Inspection                        | Meaning
+|-----------------------------------|------------------------------------------------------
+| `DiscardsExceptions`              | are exceptions discarded within an empty catch block?
+| `DoesConsolePrint`                | is there any console-print-statement like `System.out.println`, `puts` or `console.log`?
+| `HasDeclarationTypos`             | is an identifier *not* declared but a very similar one declared instead?
+| `HasEmptyIfBranches`              | has the given code an empty `if` branch?
+| `HasLongParameterList`            | does a given method/function/predicate take too many parameters?
+| `HasMisspelledIdentifiers`        | an identifier is not a domain language dictionary's word and not part of its jargon
+| `HasRedundantBooleanComparison`   |
+| `HasRedundantIf`                  | can a combination of `if`s, `assignment`s and `return`s be replaced by a boolean expression?
+| `HasRedundantLocalVariableReturn` | does a callable declare and return a variable just after declaring it?
+| `HasTooShortIdentifiers`          | whether an identifier is too short and not part of domain language's jargon
+| `HasUsageTypos`                   | is an identifier *not* called but a very similar one called instead?
+| `HasWrongCaseIdentifiers`         | whether an identifier does not match the domain language's case style
+| `IsLongCode`                      | has the code long sequences of statements?
+| `ShouldInvertIfCondition`         | has the given code an `if` with an empty `then` but a non-empty `else`?

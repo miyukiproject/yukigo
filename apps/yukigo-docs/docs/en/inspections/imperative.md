@@ -12,3 +12,10 @@
 | `UsesWhile`                       | is a `while` control structure used?
 
 ## Code Smells
+
+| Inspection                        | Meaning
+|-----------------------------------|------------------------------------------------------
+| `HasAssignmentCondition`          | is the code evaluating the result of an assignment where a boolean condition is expected?
+| `HasAssignmentReturn`             | is the code returning the result of an assignment?
+| `HasEmptyRepeat`                  | has the given code a `repeat` with empty body?
+| `HasRedundantRepeat`              | has the given code an unnecesary - 1 iteration - `repeat` statement?

@@ -10,3 +10,10 @@
 | `UsesYield`                       | is an expression yielded within a comprehension?
 
 ## Code Smells
+
+| Inspection                        | Meaning
+|-----------------------------------|------------------------------------------------------
+| `HasRedundantGuards`              |
+| `HasRedundantLambda`              |
+| `HasRedundantParameter`           |
+| `ShouldUseOtherwise`              |

@@ -10,3 +10,10 @@
 | `UsesNot`                         | is the `not` operator used?
 
 ## Code Smells
+
+| Inspection                        | Meaning
+|-----------------------------------|------------------------------------------------------
+| `HasRedundantReduction`           | is a is-operator used to unify individuals that don't require a reduction, like `X is 4`
+| `UsesCut`                         | is the logic `!` consult used?
+| `UsesFail`                        | is the logic `fail` consult used?
+| `UsesUnificationOperator`         | is the logic unification operator `=` used?
