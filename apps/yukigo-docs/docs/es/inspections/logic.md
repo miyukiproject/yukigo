@@ -1,4 +1,4 @@
-# Inspecciones Lógicas
+# Inspecciones Lógico
 
 | Inspección (v2 / v0)               | Significado
 |-----------------------------------|------------------------------------------------------

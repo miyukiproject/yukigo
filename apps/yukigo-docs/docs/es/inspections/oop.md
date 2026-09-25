@@ -1,4 +1,4 @@
-# Inspecciones de POO (Programación Orientada a Objetos)
+# Inspecciones de POO
 
 | Inspección (v2 / v0)               | Significado
 |-----------------------------------|------------------------------------------------------
