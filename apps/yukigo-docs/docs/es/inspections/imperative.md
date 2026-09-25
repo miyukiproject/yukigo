@@ -1,15 +1,14 @@
 # Inspecciones Imperativas
 
-| Inspección                         | Significado
+| Inspección (v2 / v0)               | Significado
 |-----------------------------------|------------------------------------------------------
 | `DeclaresEnumeration`             | ¿se declara una enumeración dada?
 | `DeclaresProcedure`               | ¿se declara un procedimiento dado?
-| `UsesForEach`                     | ¿se utiliza la repetición indexada procedural (foreach)?
 | `UsesForLoop`                     | ¿se utiliza un bucle for estilo C?
-| `UsesLoop`                        | ¿se utiliza alguno de los siguientes: repeat / bucle for / foreach / while?
-| `UsesRepeat`                      | ¿se utiliza la estructura de repetición repeat?
+| `UsesLoop`                        | ¿se utiliza alguno de los siguientes: repeat / bucle for / while?
+| `UsesRepeat` / `HasRepeat`        | ¿se utiliza la estructura de repetición repeat?
 | `UsesSwitch`                      | ¿se utiliza una estructura de control `switch`?
-| `UsesWhile`                       | ¿se utiliza una estructura de control `while`?
+| `UsesWhile` / `HasWhile`          | ¿se utiliza una estructura de control `while`?
 
 ## Code Smells
 
