@@ -25,6 +25,10 @@
       "cache": true
     },
     "test": {
+      "dependsOn": [
+        "^build",
+        "build"
+      ],
       "inputs": [
         "default",
         "^production",
