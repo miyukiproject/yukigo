@@ -32,5 +32,9 @@
     "node_modules",
     "dist"
   ],
-  "references": []
+  "references": [
+    {
+      "path": "../../packages/yukigo-prolog-parser"
+    }
+  ]
 }

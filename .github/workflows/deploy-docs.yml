@@ -35,8 +35,8 @@ jobs:
           npm run build -w yukigo-ast
           npm run build -w yukigo-haskell-parser
           npm run build -w yukigo-prolog-parser
-          npm run build -w yukigo-wollok-parser
           npm run build -w yukigo
+          npm run build -w yukigo-wollok-parser
 
       - name: Generate AST Docs
         run: npm run docs:gen -w yukigo-docs
