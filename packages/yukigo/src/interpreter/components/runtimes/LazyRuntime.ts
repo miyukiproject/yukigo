@@ -1,5 +1,11 @@
-import { RangeExpression, ConsExpression } from "yukigo-ast";
-import { error, raise } from "../../utils.js";
+import {
+  RangeExpression,
+  ConsExpression,
+  ListComprehension,
+  Generator as YuGenerator,
+  Expression,
+} from "yukigo-ast";
+import { error, isTrue, raise } from "../../utils.js";
 import { RuntimeContext } from "../RuntimeContext.js";
 import {
   ExecutionCommand,
@@ -223,4 +229,172 @@ export class LazyRuntime {
 
     return left.concat(right);
   }
+
+  public evaluateListComprehension(
+    node: ListComprehension,
+    evaluator: Evaluator,
+  ): ExecutionCommand {
+    const stream = this.buildComprehensionStream(node, this.context);
+
+    const hasInfiniteGen = node.generators.some(
+      (g) =>
+        g instanceof YuGenerator &&
+        g.expression instanceof RangeExpression &&
+        g.expression.end == null,
+    );
+
+    if (this.context.config.lazyLoading || hasInfiniteGen) {
+      return new StepCommand(stream);
+    }
+
+    return stream.realize();
+  }
+
+  private buildComprehensionStream(
+    node: ListComprehension,
+    ctx: RuntimeContext,
+  ): LazyList {
+    const buildClauseStream = (
+      index: number,
+      currentCtx: RuntimeContext,
+    ): LazyList => {
+      if (index >= node.generators.length) {
+        return new LazyList(() => {
+          if (!currentCtx.evaluatorFactory) {
+            return raise(
+              error(
+                "LazyRuntime.evaluateListComprehension",
+                "EvaluatorFactory not initialized",
+              ),
+            );
+          }
+          const subEval = currentCtx.evaluatorFactory(currentCtx);
+          return new BindCommand(subEval.evaluate(node.projection), (proj) => {
+            return new BindCommand(currentCtx.forceValue(proj), (forced) => {
+              return new StepCommand(new LazyStepResult(forced, null));
+            });
+          });
+        }, "ComprehensionYield", currentCtx);
+      }
+
+      const current = node.generators[index];
+
+      if (current instanceof YuGenerator) {
+        const stepGen = (
+          sourceSeq: YuSequence | null,
+          innerSeq: YuSequence | null,
+        ): ExecutionCommand => {
+          if (innerSeq) {
+            return new BindCommand(innerSeq.step(), (innerStepRes) => {
+              if (!innerStepRes.isNil) {
+                const innerResult = innerStepRes.asStepResult;
+                if (innerResult) {
+                  const nextInner = innerResult.tail?.asSequence ?? null;
+                  const tailList = new LazyList(
+                    () => stepGen(sourceSeq, nextInner),
+                    "GenTail",
+                    currentCtx,
+                  );
+                  return new StepCommand(
+                    new LazyStepResult(innerResult.head, tailList),
+                  );
+                }
+              }
+              return advanceSource(sourceSeq);
+            });
+          }
+          return advanceSource(sourceSeq);
+        };
+
+        const advanceSource = (src: YuSequence | null): ExecutionCommand => {
+          if (!src) {
+            return new StepCommand(YuNil.getInstance());
+          }
+
+          return new BindCommand(src.step(), (sourceStepRes) => {
+            if (sourceStepRes.isNil) {
+              return new StepCommand(YuNil.getInstance());
+            }
+
+            const sourceResult = sourceStepRes.asStepResult;
+            if (!sourceResult) {
+              return new StepCommand(YuNil.getInstance());
+            }
+
+            const item = sourceResult.head;
+            const nextSource = sourceResult.tail?.asSequence ?? null;
+
+            const childCtx = currentCtx.clone();
+            childCtx.pushEnv();
+            childCtx.define(current.variable.value, item);
+
+            const nextSeq = buildClauseStream(index + 1, childCtx);
+            return stepGen(nextSource, nextSeq);
+          });
+        };
+
+        return new LazyList(() => {
+          if (!currentCtx.evaluatorFactory) {
+            return raise(
+              error(
+                "LazyRuntime.evaluateListComprehension",
+                "EvaluatorFactory not initialized",
+              ),
+            );
+          }
+          const subEval = currentCtx.evaluatorFactory(currentCtx);
+          return new BindCommand(
+            subEval.evaluate(current.expression),
+            (rawSource) => {
+              return new BindCommand(
+                currentCtx.forceValue(rawSource),
+                (sourceVal) => {
+                  const seq = sourceVal.asSequence;
+                  if (!seq) {
+                    return raise(
+                      error(
+                        "LazyRuntime.evaluateListComprehension",
+                        `Expected Sequence and got ${sourceVal.getType()}`,
+                      ),
+                    );
+                  }
+                  return advanceSource(seq);
+                },
+              );
+            },
+          );
+        }, `Gen(${current.variable.value})`, currentCtx);
+      } else {
+        // Condition / Filter
+        return new LazyList(() => {
+          if (!currentCtx.evaluatorFactory) {
+            return raise(
+              error(
+                "LazyRuntime.evaluateListComprehension",
+                "EvaluatorFactory not initialized",
+              ),
+            );
+          }
+          const subEval = currentCtx.evaluatorFactory(currentCtx);
+          return new BindCommand(
+            subEval.evaluate(current as Expression),
+            (condVal) => {
+              return new BindCommand(
+                currentCtx.forceValue(condVal),
+                (cond) => {
+                  if (isTrue(cond)) {
+                    return buildClauseStream(index + 1, currentCtx).step();
+                  }
+                  return new StepCommand(YuNil.getInstance());
+                },
+              );
+            },
+          );
+        }, "ComprehensionFilter", currentCtx);
+      }
+    };
+
+    return buildClauseStream(0, ctx);
+  }
 }
+
