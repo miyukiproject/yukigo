@@ -403,64 +403,7 @@ export function ExpressionEvaluator<TBase extends Constructor<EvaluatorBase>>(
     }
 
     visitListComprehension(node: ListComprehension): ExecutionCommand {
-      const results: YuValue[] = [];
-
-      const process = (index: number): ExecutionCommand => {
-        if (index >= node.generators.length) {
-          return new BindCommand(this.evaluate(node.projection), (proj) => {
-            results.push(proj);
-            return new StepCommand(new YuArray(results));
-          });
-        }
-
-        const current = node.generators[index];
-
-        if (current instanceof YuGenerator) {
-          return new BindCommand(
-            this.evaluate(current.expression),
-            (exprResult) => {
-              return new BindCommand(
-                this.context.lazyRuntime.realizeList(exprResult),
-                (sourceListVal) => {
-                  const sourceList = sourceListVal.asSequence;
-                  if (!(sourceList instanceof YuArray))
-                    return raise(
-                      error(
-                        "visitListComprehension",
-                        `Error expected YuArray and got ${sourceListVal.getType()}`,
-                      ),
-                    );
-                  const iterateSource = (
-                    sourceIndex: number,
-                  ): ExecutionCommand => {
-                    if (sourceIndex >= sourceList.items.length)
-                      return new StepCommand(new YuArray(results));
-
-                    const item = sourceList.at(sourceIndex);
-                    const varName = current.variable.value;
-                    this.context.define(varName, item);
-
-                    return process(index + 1);
-                  };
-                  return iterateSource(0);
-                },
-              );
-            },
-          );
-        } else {
-          return new BindCommand(
-            this.evaluate(current as Expression),
-            (condition) => {
-              return isTrue(condition)
-                ? process(index + 1)
-                : new StepCommand(new YuArray(results));
-            },
-          );
-        }
-      };
-
-      this.context.pushEnv();
-      return process(0);
+      return this.context.lazyRuntime.evaluateListComprehension(node, this);
     }
     visitGenerator(node: YuGenerator): ExecutionCommand {
       return this.evaluate(node.expression);
