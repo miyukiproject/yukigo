@@ -42,6 +42,14 @@
         "^production"
       ],
       "cache": true
+    },
+    "lint": {
+      "inputs": [
+        "default",
+        "^production",
+        "{workspaceRoot}/eslint.config.mjs"
+      ],
+      "cache": true
     }
   },
   "release": {

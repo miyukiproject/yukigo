@@ -14,7 +14,8 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "mocha --import=tsx"
+    "test": "mocha --import=tsx",
+    "lint": "eslint ."
   },
   "keywords": [],
   "author": "noiseArch",

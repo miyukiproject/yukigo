@@ -10,7 +10,8 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "test": "mocha --import=tsx"
+    "test": "mocha --import=tsx",
+    "lint": "eslint ."
   },
   "dependencies": {
     "yaml": "^2.8.0",
