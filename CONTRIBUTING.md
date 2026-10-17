@@ -41,6 +41,17 @@ npm test
 npm run build
 ```
 
+### Lint the code
+
+```bash
+npm run lint
+```
+
+ESLint enforces the project's code-quality rules on every package's source
+(no explicit `any`, cyclomatic complexity ≤ 5, at most 200 lines of code per
+file, plus a strict type-aware rule set). Run `npm run lint:fix` to apply the
+automatically fixable suggestions.
+
 ## Commit Message Convention
  
 Yukigo follows [Conventional Commits](https://www.conventionalcommits.org/):

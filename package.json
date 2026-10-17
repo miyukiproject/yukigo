@@ -9,6 +9,8 @@
     "build": "nx run-many -t build",
     "test": "nx run-many -t test",
     "typecheck": "nx run-many -t typecheck",
+    "lint": "nx run-many -t lint",
+    "lint:fix": "nx run-many -t lint -- --fix",
     "e2e": "npm run e2e -w yukigo-e2e",
     "graph": "nx graph",
     "build:diagrams": "tsx scripts/compileDiagrams.ts",
@@ -20,6 +22,7 @@
     "ts-morph": "^27.0.2"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@nx/js": "^22.1.3",
     "@swc-node/register": "^1.11.1",
     "@swc/core": "^1.15.11",
@@ -28,6 +31,7 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "^24.2.0",
     "chai": "^5.2.1",
+    "eslint": "^10.12.0",
     "mocha": "^11.7.5",
     "nx": "^22.6.5",
     "tsx": "^4.20.6",

@@ -13,7 +13,8 @@
   },
   "scripts": {
     "build": "tsc && esbuild src/index.ts --bundle --format=esm --target=es2022 --external:console --outfile=dist/bundle.js && esbuild src/index.ts --bundle --format=iife --global-name=YukigoWollokParser --target=es2022 --external:console --outfile=dist/bundle.iife.js",
-    "test": "mocha --import=tsx"
+    "test": "mocha --import=tsx",
+    "lint": "eslint ."
   },
   "keywords": [],
   "author": "",

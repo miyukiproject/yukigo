@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "e2e": "tsx bin/run.ts",
-    "migrate": "tsx scripts/migration.ts"
+    "migrate": "tsx scripts/migration.ts",
+    "lint": "eslint ."
   },
   "dependencies": {
     "js-yaml": "^4.1.0",

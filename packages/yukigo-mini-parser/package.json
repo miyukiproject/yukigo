@@ -4,7 +4,8 @@
   "description": "",
   "scripts": {
     "build": "nearleyc src/grammar.ne -o src/grammar.cjs && tsc && esbuild src/index.ts --bundle --format=esm --target=es2022 --outfile=dist/bundle.js && esbuild src/index.ts --bundle --format=iife --global-name=YukigoMiniParser --target=es2022 --outfile=dist/bundle.iife.js",
-    "test": "mocha --import=tsx"
+    "test": "mocha --import=tsx",
+    "lint": "eslint ."
   },
   "type": "module",
   "main": "dist/index.js",
